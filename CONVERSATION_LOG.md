@@ -165,3 +165,67 @@ Want me to commit this snapshot now, or leave it uncommitted for now?
 
 ### [2026-08-13 17:32] USER
 commit this
+
+### [2026-08-13 18:25] ASSISTANT
+Committed to `main` as `2783f7c`:
+
+- `data/raw/scryfall_hob.json` (193 cards) + `data/raw/source_manifest.json` (frozen-snapshot metadata)
+- `LABNOTEBOOK.md` OBSERVATION entry + `CONVERSATION_LOG.md` (hook-captured)
+
+I left `.claude/hooks/.last_assistant_uuid` uncommitted â€” that's the logging hook's local dedup state, not something that should be tracked. Say the word if you'd like me to add it to `.gitignore`. Nothing pushed (you didn't ask); let me know if you want it on the remote.
+
+### [2026-08-13 18:26] USER
+push it
+
+### [2026-08-13 18:26] ASSISTANT
+Pushed â€” `d96e36e..2783f7c` is now on `origin/main`.
+
+The snapshot and lab-notebook entry are live on GitHub. `CONVERSATION_LOG.md` shows as modified again because the logging hook appended this exchange after the commit â€” that'll roll into the next commit.
+
+### [2026-08-13 18:32] USER
+ok now collect the rest of the required sources as detailed in the spec
+
+### [2026-08-13 18:38] ASSISTANT
+The spec's "Required" corpus has two remaining items beyond the Scryfall payload:
+- **`hob_release_notes.html`** + **`hob_mechanics.html`** â€” official HOB release notes & mechanics article
+- **`comprehensive_rules.txt`** â€” current Magic Comprehensive Rules
+
+Let me load the web tools and pull HOB set metadata (release date helps me get the right rules version and confirms official page timing).
+
+"The Hobbit" (`hob`) is a real expansion releasing **2026-08-14** (tomorrow). So the official release notes and mechanics article should be freshly posted. Let me locate all three sources.
+
+Found all three official pages. Let me get the current Comprehensive Rules `.txt` download URL from the rules page, and test whether the article HTML is directly downloadable (WotC pages sometimes sit behind Cloudflare/JS).
+
+All three sources are reachable:
+- Release notes & mechanics article: directly downloadable HTML (200, mechanic text present).
+- Comprehensive Rules: current TXT is dated **2026-08-07** â€” the HOB-era update (a week before release), which already incorporates hone counters and the new battle rule 310.8 the release notes mention. Exactly the "current" version the spec wants.
+
+Downloading all three to `data/raw/` and rebuilding the manifest to cover every source with hashes.
+
+Let me verify the Comprehensive Rules file is genuine (correct header, and that it actually contains the new HOB rules â€” hone counters and battle rule 310.8) before finalizing.
+
+Confirmed genuine â€” correct header, "effective as of August 7, 2026," rule 122.1j (hone counter) and rule 310.8 (non-Siege battle SBA) both present, matching what the release notes flagged. All four required sources are now in `data/raw/`. Rebuilding the manifest to cover all of them.
+
+All four required-corpus files are in place. Recording the acquisition in the lab notebook.
+
+The spec's entire **Required** source corpus is now snapshotted in `data/raw/`:
+
+| File | Source | Size | Verified |
+|---|---|---|---|
+| `scryfall_hob.json` | Scryfall `set:hob` unique cards | 1.6 MB | 193 cards, all counts âœ“ (prior turn) |
+| `hob_release_notes.html` | wizards.com release notes | 392 KB | mechanic text present âœ“ |
+| `hob_mechanics.html` | wizards.com mechanics article | 193 KB | Recruit/Storied/hone âœ“ |
+| `comprehensive_rules.txt` | media.wizards.com CR, eff. 2026-08-07 | 977 KB | rule 122.1j + 310.8 âœ“ |
+| `source_manifest.json` | â€” | 3 KB | 4-source manifest w/ hashes |
+
+Key checks:
+- **HOB is a real expansion** (Scryfall: "The Hobbit", released 2026-08-14 â€” tomorrow), so these are the freshly-posted official pages.
+- The **Comprehensive Rules are the correct HOB-era version** (effective Aug 7, 2026), not a stale one â€” it already carries the two rule changes the release notes flag (hone counters at 122.1j, the new battle SBA at 310.8).
+- Lab notebook OBSERVATION entry appended.
+
+Two honest notes: the release-notes/mechanics HTML is the full rendered page (nav/scripts included), which is fine as a raw snapshot â€” parsing extracts the content in Phase 1. And I fetched only the "Required" list; the spec doesn't require the separate Vision-Design or Update-Bulletin articles, so I left those.
+
+Want me to commit and push this, same as before?
+
+### [2026-08-13 18:38] USER
+commit and push it

@@ -253,3 +253,21 @@ Pulled the required HOB card corpus described in the build spec's "Source corpus
 **Scope note.** This is Phase 0 data acquisition only (the raw source snapshot). No normalization, no graph, no LLM — and, per the standing directive, no theory beyond the document. Still outstanding from the spec's "Required" corpus: the official HOB release notes / mechanics article and the Comprehensive Rules text; only the Scryfall payload was requested and fetched this turn.
 
 Refs: [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Source corpus", "Source snapshot", "Phase 0"); `data/raw/scryfall_hob.json`; `data/raw/source_manifest.json`
+
+---
+
+## [2026-08-13 17:55] OBSERVATION — Remaining required sources collected (release notes, mechanics article, Comprehensive Rules)
+
+Completed the spec's "Source corpus → Required" list by fetching the three non-Scryfall sources and freezing them alongside the card data. HOB is a real expansion (Scryfall set object: "The Hobbit", type `expansion`, released 2026-08-14 — the day after this fetch), so official pages are freshly posted.
+
+- **`data/raw/hob_release_notes.html`** — official release notes. Source: `https://magic.wizards.com/en/news/feature/the-hobbit-release-notes`. 392,313 bytes; SHA-256 `B3E701A6…B716F`.
+- **`data/raw/hob_mechanics.html`** — official mechanics article (Recruit, Storied, hone). Source: `https://magic.wizards.com/en/news/feature/the-hobbit-mechanics`. 193,218 bytes; SHA-256 `FBB5E80A…C56F98`.
+- **`data/raw/comprehensive_rules.txt`** — Magic Comprehensive Rules, **effective 2026-08-07** (the HOB-era update, posted a week before release). Source: `https://media.wizards.com/2026/downloads/MagicCompRules 20260807.txt`. 976,669 bytes; SHA-256 `2ED5F1BB…C062B3`.
+
+**Verified the CR is the correct HOB-era version**, not a stale one: header reads "effective as of August 7, 2026," and it already contains the two changes the release notes flag — **rule 122.1j** ("A hone counter on an Equipment gives +1/+0…") and **rule 310.8** (non-Siege battle put into graveyard at 0 defense, an SBA). Both articles' HTML was confirmed to contain the mechanic text (Recruit/Storied/hone) before saving.
+
+`data/raw/source_manifest.json` rebuilt as a structured manifest over all four sources (id, kind, url, retrieval timestamp, SHA-256, byte size, note) for reproducibility.
+
+**Status:** the spec's entire "Required" source corpus is now snapshotted. Still Phase 0 — no normalization, no graph, no theory beyond the document. (The spec also names official mechanics coverage as "Required"; the separate Vision-Design / Update-Bulletin articles are not part of the Required list and were not fetched.)
+
+Refs: [2026-08-13 17:30] OBSERVATION — HOB Oracle-text source snapshot; [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Source corpus → Required"); `data/raw/`

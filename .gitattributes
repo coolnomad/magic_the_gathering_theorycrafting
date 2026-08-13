@@ -10,6 +10,11 @@
 # Shell scripts should stay LF everywhere.
 *.sh text eol=lf
 
+# Frozen raw source snapshots: store exact bytes, never normalize line endings,
+# so the SHA-256 hashes recorded in data/raw/source_manifest.json stay valid on
+# any checkout (reproducibility requirement of the build spec).
+data/raw/** -text
+
 # Treat common binary assets as binary (never normalized).
 *.png binary
 *.jpg binary

@@ -1,17 +1,53 @@
 {
-    "source":  "scryfall",
-    "endpoint":  "https://api.scryfall.com/cards/search",
-    "query":  "set:hob -is:extra",
-    "request_params":  {
-                           "q":  "set:hob -is:extra",
-                           "unique":  "cards",
-                           "order":  "set"
-                       },
-    "retrieved_at_utc":  "2026-08-13T21:30:18Z",
-    "pages_fetched":  2,
-    "card_count":  193,
-    "file":  "scryfall_hob.json",
-    "sha256":  "AEC896020C3C4C9649994EEB04418210D72BD5FCF25E3FB28FD605E3A993DE0C",
-    "bytes":  1633759,
-    "scryfall_note":  "Normalized unique-card query per hob-knowledge-graph-build-spec.md source corpus. Excludes extras, multilingual copies, and variations. Not the print gallery count."
+    "project":  "hob-kg source snapshot",
+    "spec":  "docs/hob-knowledge-graph-build-spec.md (Source corpus / Required)",
+    "generated_at_utc":  "2026-08-13T22:37:37Z",
+    "sources":  [
+                    {
+                        "id":  "scryfall_hob",
+                        "kind":  "card_data",
+                        "url":  "https://api.scryfall.com/cards/search",
+                        "query":  "set:hob -is:extra",
+                        "params":  {
+                                       "unique":  "cards",
+                                       "order":  "set"
+                                   },
+                        "retrieved_at_utc":  "2026-08-13T21:30:18Z",
+                        "file":  "scryfall_hob.json",
+                        "sha256":  "AEC896020C3C4C9649994EEB04418210D72BD5FCF25E3FB28FD605E3A993DE0C",
+                        "bytes":  1633759,
+                        "note":  "193 unique HOB cards. Excludes extras, multilingual copies, variations. Not the print gallery count."
+                    },
+                    {
+                        "id":  "hob_release_notes",
+                        "kind":  "release_notes",
+                        "url":  "https://magic.wizards.com/en/news/feature/the-hobbit-release-notes",
+                        "retrieved_at_utc":  "2026-08-13T22:37:37Z",
+                        "file":  "hob_release_notes.html",
+                        "sha256":  "B3E701A64F0D19FC0FA2383D379DCD70C78F127CFEC29BB2C66D857BA97B716F",
+                        "bytes":  392313,
+                        "note":  "Official HOB release notes: planned rule changes (hone counters, battle rule 310.8) and card-specific rulings."
+                    },
+                    {
+                        "id":  "hob_mechanics",
+                        "kind":  "mechanics_article",
+                        "url":  "https://magic.wizards.com/en/news/feature/the-hobbit-mechanics",
+                        "retrieved_at_utc":  "2026-08-13T22:37:37Z",
+                        "file":  "hob_mechanics.html",
+                        "sha256":  "FBB5E80AA3F3A1BAB678A45135F8E8B6CD311E62F7E5B7AB75CFD71BE4C56F98",
+                        "bytes":  193218,
+                        "note":  "Official HOB mechanics article: Recruit, Storied, hone, and set mechanics."
+                    },
+                    {
+                        "id":  "comprehensive_rules",
+                        "kind":  "comprehensive_rules",
+                        "url":  "https://media.wizards.com/2026/downloads/MagicCompRules%2020260807.txt",
+                        "effective_date":  "2026-08-07",
+                        "retrieved_at_utc":  "2026-08-13T22:37:37Z",
+                        "file":  "comprehensive_rules.txt",
+                        "sha256":  "2ED5F1BBB4F8771C84A6F2944A218428C6C5CCBA21110A5D101B9A51A4C062B3",
+                        "bytes":  976669,
+                        "note":  "Magic Comprehensive Rules, effective 2026-08-07 (HOB-era update). Includes rule 122.1j hone counters and rule 310.8."
+                    }
+                ]
 }
