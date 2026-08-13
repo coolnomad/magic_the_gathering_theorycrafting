@@ -31,3 +31,18 @@ Seed list of open questions to structure early work (each to be promoted to HYPO
 5. What observable, measurable outcomes will we use to validate models (win rate, game length, mana efficiency curves)?
 
 Refs: [2026-08-13 16:02] DECISION — Project kickoff and scope
+
+---
+
+## [2026-08-13 16:40] DECISION — Automated conversation logging via hooks
+
+Wired up append-only conversation logging so the record captures itself:
+
+- `.claude/hooks/log_user.ps1` (UserPromptSubmit) appends each user prompt.
+- `.claude/hooks/log_assistant.ps1` (Stop) parses the session transcript and appends the assistant's reply for the just-finished turn, de-duplicated by message uuid so re-fires (resume/compact) don't double-log.
+- Both registered in `.claude/settings.json` with `shell: "powershell"`; BOM-free UTF-8 appends; self-locating via `$PSScriptRoot`; fail silently so a hook error never blocks a turn.
+- Added `.gitattributes` to normalize line endings (LF in repo; `*.ps1` stays CRLF).
+
+Note: the hooks activate for a Claude Code session only after `/hooks` (or restart) if `.claude/settings.json` didn't exist at session start.
+
+Refs: [`INSTRUCTIONS.md`](./INSTRUCTIONS.md) §7

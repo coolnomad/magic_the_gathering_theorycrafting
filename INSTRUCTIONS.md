@@ -96,4 +96,9 @@ Keep entries self-contained and dated. Prefer many small entries over one giant 
 ## 7. For Claude Code Specifically
 
 - `CLAUDE.md` points here; read this whole file at session start.
-- Automatic conversation logging is most reliably done with hooks (`UserPromptSubmit` + `Stop`) in `.claude/settings.json`. If not yet configured, offer to set it up. Until then, append manually per §4.
+- **Automatic conversation logging is configured** via hooks in `.claude/settings.json`:
+  - `UserPromptSubmit` → `.claude/hooks/log_user.ps1` appends the user's prompt.
+  - `Stop` → `.claude/hooks/log_assistant.ps1` appends the assistant's response (parsed from the session transcript; de-duplicated by message uuid).
+  - These are Windows/PowerShell scripts. They fail silently (never block a turn) and locate `CONVERSATION_LOG.md` relative to themselves.
+- **Caveat:** Claude Code only watches `.claude/` for settings changes if a settings file existed when the session started. After first adding/enabling these hooks, open `/hooks` once (or restart) to activate them; the turn in which they are created is not auto-logged and should be appended by hand.
+- On a non-Windows machine, port the two scripts (e.g. to `jq`+shell) and update the `command`/`shell` fields accordingly.

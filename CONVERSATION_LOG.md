@@ -36,3 +36,15 @@ Set up the project scaffolding:
 - `LABNOTEBOOK.md` — append-only scientific record, seeded with a kickoff DECISION entry and an opening QUESTION entry.
 - `CONVERSATION_LOG.md` — this file; append-only transcript, bootstrapped with the session so far.
 Flagged that guaranteed per-turn logging is best enforced by a Claude Code hook and offered to set one up.
+
+### [2026-08-13 16:40] USER
+yes set those hooks up. add the gitattributes to normalize it.
+
+### [2026-08-13 16:40] ASSISTANT
+Built the append-only logging infrastructure (this turn appended by hand, since the hooks aren't active until `/hooks`/restart):
+- `.claude/hooks/log_user.ps1` — UserPromptSubmit hook, appends the user prompt.
+- `.claude/hooks/log_assistant.ps1` — Stop hook, parses the session transcript and appends the assistant reply, de-duplicated by message uuid.
+- `.claude/settings.json` — registers both with `shell: "powershell"`.
+- `.gitattributes` — normalizes line endings (LF in repo; `*.ps1` CRLF).
+Pipe-tested both scripts against a temp log + synthetic transcript: correct boundary detection (skips pre-prompt answers and tool_result entries), multi-part text stitching across tool calls, and working dedup. Updated `INSTRUCTIONS.md` §7 and logged a `DECISION` in `LABNOTEBOOK.md`. Told the user to run `/hooks` (or restart) to activate, and that other terminals need a restart to see `gh` on PATH.
+

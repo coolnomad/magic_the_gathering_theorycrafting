@@ -1,0 +1,24 @@
+# Normalize line endings. Text files are stored with LF in the repo and
+# checked out with the platform-native ending, so the LF->CRLF warnings stop.
+* text=auto
+
+# Windows-only scripts should keep CRLF on checkout.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shell scripts should stay LF everywhere.
+*.sh text eol=lf
+
+# Treat common binary assets as binary (never normalized).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.parquet binary
+*.npy binary
+*.npz binary

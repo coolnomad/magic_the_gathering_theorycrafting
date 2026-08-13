@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& \"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\log_user.ps1\"",
+            "timeout": 15,
+            "statusMessage": "Logging prompt to conversation log"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& \"$env:CLAUDE_PROJECT_DIR\\.claude\\hooks\\log_assistant.ps1\"",
+            "timeout": 20,
+            "statusMessage": "Logging response to conversation log"
+          }
+        ]
+      }
+    ]
+  }
+}
