@@ -237,3 +237,19 @@ Refs: [2026-08-13 16:49] EXPERIMENT — E1; [2026-08-13 16:02] QUESTION — Open
 **Scope of retraction.** Only the 16:49 block above. The 16:02 kickoff DECISION and 16:02 opening-QUESTION entries stand for now (not part of this retraction). Per append-only discipline, nothing is deleted — the retracted entries remain in the history and are voided by this notice.
 
 Refs: retracts all [2026-08-13 16:49] entries; [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md); [`INSTRUCTIONS.md`](./INSTRUCTIONS.md)
+
+---
+
+## [2026-08-13 17:30] OBSERVATION — HOB Oracle-text source snapshot fetched (Scryfall)
+
+Pulled the required HOB card corpus described in the build spec's "Source corpus → Required / Expected Scryfall payload" section and froze it as a reproducible snapshot.
+
+- **Query:** `set:hob -is:extra`, `unique=cards`, `order=set` against `https://api.scryfall.com/cards/search` (excludes extras, multilingual copies, variations — not the print gallery count).
+- **Retrieved:** 2026-08-13T21:30:18Z, 2 pages, 193 cards.
+- **Stored:** `data/raw/scryfall_hob.json` (raw card objects, UTF-8 no BOM, 1,633,759 bytes; SHA-256 `AEC896020C3C4C9649994EEB04418210D72BD5FCF25E3FB28FD605E3A993DE0C`) and `data/raw/source_manifest.json` (query, timestamp, hash, size, counts) per the spec's "Source snapshot" reproducibility requirement.
+
+**Every spec-asserted count reproduced exactly** — 193 unique cards; 168 normal / 17 Adventure / 8 Saga layouts; 17 records with no top-level `oracle_text` (Adventure faces); 23 with `produced_mana`; 49 with `all_parts`; and 10 Recruit / 9 Storied / 2 hone-counter Oracle texts. This confirms the fetched corpus is the one the document describes.
+
+**Scope note.** This is Phase 0 data acquisition only (the raw source snapshot). No normalization, no graph, no LLM — and, per the standing directive, no theory beyond the document. Still outstanding from the spec's "Required" corpus: the official HOB release notes / mechanics article and the Comprehensive Rules text; only the Scryfall payload was requested and fetched this turn.
+
+Refs: [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Source corpus", "Source snapshot", "Phase 0"); `data/raw/scryfall_hob.json`; `data/raw/source_manifest.json`

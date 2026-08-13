@@ -76,3 +76,92 @@ Appended an append-only `CORRECTION` entry to `LABNOTEBOOK.md` retracting the en
 
 
 
+
+### [2026-08-13 17:24] USER
+are you up to speed on the instructions?
+
+### [2026-08-13 17:24] ASSISTANT
+Let me actually read the instructions before claiming to be up to speed.
+
+Yes. I've re-read `INSTRUCTIONS.md`, `LABNOTEBOOK.md`, and `CONVERSATION_LOG.md`. Here's my understanding:
+
+**Mission:** Build a *mechanistic* theory of Limited MTG â€” Draft first. Explicit, falsifiable, mechanics-grounded models, not heuristics/vibes.
+
+**Append-only discipline (non-negotiable):** `LABNOTEBOOK.md` and `CONVERSATION_LOG.md` are append-only. Never edit/reorder/delete. Corrections and retractions are *new* entries that reference the originals. History (including dead ends) is preserved on purpose.
+
+**Every turn:** the exchange gets appended to `CONVERSATION_LOG.md` (user verbatim + assistant response). Science â€” definitions, hypotheses, experiments, results, decisions â€” goes into `LABNOTEBOOK.md` in the dated `## [YYYY-MM-DD HH:MM] TYPE â€” Title` format.
+
+**Working principles:** falsifiability first, define before building load-bearingly, cite reality (no vibes), preserve dead ends, small frequent commits.
+
+**Current state I'm carrying forward â€” the important part:**
+- The entire **2026-08-13 16:49 theory block was retracted** (the capacity stack L0â€“L5, resource-exchange/mana-turns, Q0/Qc, H1, the BREAD-as-value-function model, E1, etc.). That was framing *I invented* without provenance â€” voided, not deleted.
+- Per your direction, the **sole authoritative source right now is `docs/hob-knowledge-graph-build-spec.md`**. I introduce no new architectures, definitions, hypotheses, or models beyond that document until you say it's time to expand.
+- The 16:02 kickoff DECISION and opening QUESTION entries still stand.
+
+**On the hooks:** the log already contains your current message ("are you up to speed on the instructions?") at the end of `CONVERSATION_LOG.md` â€” so the `UserPromptSubmit` hook fired. Looks like your restart activated logging. I'll assume the `Stop` hook captures my replies now and won't hand-append (which would risk double-logging), but I'll keep an eye on it.
+
+One thing I haven't done yet this session is actually read the authoritative doc's contents into this context. Want me to read `docs/hob-knowledge-graph-build-spec.md` now so I'm working from it directly, or are we picking up somewhere specific?
+
+### [2026-08-13 17:25] USER
+read that doc
+
+### [2026-08-13 17:26] ASSISTANT
+Read in full. Here's what it actually is, so we're aligned on the authoritative source:
+
+**It's a build spec for one concrete deliverable** â€” a rules-grounded mechanistic knowledge graph for the **193 mechanically unique cards of *MTGâ€”The Hobbit* (HOB)**. It is *not* a theory of Limited, and it is deliberately scoped to stop short of one.
+
+**What it commits to:**
+- **Objective:** capture what each card *can* do mechanically â€” what its operations consume/produce, what states enable them, how one card's outputs can satisfy another's requirements. Pure rules-defined possibility.
+- **Hard prohibition (the epistemic spine):** no card quality, win rate, draft stats, archetype labels, ratings, or "synergizes with." Those are explicitly deferred to "later layers." Principle #7: "No value judgments." Principle #10: every asserted primitive edge needs provenance back to card face / Oracle span / comprehensive rule / release note.
+- **Graph model:** typed, directed property multigraph with reified gate/transition nodes. Cards are *not* the only nodes â€” faces, abilities, operations, events, resources, zones, object classes, counters, states, gates, costs, effects, rules. Pair relations are *derived views* (a path through intermediate nodes), never primitive asserted edges. Direction is mandatory (`Aâ†’B` â‰  `Bâ†’A`).
+- **Higher-order mechanisms as gates, not enumeration:** Storied is one distinct-object-count gate (â‰¥3 legendary/artifact/Saga â†’ `enduring_story`), explicitly *not* ~1.18M triples. Recruit, Hone, Adventure, Saga each get reusable rule templates.
+- **Pipeline:** Phase 0 freeze scope â†’ 1 deterministic normalization (no LLM) â†’ 2 mechanic templates â†’ 3 LLM semantic extraction (per-face, JSON-only, with an independent critic second pass) â†’ 4 assembly â†’ 5 derive all 37,249 ordered-pair projections by bounded path traversal â†’ 6 higher-order modules by grouping around gates.
+- **Completion / final boundary:** it establishes *"component A can produce/enable/modify/prevent/consume/satisfy something used by B, given the rules."* It explicitly does **not** establish that a pairing improves win rate, is worth drafting, or is empirical synergy â€” those need outcomes, selection/skill adjustment, and replay evidence.
+
+**How this squares with the project:** this document is the sole authoritative source right now. It is the **L1 "possibility" layer only** â€” and its own text is what draws the line I invented-then-retracted across (the L1â†’L5 gap, the "cite reality / provenance" bar). So the standing constraint is clear: I don't reintroduce quality, tempo, card-advantage, archetype, or draft-signal machinery, because *this document deliberately refuses to*. That's next-layer work you'll greenlight when it's time.
+
+I'm working from it directly now. What's next?
+
+### [2026-08-13 17:27] USER
+pull the oracle text for HOB that the document describes and store it in this repo.
+
+### [2026-08-13 17:31] ASSISTANT
+I'll fetch it from the Scryfall API exactly as the spec describes: `set:hob`, unique cards, excluding extras. First let me probe that the set exists and see what comes back.
+
+Set exists â€” 193 cards, matches the spec exactly. Now I'll page through all results, save the raw snapshot with a timestamp + hash manifest, and verify the counts the spec asserts (193 total, 17 Adventure, 8 Saga).
+
+All counts match the spec's expected payload exactly. Let me verify the three mechanic-text counts the spec also lists (10 Recruit, 9 Storied, 2 hone) to fully confirm the snapshot is the one the document describes.
+
+Every count matches the spec's expected payload precisely:
+
+| Spec expectation | Fetched | âœ“ |
+|---|---|---|
+| Unique cards | 193 | âœ“ |
+| Normal layouts | 168 | âœ“ |
+| Adventure layouts | 17 | âœ“ |
+| Saga layouts | 8 | âœ“ |
+| No top-level `oracle_text` | 17 | âœ“ |
+| `produced_mana` | 23 | âœ“ |
+| `all_parts` | 49 | âœ“ |
+| Recruit texts | 10 | âœ“ |
+| Storied texts | 9 | âœ“ |
+| hone-counter texts | 2 | âœ“ |
+
+This is exactly the corpus the document describes. Now let me record the acquisition in the lab notebook (append-only).
+
+Done. The HOB Oracle-text corpus is now stored in the repo:
+
+- **`data/raw/scryfall_hob.json`** â€” 193 raw Scryfall card objects (UTF-8, no BOM, 1.6 MB). This holds the Oracle text for all normal-layout cards at top level and the Adventure/Saga face text under `card_faces`.
+- **`data/raw/source_manifest.json`** â€” frozen-snapshot metadata (exact query, UTC retrieval timestamp, SHA-256 hash, byte size, counts), satisfying the spec's "builds must be reproducible from a frozen source snapshot" requirement.
+- Lab-notebook `OBSERVATION` entry appended recording the fetch and the count verification.
+
+The snapshot reproduces **every count the document asserts** (193 cards; 168/17/8 normal/Adventure/Saga; 17 faceless-top-level; 23 produced-mana; 49 all-parts; 10 Recruit / 9 Storied / 2 hone), so this is provably the corpus the spec describes.
+
+Two notes:
+1. This is **Phase 0 data acquisition only** â€” raw source, no normalization/graph/theory, consistent with the standing "stick to the document" directive.
+2. The spec's "Required" corpus also lists the **official HOB release notes / mechanics article** and the **Comprehensive Rules** text. You only asked for the Oracle text, so I fetched just the Scryfall payload â€” those two remain outstanding whenever you want them.
+
+Want me to commit this snapshot now, or leave it uncommitted for now?
+
+### [2026-08-13 17:32] USER
+commit this

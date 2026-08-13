@@ -1,0 +1,17 @@
+{
+    "source":  "scryfall",
+    "endpoint":  "https://api.scryfall.com/cards/search",
+    "query":  "set:hob -is:extra",
+    "request_params":  {
+                           "q":  "set:hob -is:extra",
+                           "unique":  "cards",
+                           "order":  "set"
+                       },
+    "retrieved_at_utc":  "2026-08-13T21:30:18Z",
+    "pages_fetched":  2,
+    "card_count":  193,
+    "file":  "scryfall_hob.json",
+    "sha256":  "AEC896020C3C4C9649994EEB04418210D72BD5FCF25E3FB28FD605E3A993DE0C",
+    "bytes":  1633759,
+    "scryfall_note":  "Normalized unique-card query per hob-knowledge-graph-build-spec.md source corpus. Excludes extras, multilingual copies, and variations. Not the print gallery count."
+}
