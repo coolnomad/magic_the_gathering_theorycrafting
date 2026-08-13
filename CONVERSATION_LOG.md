@@ -48,3 +48,12 @@ Built the append-only logging infrastructure (this turn appended by hand, since 
 - `.gitattributes` — normalizes line endings (LF in repo; `*.ps1` CRLF).
 Pipe-tested both scripts against a temp log + synthetic transcript: correct boundary detection (skips pre-prompt answers and tool_result entries), multi-part text stitching across tool calls, and working dedup. Updated `INSTRUCTIONS.md` §7 and logged a `DECISION` in `LABNOTEBOOK.md`. Told the user to run `/hooks` (or restart) to activate, and that other terminals need a restart to see `gh` on PATH.
 
+### [2026-08-13 16:49] USER
+keep it, and let's start on the theory
+
+### [2026-08-13 16:49] ASSISTANT
+Read the full HOB KG spec and used it to set the epistemic bar. Laid down the foundational theory block in `LABNOTEBOOK.md` (append-only): a DECISION defining the **capacity stack** (L0 rules → L1 mechanistic possibility graph = the HOB KG → L2 game-state physics → L3 deck-as-capacity-vector → L4 draft-as-sequential-decision → L5 outcomes), with the rule that a layer-N claim needs layer-≥N evidence. Then DEFINITIONs of the Limited game state + five resource primitives (cards, mana, tempo, board, life); tempo & card advantage as orthogonal axes of resource exchange measured in **mana-turns**; card quality Q0 (vacuum) vs Qc (contextual, with synergy from L1 KG paths) tied to the confounded 17Lands-style observables (ALSA/ATA/GIH WR/IWD); and "playable" as replacement-relative (VORP-style). Added HYPOTHESIS H1 (Exchange-Rate) with falsifiable predictions, a Bayesian DEFINITION of draft signals/"open," a MODEL of the pick decision as value-function maximization (subsuming BREAD), EXPERIMENT E1 to test H1 on real data, and a QUESTION entry with the roadmap/open dependencies. Noted the logging hooks are still inactive and asked where to deepen next.
+
+Detected hooks still inactive (the current user message was absent from the log), so appended this turn manually.
+
+
