@@ -56,4 +56,23 @@ Read the full HOB KG spec and used it to set the epistemic bar. Laid down the fo
 
 Detected hooks still inactive (the current user message was absent from the log), so appended this turn manually.
 
+### [2026-08-13 17:00] USER
+where did these hypotheses come from? you just invented them?
+
+### [2026-08-13 17:00] ASSISTANT
+Owned it honestly: yes, I wrote them. Broke down provenance — established Magic strategy folklore (tempo/card advantage, the clock, removal/bombs, BREAD; the 17Lands metrics and their selection-bias confound) vs. imported analogies (VORP/replacement level, Bayesian signaling) vs. my own invented synthesis (the capacity stack, resource-exchange vector, mana-turns unit, Q0/Qc, the H1 naming and predictions). Acknowledged the framing was mine, presented over-confidently and with no provenance, violating the repo's own "cite reality" rule and the KG spec's provenance principle #10. Offered three fixes: (1) provenance pass, (2) verify against real sources first, (3) rebuild bottom-up. Saved a `feedback` memory (`provenance-rigor`) about the user's standard.
+
+### [2026-08-13 17:05] USER
+3 - we'll throw out the whole packaging that you came up with. stick strictly to the document I uploaded so far. when it's time to expand I will tell you. for now, throw out your packaging - don't take any action yet.
+
+### [2026-08-13 17:05] ASSISTANT
+Confirmed option 3 and took no action as instructed. Stated the uploaded HOB KG spec is the sole authoritative source until told to expand. Asked two scoping questions for when it's time to clean up: (a) scope — just the 16:49 block or also the 16:02 opening questions / INSTRUCTIONS elaborations; (b) method — hard-delete vs. append-only retraction entry. Flagged that the log still isn't auto-capturing turns.
+
+### [2026-08-13 17:15] USER
+just the 16:49 block, leave a retraction entry. don't delete the history - just write that it's retracted. i'll next restart the session so the hooks are active.
+
+### [2026-08-13 17:15] ASSISTANT
+Appended an append-only `CORRECTION` entry to `LABNOTEBOOK.md` retracting the entire 2026-08-13 16:49 theory block (listed each retracted entry, gave the reason and the user's direction, scoped the retraction to only that block, preserved all history). Reconciled `CONVERSATION_LOG.md` with the turns since the last entry (this block). Committed and pushed. Noted the user will restart to activate the logging hooks, after which turns are captured automatically.
+
+
 

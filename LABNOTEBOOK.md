@@ -212,3 +212,28 @@ Refs: [2026-08-13 16:49] HYPOTHESIS — Exchange-Rate; [2026-08-13 16:49] DEFINI
 6. **Scope check.** The theory is format-general; the KG is HOB-specific. Decide how much to develop general theory vs. instantiate on HOB as the running example.
 
 Refs: [2026-08-13 16:49] EXPERIMENT — E1; [2026-08-13 16:02] QUESTION — Opening questions
+
+---
+
+## [2026-08-13 17:15] CORRECTION — Retract the entire 2026-08-13 16:49 theory block
+
+**The following entries are RETRACTED and must not be treated as foundational or built upon:**
+
+- [2026-08-13 16:49] DECISION — Theory architecture: the capacity stack (L0–L5)
+- [2026-08-13 16:49] DEFINITION — Limited game state and resource primitives
+- [2026-08-13 16:49] DEFINITION — Tempo and card advantage as orthogonal axes of resource exchange (mana-turns)
+- [2026-08-13 16:49] HYPOTHESIS — The Exchange-Rate Hypothesis (H1)
+- [2026-08-13 16:49] DEFINITION — Card quality: vacuum (Q0) vs contextual (Qc), and the L5 observables
+- [2026-08-13 16:49] DEFINITION — Playable and replacement level
+- [2026-08-13 16:49] DEFINITION — Draft signal and "open" (Bayesian)
+- [2026-08-13 16:49] MODEL — Draft pick as value-function maximization (BREAD reframed)
+- [2026-08-13 16:49] EXPERIMENT — First empirical test plan (E1)
+- [2026-08-13 16:49] QUESTION — Roadmap and open dependencies after the foundational block
+
+**Reason.** That block was framing/packaging I (the assistant) invented and synthesized — the capacity-stack layering, the resource-exchange formalization, the "mana-turns" tempo unit, the Q0/Qc quality split, the hypotheses, and the naming. It was not derived from the uploaded source document and carried no provenance, which violates this repo's standards (`INSTRUCTIONS.md` "cite reality"; the HOB KG spec's principle #10, "every asserted primitive edge requires provenance"). It was also presented with more confidence than warranted.
+
+**Direction (from the user).** Discard that packaging. Until further notice, the **sole authoritative source** for this project is the uploaded document `docs/hob-knowledge-graph-build-spec.md`. Do not introduce architectures, definitions, hypotheses, or models that are not in that document. The user will say when it is time to expand.
+
+**Scope of retraction.** Only the 16:49 block above. The 16:02 kickoff DECISION and 16:02 opening-QUESTION entries stand for now (not part of this retraction). Per append-only discipline, nothing is deleted — the retracted entries remain in the history and are voided by this notice.
+
+Refs: retracts all [2026-08-13 16:49] entries; [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md); [`INSTRUCTIONS.md`](./INSTRUCTIONS.md)
