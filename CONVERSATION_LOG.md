@@ -229,3 +229,60 @@ Want me to commit and push this, same as before?
 
 ### [2026-08-13 18:38] USER
 commit and push it
+
+### [2026-08-13 18:40] ASSISTANT
+The line-ending warnings matter here: these raw sources are hash-pinned in the manifest, but `.gitattributes` will normalize them, changing their bytes so a fresh checkout won't match the recorded SHA-256s. That breaks the spec's "reproducible from a frozen snapshot" guarantee. Let me check and fix before committing.
+
+`.gitattributes` normalizes everything text-like, which would rewrite the bytes of these hash-pinned snapshots. I'll exempt `data/raw/**` so the frozen sources are stored byte-exact, then renormalize the index (including the already-committed `scryfall_hob.json`) so every checkout reproduces the recorded hashes.
+
+All four hashes match the manifest, and `scryfall_hob.json` is re-staged byte-exact (the `-text` renormalize corrected the earlier normalized blob). Committing and pushing.
+
+Committed and pushed â€” `2783f7c..817994e` is now on `origin/main`.
+
+The spec's full **Required** source corpus is captured and reproducible:
+
+- `data/raw/scryfall_hob.json`, `hob_release_notes.html`, `hob_mechanics.html`, `comprehensive_rules.txt` (+ `source_manifest.json`)
+- All four SHA-256 hashes verified against the manifest, and `data/raw/** -text` in `.gitattributes` ensures every checkout reproduces those exact bytes (I also renormalized the earlier `scryfall_hob.json` blob so it's now byte-exact too).
+- Lab notebook OBSERVATION entry recorded; `CONVERSATION_LOG.md` rolled in.
+
+That completes **Phase 0 (initialize and freeze scope)** data acquisition from the spec. Nothing normalized, graphed, or theorized â€” still strictly the frozen raw snapshot, per the standing directive.
+
+The only working-tree item left is `.claude/hooks/.last_assistant_uuid` (the logging hook's local dedup state), still intentionally untracked. Whenever you're ready to move forward, the next spec step would be Phase 1 deterministic normalization â€” but I'll wait for your go.
+
+### [2026-08-13 18:40] USER
+next collect the same information but for the final fantasy set: FIN is the code. once HOB is figured out we'll transfer to FIN
+
+### [2026-08-13 18:50] ASSISTANT
+FIN = *Magic: The Gatheringâ€”Final Fantasy* (Universes Beyond), a real 2025 set. I'll run the same Phase 0 collection. To avoid filename collisions with HOB (both would have `comprehensive_rules.txt` etc.), I'll put FIN's snapshot in its own `data/raw/fin/` subdirectory. Let me pull set metadata and locate the official pages.
+
+FIN located: *Final Fantasy* (`fin`), expansion, released **2025-06-13**, **313 mechanically unique** cards (595 in the print gallery). Official pages found:
+- Release notes: `final-fantasy-release-notes`
+- Mechanics: `final-fantasy-mechanics`
+
+To mirror HOB, I'll grab the **FIN-era** Comprehensive Rules (the version shipped with FIN, which the release notes' Saga update landed in). Let me fetch all FIN cards + save them, and locate the FIN-era CR.
+
+FIN card data saved (313 unique: 263 normal, 27 transform, 15 Saga, 5 Adventure, 3 meld). The **FIN-era Comprehensive Rules are effective 2025-06-06** (the Friday before FIN's June 13 release â€” the version the Saga rules update landed in). Downloading the two articles and the FIN-era CR `.txt`.
+
+Verified â€” the FIN-era CR (effective **June 6, 2025**) is correct, including rule 714.2d (Saga with no chapter abilities â€” the FIN update), and both articles contain the FIN mechanics (Job select, Saga, Summon). Building the FIN manifest.
+
+All hashes verified. `data/raw/** -text` already covers the new `data/raw/fin/` subdir, so these are stored byte-exact too. Recording in the lab notebook.
+
+FIN's Phase 0 corpus is collected in `data/raw/fin/`, mirroring HOB:
+
+| File | Source | Size | Verified |
+|---|---|---|---|
+| `scryfall_fin.json` | Scryfall `set:fin` unique cards | 2.8 MB | 313 unique (263 normal, 27 transform, 15 Saga, 5 Adventure, 3 meld) |
+| `fin_release_notes.html` | wizards.com release notes | 1.1 MB | Job select/Saga/Summon present âœ“ |
+| `fin_mechanics.html` | wizards.com mechanics article | 191 KB | Job select/Saga/Summon present âœ“ |
+| `comprehensive_rules.txt` | CR eff. **2025-06-06** (FIN-era) | 950 KB | rule 714.2d (Saga update) âœ“ |
+| `source_manifest.json` | â€” | 4 KB | 4-source manifest, all hashes match |
+
+Notes worth flagging:
+- **Layout choice:** FIN lives in `data/raw/fin/` to avoid filename collisions with HOB (which stays at `data/raw/` root). Recorded a DECISION entry; if you'd rather symmetrize later, moving HOB into `data/raw/hob/` is easy. The `data/raw/** -text` rule already keeps FIN byte-exact.
+- **CR is FIN-era, not current** â€” effective 2025-06-06 (the version FIN shipped with), to faithfully mirror how we grabbed the HOB-era CR. It contains rule 714.2d, the Saga change the FIN release notes announce.
+- **FIN has mechanics the HOB spec doesn't template** â€” Saga creatures ("Summon"), Job select, tiered spells, transforming DFCs, meld. I noted in the notebook that these will need new Phase 2 rule templates when we transfer the pipeline, so the transfer step doesn't silently assume HOB's template set covers FIN.
+
+Two OBSERVATION + one DECISION entries appended to the lab notebook. Want me to commit and push, same as before?
+
+### [2026-08-13 18:57] USER
+commit and push it

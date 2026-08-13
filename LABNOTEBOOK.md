@@ -271,3 +271,33 @@ Completed the spec's "Source corpus → Required" list by fetching the three non
 **Status:** the spec's entire "Required" source corpus is now snapshotted. Still Phase 0 — no normalization, no graph, no theory beyond the document. (The spec also names official mechanics coverage as "Required"; the separate Vision-Design / Update-Bulletin articles are not part of the Required list and were not fetched.)
 
 Refs: [2026-08-13 17:30] OBSERVATION — HOB Oracle-text source snapshot; [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Source corpus → Required"); `data/raw/`
+
+---
+
+## [2026-08-13 18:20] DECISION — FIN (Final Fantasy) as the second target set; source layout
+
+At the user's direction, collecting the same Phase 0 source corpus for **FIN** (*Magic: The Gathering—Final Fantasy*, released 2025-06-13) as a **transfer target**: HOB is the set we figure the method out on; once the KG pipeline works on HOB it will be applied to FIN. The build spec is HOB-specific, so FIN is treated as a parallel instantiation of the spec's *method*, not a change to the spec.
+
+**Layout decision.** To avoid filename collisions (both sets have `comprehensive_rules.txt`, `source_manifest.json`, etc.), FIN's raw snapshot lives in its own subdirectory **`data/raw/fin/`**, leaving HOB's files at `data/raw/` root. This is asymmetric; if we later prefer symmetry we can move HOB into `data/raw/hob/` (deferred — the spec's literal paths reference `data/raw/scryfall_hob.json`). The `data/raw/** -text` gitattributes rule already covers the nested FIN files, so they are stored byte-exact.
+
+Refs: [2026-08-13 17:55] OBSERVATION — Remaining required sources; [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md)
+
+---
+
+## [2026-08-13 18:20] OBSERVATION — FIN source snapshot collected (mirror of HOB Phase 0)
+
+Fetched and froze the full Required corpus for FIN into `data/raw/fin/`, using the same queries/method as HOB. Retrieved 2026-08-13 (UTC ~22:xx).
+
+- **`scryfall_fin.json`** — `set:fin -is:extra`, `unique=cards`. **313 mechanically unique cards** (Scryfall set object reports 595 in the print gallery, which we deliberately do not use). Layout breakdown: **263 normal, 27 transform, 15 Saga, 5 Adventure, 3 meld**; 32 records with no top-level `oracle_text` (multi-face); 50 `produced_mana`; 74 `all_parts`. 2,767,704 bytes; SHA-256 `BE5811C5…D837B`.
+- **`fin_release_notes.html`** — `magic.wizards.com/.../final-fantasy-release-notes`. 1,055,178 bytes; SHA-256 `F7C3A995…E9821`.
+- **`fin_mechanics.html`** — `magic.wizards.com/.../final-fantasy-mechanics`. 190,879 bytes; SHA-256 `B9EAE970…C44CB3`.
+- **`comprehensive_rules.txt`** — Magic Comprehensive Rules **effective 2025-06-06** (the FIN-era version, posted the Friday before FIN's 2025-06-13 release). `media.wizards.com/2025/downloads/MagicCompRules 20250606.txt`. 949,711 bytes; SHA-256 `1ED5D0B7…8A714F`.
+- **`source_manifest.json`** — 4-source manifest (id, kind, url, timestamp, SHA-256, bytes, note) + set metadata.
+
+**Verifications.** CR header reads "effective as of June 6, 2025" and contains rule **714.2d** (Saga with no chapter abilities → final chapter number 0), the rules change the FIN release notes describe. Both articles' HTML confirmed to contain the FIN mechanics (Job select, Saga/Summon). All four working-file hashes match the manifest.
+
+**Note on new FIN mechanics vs. the HOB spec.** FIN introduces structures the HOB spec's mechanic-template library does not cover — **Saga creatures ("Summon"), Job select, tiered spells, transforming DFCs, meld**. These will need their own rule templates when the pipeline is transferred to FIN (Phase 2 work), analogous to Recruit/Storied/hone/Adventure/Saga for HOB. Recorded here so the transfer step doesn't silently assume HOB's template set suffices.
+
+**Status:** FIN Phase 0 data acquisition complete. Still no normalization, graph, or theory — raw frozen snapshot only.
+
+Refs: [2026-08-13 18:20] DECISION — FIN as second target set; [2026-08-13 17:55] OBSERVATION — Remaining required sources (HOB); `data/raw/fin/`

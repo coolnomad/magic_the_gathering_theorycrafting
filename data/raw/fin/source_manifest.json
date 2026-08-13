@@ -1,0 +1,60 @@
+{
+    "project":  "fin-kg source snapshot",
+    "spec":  "docs/hob-knowledge-graph-build-spec.md (Source corpus / Required), applied to set FIN",
+    "set":  {
+                "released_at":  "2025-06-13",
+                "code":  "fin",
+                "name":  "Final Fantasy",
+                "unique_cards":  313
+            },
+    "note":  "FIN mirror of the HOB Phase 0 source collection. Transfer target after HOB is figured out.",
+    "generated_at_utc":  "2026-08-13T22:46:04Z",
+    "sources":  [
+                    {
+                        "id":  "scryfall_fin",
+                        "kind":  "card_data",
+                        "url":  "https://api.scryfall.com/cards/search",
+                        "query":  "set:fin -is:extra",
+                        "params":  {
+                                       "unique":  "cards",
+                                       "order":  "set"
+                                   },
+                        "retrieved_at_utc":  "2026-08-13T22:46:04Z",
+                        "file":  "scryfall_fin.json",
+                        "sha256":  "BE5811C5978F201A48250A24BA174449A434F499FF27969064060E8CD20D837B",
+                        "bytes":  2767704,
+                        "note":  "313 mechanically unique FIN cards (263 normal, 27 transform, 15 saga, 5 adventure, 3 meld). Excludes extras/multilingual/variations. Not the 595 print-gallery count."
+                    },
+                    {
+                        "id":  "fin_release_notes",
+                        "kind":  "release_notes",
+                        "url":  "https://magic.wizards.com/en/news/feature/final-fantasy-release-notes",
+                        "retrieved_at_utc":  "2026-08-13T22:46:04Z",
+                        "file":  "fin_release_notes.html",
+                        "sha256":  "F7C3A9959C42078DD83F64E66620A39DFA0FCDBDAFCBF129B167962B1FCE9821",
+                        "bytes":  1055178,
+                        "note":  "Official FIN release notes: Saga SBA/turn-based rules update and card-specific notes."
+                    },
+                    {
+                        "id":  "fin_mechanics",
+                        "kind":  "mechanics_article",
+                        "url":  "https://magic.wizards.com/en/news/feature/final-fantasy-mechanics",
+                        "retrieved_at_utc":  "2026-08-13T22:46:04Z",
+                        "file":  "fin_mechanics.html",
+                        "sha256":  "B9EAE970725CFF5FF59EAEFE9F1E41C2A580381B184DFFFB0419177288C44CB3",
+                        "bytes":  190879,
+                        "note":  "Official FIN mechanics article: Job select, Saga creatures (Summon), transforming DFCs, tiered spells, etc."
+                    },
+                    {
+                        "id":  "comprehensive_rules",
+                        "kind":  "comprehensive_rules",
+                        "url":  "https://media.wizards.com/2025/downloads/MagicCompRules%2020250606.txt",
+                        "effective_date":  "2025-06-06",
+                        "retrieved_at_utc":  "2026-08-13T22:46:04Z",
+                        "file":  "comprehensive_rules.txt",
+                        "sha256":  "1ED5D0B724A03DF5E4233B45FED6E02F1EF8A6C68A61651D11206083948A714F",
+                        "bytes":  949711,
+                        "note":  "Magic Comprehensive Rules, effective 2025-06-06 (FIN-era update). Includes rule 714.2d (Saga with no chapter abilities)."
+                    }
+                ]
+}
