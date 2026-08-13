@@ -1,0 +1,348 @@
+{
+  "$defs": {
+    "ManaCost": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "title": "Raw",
+          "type": "string"
+        },
+        "symbols": {
+          "items": {
+            "$ref": "#/$defs/ManaSymbol"
+          },
+          "title": "Symbols",
+          "type": "array"
+        },
+        "generic": {
+          "default": 0,
+          "title": "Generic",
+          "type": "integer"
+        },
+        "pips": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "count of colored pip demand by color",
+          "title": "Pips",
+          "type": "object"
+        },
+        "has_variable": {
+          "default": false,
+          "title": "Has Variable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "raw"
+      ],
+      "title": "ManaCost",
+      "type": "object"
+    },
+    "ManaSymbol": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "title": "Raw",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "generic",
+            "colored",
+            "colorless",
+            "variable",
+            "hybrid",
+            "hybrid_mono",
+            "phyrexian",
+            "snow",
+            "tap",
+            "untap",
+            "energy",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "integer amount for generic symbols",
+          "title": "Value"
+        },
+        "colors": {
+          "description": "WUBRG letters this symbol can represent",
+          "items": {
+            "type": "string"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "phyrexian": {
+          "default": false,
+          "title": "Phyrexian",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "raw",
+        "kind"
+      ],
+      "title": "ManaSymbol",
+      "type": "object"
+    },
+    "ParsedTypeLine": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "title": "Raw",
+          "type": "string"
+        },
+        "supertypes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supertypes",
+          "type": "array"
+        },
+        "types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Types",
+          "type": "array"
+        },
+        "subtypes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Subtypes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "raw"
+      ],
+      "title": "ParsedTypeLine",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "A pointer back to the exact source of an asserted fact (principle #10).",
+      "properties": {
+        "card_id": {
+          "title": "Card Id",
+          "type": "string"
+        },
+        "face_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Face Id"
+        },
+        "source": {
+          "description": "e.g. 'scryfall.keywords', 'scryfall.oracle_text', 'scryfall.all_parts'",
+          "title": "Source",
+          "type": "string"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[start, end) char offsets into the cited text, when applicable",
+          "title": "Span"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "verbatim matched substring, when applicable",
+          "title": "Text"
+        },
+        "rule_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Comprehensive Rules reference, when applicable",
+          "title": "Rule Ref"
+        }
+      },
+      "required": [
+        "card_id",
+        "source"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "card_id": {
+      "title": "Card Id",
+      "type": "string"
+    },
+    "index": {
+      "title": "Index",
+      "type": "integer"
+    },
+    "role": {
+      "enum": [
+        "primary",
+        "adventure"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "type_line_raw": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Type Line Raw"
+    },
+    "type_line": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ParsedTypeLine"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "mana_cost_raw": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mana Cost Raw"
+    },
+    "mana_cost": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ManaCost"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "oracle_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Oracle Text"
+    },
+    "power": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Power"
+    },
+    "toughness": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Toughness"
+    },
+    "produced_mana": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Produced Mana",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    }
+  },
+  "required": [
+    "id",
+    "card_id",
+    "index",
+    "role",
+    "name",
+    "provenance"
+  ],
+  "title": "Face",
+  "type": "object"
+}

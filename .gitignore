@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+.venv/
+venv/
+
+# Claude Code logging-hook local dedup state (not part of the record)
+.claude/hooks/.last_assistant_uuid

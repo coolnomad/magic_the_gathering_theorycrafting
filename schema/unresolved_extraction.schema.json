@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "A pointer back to the exact source of an asserted fact (principle #10).",
+      "properties": {
+        "card_id": {
+          "title": "Card Id",
+          "type": "string"
+        },
+        "face_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Face Id"
+        },
+        "source": {
+          "description": "e.g. 'scryfall.keywords', 'scryfall.oracle_text', 'scryfall.all_parts'",
+          "title": "Source",
+          "type": "string"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[start, end) char offsets into the cited text, when applicable",
+          "title": "Span"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "verbatim matched substring, when applicable",
+          "title": "Text"
+        },
+        "rule_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Comprehensive Rules reference, when applicable",
+          "title": "Rule Ref"
+        }
+      },
+      "required": [
+        "card_id",
+        "source"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A signal whose deterministic parse was ambiguous \u2014 queued for Phase 3 LLM.\nPer the spec: never guess; emit an unresolved task instead.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "face_id": {
+      "title": "Face Id",
+      "type": "string"
+    },
+    "card_id": {
+      "title": "Card Id",
+      "type": "string"
+    },
+    "signal": {
+      "description": "the extraction kind the signal points at, e.g. 'draw'",
+      "title": "Signal",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    }
+  },
+  "required": [
+    "id",
+    "face_id",
+    "card_id",
+    "signal",
+    "reason",
+    "provenance"
+  ],
+  "title": "UnresolvedExtraction",
+  "type": "object"
+}

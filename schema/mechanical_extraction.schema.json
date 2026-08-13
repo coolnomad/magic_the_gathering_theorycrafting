@@ -1,0 +1,171 @@
+{
+  "$defs": {
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "A pointer back to the exact source of an asserted fact (principle #10).",
+      "properties": {
+        "card_id": {
+          "title": "Card Id",
+          "type": "string"
+        },
+        "face_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Face Id"
+        },
+        "source": {
+          "description": "e.g. 'scryfall.keywords', 'scryfall.oracle_text', 'scryfall.all_parts'",
+          "title": "Source",
+          "type": "string"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[start, end) char offsets into the cited text, when applicable",
+          "title": "Span"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "verbatim matched substring, when applicable",
+          "title": "Text"
+        },
+        "rule_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Comprehensive Rules reference, when applicable",
+          "title": "Rule Ref"
+        }
+      },
+      "required": [
+        "card_id",
+        "source"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "face_id": {
+      "title": "Face Id",
+      "type": "string"
+    },
+    "card_id": {
+      "title": "Card Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "draw",
+        "discard",
+        "mill",
+        "create_token",
+        "sacrifice",
+        "add_mana",
+        "put_counter",
+        "return_from_graveyard",
+        "exile",
+        "trigger_etb",
+        "trigger_dies",
+        "trigger_attacks",
+        "trigger_upkeep",
+        "trigger_end_step",
+        "activated_ability"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "quantity": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quantity"
+    },
+    "detail": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "parsed slots, e.g. {'counter_type': '+1/+1'}",
+      "title": "Detail",
+      "type": "object"
+    },
+    "qualifiers": {
+      "description": "e.g. 'another', 'up_to', 'may', 'only_once_each_turn'",
+      "items": {
+        "type": "string"
+      },
+      "title": "Qualifiers",
+      "type": "array"
+    },
+    "certainty": {
+      "default": "high",
+      "enum": [
+        "rules_explicit",
+        "high"
+      ],
+      "title": "Certainty",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    }
+  },
+  "required": [
+    "id",
+    "face_id",
+    "card_id",
+    "kind",
+    "provenance"
+  ],
+  "title": "MechanicalExtraction",
+  "type": "object"
+}

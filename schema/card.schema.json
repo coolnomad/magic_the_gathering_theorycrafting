@@ -1,0 +1,89 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "oracle_id": {
+      "title": "Oracle Id",
+      "type": "string"
+    },
+    "scryfall_id": {
+      "title": "Scryfall Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "set_code": {
+      "title": "Set Code",
+      "type": "string"
+    },
+    "collector_number": {
+      "title": "Collector Number",
+      "type": "string"
+    },
+    "layout": {
+      "title": "Layout",
+      "type": "string"
+    },
+    "rarity": {
+      "title": "Rarity",
+      "type": "string"
+    },
+    "color_identity": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Color Identity",
+      "type": "array"
+    },
+    "colors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Colors",
+      "type": "array"
+    },
+    "cmc": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cmc"
+    },
+    "keywords_scryfall": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Keywords Scryfall",
+      "type": "array"
+    },
+    "face_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Face Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "oracle_id",
+    "scryfall_id",
+    "name",
+    "set_code",
+    "collector_number",
+    "layout",
+    "rarity"
+  ],
+  "title": "Card",
+  "type": "object"
+}

@@ -286,3 +286,137 @@ Two OBSERVATION + one DECISION entries appended to the lab notebook. Want me to 
 
 ### [2026-08-13 18:57] USER
 commit and push it
+
+### [2026-08-13 19:01] ASSISTANT
+`text: unset` confirms the FIN raw files are stored byte-exact (no normalization), so their hashes stay valid. Committing and pushing.
+
+Committed and pushed â€” `817994e..ff184d2` on `origin/main`.
+
+Both sets now have frozen, hash-pinned Phase 0 corpora:
+- **HOB** (the method target) â†’ `data/raw/` â€” 193 cards + release notes + mechanics + CR (2026-08-07)
+- **FIN** (the transfer target) â†’ `data/raw/fin/` â€” 313 cards + release notes + mechanics + CR (2025-06-06)
+
+All raw files stored byte-exact (`text: unset`), manifests verify, lab notebook updated. `.claude/hooks/.last_assistant_uuid` remains the only intentionally-untracked working-tree item.
+
+Phase 0 data acquisition is complete for both sets. Whenever you're ready, the next spec step is **Phase 1 deterministic normalization** on HOB (card/face parsing, type-line + mana parsing, exact syntactic extractions â€” no LLM, no theory) â€” but I'll wait for your go before touching that.
+
+### [2026-08-13 19:02] USER
+start phase 1 normalization on HOB. first describe to me what you will do before taking any action.
+
+### [2026-08-13 19:03] ASSISTANT
+Good â€” I'll lay out the full Phase 1 plan and take no action until you approve it. This is scoped strictly to the spec's **Phase 1: deterministic normalization** ("This phase must not call an LLM") plus the agent-discipline rule "write schemas and tests before bulk LLM extraction / implement and validate deterministic normalization first."
+
+## What Phase 1 is (and is not)
+
+**Is:** turning the frozen `data/raw/scryfall_hob.json` snapshot into validated, normalized, provenance-bearing entities â€” cards, faces, tokens â€” plus deterministic, high-precision structural parses (type lines, mana, exact syntactic patterns). Pure, reproducible, LLM-free.
+
+**Is not (later phases, I won't touch):** mechanic rule-template expansion (Recruit/Storied logic) = Phase 2; LLM semantic extraction = Phase 3; global graph assembly = Phase 4; card-pair projection = Phase 5; higher-order gates = Phase 6. And no card quality / win-rate / archetype / synergy â€” the standing "no value judgments" boundary. No theory beyond the document.
+
+## The concrete steps
+
+**0. Toolchain (first action, read-only check).** Confirm Python 3 is available. I propose Python with **Pydantic v2** (models + validation), **pytest** (tests), stdlib `re`/`json` for parsing â€” the spec's recommended stack ("Python, Pydantic or JSON Schema for validationâ€¦ Do not begin with a graph database"). Dependencies get pinned in `pyproject.toml`. If you'd rather stay stdlib-only (hand-rolled JSON Schema validation, `unittest`), I'll adjust.
+
+**1. Schemas first** (discipline rule #1). Author JSON Schemas for the entities Phase 1 emits: `schema/card.schema.json`, `face.schema.json`, `token.schema.json`, `condition.schema.json`, and a `mechanical_extraction` record schema. (The full `node`/`edge`/`gate` schemas can wait until assembly, but I'll stub the shared field conventions â€” stable IDs, provenance â€” now so nothing has to be reworked.)
+
+**2. Deterministic normalization modules** under `src/hobkg/`:
+- `normalize.py` â€” `normalize_card` exactly per the spec: `id=card:{oracle_id}`, scryfall_id, name, set_code, collector_number, layout, rarity, color_identity. Adventure layout â†’ one face node per `card_faces` entry (both preserved independently); everything else â†’ single top-level face. Sagas normalize as a single face carrying chapter text.
+- `types.py` â€” type-line parser splitting supertypes / card types / subtypes around the em dash, using the spec's `KNOWN_SUPERTYPES` / `KNOWN_TYPES` sets, **preserving raw text**.
+- `mana.py` â€” structural mana-symbol parser (generic, colored, hybrid, Phyrexian, variable `{X}`, `{C}`, tap). Emits mana **cost** structures (`HAS_COST`) and, from Scryfall `produced_mana`, mana **production** as resource relations, plus payment-capability facts (colored pays its pip + generic; colorless pays `{C}` + generic; **never** colored â†’ a different colored pip) â€” verbatim from the spec's rules.
+- token/component handling â€” use `all_parts` where present but verify the linked component against Oracle text; create token-spec nodes even when a link is absent.
+- keyword handling â€” store Scryfall `keywords` and detect named HOB mechanics (Recruit, Storied, hone, Adventure, Saga) by Oracle-text pattern, **but only record their presence**. Expanding them into rule templates is Phase 2, deliberately deferred to keep Phase 1 pure normalization.
+- `extract_mechanical.py` â€” the spec's "exact syntactic extractions": conservative regex for `create â€¦ token`, `draw N`, `discard`, `mill N`, `sacrifice`, `add {mana}`, `put â€¦ counter`, `return â€¦ from graveyard`, `exile`, ETB/death/attack/upkeep/end-step triggers, the `cost: effect` activated-ability delimiter, and the `other`/`another`/`up to`/`may`/`only once each turn` qualifiers. **Only emit a primitive edge when the parse is unambiguous**; everything else becomes an entry in an unresolved-tasks queue for the Phase 3 LLM (I do not guess).
+
+**3. Outputs** (spec's deliverable paths): `data/normalized/cards.jsonl`, `faces.jsonl`, `tokens.jsonl`; `data/rules/mechanics.jsonl`, `conditions.jsonl`; and `reports/unresolved.md` + `reports/coverage.md`. Every asserted primitive carries provenance (card id, Oracle-text span, and rule ref where applicable) per principle #10.
+
+**4. Tests** (discipline rule #3, "test on Recruit and Storied as vertical slices"): `test_normalize.py`, `test_mana.py`, `test_adventure.py`, and invariant tests from the spec's list that are in-scope for Phase 1 â€” 193 cards each represented once; every Adventure has exactly 2 face nodes with correct roles; 8 Sagas; mana payment logic (blue pays blue+generic, not white â€” tested on a HOB blue source or a synthetic fixture, since basics may not be in the 193); `other`/`another` self-exclusion. Recruit/Storied full-gate semantics are Phase 2, so those tests come later.
+
+**5. Validate + report.** Run schema validation over all emitted records, then generate the coverage report (cards/faces parsed, extractions by type, unresolved-clause count) â€” with the spec's caveat recorded: "coverage is not correctness; do not maximize edge count."
+
+I'll keep everything idempotent/resumable, preserve all unrelated files, and append a `DECISION` (kickoff) + `OBSERVATION` (results) to `LABNOTEBOOK.md`.
+
+## Decisions I'd like from you before I start
+
+1. **Repo layout.** The spec's tree is rooted at `hob-kg/`, but our Phase 0 data already lives at **repo root** (`data/raw/â€¦`). I recommend continuing at repo root (`data/`, `schema/`, `src/hobkg/`, `tests/`, `reports/`) for consistency rather than nesting a `hob-kg/` subdir. OK?
+2. **Toolchain.** Python + Pydantic v2 + pytest (my recommendation), or stdlib-only? This will need a `pip install` into a venv â€” fine to proceed?
+3. **Extraction ambition for this phase.** I plan to emit only *unambiguous* mechanical primitives now and queue everything else for Phase 3, exactly as the spec says. If you'd instead prefer Phase 1 stop at pure entity normalization (cards/faces/tokens/type/mana) and leave *all* syntactic edge-extraction for a dedicated later pass, tell me and I'll trim scope.
+
+Once you confirm (or adjust) these three, I'll begin with the toolchain check and schemas.
+
+### [2026-08-13 19:07] USER
+1. yes ok. 2. yes, fine. 3. stay in line with the spec.
+
+### [2026-08-13 19:32] ASSISTANT
+Approved on all three. Starting with the toolchain check.
+
+Toolchain is ready â€” Python 3.14, Pydantic 2.12.5, pytest 9.0.2, no installs needed. Before writing parsers, let me inspect the actual shape of the raw HOB data (field presence, and concrete examples of each layout) so the normalization matches reality rather than assumptions.
+
+PowerShell doesn't do heredocs. Using the Bash tool instead.
+
+Now I have the real data shape. Key facts that will drive the parsers:
+- Em dash separator is ` â€” ` (U+2014); the `ï¿½` is just console rendering. Faces split on ` // `.
+- 176 top-level `oracle_text`, 17 without = the Adventure cards (they carry `card_faces`). Sagas are single-face with chapter text.
+- HOB's named mechanics **Recruit / Storied / hone are NOT in Scryfall `keywords`** â€” only in Oracle text â€” so detection must combine both, exactly as the spec warns.
+- `all_parts` carries token components (e.g., Treasure) plus a self `combo_piece`.
+
+I'll scaffold the project at repo root now. Starting with `pyproject.toml` and the Pydantic models (schemas-first).
+
+Now the exact syntactic extractor â€” conservative, high-precision, with ambiguous signals routed to an unresolved queue (never guessed), per the spec.
+
+Now the orchestration pipeline + CLI, and schema export from the models.
+
+Now the tests, including vertical slices on Recruit/Storied and real-data invariants.
+
+Now let me run the test suite.
+
+Two failures â€” one is a test-window issue (qualifiers only scanned inside the matched span), the other is a real surprise: only 1 card detected for Recruit vs. the expected 10. Let me inspect the actual data before fixing, rather than guess.
+
+Found it: the Recruit keyword action is written **lowercase** mid-sentence ("...enters, recruit.") â€” only the Saga chapter capitalizes it. My case-sensitive pattern caught just the Saga. Case-insensitive gives exactly 10, matching Phase 0. Two fixes: make the mechanic lexicon case-insensitive, and scan qualifiers over the enclosing clause rather than only the matched span.
+
+All 26 tests pass. Now running the pipeline to generate the Phase 1 deliverables.
+
+The package isn't installed; `src` needs to be on the path. I'll set `PYTHONPATH=src` for the run (matching the pytest config).
+
+Pipeline runs clean and validates. Named mechanics reproduce Phase 0 exactly (Recruit 10 / Storied 9 / Hone 2); 193 cards, 210 faces, all 17 Adventures with 2 faces, 8 Sagas. Let me spot-check the reports and a Recruit vertical slice end-to-end.
+
+The Recruit slice works (draw/discard/create_token/ETB all parsed). But this surfaces a spec-alignment issue: those draw/discard/create_token spans come from **reminder text** (the parenthetical). Per the spec's keyword rule â€” "Expand named mechanics from the official rule library, not from reminder text independently on every card" â€” reminder text is rules-redundant (CR 207.2) and extracting from it both misattributes (e.g., a Treasure's "Add one mana" would be pinned on the card that makes it) and duplicates the Phase 2 template work. The correct Phase 1 behavior is to strip parenthetical reminders before syntactic extraction. Let me fix that.
+
+Now updating the extractor tests: the existing "reminder" test actually feeds bare operative text (valid for cards that literally say "Draw a card"), and I'll add an explicit reminder-stripping test.
+
+Reminder-stripping is working â€” extractions dropped 365â†’267 (the spurious Treasure "add mana"/reminder-derived ones are gone), named mechanics still 10/9/2, 27 tests pass. Let me do a final validation, view the full coverage report, and set up a `.gitignore` for Python artifacts.
+
+Right â€” heredoc doesn't work in PowerShell. Splitting the commands.
+
+Patient Instructor now correctly yields only `trigger_etb` (its Recruit mechanic is captured in `mechanics.jsonl`; the draw/discard/token are deferred to the Phase 2 template â€” exactly right). Let me add a `.gitignore` for Python artifacts and see the full working-tree picture.
+
+Working tree is clean (no stray artifacts â€” the `.gitignore` is doing its job). Now recording Phase 1 in the lab notebook.
+
+Phase 1 deterministic normalization on HOB is built, tested, and validated. Summary:
+
+## What I built
+A Python package at `src/hobkg/` (Pydantic v2 + pytest), run via `python -m hobkg.cli normalize|validate|schemas`:
+- `normalize.py` â€” card/face split (Adventures keep both faces), token specs from `all_parts`
+- `types.py` â€” type-line parser (supertypes/types/subtypes, raw preserved)
+- `mana.py` â€” structural mana-symbol parser + payment rules (colored pays its pip + generic, **never** a foreign pip)
+- `mechanics.py` â€” named-mechanic detection (Recruit/Storied/hone) from Oracle text
+- `extract_mechanical.py` â€” high-precision syntactic extractions, ambiguous signals queued not guessed
+- `pipeline.py`/`cli.py` â€” orchestration, schema export, validation, reports
+
+## Results (all re-validate; 27/27 tests pass)
+- **193 cards, 210 faces** (168Ã—1 + 17 AdventuresÃ—2 + 8 SagasÃ—1); every Adventure has 2 correctly-roled faces
+- **12 token specs**, deduped across producers (Human Soldier & Treasure Ã—10, Goblin Army Ã—14)
+- **Mechanic detection reproduces Phase 0 exactly: Recruit 10 / Storied 9 / hone 2**
+- **267 unambiguous extractions** + **16 unresolved** signals queued for the Phase 3 LLM
+- Deliverables: `data/normalized/*.jsonl`, `data/rules/*.jsonl`, `data/review/unresolved.jsonl`, `schema/*.schema.json` (7), `reports/{coverage,unresolved}.md`
+
+## Two spec-alignment calls I made (both logged)
+1. **Case-insensitive mechanic detection** â€” HOB prints the Recruit keyword *lowercase* ("...enters, recruit."); case-sensitive caught only 1 of 10.
+2. **Reminder text (parentheticals) stripped before extraction** â€” per the spec's "expand mechanics from the rule library, not reminder text" and CR 207.2. This prevents misattributing a Treasure's "Add one mana" to every card that makes one, and avoids duplicating Phase 2 template work. E.g. Patient Instructor yields only its `trigger_etb` now; its draw/discard/Soldier-token belong to the Recruit template later.
+
+Everything stayed inside Phase 1 â€” no LLM, no graph assembly, no pair projection, no value judgments. Lab notebook has a DECISION + OBSERVATION entry.
+
+New/changed files: `src/`, `tests/`, `schema/`, `data/normalized/`, `data/rules/`, `data/review/`, `reports/`, `pyproject.toml`, `.gitignore`, `LABNOTEBOOK.md`.
+
+Want me to commit and push?
+
+### [2026-08-13 19:35] USER
+commit and push it

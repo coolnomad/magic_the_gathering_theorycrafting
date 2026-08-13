@@ -301,3 +301,39 @@ Fetched and froze the full Required corpus for FIN into `data/raw/fin/`, using t
 **Status:** FIN Phase 0 data acquisition complete. Still no normalization, graph, or theory — raw frozen snapshot only.
 
 Refs: [2026-08-13 18:20] DECISION — FIN as second target set; [2026-08-13 17:55] OBSERVATION — Remaining required sources (HOB); `data/raw/fin/`
+
+---
+
+## [2026-08-13 18:55] DECISION — Phase 1 deterministic normalization: scope, stack, and two spec-alignment calls
+
+Began the build spec's **Phase 1 (deterministic normalization)** on HOB. User approved: repo-root layout (not a nested `hob-kg/`), Python + Pydantic v2 + pytest, and "stay in line with the spec." No LLM, no graph assembly, no pair projection, no value judgments.
+
+**Stack / layout.** Python package `src/hobkg/` (`normalize`, `types`, `mana`, `mechanics`, `extract_mechanical`, `pipeline`, `cli`); Pydantic models in `models.py` are the authoritative schemas and JSON Schemas are generated from them into `schema/`. `pyproject.toml` pins deps; `pytest` config uses `pythonpath=["src"]`. Outputs go to `data/normalized/`, `data/rules/`, `data/review/`, `reports/`. Added `.gitignore` for Python artifacts (and the logging hook's local dedup file).
+
+**Two interpretation calls made while implementing (flagged for the record):**
+
+1. **Named mechanics are detected case-insensitively.** In HOB the Recruit keyword action is printed **lowercase** mid-sentence ("...enters, recruit.") and only capitalized where it opens a Saga chapter. A case-sensitive match found 1 of 10; case-insensitive recovers all 10 (and Storied 9, hone 2), matching the Phase-0 grep. Detection records *presence only* — expansion into the Recruit/Storied/hone rule templates is deliberately deferred to Phase 2.
+
+2. **Reminder text (parentheticals) is stripped before syntactic extraction.** Reminder text has no rules meaning beyond the actual rules/keywords (CR 207.2). Extracting verbs from it would (a) misattribute token/keyword abilities to the producing card — e.g., a Treasure's "Add one mana of any color" pinned on every card that makes a Treasure — and (b) duplicate the Phase 2 mechanic-template expansion. This matches the spec's keyword rule: "Expand named mechanics from the official rule library, not from reminder text independently on every card." Stripping preserves character offsets (blanked to spaces) so provenance still indexes the original Oracle text. Effect: e.g. *Patient Instructor* yields only its `trigger_etb` primitive in Phase 1; its draw/discard/Soldier-token come from the Recruit template later.
+
+**Conservatism rule honored.** Exact syntactic extractions emit a primitive only on an unambiguous parse; a bare signal whose strict parse fails (non-literal quantity, unparsed object) becomes an `UnresolvedExtraction` queued for the Phase 3 LLM. We never guess.
+
+Refs: [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Phase 1", "Keyword and reminder-text handling", "Exact syntactic extractions", "Agent execution discipline"); `src/hobkg/`
+
+---
+
+## [2026-08-13 18:55] OBSERVATION — Phase 1 results and validation (HOB)
+
+Ran `python -m hobkg.cli normalize` over the frozen `data/raw/scryfall_hob.json`; all outputs re-validate against their models (`hobkg.cli validate`). 27 pytest tests pass.
+
+**Normalized entities.** 193 cards; **210 faces** (168 normal×1 + 17 Adventure×2 + 8 Saga×1); 12 canonical token specs (from `all_parts`, deduped across producers — e.g. Human Soldier and Treasure each produced by 10 cards, Goblin Army by 14). Every Adventure has exactly 2 faces with roles `{primary, adventure}`; the single face with no Oracle text is the vanilla *Ordinary Bear* (expected).
+
+**Mechanic detection.** 157 records: 136 from Scryfall `keywords` + 21 named-mechanic detections in Oracle text — **Recruit 10, Storied 9, hone 2**, reproducing Phase 0 exactly.
+
+**Syntactic extractions.** 267 unambiguous primitives, led by `trigger_etb` 63, `activated_ability` 36, `draw` 33, `put_counter` 31, `create_token` 24. **16 unresolved** signals queued (8 draw, 4 discard, 2 mill, 2 add_mana — all genuinely non-literal, e.g. "Add X mana", "draw cards equal to…"). 23 deterministic condition/limit stubs ("up to", "only once each turn").
+
+**Deliverables written.** `data/normalized/{cards,faces,tokens,mechanical_extractions}.jsonl`, `data/rules/{mechanics,conditions}.jsonl`, `data/review/unresolved.jsonl`, `schema/*.schema.json` (7), and `reports/{coverage,unresolved}.md`. Coverage report carries the spec's caveat verbatim: "Coverage is not correctness; do not maximize edge count." 69 text-bearing faces have no syntactic extraction — expected (keyword-only cards and cards whose operations are template-owned), not a defect.
+
+**Not done (later phases):** mechanic-template expansion (Recruit/Storied/hone/Adventure/Saga gates) = Phase 2; LLM extraction = Phase 3; global graph assembly = Phase 4; pair projection = Phase 5. No outcome/quality/archetype claims.
+
+Refs: [2026-08-13 18:55] DECISION — Phase 1 scope/stack; `reports/coverage.md`; `reports/unresolved.md`
