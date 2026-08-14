@@ -21,6 +21,11 @@ def main(argv: list[str] | None = None) -> int:
     if cmd == "normalize":
         stats = pipeline.run()
         print(json.dumps(stats, indent=2))
+    elif cmd in ("templates", "expand-rules"):
+        print(json.dumps(pipeline.build_templates(), indent=2))
+    elif cmd == "build":
+        pipeline.run()
+        print(json.dumps(pipeline.build_templates(), indent=2))
     elif cmd == "validate":
         print(json.dumps(pipeline.validate(), indent=2))
     elif cmd == "schemas":

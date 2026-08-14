@@ -420,3 +420,70 @@ Want me to commit and push?
 
 ### [2026-08-13 19:35] USER
 commit and push it
+
+### [2026-08-13 19:36] ASSISTANT
+All staged (no artifacts â€” `.gitignore` working; the LFâ†’CRLF warnings are only for derived text files, which is fine since they aren't hash-pinned). Committing and pushing.
+
+Committed and pushed â€” `ff184d2..cd8ee57` on `origin/main` (34 files, working tree clean).
+
+**Phase 1 (deterministic normalization) on HOB is complete and live:**
+- Package `src/hobkg/` + 27 passing tests + 7 JSON Schemas
+- Normalized entities: 193 cards / 210 faces / 12 token specs, all re-validating
+- Mechanic detection matches Phase 0 (Recruit 10 / Storied 9 / hone 2)
+- 267 unambiguous extractions + 16 queued unresolved; coverage & unresolved reports generated
+- No LLM, no graph, no value judgments â€” strictly in-spec
+
+Per the spec's discipline ("build the mechanic-rule library before pair projection; test on Recruit and Storied as vertical slices"), the natural next step is **Phase 2: mechanic templates** â€” encoding Recruit, Storied (the distinct-object count gate), hone, Adventure, and Saga as reusable rules and instantiating them on the detected cards. That's where the draw/discard/Soldier-token of Recruit and the â‰¥3-permanent `enduring_story` gate get their real structure.
+
+I'll stop here and wait for your go before starting Phase 2.
+
+### [2026-08-13 19:59] USER
+start phase 2
+
+### [2026-08-13 20:20] ASSISTANT
+Phase 2 is the mechanic-template library â€” the biggest phase yet, and where the graph structure first appears. I've re-read the spec's Phase 2 (Recruit/Storied/hone/Adventure/Saga templates), the Storied gate JSON, and the semantic invariants (#1,4,5,6,7,8). I'll build it with the same discipline: graph-model schemas â†’ template library â†’ instantiate on Phase-1 cards â†’ vertical-slice tests â†’ reports.
+
+First, the graph-model schemas (Node/Edge/Gate/StructuredCondition) â€” deferred in Phase 1, needed now.
+
+Now the template library `rules.py` â€” the heart of Phase 2. It encodes each mechanic once (matching the spec's `expand_recruit`, the Storied gate, hone/Adventure/Saga) and provides a `GraphBuilder` that dedups shared nodes.
+
+Now the Phase 2 driver in the pipeline: read Phase 1 outputs, instantiate the templates, and write the graph. Let me add it and extend schema export/validation.
+
+Now the Phase 2 tests â€” vertical slices for each template covering the spec's semantic invariants, plus a real-data integration test.
+
+Real integrity catch: gates are edge endpoints but I stored them only in `gb.gates`, not as graph nodes â€” so the validator flags all edges touching `gate:storied` as dangling. The spec calls for **reified gate nodes**, so each gate must also be a `Node`. Fixing `GraphBuilder.gate()`.
+
+All 45 tests pass. Running the full build (Phase 1 + Phase 2) and validating.
+
+Full build validates cleanly â€” 281 nodes, 411 edges, 2 gates, no dangling edges; all template counts correct (Recruit 10, Storied payoff 9, hone 2, Adventure 17, Saga 8; 74 qualifying permanent contributors + 3 token contributors â€” Treasure/Axe/Stone Boulder). Quick real-data spot-check on a Saga to confirm chapter parsing on live text.
+
+Excellent end-to-end confirmation: *The Mountain-king's Return* (a Saga whose chapter I is Recruit) correctly co-instantiates **both** templates â€” the Recruit drawâ†’discardâ†’nonland-gate chain (with the card-drawn event) *and* the Saga lore-counter/chapters-1-2-3/sacrifice-after-3 structure â€” and is also registered as a Storied contributor. Templates compose cleanly on one card.
+
+Recording Phase 2 in the lab notebook.
+
+Phase 2 (mechanic-template library) is built, tested, and validated.
+
+## What I built
+- **Graph-model schemas** (deferred from Phase 1): `Node` (15-type vocabulary), `Edge` (full spec property set, `extractor=rule_expansion`), `Gate`, `StructuredCondition` â€” predicates/types as `Literal` unions so new types need a schema change (spec principle #2). 11 JSON Schemas now exported.
+- **`src/hobkg/rules.py`** â€” the five templates encoded once and instantiated:
+  - **Recruit** â†’ `drawâ†’discardâ†’nonland-gateâ†’create Human Soldier` (exactly the spec's `expand_recruit`) + draw emits a `card-drawn` event
+  - **Storied** â†’ one shared gate (union predicate Legendary/Artifact/Saga, â‰¥3, count-once, â†’ `enduring_story` for the rest of the game); qualifying faces/tokens contribute, payoffs are enabled by the state
+  - **hone / Adventure / Saga** per spec (hone boost on the attached creature not the source; Adventure exile flow with faces distinct; Saga lore counters + chapters + sacrifice)
+- CLI gains `templates` and `build`; Phase 2 writes only `data/graph/**` and never mutates Phase 1 outputs.
+
+## Results (45 tests pass; 0 dangling edges)
+- Instantiations: **Recruit 10, Storied 9, hone 2, Adventure 17, Saga 8**; 74 permanent + 3 token Storied contributors
+- Graph: **281 nodes, 411 edges, 2 gates** â€” all endpoints resolve
+- Spec invariants #1,4,5,6,7,8 covered by vertical-slice tests; live composite (*The Mountain-king's Return* = Saga + Recruit chapter) verified
+
+## Boundaries held
+No LLM (Phase 3), no global assembly (Phase 4), no pair projection (Phase 5). The Recruitâ†’Master's-Councillors *direction* (#2) and Bard-modifies-Recruit replacement (#3) are set up/noted but deferred to their proper phases. No value judgments.
+
+One integrity fix mid-build: gates are now reified as graph nodes (not just `Gate` records) so edges into them resolve â€” matching the spec's "reified gate nodes."
+
+Lab notebook has a DECISION + OBSERVATION entry. New files: `src/hobkg/rules.py`, `data/graph/**`, 4 new schemas, 5 new test files, `reports/graph_coverage.md`, plus edits to `models.py`/`pipeline.py`/`cli.py`.
+
+Want me to commit and push?
+
+### [2026-08-13 20:30] USER
+commit and push it

@@ -13,13 +13,18 @@ from pydantic import BaseModel
 
 from .extract_mechanical import extract_face
 from .mechanics import detect_mechanics
+from . import rules
 from .models import (
     Card,
     ConditionRecord,
+    Edge,
     Face,
+    Gate,
     MechanicalExtraction,
     MechanicDetection,
+    Node,
     Provenance,
+    StructuredCondition,
     TokenSpec,
     UnresolvedExtraction,
 )
@@ -46,6 +51,8 @@ def export_schemas(repo: Path = REPO) -> list[str]:
         "mechanical_extraction": MechanicalExtraction,
         "unresolved_extraction": UnresolvedExtraction,
         "condition": ConditionRecord,
+        "node": Node, "edge": Edge, "gate": Gate,
+        "structured_condition": StructuredCondition,
     }
     written = []
     for name, model in models.items():
@@ -106,6 +113,138 @@ def run(repo: Path = REPO) -> dict:
     _write_reports(repo, stats, unresolved)
     stats["schemas_written"] = schemas
     return stats
+
+
+def _load_dicts(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+_PERMANENT_TYPES = {"Artifact", "Creature", "Enchantment", "Land", "Planeswalker", "Battle"}
+
+
+def _storied_qualifies(parsed: dict | None) -> bool:
+    """A permanent that is Legendary, an Artifact, and/or a Saga qualifies for Storied."""
+    if not parsed:
+        return False
+    types = set(parsed.get("types", []))
+    if not (types & _PERMANENT_TYPES):
+        return False
+    return (
+        "Legendary" in parsed.get("supertypes", [])
+        or "Artifact" in types
+        or "Saga" in parsed.get("subtypes", [])
+    )
+
+
+def build_templates(repo: Path = REPO) -> dict:
+    """Phase 2: instantiate mechanic rule templates on the Phase 1 normalized set."""
+    nd = repo / "data" / "normalized"
+    faces = _load_dicts(nd / "faces.jsonl")
+    tokens = _load_dicts(nd / "tokens.jsonl")
+    mechanics = _load_dicts(repo / "data" / "rules" / "mechanics.jsonl")
+
+    faces_by_id = {f["id"]: f for f in faces}
+    faces_by_card: dict[str, list[dict]] = {}
+    for f in faces:
+        faces_by_card.setdefault(f["card_id"], []).append(f)
+
+    # mechanic -> set of face_ids (from Oracle-text detections)
+    by_mech: dict[str, set[str]] = {}
+    for m in mechanics:
+        if m["source"] == "oracle_text":
+            by_mech.setdefault(m["mechanic"], set()).add(m["face_id"])
+
+    gb = rules.GraphBuilder()
+    rules.add_shared_nodes(gb)
+
+    counts = {"recruit": 0, "storied_payoff": 0, "hone": 0, "adventure": 0, "saga": 0,
+              "storied_contrib_faces": 0, "storied_contrib_tokens": 0}
+
+    for fid in sorted(by_mech.get("Recruit", set())):
+        rules.expand_recruit(gb, faces_by_id[fid]); counts["recruit"] += 1
+    for fid in sorted(by_mech.get("Storied", set())):
+        rules.expand_storied_payoff(gb, faces_by_id[fid]); counts["storied_payoff"] += 1
+    for fid in sorted(by_mech.get("Hone", set())):
+        rules.expand_hone(gb, faces_by_id[fid]); counts["hone"] += 1
+
+    # Adventure: pair primary + adventure faces by card
+    for cid, fs in faces_by_card.items():
+        prim = next((f for f in fs if f["role"] == "primary"), None)
+        adv = next((f for f in fs if f["role"] == "adventure"), None)
+        if prim and adv:
+            rules.expand_adventure(gb, prim, adv); counts["adventure"] += 1
+
+    # Saga: single primary face whose parsed subtypes include Saga
+    for f in faces:
+        parsed = f.get("type_line") or {}
+        if f["role"] == "primary" and "Saga" in parsed.get("subtypes", []):
+            rules.expand_saga(gb, f); counts["saga"] += 1
+
+    # Storied contributors: qualifying permanent faces + qualifying tokens
+    for f in faces:
+        if f["role"] != "primary":
+            continue
+        if _storied_qualifies(f.get("type_line")):
+            prov = [Provenance(card_id=f["card_id"], face_id=f["id"],
+                               source="rule.template:storied", text=f.get("type_line_raw"),
+                               rule_ref=rules.RULE_REFS["storied"])]
+            rules.storied_contributor(gb, f["id"], "CardFace", f.get("name", f["id"]), prov)
+            counts["storied_contrib_faces"] += 1
+    for t in tokens:
+        if _storied_qualifies(t.get("type_line")):
+            prov = [Provenance(card_id="", source="rule.template:storied",
+                               text=t.get("type_line_raw"), rule_ref=rules.RULE_REFS["storied"])]
+            rules.storied_contributor(gb, t["id"], "TokenSpec", t.get("name", t["id"]), prov)
+            counts["storied_contrib_tokens"] += 1
+
+    gd = repo / "data" / "graph"
+    _write_jsonl(gd / "nodes.jsonl", list(gb.nodes.values()))
+    _write_jsonl(gd / "edges.jsonl", gb.edges)
+    _write_jsonl(gd / "gates.jsonl", list(gb.gates.values()))
+    _write_jsonl(gd / "conditions.jsonl", list(gb.conditions.values()))
+
+    stats = _graph_coverage(gb, counts)
+    _write_graph_report(repo, stats)
+    export_schemas(repo)
+    return stats
+
+
+def _graph_coverage(gb: "rules.GraphBuilder", counts: dict) -> dict:
+    from collections import Counter
+    node_types = Counter(n.type for n in gb.nodes.values())
+    edge_preds = Counter(e.predicate for e in gb.edges)
+    node_ids = set(gb.nodes)
+    dangling = [e.edge_id for e in gb.edges if e.source not in node_ids or e.target not in node_ids]
+    return {
+        "instantiations": counts,
+        "nodes": len(gb.nodes),
+        "edges": len(gb.edges),
+        "gates": len(gb.gates),
+        "conditions": len(gb.conditions),
+        "node_types": dict(node_types),
+        "edge_predicates": dict(edge_preds),
+        "dangling_edges": dangling,
+    }
+
+
+def _write_graph_report(repo: Path, stats: dict) -> None:
+    reports = repo / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    lines = ["# HOB Phase 2 — Mechanic Templates / Graph Coverage", "",
+             "> Rule-expansion graph fragments. Possibility only; no value judgments. (spec)", "",
+             f"- **nodes**: {stats['nodes']}", f"- **edges**: {stats['edges']}",
+             f"- **gates**: {stats['gates']}", f"- **conditions**: {stats['conditions']}",
+             f"- **dangling edges**: {len(stats['dangling_edges'])}", "",
+             "## Instantiations", ""]
+    for k, v in stats["instantiations"].items():
+        lines.append(f"- {k}: {v}")
+    lines += ["", "## Node types", ""]
+    for k, v in sorted(stats["node_types"].items(), key=lambda x: -x[1]):
+        lines.append(f"- {k}: {v}")
+    lines += ["", "## Edge predicates", ""]
+    for k, v in sorted(stats["edge_predicates"].items(), key=lambda x: -x[1]):
+        lines.append(f"- {k}: {v}")
+    (reports / "graph_coverage.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _coverage(cards, faces, tokens, mechanics, extractions, unresolved, conditions, raw_cards) -> dict:
@@ -188,14 +327,32 @@ def validate(repo: Path = REPO) -> dict:
         "data/rules/mechanics.jsonl": MechanicDetection,
         "data/rules/conditions.jsonl": ConditionRecord,
         "data/review/unresolved.jsonl": UnresolvedExtraction,
+        "data/graph/nodes.jsonl": Node,
+        "data/graph/edges.jsonl": Edge,
+        "data/graph/gates.jsonl": Gate,
+        "data/graph/conditions.jsonl": StructuredCondition,
     }
     result = {}
     for rel, model in checks.items():
         p = repo / rel
+        if not p.exists():
+            continue
         n = 0
         for line in p.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 model.model_validate_json(line)
                 n += 1
         result[rel] = n
+
+    # integrity: every graph edge endpoint must resolve to a node
+    gd = repo / "data" / "graph"
+    if (gd / "nodes.jsonl").exists():
+        node_ids = {json.loads(l)["id"] for l in (gd / "nodes.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()}
+        dangling = []
+        for l in (gd / "edges.jsonl").read_text(encoding="utf-8").splitlines():
+            if l.strip():
+                e = json.loads(l)
+                if e["source"] not in node_ids or e["target"] not in node_ids:
+                    dangling.append(e["edge_id"])
+        result["graph_dangling_edges"] = dangling
     return result

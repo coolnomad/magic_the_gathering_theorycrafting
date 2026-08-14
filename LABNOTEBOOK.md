@@ -337,3 +337,42 @@ Ran `python -m hobkg.cli normalize` over the frozen `data/raw/scryfall_hob.json`
 **Not done (later phases):** mechanic-template expansion (Recruit/Storied/hone/Adventure/Saga gates) = Phase 2; LLM extraction = Phase 3; global graph assembly = Phase 4; pair projection = Phase 5. No outcome/quality/archetype claims.
 
 Refs: [2026-08-13 18:55] DECISION — Phase 1 scope/stack; `reports/coverage.md`; `reports/unresolved.md`
+
+---
+
+## [2026-08-13 19:30] DECISION — Phase 2 mechanic-template library: model and scope
+
+Built the spec's **Phase 2 (mechanic templates)**: each HOB mechanic encoded once as a reusable rule and instantiated on the Phase-1 cards that carry it. This is where the typed directed graph first appears.
+
+**Graph-model schemas (deferred from Phase 1, built now).** Added `Node` (15-type vocabulary: Card/CardFace/Ability/Operation/Event/Resource/ObjectClass/Zone/CounterType/State/Gate/Cost/Effect/Rule/TokenSpec), `Edge` (full spec property set: predicate from the controlled vocabulary, polarity, timing, condition_ids, quantity, optional, certainty, provenance, `extractor='rule_expansion'`, review_status), `Gate`, and `StructuredCondition`. Predicates and node types are `Literal` unions so a new type requires a schema change (spec principle #2). JSON Schemas regenerated (11 total).
+
+**Template library** (`src/hobkg/rules.py`, `GraphBuilder` dedups shared nodes):
+- **Recruit** — `recruit → draw(1) → discard(1) → gate:recruit-nonland-discard → CREATES_OBJECT token:human-soldier`, exactly the spec's `expand_recruit`; the draw also `PRODUCES event:card-drawn` (substrate for the second-draw payoff direction, Phase 5).
+- **Storied** — one shared `gate:storied` (distinct_object_threshold, union predicate Legendary/Artifact/Saga, ≥3, `double_count=false`, output `enduring_story`, persistence rest_of_game). Qualifying permanent faces and qualifying tokens each get exactly one `CONTRIBUTES_TO` edge; payoff faces get `enduring_story ENABLES <ability>`.
+- **hone** — `counter:hone` on Equipment; `effect:hone-boost` (+1/+0 to the *attached creature*) `SCALES_WITH counter:hone`. Bonus is never attached to the source card (spec).
+- **Adventure** — spell casts from hand, resolves to exile, exile `ENABLES` casting the permanent from exile; normal-from-hand alternative preserved as an optional edge; faces stay distinct.
+- **Saga** — lore counter on ETB + each turn, chapter abilities parsed from `I —/II —/III —` markers, sacrifice after the final chapter. A Saga also contributes to `gate:storied`.
+
+**Layout / idempotence.** Phase 2 writes only `data/graph/{nodes,edges,gates,conditions}.jsonl` and `reports/graph_coverage.md`; it reads Phase 1 outputs and never mutates them. CLI gains `templates` (Phase 2), `build` (Phase 1+2). Gates are reified as graph **nodes** (so every edge endpoint resolves) in addition to their rich `Gate` records.
+
+**Deliberate boundaries.** No LLM (Phase 3), no global assembly/canonicalization of *all* card-local ops (Phase 4 — Phase 2 only creates nodes for faces it touches), no pair projection (Phase 5). The Recruit→Master's-Councillors *direction* (invariant #2) is set up but not asserted here: Recruit emits the draw event; connecting it to Councillors' second-draw trigger is Phase 5. Card-specific replacement effects like Bard, King of Dale modifying Recruit's quantities (invariant #3) are Phase 3 LLM work. No value judgments.
+
+Refs: [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Phase 2", Storied gate JSON, "Semantic invariants", "Agent execution discipline" 4–6); `src/hobkg/rules.py`
+
+---
+
+## [2026-08-13 19:30] OBSERVATION — Phase 2 results and validation (HOB)
+
+`python -m hobkg.cli build` runs Phase 1 then Phase 2; all outputs re-validate (`validate`), including an integrity check that **every graph edge endpoint resolves to a node (0 dangling edges)**. 45 pytest tests pass (18 new for Phase 2).
+
+**Instantiations.** Recruit 10, Storied payoff 9, hone 2, Adventure 17, Saga 8 — matching the detected/layout counts. Storied contributors: **74 qualifying permanent faces + 3 qualifying tokens** (Treasure, Axe, Stone Boulder — invariant #7).
+
+**Graph.** 281 nodes, 411 edges, 2 gates, 1 structured condition. Node types led by Operation 124, CardFace 103, Ability 29. Edge predicates led by CONTRIBUTES_TO 77, CAUSES 55, MOVES_FROM 51, HAS_ABILITY 54, ENABLES 46, REFERENCES_RULE 46.
+
+**Invariants verified by tests.** #1 Recruit draw-then-discard, Soldier conditional on nonland discard; #4 Storied counts 3 distinct objects under a union predicate; #5 a legendary artifact contributes exactly once; #6 enduring story persists (rest_of_game, non-removable, PERSISTS_AS); #7 an artifact token contributes; #8 Adventure/permanent faces distinct with correct zone flow. A live composite case — *The Mountain-king's Return* (a Saga whose chapter I is Recruit) — correctly instantiates both the Recruit chain and the Saga chapter/lore/sacrifice structure and registers as a Storied contributor.
+
+**One integrity fix during the build:** gates were initially stored only as `Gate` records, so edges into `gate:storied` read as dangling; fixed by reifying every gate as a graph `Node` as well (spec's "reified gate/transition nodes").
+
+**Deliverables.** `data/graph/{nodes,edges,gates,conditions}.jsonl`, `schema/*.schema.json` (11), `reports/graph_coverage.md`. Still possibility-only; no outcomes, quality, archetype, or synergy claims.
+
+Refs: [2026-08-13 19:30] DECISION — Phase 2 model/scope; `reports/graph_coverage.md`; `data/graph/`

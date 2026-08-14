@@ -167,3 +167,62 @@ class ConditionRecord(_Base):
     kind: str
     human_readable: str
     provenance: Provenance
+
+
+# --- Phase 2: graph primitives ---------------------------------------------
+
+NodeType = Literal[
+    "Card", "CardFace", "Ability", "Operation", "Event", "Resource",
+    "ObjectClass", "Zone", "CounterType", "State", "Gate", "Cost",
+    "Effect", "Rule", "TokenSpec",
+]
+
+Predicate = Literal[
+    "HAS_FACE", "HAS_ABILITY", "HAS_TYPE", "HAS_KEYWORD", "HAS_COST",
+    "REQUIRES", "CONSUMES", "PRODUCES", "CAUSES", "TRIGGERS", "MODIFIES",
+    "COUNTS", "CONTRIBUTES_TO", "SATISFIES", "ENABLES", "PREVENTS",
+    "REPLACES", "MOVES_FROM", "MOVES_TO", "CREATES_OBJECT", "ADDS_COUNTER",
+    "REMOVES_COUNTER", "SCALES_WITH", "PERSISTS_AS", "REFERENCES_RULE",
+    "DERIVED_FROM",
+]
+
+
+class Node(_Base):
+    id: str
+    type: NodeType
+    label: str
+    data: dict = Field(default_factory=dict)
+    provenance: list[Provenance] = Field(default_factory=list)
+
+
+class Edge(_Base):
+    edge_id: str
+    source: str
+    target: str
+    predicate: Predicate
+    polarity: Literal["positive", "negative"] = "positive"
+    scope: Optional[str] = None
+    timing: Optional[str] = None
+    condition_ids: list[str] = Field(default_factory=list)
+    quantity: Optional[int] = None
+    optional: bool = False
+    certainty: Literal["rules_explicit", "high", "medium", "low"] = "rules_explicit"
+    provenance: list[Provenance] = Field(default_factory=list)
+    extractor: Literal["mechanical", "llm", "rule_expansion", "derived_projection"] = "rule_expansion"
+    review_status: Literal["unreviewed", "accepted", "rejected"] = "accepted"
+
+
+class Gate(_Base):
+    gate_id: str
+    gate_type: str
+    label: str
+    definition: dict = Field(default_factory=dict)
+    output_state: Optional[str] = None
+    provenance: list[Provenance] = Field(default_factory=list)
+
+
+class StructuredCondition(_Base):
+    condition_id: str
+    expression: dict
+    human_readable: str
+    provenance: list[Provenance] = Field(default_factory=list)

@@ -1,0 +1,1 @@
+{"condition_id":"cond:recruit-nonland-discard","expression":{"op":"is_nonland","arg":"the_discarded_card"},"human_readable":"the discarded card is a nonland card","provenance":[{"card_id":"","face_id":null,"source":"rule.template:recruit","span":null,"text":null,"rule_ref":"HOB release notes / mechanics article: Recruit"}]}
