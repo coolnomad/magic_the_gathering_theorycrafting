@@ -129,7 +129,8 @@
         "INSTANTIATES",
         "QUALIFIES_FOR",
         "HAS_COUNTER_TYPE",
-        "ATTACHED_TO"
+        "ATTACHED_TO",
+        "HAS_STATE"
       ],
       "title": "Predicate",
       "type": "string"

@@ -125,6 +125,58 @@ def enrich_tokens(tokens: list[TokenSpec], token_raw_by_id: dict[str, dict]) -> 
         t.enriched = True
 
 
+_COLOR_WORDS = {"white": "W", "blue": "U", "black": "B", "red": "R", "green": "G"}
+# Known Scryfall-side reminder-text typos to correct (with a recorded note).
+_TOKEN_TEXT_FIXES = {"creatre": "creature"}
+
+
+def _derive_token_colors(blob: str, name: str) -> tuple[list[str], bool]:
+    """Read the token's color from the producing card's create clause (authoritative:
+    the creating effect defines the token's characteristics). Returns (colors, colorless)."""
+    colors: set[str] = set()
+    colorless = False
+    for m in re.finditer(r"create[s]?\b[^.]*?" + re.escape(name) + r"\b", blob, re.I):
+        clause = m.group(0)
+        if re.search(r"\bcolorless\b", clause, re.I):
+            colorless = True
+        for word, letter in _COLOR_WORDS.items():
+            if re.search(r"\b" + word + r"\b", clause, re.I):
+                colors.add(letter)
+    return sorted(colors), colorless
+
+
+def correct_tokens(tokens: list[TokenSpec], blob_by_card_id: dict[str, str]) -> None:
+    """Phase 2 review token corrections, in place:
+    - derive colors from the producing card's create clause when the Scryfall token
+      object lacks them (e.g. red Dwarf, white Bird Soldier);
+    - fix known source reminder-text typos (e.g. 'creatre' -> 'creature');
+    - record a full-characteristics identity key (name alone is not a stable identity)."""
+    for t in tokens:
+        blobs = " ".join(blob_by_card_id.get(cid, "") for cid in t.produced_by_card_ids)
+        colors, colorless = _derive_token_colors(blobs, t.name)
+        if colors:
+            t.colors = colors
+            t.color_source = "producing_card_text"
+        elif colorless and not t.colors:
+            t.colors = []
+            t.color_source = "producing_card_text"
+        elif t.enriched:
+            t.color_source = "scryfall"
+
+        if t.oracle_text:
+            fixed = t.oracle_text
+            for bad, good in _TOKEN_TEXT_FIXES.items():
+                if bad in fixed:
+                    fixed = fixed.replace(bad, good)
+                    t.notes.append(f"source typo corrected: '{bad}' -> '{good}'")
+            t.oracle_text = fixed
+
+        tl = t.type_line
+        types = ",".join(tl.types) if tl else ""
+        subs = ",".join(tl.subtypes) if tl else ""
+        t.characteristic_key = f"{t.name}|{','.join(t.colors)}|{types}|{subs}|{t.power}/{t.toughness}"
+
+
 def canonicalize_tokens(token_lists: list[list[TokenSpec]]) -> list[TokenSpec]:
     """Merge duplicate token specs (same id) across all producing cards."""
     merged: dict[str, TokenSpec] = {}

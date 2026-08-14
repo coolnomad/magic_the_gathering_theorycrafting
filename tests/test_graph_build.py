@@ -43,13 +43,19 @@ def test_object_identity(stats):
     assert len(lore_states) == 8
 
 
-def test_tokens_enriched():
+def test_tokens_enriched_and_corrected():
     toks = {json.loads(l)["name"]: json.loads(l)
             for l in (pipeline.REPO / "data/normalized/tokens.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()}
     hs = toks["Human Soldier"]
     assert hs["enriched"] is True
     assert hs["colors"] == ["W"] and hs["power"] == "1" and hs["toughness"] == "1"
     assert "mana" in (toks["Treasure"]["oracle_text"] or "").lower()
+    # pt2 review corrections: colors from producing-card text; typo fixed
+    assert toks["Dwarf"]["colors"] == ["R"]
+    assert toks["Bird Soldier"]["colors"] == ["W"]
+    assert "creatre" not in (toks["Axe"]["oracle_text"] or "")
+    assert "creature" in (toks["Axe"]["oracle_text"] or "")
+    assert toks["Dwarf"]["characteristic_key"]
 
 
 def test_validate_reloads_graph():

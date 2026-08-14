@@ -409,3 +409,27 @@ Rebuilt (`hobkg.cli build`); all outputs re-validate with 0 dangling edges; **48
 **Sources.** Added a 5th raw source (`scryfall_hob_tokens.json`, 12 objects, SHA-256 in `source_manifest.json`); `data/raw/** -text` keeps it byte-exact.
 
 Refs: [2026-08-13 20:55] CORRECTION — Phase 2 rework; `data/graph/`; `data/normalized/tokens.jsonl`
+
+---
+
+## [2026-08-13 21:20] CORRECTION — Phase 2 second-pass review fixes (chapters, hone, tokens)
+
+A second review (`docs/hob-kg-phase2-review-pt2.md`) accepted the object-identity rework but found two remaining **blocking** semantic gaps plus token data corrections. All fixed; the reviewer's bar for accepting Phase 2 is now met.
+
+**Blocking #1 — Saga chapters lacked thresholds.** Every chapter ability was `ENABLES`d by the Saga's own lore-count with no test of *which* lore number. Fixed: each chapter ability now carries a `StructuredCondition` `cond:{face}:chapter-{n}` of type `state_transition_equals` (lore count *becomes* n, not ≥ n), referencing the Saga's own `lore-count` state, attached via `condition_ids` on the `ENABLES` edge. Multi-number headers ("I, II —") produce one ability with `accepted_values=[1,2]`. 20 chapter conditions emitted across the 8 Sagas (total structured conditions now 21 incl. Recruit).
+
+**Blocking #2 — hone not object-bound.** The generic rule existed once but counters attached to the global counter type with no Equipment binding. Fixed with a parameterized rule over a single bound Equipment variable **E** (spec-endorsed capacity-level approach): `obj:equipment-E HAS_STATE state:hone-count:E`; `state:hone-count:E HAS_COUNTER_TYPE counter:hone`; `obj:equipment-E ATTACHED_TO obj:creature-C`; `effect:hone-boost SCALES_WITH state:hone-count:E` and `MODIFIES obj:creature-C`. Both references to E are the same node, so the bonus binds to the creature equipped by the same Equipment that holds the counters. Each hone card's `add-hone` op `MODIFIES state:hone-count:E`. New predicate `HAS_STATE`.
+
+**Token corrections.** Token color is defined by the *producing card's* create clause (authoritative), not the sometimes-incomplete Scryfall token object. Added a correction pass: Dwarf → `["R"]` ("2/2 red Dwarf"), Bird Soldier → `["W"]` ("4/4 white Bird Soldier … flying"); `color_source` records provenance ("producing_card_text" vs "scryfall"). Fixed a Scryfall reminder-text typo on the Axe token ("creatre" → "creature") with a recorded `notes` entry (raw snapshot left untouched; correction is in the normalized output only). Added a `characteristic_key` (name|colors|types|subtypes|P/T) so token identity is not name-alone (future-set safety).
+
+**Reaffirmed Phase 3 requirement.** The reviewer reiterated: Phase 3 must send **all Oracle-bearing faces (209 of the 210)** to the LLM, not only the ~103 faces that currently have graph nodes or the faces with a `mechanical_extraction`. Recorded again as a hard driver requirement.
+
+Refs: [`docs/hob-kg-phase2-review-pt2.md`](./docs/hob-kg-phase2-review-pt2.md); [2026-08-13 20:55] CORRECTION — Phase 2 rework
+
+---
+
+## [2026-08-13 21:20] OBSERVATION — Phase 2 pt2 results (HOB)
+
+Rebuilt (`hobkg.cli build`); 0 dangling edges; **49 pytest tests pass** (new: chapter-transition conditions, multi-number chapters, hone Equipment-variable binding, token color/typo corrections). Graph: 292 nodes, 387 edges, 2 gates, **21 structured conditions**. New/updated predicate counts: `HAS_STATE` 1, `ATTACHED_TO` 1, `HAS_COUNTER_TYPE` 9 (8 Saga lore states + 1 hone). Live checks: *The Mountain-king's Return* chapters carry becomes-1/2/3 conditions; Dwarf/Bird Soldier colors corrected from producing-card text; Axe reminder typo fixed. Still capacity-only; no outcomes/quality/archetype claims.
+
+Refs: [2026-08-13 21:20] CORRECTION — Phase 2 pt2 fixes; `data/graph/`; `data/normalized/tokens.jsonl`

@@ -28,7 +28,13 @@ from .models import (
     TokenSpec,
     UnresolvedExtraction,
 )
-from .normalize import canonicalize_tokens, enrich_tokens, extract_tokens, normalize_card
+from .normalize import (
+    canonicalize_tokens,
+    correct_tokens,
+    enrich_tokens,
+    extract_tokens,
+    normalize_card,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 RAW = REPO / "data" / "raw" / "scryfall_hob.json"
@@ -101,6 +107,14 @@ def run(repo: Path = REPO) -> dict:
     if tokens_raw_path.exists():
         token_raw_by_id = {t["id"]: t for t in json.loads(tokens_raw_path.read_text(encoding="utf-8"))}
         enrich_tokens(tokens, token_raw_by_id)
+
+    def _blob(raw: dict) -> str:
+        t = raw.get("oracle_text", "") or ""
+        for f in raw.get("card_faces", []):
+            t += "\n" + (f.get("oracle_text", "") or "")
+        return t
+
+    correct_tokens(tokens, {f"card:{raw['oracle_id']}": _blob(raw) for raw in raw_cards})
 
     nd = repo / "data" / "normalized"
     _write_jsonl(nd / "cards.jsonl", cards)

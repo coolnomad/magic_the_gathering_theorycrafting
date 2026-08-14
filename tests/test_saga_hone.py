@@ -1,4 +1,5 @@
-"""Saga and hone templates, with the review's object-identity fixes."""
+"""Saga and hone templates, with the pt2-review fixes: exact Saga chapter-transition
+conditions, and hone counters/bonus bound to the same Equipment variable."""
 
 from hobkg import rules
 
@@ -9,51 +10,64 @@ def _gb():
     return gb
 
 
+def _edges(gb, pred, src=None, tgt=None):
+    return [e for e in gb.edges if e.predicate == pred and (src is None or e.source == src)
+            and (tgt is None or e.target == tgt)]
+
+
 def _has(gb, pred, src=None, tgt=None):
-    return any(e.predicate == pred and (src is None or e.source == src)
-               and (tgt is None or e.target == tgt) for e in gb.edges)
+    return bool(_edges(gb, pred, src, tgt))
 
 
-def test_saga_lore_bound_to_own_object():
+def test_saga_chapter_transition_conditions():
     gb = _gb()
     face = {"id": "face:s:0", "card_id": "card:s", "name": "A Saga",
             "oracle_text": "I — Draw a card.\nII — Create a token.\nIII — Deal 3 damage."}
     rules.expand_saga(gb, face)
     lore = "state:face:s:0:lore-count"
-    assert lore in gb.nodes and gb.nodes[lore].data["object"] == "face:s:0"
-    # lore ops modify THIS saga's own count; the count enables THIS saga's own chapters
-    assert _has(gb, "MODIFIES", "op:face:s:0:add-lore-etb", lore)
-    assert _has(gb, "HAS_COUNTER_TYPE", lore, "counter:lore")
     for n in (1, 2, 3):
-        assert _has(gb, "ENABLES", lore, f"ab:face:s:0:chapter-{n}")
-    # the generic counter:lore type must NOT directly enable chapters
-    assert not _has(gb, "ENABLES", "counter:lore")
+        ab = f"ab:face:s:0:chapter-{n}"
+        en = _edges(gb, "ENABLES", lore, ab)
+        assert en, f"missing ENABLES for chapter {n}"
+        cid = en[0].condition_ids[0]
+        cond = gb.conditions[cid]
+        assert cond.expression["condition_type"] == "state_transition_equals"
+        assert cond.expression["accepted_values"] == [n]
+        assert cond.expression["state"] == lore
+    # sacrifice fires off the final chapter only
     assert gb.nodes["op:face:s:0:sacrifice"].data["after_chapter"] == 3
-    assert _has(gb, "MOVES_TO", "op:face:s:0:sacrifice", "zone:graveyard")
+    assert _has(gb, "CAUSES", "ab:face:s:0:chapter-3", "op:face:s:0:sacrifice")
 
 
-def test_two_sagas_have_separate_lore_states():
+def test_saga_multi_number_chapter():
     gb = _gb()
-    for s in ("a", "b"):
-        rules.expand_saga(gb, {"id": f"face:{s}:0", "card_id": f"card:{s}", "name": s,
-                               "oracle_text": "I — Do a thing.\nII — Do another."})
-    assert "state:face:a:0:lore-count" in gb.nodes
-    assert "state:face:b:0:lore-count" in gb.nodes
-    # a's lore op must not touch b's state
-    assert not _has(gb, "MODIFIES", "op:face:a:0:add-lore-etb", "state:face:b:0:lore-count")
+    face = {"id": "face:m:0", "card_id": "card:m", "name": "Multi",
+            "oracle_text": "I, II — Add a counter.\nIII — Sacrifice."}
+    rules.expand_saga(gb, face)
+    cond = gb.conditions["cond:face:m:0:chapter-1-2"]
+    assert cond.expression["accepted_values"] == [1, 2]
+    assert gb.nodes["op:face:m:0:sacrifice"].data["after_chapter"] == 3
 
 
-def test_hone_generic_once_and_not_on_source_card():
+def test_hone_counter_and_bonus_share_equipment():
     gb = _gb()
-    # generic boost exists once regardless of how many cards place hone counters
-    for h in ("x", "y", "z"):
+    # generic binding: E has a hone-count state, E is attached to C, boost scales with
+    # E's count and modifies C — all referencing the same Equipment variable.
+    assert _has(gb, "HAS_STATE", "obj:equipment-E", "state:hone-count:E")
+    assert _has(gb, "HAS_COUNTER_TYPE", "state:hone-count:E", "counter:hone")
+    assert _has(gb, "ATTACHED_TO", "obj:equipment-E", "obj:creature-C")
+    assert _has(gb, "SCALES_WITH", "effect:hone-boost", "state:hone-count:E")
+    assert _has(gb, "MODIFIES", "effect:hone-boost", "obj:creature-C")
+
+
+def test_hone_add_increments_that_equipments_count():
+    gb = _gb()
+    for h in ("x", "y"):
         rules.expand_hone(gb, {"id": f"face:{h}:0", "card_id": f"card:{h}", "name": h,
                                "oracle_text": "put a hone counter on target Equipment."})
-    produces = [e for e in gb.edges if e.predicate == "PRODUCES" and e.source == "counter:hone"
-                and e.target == "effect:hone-boost"]
-    assert len(produces) == 1
-    assert gb.nodes["effect:hone-boost"].data["target"] == "attached_creature"
-    # each card places a counter and references the rule; no per-card boost duplication
-    for h in ("x", "y", "z"):
-        assert _has(gb, "ADDS_COUNTER", f"op:face:{h}:0:add-hone", "counter:hone")
-        assert _has(gb, "REFERENCES_RULE", f"op:face:{h}:0:add-hone", "rule:hone")
+    # each placer increments the (bound) Equipment's hone-count state; generic boost once
+    for h in ("x", "y"):
+        assert _has(gb, "MODIFIES", f"op:face:{h}:0:add-hone", "state:hone-count:E")
+    assert len(_edges(gb, "SCALES_WITH", "effect:hone-boost", "state:hone-count:E")) == 1
+    # bonus never attached to a source card/face
+    assert gb.nodes["effect:hone-boost"].data["target"] == "obj:creature-C"

@@ -556,3 +556,24 @@ Want me to commit and push?
 
 ### [2026-08-13 21:05] USER
 commit and push it
+
+### [2026-08-13 21:07] ASSISTANT
+Token file is byte-exact (`text: unset`). Committing and pushing.
+
+Committed and pushed â€” `d43f49b..0bf61a4` on `origin/main` (working tree clean).
+
+**All nine review points are fixed and live.** The Phase 2 graph now preserves object identity end-to-end:
+- Adventure exile is bound to the specific card (0 global `zone:exile ENABLES` edges); casting is `CAN_LEAD_TO`, not guaranteed
+- Recruit is one generic template with a single Soldier-creation edge, invoked per card via `INSTANTIATES`
+- Each Saga has its own `lore-count` state; hone's boost is generic and on the attached creature
+- Storied is `QUALIFIES_FOR` at card level (0 `CONTRIBUTES_TO`)
+- Tokens fully enriched from 12 newly-frozen Scryfall token objects
+
+289 nodes / 382 edges / 0 dangling, 48 tests passing, verified live on Gandalf. Lab notebook has a `CORRECTION` + `OBSERVATION` entry, and the review doc is preserved in `docs/`.
+
+One thing I carried forward as a **hard requirement for Phase 3** (review point #9): the LLM extraction driver must process **all 209 Oracle-bearing faces**, not just the ones that produced a syntactic extraction â€” otherwise custom cards like Gandalf/Flameshape get skipped. It's recorded in the notebook so it can't slip.
+
+Phase 2 is now in a state I'd treat as frozen. Ready for **Phase 3 (LLM semantic extraction)** whenever you want to start it â€” that's the first phase needing a model config (extractor + independent critic, JSON-schema-validated output). I'll wait for your go.
+
+### [2026-08-13 21:10] USER
+ok most issues are addressed. review revealed some more things. read: hob-kg-phase2-review-pt2.md and address them.

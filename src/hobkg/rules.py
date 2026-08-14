@@ -25,7 +25,8 @@ RULE_REFS = {
 }
 
 _ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6}
-_CHAPTER_RE = re.compile(r"(?m)^\s*([IVX]+)\s*(?:,\s*[IVX]+\s*)*—")
+# A chapter header may name several chapter numbers, e.g. "I, II —".
+_CHAPTER_LINE_RE = re.compile(r"(?m)^\s*([IVX]+(?:\s*,\s*[IVX]+)*)\s*—")
 
 
 class GraphBuilder:
@@ -160,14 +161,23 @@ def _recruit_generic(gb: GraphBuilder) -> None:
 
 
 def _hone_generic(gb: GraphBuilder) -> None:
-    """Generic hone rule (once): a hone counter on an Equipment gives +1/+0 to the
-    attached creature, scaling with the Equipment's hone-counter count."""
+    """Generic hone rule (once), parameterized over a single bound Equipment E and the
+    creature C it is attached to: E has a per-object hone-count state; the +n/+0 boost
+    scales with THAT Equipment's count and modifies THAT attached creature — both
+    references bind the same E. (Phase 2 review pt2, blocking #2.)"""
     p = _rule_prov("hone")
-    gb.node("effect:hone-boost", "Effect", "+1/+0 to the equipped creature",
-            {"power": 1, "toughness": 0, "target": "attached_creature", "per_counter": True})
-    gb.edge("counter:hone", "effect:hone-boost", "PRODUCES", provenance=p)
-    gb.edge("effect:hone-boost", "counter:hone", "SCALES_WITH", provenance=p)
-    gb.edge("effect:hone-boost", "rule:hone", "REFERENCES_RULE", provenance=p)
+    eq = gb.node("obj:equipment-E", "ObjectClass", "an Equipment E (bound variable)")
+    cr = gb.node("obj:creature-C", "ObjectClass", "the creature C equipped by E")
+    hc = gb.node("state:hone-count:E", "State", "hone-count of Equipment E",
+                 {"object": "obj:equipment-E", "counter": "hone", "value": 0}, p)
+    boost = gb.node("effect:hone-boost", "Effect", "+n/+0 to the creature equipped by E",
+                    {"power_per_counter": 1, "toughness": 0, "target": "obj:creature-C"}, p)
+    gb.edge(eq, hc, "HAS_STATE", provenance=p)
+    gb.edge(hc, "counter:hone", "HAS_COUNTER_TYPE", provenance=p)
+    gb.edge(eq, cr, "ATTACHED_TO", provenance=p)
+    gb.edge(boost, hc, "SCALES_WITH", provenance=p)   # +n scales with THIS E's hone-count
+    gb.edge(boost, cr, "MODIFIES", provenance=p)      # applies to THIS E's attached creature
+    gb.edge(boost, "rule:hone", "REFERENCES_RULE", provenance=p)
 
 
 # ===========================================================================
@@ -223,6 +233,7 @@ def expand_hone(gb: GraphBuilder, face: dict) -> None:
     add = gb.node(f"op:{fid}:add-hone", "Operation", "put a hone counter on an Equipment", provenance=p)
     gb.edge(fid, add, "HAS_ABILITY", provenance=p)
     gb.edge(add, "counter:hone", "ADDS_COUNTER", provenance=p)
+    gb.edge(add, "state:hone-count:E", "MODIFIES", quantity=1, provenance=p)  # increments that Equipment's count
     gb.edge(add, "rule:hone", "REFERENCES_RULE", provenance=p)
 
 
@@ -271,14 +282,35 @@ def expand_saga(gb: GraphBuilder, face: dict) -> None:
     gb.edge(turn, lore, "MODIFIES", quantity=1, provenance=p)
     gb.edge(fid, "rule:saga", "REFERENCES_RULE", provenance=p)
 
-    values = sorted({_ROMAN.get(c, 0) for c in _CHAPTER_RE.findall(face.get("oracle_text") or "")
-                     if c in _ROMAN})
-    for n in values:
-        ab = gb.node(f"ab:{fid}:chapter-{n}", "Ability", f"chapter {n}", {"chapter": n}, p)
-        gb.edge(lore, ab, "ENABLES", provenance=p)  # this Saga's own count enables its own chapter
-    if values:
-        final = max(values)
+    # Parse chapter headers, each possibly naming several chapter numbers (e.g. "I, II").
+    chapters: list[tuple[int, ...]] = []
+    for m in _CHAPTER_LINE_RE.finditer(face.get("oracle_text") or ""):
+        nums = tuple(_ROMAN[r] for r in re.findall(r"[IVX]+", m.group(1)) if r in _ROMAN)
+        if nums:
+            chapters.append(nums)
+
+    all_values = sorted({n for nums in chapters for n in nums})
+    ab_by_value: dict[int, str] = {}
+    for nums in chapters:
+        tag = "-".join(str(n) for n in nums)
+        ab = gb.node(f"ab:{fid}:chapter-{tag}", "Ability",
+                     f"chapter {', '.join(str(n) for n in nums)}", {"chapters": list(nums)}, p)
+        # A chapter fires when the Saga's lore count *becomes* one of its numbers.
+        cond_id = f"cond:{fid}:chapter-{tag}"
+        gb.condition(StructuredCondition(
+            condition_id=cond_id,
+            expression={"condition_type": "state_transition_equals",
+                        "state": lore, "accepted_values": list(nums)},
+            human_readable=f"{face.get('name', fid)} lore count becomes "
+                           + " or ".join(str(n) for n in nums),
+            provenance=p))
+        gb.edge(lore, ab, "ENABLES", condition_ids=[cond_id], provenance=p)
+        for n in nums:
+            ab_by_value[n] = ab
+
+    if all_values:
+        final = max(all_values)
         sac = gb.node(f"op:{fid}:sacrifice", "Operation", "sacrifice after final chapter",
                       {"after_chapter": final}, p)
-        gb.edge(f"ab:{fid}:chapter-{final}", sac, "CAUSES", timing="after", provenance=p)
+        gb.edge(ab_by_value[final], sac, "CAUSES", timing="after", provenance=p)
         gb.edge(sac, "zone:graveyard", "MOVES_TO", provenance=p)

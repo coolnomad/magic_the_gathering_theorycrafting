@@ -116,6 +116,12 @@ class TokenSpec(_Base):
     produced_mana: list[str] = Field(default_factory=list)
     mana_cost: Optional[ManaCost] = None
     enriched: bool = Field(default=False, description="True if hydrated from the fetched token card object")
+    color_source: Optional[str] = Field(default=None, description="where colors came from: 'scryfall' or 'producing_card_text'")
+    characteristic_key: Optional[str] = Field(
+        default=None,
+        description="identity by full characteristics (name|colors|types|subtypes|P/T), not name alone",
+    )
+    notes: list[str] = Field(default_factory=list, description="data-correction notes, e.g. source typo fixes")
     produced_by_card_ids: list[str] = Field(default_factory=list)
     scryfall_related_ids: list[str] = Field(default_factory=list)
     provenance: list[Provenance] = Field(default_factory=list)
@@ -198,6 +204,7 @@ Predicate = Literal[
     "QUALIFIES_FOR",    # a card-definition object CAN contribute to a gate (capacity, not runtime)
     "HAS_COUNTER_TYPE", # an object's counter-count state is of a given counter type
     "ATTACHED_TO",      # equipment/aura attachment relation
+    "HAS_STATE",        # an object owns a per-object state (e.g. an Equipment's hone-count)
 ]
 
 

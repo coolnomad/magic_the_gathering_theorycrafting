@@ -323,6 +323,40 @@
       "title": "Enriched",
       "type": "boolean"
     },
+    "color_source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "where colors came from: 'scryfall' or 'producing_card_text'",
+      "title": "Color Source"
+    },
+    "characteristic_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "identity by full characteristics (name|colors|types|subtypes|P/T), not name alone",
+      "title": "Characteristic Key"
+    },
+    "notes": {
+      "description": "data-correction notes, e.g. source typo fixes",
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
     "produced_by_card_ids": {
       "items": {
         "type": "string"
