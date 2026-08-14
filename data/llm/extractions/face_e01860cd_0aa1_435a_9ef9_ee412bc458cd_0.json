@@ -65,13 +65,6 @@
     },
     {
       "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
-      "target": "counter:lore",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [51, 65], "text": "add a lore counter"}
-    },
-    {
-      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [88, 194], "text": "I — Target opponent reveals their hand. You choose a nonland card from it. That player discards that card."}

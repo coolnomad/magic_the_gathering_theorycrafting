@@ -64,13 +64,6 @@
       "scope": "each creature you control",
       "certainty": "rules_explicit",
       "provenance": {"oracle_span": [154, 227], "text": "put a +1/+1 counter on each creature you control"}
-    },
-    {
-      "source": "ability:token_enters_escalating",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [180, 191], "text": "+1/+1 counter"}
     }
   ],
   "schema_extension_requests": []

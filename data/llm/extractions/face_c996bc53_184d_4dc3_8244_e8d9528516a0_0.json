@@ -55,7 +55,7 @@
   "proposed_edges": [
     {
       "source": "face:c996bc53-184d-4dc3-8244-e8d9528516a0:0",
-      "target": "a1",
+      "target": "keyword:ward",
       "predicate": "HAS_KEYWORD",
       "certainty": "rules_explicit",
       "provenance": {
@@ -64,8 +64,18 @@
       }
     },
     {
-      "source": "a1",
-      "target": "event:opponent-targets-this",
+      "source": "face:c996bc53-184d-4dc3-8244-e8d9528516a0:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 134],
+        "text": "Ward {3} (Whenever this creature becomes the target of a spell or ability an opponent controls, counter it unless that player pays {3}.)"
+      }
+    },
+    {
+      "source": "event:opponent-targets-this",
+      "target": "a1",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {

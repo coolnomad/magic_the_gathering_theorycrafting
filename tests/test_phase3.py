@@ -38,6 +38,40 @@ def test_missing_provenance_rejected():
     assert phase3.validate_output(o)
 
 
+def test_predicate_signature_triggers_direction():
+    # TRIGGERS must be Event -> Ability; a reversed Ability -> Event is rejected.
+    ev = {"face_id": "face:x:0",
+          "abilities": [{"ability_id": "a1", "kind": "triggered", "effects": [{}],
+                         "oracle_spans": [[0, 5]], "confidence": "high", "unresolved": []}],
+          "proposed_edges": [], "schema_extension_requests": []}
+    good = dict(ev, proposed_edges=[{"source": "event:etb", "target": "a1", "predicate": "TRIGGERS",
+                                     "provenance": {"oracle_span": [0, 5]}}])
+    bad = dict(ev, proposed_edges=[{"source": "a1", "target": "event:etb", "predicate": "TRIGGERS",
+                                    "provenance": {"oracle_span": [0, 5]}}])
+    assert phase3.signature_violations(good) == []
+    assert any("signature" in e for e in phase3.signature_violations(bad))
+
+
+def test_predicate_signature_has_counter_type_domain():
+    base = {"face_id": "f", "abilities": [{"ability_id": "a1", "kind": "static", "effects": [{}],
+            "oracle_spans": [[0, 1]], "confidence": "high", "unresolved": []}],
+            "schema_extension_requests": []}
+    bad = dict(base, proposed_edges=[{"source": "a1", "target": "counter:lore",
+               "predicate": "HAS_COUNTER_TYPE", "provenance": {"oracle_span": [0, 1]}}])
+    good = dict(base, proposed_edges=[{"source": "state:x:lore-count", "target": "counter:lore",
+                "predicate": "HAS_COUNTER_TYPE", "provenance": {"oracle_span": [0, 1]}}])
+    assert phase3.signature_violations(bad)          # State-only source
+    assert phase3.signature_violations(good) == []
+
+
+def test_actor_convention_not_penalized():
+    # A CardFace actor on an operation predicate is the allowed card-local convention.
+    o = {"face_id": "f", "abilities": [], "schema_extension_requests": [],
+         "proposed_edges": [{"source": "face:x:0", "target": "zone:hand", "predicate": "MOVES_TO",
+                             "provenance": {"oracle_span": [0, 1]}}]}
+    assert phase3.signature_violations(o) == []
+
+
 def test_evaluative_language_rejected():
     o = _valid()
     o["abilities"][0]["effects"] = [{"note": "this creates great synergy with elves"}]

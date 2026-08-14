@@ -27,7 +27,7 @@
     {"source": "face:bdd41af0-bbd1-4ecd-a699-99f006f5e5ce:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [8, 137], "text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)"}},
     {"source": "face:bdd41af0-bbd1-4ecd-a699-99f006f5e5ce:0", "target": "a3", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [138, 227], "text": "As long as you have an enduring story, artifacts and creatures you control have ward {1}."}},
     {"source": "a2", "target": "rule:storied", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [8, 15], "text": "Storied"}},
-    {"source": "a2", "target": "state:enduring_story", "predicate": "PERSISTS_AS", "condition": "control three or more artifacts, legendaries, and/or Sagas", "certainty": "rules_explicit", "provenance": {"oracle_span": [8, 137], "text": "you have an enduring story for the rest of the game"}},
+    {"source": "face:bdd41af0-bbd1-4ecd-a699-99f006f5e5ce:0", "target": "state:enduring_story", "predicate": "HAS_STATE", "condition": "control three or more artifacts, legendaries, and/or Sagas", "certainty": "rules_explicit", "provenance": {"oracle_span": [8, 137], "text": "you have an enduring story for the rest of the game"}},
     {"source": "a3", "target": "state:enduring_story", "predicate": "REQUIRES", "certainty": "rules_explicit", "provenance": {"oracle_span": [138, 175], "text": "As long as you have an enduring story", "note": "ward-granting effect gated on enduring story designation"}}
   ],
   "schema_extension_requests": []

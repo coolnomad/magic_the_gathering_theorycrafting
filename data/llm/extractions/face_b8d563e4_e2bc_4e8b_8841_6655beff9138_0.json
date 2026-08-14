@@ -42,8 +42,7 @@
     {"source": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "target": "rule:storied", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 7], "text": "Storied"}},
     {"source": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "target": "state:enduring_story", "predicate": "HAS_STATE", "certainty": "rules_explicit", "provenance": {"oracle_span": [9, 126], "text": "If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game."}},
     {"source": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [128, 195], "text": "Whenever Bifur enters or attacks, put a +1/+1 counter on target creature."}},
-    {"source": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [166, 178], "text": "+1/+1 counter"}},
-    {"source": "state:enduring_story", "target": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "predicate": "ENABLES", "certainty": "rules_explicit", "provenance": {"oracle_span": [196, 335], "text": "As long as you have an enduring story, if a triggered ability of a Dwarf you control triggers, that ability triggers an additional time.", "note": "enduring story gates the Dwarf trigger-doubling static ability"}}
+    {"source": "state:enduring_story", "target": "a3", "predicate": "ENABLES", "certainty": "rules_explicit", "provenance": {"oracle_span": [196, 335], "text": "As long as you have an enduring story, if a triggered ability of a Dwarf you control triggers, that ability triggers an additional time.", "note": "enduring story gates the Dwarf trigger-doubling static ability"}}
   ],
   "schema_extension_requests": []
 }

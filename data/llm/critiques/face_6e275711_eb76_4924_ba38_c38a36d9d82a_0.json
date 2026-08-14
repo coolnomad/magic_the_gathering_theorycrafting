@@ -5,73 +5,20 @@
       "ability_id": "a1",
       "kind": "spell_effect",
       "effects": [
-        {
-          "op": "put_counter",
-          "counter_type": "+1/+1",
-          "quantity": 2,
-          "target": "target creature you control"
-        },
-        {
-          "op": "fight",
-          "combatants": [
-            "target creature you control",
-            "target creature an opponent controls"
-          ],
-          "note": "each deals damage equal to its power to the other"
-        }
+        {"op": "put_counter", "counter_type": "+1/+1", "quantity": 2, "target": "target creature you control"},
+        {"op": "fight", "combatants": ["target creature you control", "target creature an opponent controls"], "note": "each deals damage equal to its power to the other"}
       ],
       "controller": "you",
-      "oracle_spans": [
-        [
-          0,
-          160
-        ]
-      ],
+      "oracle_spans": [[0, 160]],
       "confidence": "high",
       "unresolved": []
     }
   ],
   "proposed_edges": [
-    {
-      "source": "face:6e275711-eb76-4924-ba38-c38a36d9d82a:0",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          0,
-          54
-        ],
-        "text": "Put two +1/+1 counters on target creature you control."
-      }
-    },
-    {
-      "source": "face:6e275711-eb76-4924-ba38-c38a36d9d82a:0",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          8,
-          22
-        ],
-        "text": "+1/+1 counters"
-      }
-    },
-    {
-      "source": "face:6e275711-eb76-4924-ba38-c38a36d9d82a:0",
-      "target": "event:fight",
-      "predicate": "CAUSES",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          55,
-          107
-        ],
-        "text": "Then it fights target creature an opponent controls.",
-        "note": "'it' = the target creature you control that received the counters"
-      }
-    }
+    {"source": "face:6e275711-eb76-4924-ba38-c38a36d9d82a:0", "target": "a1", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [0, 160], "text": "Put two +1/+1 counters on target creature you control. Then it fights target creature an opponent controls. (Each deals damage equal to its power to the other.)"}},
+    {"source": "face:6e275711-eb76-4924-ba38-c38a36d9d82a:0", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 54], "text": "Put two +1/+1 counters on target creature you control."}},
+    {"source": "state:has-plus-one-plus-one-counter", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [8, 22], "text": "+1/+1 counters"}},
+    {"source": "face:6e275711-eb76-4924-ba38-c38a36d9d82a:0", "target": "event:fight", "predicate": "CAUSES", "certainty": "rules_explicit", "provenance": {"oracle_span": [55, 107], "text": "Then it fights target creature an opponent controls.", "note": "'it' = the target creature you control that received the counters"}}
   ],
   "schema_extension_requests": []
 }

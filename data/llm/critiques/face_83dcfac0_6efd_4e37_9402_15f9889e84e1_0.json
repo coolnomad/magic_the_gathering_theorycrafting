@@ -9,7 +9,7 @@
       "costs": [],
       "effects": [{"op": "deal_damage", "amount": 2, "target": "target opponent", "required": true}],
       "controller": "you",
-      "oracle_spans": [[0, 127]],
+      "oracle_spans": [[0, 128]],
       "confidence": "high",
       "unresolved": []
     },
@@ -24,18 +24,20 @@
         {"op": "grant_play_permission", "detail": "You may play it until the end of your next turn", "duration": "until the end of your next turn", "required": false}
       ],
       "controller": "you",
-      "oracle_spans": [[128, 269]],
+      "oracle_spans": [[129, 269]],
       "confidence": "high",
       "unresolved": []
     }
   ],
   "proposed_edges": [
-    {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 127], "text": "Whenever you put one or more counters on ... The Great Goblin deals 2 damage to target opponent."}},
-    {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [128, 269], "text": "Whenever another Goblin, Orc, or Army you control dies, exile the top card of your library. You may play it until the end of your next turn."}},
-    {"source": "a1", "target": "target opponent", "predicate": "CAUSES", "polarity": "negative", "certainty": "rules_explicit", "provenance": {"oracle_span": [77, 127], "text": "The Great Goblin deals 2 damage to target opponent"}},
-    {"source": "a1", "target": "counter:generic", "predicate": "TRIGGERS", "certainty": "high", "provenance": {"oracle_span": [13, 74], "text": "put one or more counters on a Goblin, Orc, or Army you control", "note": "ability triggers when any counter is placed on a Goblin, Orc, or Army you control"}},
+    {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 128], "text": "Whenever you put one or more counters on a Goblin, Orc, or Army you control, The Great Goblin deals 2 damage to target opponent."}},
+    {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [129, 269], "text": "Whenever another Goblin, Orc, or Army you control dies, exile the top card of your library. You may play it until the end of your next turn."}},
+    {"source": "event:counters-placed", "target": "a1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 74], "text": "Whenever you put one or more counters on a Goblin, Orc, or Army you control", "note": "triggers when one or more counters (any type) are placed on a Goblin, Orc, or Army you control"}},
+    {"source": "a1", "target": "event:damage", "predicate": "CAUSES", "polarity": "negative", "certainty": "rules_explicit", "provenance": {"oracle_span": [77, 127], "text": "The Great Goblin deals 2 damage to target opponent", "note": "deals 2 damage to target opponent"}},
+    {"source": "event:dies", "target": "a2", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": {"oracle_span": [129, 183], "text": "Whenever another Goblin, Orc, or Army you control dies", "note": "dies trigger for another Goblin, Orc, or Army you control"}},
+    {"source": "a2", "target": "zone:library", "predicate": "MOVES_FROM", "certainty": "rules_explicit", "provenance": {"oracle_span": [185, 219], "text": "exile the top card of your library"}},
     {"source": "a2", "target": "zone:exile", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [185, 219], "text": "exile the top card of your library"}},
-    {"source": "a2", "target": "zone:library", "predicate": "MOVES_FROM", "certainty": "rules_explicit", "provenance": {"oracle_span": [185, 219], "text": "exile the top card of your library"}}
+    {"source": "state:exiled-with-play-permission", "target": "op:play-from-exile", "predicate": "ENABLES", "optional": true, "condition": "you may play the exiled card until the end of your next turn", "certainty": "rules_explicit", "provenance": {"oracle_span": [221, 269], "text": "You may play it until the end of your next turn."}}
   ],
   "schema_extension_requests": []
 }

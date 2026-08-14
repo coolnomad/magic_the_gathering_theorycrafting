@@ -62,10 +62,10 @@
     },
     {
       "source": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
-      "target": "counter:lore",
-      "predicate": "HAS_COUNTER_TYPE",
+      "target": "chapter-I-II-III-IV",
+      "predicate": "HAS_ABILITY",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [0, 87], "text": "add a lore counter"}
+      "provenance": {"oracle_span": [88, 257], "text": "I, II, III, IV — Create a Treasure token. Then if you control four or more Treasures, sacrifice this Saga. If you do, create a 6/6 red Dragon creature token with flying."}
     },
     {
       "source": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
@@ -89,14 +89,6 @@
       "certainty": "rules_explicit",
       "condition": "sacrificed this Saga via the four-Treasure clause",
       "provenance": {"oracle_span": [206, 257], "text": "create a 6/6 red Dragon creature token with flying."}
-    },
-    {
-      "source": "token:treasure",
-      "target": "token:dragon",
-      "predicate": "ENABLES",
-      "certainty": "high",
-      "note": "controlling four or more Treasures satisfies the condition that yields the Dragon token",
-      "provenance": {"oracle_span": [130, 257], "text": "Then if you control four or more Treasures, sacrifice this Saga. If you do, create a 6/6 red Dragon creature token with flying."}
     }
   ],
   "schema_extension_requests": []

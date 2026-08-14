@@ -71,7 +71,34 @@
   "proposed_edges": [
     {
       "source": "face:840de40b-590e-4bf0-8d16-22b0eff61202:0",
-      "target": "gate:storied",
+      "target": "storied",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [0, 129],
+        "text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)"
+      }
+    },
+    {
+      "source": "face:840de40b-590e-4bf0-8d16-22b0eff61202:0",
+      "target": "enduring_story_free_equip",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [130, 266],
+        "text": "As long as you have an enduring story, you may pay {0} rather than pay the equip cost of the first equip ability you activate each turn."
+      }
+    },
+    {
+      "source": "face:840de40b-590e-4bf0-8d16-22b0eff61202:0",
+      "target": "dwarf_or_equipment_etb_draw",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [267, 378],
+        "text": "Whenever another Dwarf or Equipment you control enters, draw a card. This ability triggers only once each turn."
+      }
+    },
+    {
+      "source": "face:840de40b-590e-4bf0-8d16-22b0eff61202:0",
+      "target": "rule:storied",
       "predicate": "REFERENCES_RULE",
       "certainty": "rules_explicit",
       "provenance": {
@@ -81,7 +108,7 @@
       }
     },
     {
-      "source": "storied",
+      "source": "state:storied-threshold-met",
       "target": "state:enduring_story",
       "predicate": "PERSISTS_AS",
       "condition": "you control three or more artifacts, legendaries, and/or Sagas",
@@ -116,8 +143,8 @@
       }
     },
     {
-      "source": "dwarf_or_equipment_etb_draw",
-      "target": "event:dwarf_or_equipment_enters",
+      "source": "event:dwarf_or_equipment_enters",
+      "target": "dwarf_or_equipment_etb_draw",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {

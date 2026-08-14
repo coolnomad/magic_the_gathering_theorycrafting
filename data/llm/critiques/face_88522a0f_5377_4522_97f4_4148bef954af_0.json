@@ -5,17 +5,28 @@
       "ability_id": "a1",
       "kind": "triggered",
       "trigger": {"event": "enters", "subject": "Bolg"},
-      "costs": [
-        {"op": "sacrifice", "what": "another creature", "optional": true}
-      ],
+      "costs": [],
       "conditions": [],
       "effects": [
-        {"op": "reflexive_trigger", "detail": "When you do (sacrifice), Bolg deals damage equal to that creature's power to another target creature."},
-        {"op": "deal_damage", "source": "Bolg", "amount": "sacrificed creature's power", "target": "another target creature"},
-        {"op": "amass", "subtype": "Goblins", "amount": "X", "x_definition": "the excess damage dealt this way", "condition": "if excess damage was dealt this way", "detail": "amass Goblins X (put X +1/+1 counters on an Army you control, which becomes a Goblin; create a 0/0 black Goblin Army token first if you control no Army)"}
+        {"op": "may_sacrifice", "what": "another creature", "optional": true, "text": "you may sacrifice another creature", "note": "if you do, a reflexive ability triggers"}
       ],
       "controller": "you",
-      "oracle_spans": [[0, 378]],
+      "oracle_spans": [[0, 53]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a1-reflexive",
+      "kind": "triggered",
+      "trigger": {"event": "you sacrifice a creature this way", "text": "When you do"},
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "deal_damage", "source": "Bolg", "amount": "sacrificed creature's power", "target": "another target creature"},
+        {"op": "amass", "subtype": "Goblins", "amount": "X", "x_definition": "the excess damage dealt this way", "condition": "if excess damage was dealt this way", "detail": "amass Goblins X where X is that excess damage"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[54, 224]],
       "confidence": "high",
       "unresolved": []
     }
@@ -25,39 +36,52 @@
       "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [0, 378], "text": "When Bolg enters, you may sacrifice another creature. When you do, Bolg deals damage equal to that creature's power to another target creature. If excess damage was dealt this way, amass Goblins X, where X is that excess damage."}
+      "provenance": {"oracle_span": [0, 53], "text": "When Bolg enters, you may sacrifice another creature."}
+    },
+    {
+      "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+      "target": "a1-reflexive",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [54, 224], "text": "When you do, Bolg deals damage equal to that creature's power to another target creature. If excess damage was dealt this way, amass Goblins X, where X is that excess damage."}
     },
     {
       "source": "event:bolg_enters",
       "target": "a1",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [0, 17], "text": "When Bolg enters,"}
+      "provenance": {"oracle_span": [0, 16], "text": "When Bolg enters"}
     },
     {
       "source": "a1",
-      "target": "event:sacrifice",
-      "predicate": "CONSUMES",
+      "target": "event:you-sacrifice-a-creature",
+      "predicate": "CAUSES",
       "optional": true,
       "scope": "another creature",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [18, 53], "text": "you may sacrifice another creature."}
+      "provenance": {"oracle_span": [18, 52], "text": "you may sacrifice another creature", "note": "reflexive 'when you do' precursor event"}
     },
     {
-      "source": "a1",
+      "source": "event:you-sacrifice-a-creature",
+      "target": "a1-reflexive",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [54, 66], "text": "When you do,"}
+    },
+    {
+      "source": "a1-reflexive",
       "target": "event:damage",
       "predicate": "CAUSES",
       "scope": "another target creature",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [67, 143], "text": "Bolg deals damage equal to that creature's power to another target creature."}
+      "provenance": {"oracle_span": [67, 142], "text": "Bolg deals damage equal to that creature's power to another target creature."}
     },
     {
-      "source": "a1",
+      "source": "a1-reflexive",
       "target": "event:damage",
       "predicate": "SCALES_WITH",
       "certainty": "rules_explicit",
-      "note": "damage equals the sacrificed creature's power",
-      "provenance": {"oracle_span": [78, 115], "text": "damage equal to that creature's power"}
+      "note": "damage equals sacrificed creature's power",
+      "provenance": {"oracle_span": [81, 113], "text": "damage equal to that creature's power"}
     },
     {
       "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
@@ -66,15 +90,7 @@
       "certainty": "rules_explicit",
       "condition": "excess damage was dealt this way",
       "scope": "amass Goblins X; Army subtype = Goblin; X = the excess damage",
-      "provenance": {"oracle_span": [144, 228], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "If excess damage was dealt this way, amass Goblins X, where X is that excess damage."}
-    },
-    {
-      "source": "a1",
-      "target": "counter:+1/+1",
-      "predicate": "SCALES_WITH",
-      "certainty": "rules_explicit",
-      "note": "X (counters amassed) equals the excess damage dealt",
-      "provenance": {"oracle_span": [144, 228], "text": "If excess damage was dealt this way, amass Goblins X, where X is that excess damage."}
+      "provenance": {"oracle_span": [144, 223], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "If excess damage was dealt this way, amass Goblins X, where X is that excess damage."}
     }
   ],
   "schema_extension_requests": []

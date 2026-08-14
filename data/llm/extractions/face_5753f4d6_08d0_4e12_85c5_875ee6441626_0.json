@@ -75,7 +75,7 @@
       "provenance": {"oracle_span": [253, 353], "text": "Then exile it."}
     },
     {
-      "source": "flashback",
+      "source": "state:cast-from-graveyard",
       "target": "amass-goblins",
       "predicate": "ENABLES",
       "certainty": "high",

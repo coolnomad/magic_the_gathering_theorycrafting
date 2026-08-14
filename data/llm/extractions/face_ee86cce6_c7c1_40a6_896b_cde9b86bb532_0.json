@@ -27,17 +27,18 @@
   ],
   "proposed_edges": [
     {
+      "source": "event:beginning-of-combat",
+      "target": "rabbit-ferocious-combat",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [12, 51], "text": "At the beginning of combat on your turn"}
+    },
+    {
       "source": "rabbit-ferocious-combat",
       "target": "counter:+1/+1",
       "predicate": "ADDS_COUNTER",
       "condition": "you control a creature with power 4 or greater",
       "provenance": {"oracle_span": [104, 140], "text": "put a +1/+1 counter on this creature"}
-    },
-    {
-      "source": "rabbit-ferocious-combat",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [110, 123], "text": "+1/+1 counter"}
     },
     {
       "source": "rabbit-ferocious-combat",

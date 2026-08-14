@@ -36,8 +36,16 @@
   "proposed_edges": [
     {
       "source": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:1",
+      "target": "flameshape_look_exile_play",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 145], "text": "Look at the top two cards of your library and exile them face down. For as long as they remain exiled, you may play them if you control a Wizard."}
+    },
+    {
+      "source": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:1",
       "target": "zone:library",
       "predicate": "MOVES_FROM",
+      "scope": "the top two cards of your library",
       "certainty": "rules_explicit",
       "provenance": {
         "oracle_span": [0, 67],
@@ -48,34 +56,24 @@
       "source": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:1",
       "target": "zone:exile",
       "predicate": "MOVES_TO",
+      "scope": "the top two cards of your library",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [0, 67],
+        "oracle_span": [46, 66],
         "text": "exile them face down"
       }
     },
     {
-      "source": "flameshape_look_exile_play",
-      "target": "obj:exiled_cards",
+      "source": "state:control_a_wizard",
+      "target": "op:play-exiled-cards",
       "predicate": "ENABLES",
       "optional": true,
-      "condition": "you control a Wizard, and the cards remain in exile",
+      "condition": "the cards remain in exile",
       "certainty": "rules_explicit",
       "provenance": {
         "oracle_span": [68, 145],
         "text": "For as long as they remain exiled, you may play them if you control a Wizard.",
-        "note": "Grants permission to play the exiled cards from exile, gated on controlling a Wizard and on the cards remaining exiled."
-      }
-    },
-    {
-      "source": "flameshape_look_exile_play",
-      "target": "state:control_a_wizard",
-      "predicate": "REQUIRES",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [68, 145],
-        "text": "if you control a Wizard",
-        "note": "Playing the exiled cards requires controlling a Wizard at that time."
+        "note": "Controlling a Wizard enables the operation of playing the exiled cards from exile while they remain exiled."
       }
     }
   ],

@@ -50,13 +50,13 @@
       }
     },
     {
-      "source": "etb_recruit",
-      "target": "event:creature_enters",
+      "source": "event:this-creature-enters",
+      "target": "etb_recruit",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [10, 163],
-        "text": "When this creature enters, recruit."
+        "oracle_span": [10, 35],
+        "text": "When this creature enters"
       }
     },
     {

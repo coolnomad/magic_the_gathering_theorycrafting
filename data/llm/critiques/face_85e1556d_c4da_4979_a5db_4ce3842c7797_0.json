@@ -59,7 +59,7 @@
       "source": "face:85e1556d-c4da-4979-a5db-4ce3842c7797:0",
       "target": "a2",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [72, 242], "text": "Amass Goblins 3."}
+      "provenance": {"oracle_span": [72, 242], "text": "Amass Goblins 3. (Put three +1/+1 counters on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first.)"}
     },
     {
       "source": "face:85e1556d-c4da-4979-a5db-4ce3842c7797:0",

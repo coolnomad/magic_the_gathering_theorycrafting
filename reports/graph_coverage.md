@@ -2,8 +2,8 @@
 
 > Rule-expansion graph fragments. Possibility only; no value judgments. (spec)
 
-- **nodes**: 328
-- **edges**: 429
+- **nodes**: 335
+- **edges**: 439
 - **gates**: 3
 - **conditions**: 22
 - **dangling edges**: 0
@@ -22,18 +22,19 @@
 
 ## Node types
 
-- Operation: 127
+- Operation: 130
 - CardFace: 114
 - Ability: 29
-- State: 27
+- State: 28
+- ObjectClass: 8
 - Rule: 7
 - Zone: 6
-- TokenSpec: 5
-- ObjectClass: 5
+- TokenSpec: 4
 - CounterType: 3
 - Gate: 3
 - Event: 1
 - Effect: 1
+- Cost: 1
 
 ## Edge predicates
 
@@ -44,15 +45,18 @@
 - REFERENCES_RULE: 40
 - MOVES_TO: 28
 - INSTANTIATES: 26
+- MODIFIES: 20
 - PRODUCES: 19
-- MODIFIES: 19
+- CAUSES: 17
 - CAN_LEAD_TO: 17
-- CAUSES: 14
-- HAS_COUNTER_TYPE: 9
+- HAS_COUNTER_TYPE: 10
 - COUNTS: 3
 - ADDS_COUNTER: 3
 - CREATES_OBJECT: 2
+- HAS_STATE: 2
+- REQUIRES: 2
 - PERSISTS_AS: 1
-- HAS_STATE: 1
 - ATTACHED_TO: 1
 - SCALES_WITH: 1
+- HAS_TYPE: 1
+- HAS_COST: 1

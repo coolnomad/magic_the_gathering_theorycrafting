@@ -45,6 +45,13 @@
       "provenance": {"oracle_span": [0, 91], "text": "When this enchantment enters, return target creature card from your graveyard to your hand."}
     },
     {
+      "source": "event:this-enchantment-enters",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 29], "text": "When this enchantment enters"}
+    },
+    {
       "source": "a1",
       "target": "zone:graveyard",
       "predicate": "MOVES_FROM",

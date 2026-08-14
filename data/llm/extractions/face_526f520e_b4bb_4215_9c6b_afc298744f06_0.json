@@ -99,7 +99,7 @@
       "provenance": {"oracle_span": [151, 165], "text": "Then exile it."}
     },
     {
-      "source": "a2",
+      "source": "state:cast-from-graveyard",
       "target": "a1",
       "predicate": "ENABLES",
       "note": "Casting from graveyard via flashback satisfies the 'cast from a graveyard' condition of a1, upgrading the draw.",

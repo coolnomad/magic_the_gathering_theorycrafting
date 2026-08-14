@@ -35,7 +35,12 @@
           "target": "each creature you control"
         }
       ],
-      "oracle_spans": [[0, 227]],
+      "oracle_spans": [
+        [
+          0,
+          227
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     }
@@ -46,7 +51,13 @@
       "target": "ability:token_enters_escalating",
       "predicate": "HAS_ABILITY",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [0, 227], "text": "Whenever a token you control enters..."}
+      "provenance": {
+        "oracle_span": [
+          0,
+          227
+        ],
+        "text": "Whenever a token you control enters, you gain 1 life if this is the first time this ability has resolved this turn. If it's the second time, draw a card. If it's the third time, put a +1/+1 counter on each creature you control."
+      }
     },
     {
       "source": "event:enters_the_battlefield",
@@ -54,7 +65,13 @@
       "predicate": "TRIGGERS",
       "scope": "a token you control",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [0, 36], "text": "Whenever a token you control enters"}
+      "provenance": {
+        "oracle_span": [
+          0,
+          36
+        ],
+        "text": "Whenever a token you control enters,"
+      }
     },
     {
       "source": "ability:token_enters_escalating",
@@ -63,14 +80,13 @@
       "condition": "third resolution this turn",
       "scope": "each creature you control",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [154, 227], "text": "put a +1/+1 counter on each creature you control"}
-    },
-    {
-      "source": "ability:token_enters_escalating",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [184, 197], "text": "+1/+1 counter"}
+      "provenance": {
+        "oracle_span": [
+          178,
+          227
+        ],
+        "text": "put a +1/+1 counter on each creature you control."
+      }
     }
   ],
   "schema_extension_requests": []

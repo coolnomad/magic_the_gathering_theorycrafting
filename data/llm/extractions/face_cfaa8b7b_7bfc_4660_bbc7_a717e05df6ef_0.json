@@ -41,6 +41,20 @@
   "proposed_edges": [
     {
       "source": "face:cfaa8b7b-7bfc-4660-bbc7-a717e05df6ef:0",
+      "target": "etb-or-attack-boulder",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 127], "text": "Whenever this creature enters or attacks, create a 3/1 colorless Wall artifact creature token with defender named Stone Boulder."}
+    },
+    {
+      "source": "event:this-creature-enters-or-attacks",
+      "target": "etb-or-attack-boulder",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 40], "text": "Whenever this creature enters or attacks,"}
+    },
+    {
+      "source": "face:cfaa8b7b-7bfc-4660-bbc7-a717e05df6ef:0",
       "target": "token:stone-boulder",
       "predicate": "CREATES_OBJECT",
       "certainty": "rules_explicit",
@@ -54,14 +68,6 @@
       "certainty": "rules_explicit",
       "note": "cost: sacrifice an artifact; Stone Boulder tokens can fuel this",
       "provenance": {"oracle_span": [128, 158], "text": "{2}{R}, Sacrifice an artifact:"}
-    },
-    {
-      "source": "token:stone-boulder",
-      "target": "face:cfaa8b7b-7bfc-4660-bbc7-a717e05df6ef:0",
-      "predicate": "ENABLES",
-      "certainty": "high",
-      "note": "Stone Boulder is an artifact, so it can pay the Sacrifice an artifact cost of the ping ability",
-      "provenance": {"oracle_span": [128, 158], "text": "Sacrifice an artifact"}
     },
     {
       "source": "face:cfaa8b7b-7bfc-4660-bbc7-a717e05df6ef:0",

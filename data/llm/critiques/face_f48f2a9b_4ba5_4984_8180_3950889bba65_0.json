@@ -31,12 +31,22 @@
   ],
   "proposed_edges": [
     {
-      "source": "noncreature_cast_pump_and_ping",
-      "target": "event:cast_noncreature_spell",
-      "predicate": "TRIGGERS",
+      "source": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:0",
+      "target": "noncreature_cast_pump_and_ping",
+      "predicate": "HAS_ABILITY",
       "certainty": "rules_explicit",
       "provenance": {
         "oracle_span": [0, 112],
+        "text": "Whenever you cast a noncreature spell, Gandalf gets +1/+1 until end of turn and deals 1 damage to each opponent."
+      }
+    },
+    {
+      "source": "event:cast_noncreature_spell",
+      "target": "noncreature_cast_pump_and_ping",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 37],
         "text": "Whenever you cast a noncreature spell",
         "note": "Trigger conditioned on the cast spell being noncreature; triggers per such cast."
       }
@@ -48,7 +58,7 @@
       "timing": "until end of turn",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [0, 112],
+        "oracle_span": [39, 75],
         "text": "Gandalf gets +1/+1 until end of turn",
         "note": "Temporary +1/+1 buff to this creature itself; self-reference resolved to Gandalf face."
       }
@@ -60,7 +70,7 @@
       "polarity": "negative",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [0, 112],
+        "oracle_span": [80, 111],
         "text": "deals 1 damage to each opponent"
       }
     }

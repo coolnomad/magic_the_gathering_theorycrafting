@@ -53,16 +53,22 @@
       "provenance": {"oracle_span": [0, 8], "text": "Landfall"}
     },
     {
-      "source": "hospitality-landfall",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "provenance": {"oracle_span": [47, 97], "text": "put a +1/+1 counter on target creature you control"}
+      "source": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
+      "target": "hospitality-landfall",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 97], "text": "Landfall — Whenever a land you control enters, put a +1/+1 counter on target creature you control."}
+    },
+    {
+      "source": "event:land-enters",
+      "target": "hospitality-landfall",
+      "predicate": "TRIGGERS",
+      "provenance": {"oracle_span": [11, 46], "text": "Whenever a land you control enters,"}
     },
     {
       "source": "hospitality-landfall",
       "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [53, 66], "text": "+1/+1 counter"}
+      "predicate": "ADDS_COUNTER",
+      "provenance": {"oracle_span": [47, 97], "text": "put a +1/+1 counter on target creature you control"}
     },
     {
       "source": "hospitality-animate",

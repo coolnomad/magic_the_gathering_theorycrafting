@@ -491,3 +491,23 @@ A bounded closure pass (user-directed) resolved three items before Phase 4. No r
 **FROZEN Phase 3 result.** 210 face records (209 extracted + 1 reviewed_empty); **417 accepted abilities, 1001 accepted edges**; 2 unresolved; 0 remaining `schema_extension_requests`; 0 span overruns in accepted. 65 pytest tests pass (5 new: Amass/typecycling templates, no-primitive-predicate guard, 210-face coverage). Canonical rebuild sequence: `reconcile → apply-dispositions → finalize-faces`. This is the frozen Phase 3 baseline for Phase 4 global assembly.
 
 Refs: [2026-08-13 23:40] OBSERVATION — Phase 3 run; `reports/phase3_coverage.md`; `data/review/llm_{accepted,unresolved,dispositions,face_status,queued,span_warnings}.jsonl`; `src/hobkg/{rules,phase3,pipeline}.py`
+
+---
+
+## [2026-08-14 02:30] CORRECTION — Phase 3 reopened for structural validation (external review); refrozen v2
+
+An external review (`docs/hob-kg-phase3-review.md`) found the v1 freeze not yet semantically safe: **31 of 74 accepted `TRIGGERS` edges violated Event→Ability**, the Amass template was not object-bound, and 7 Amass cards kept inline duplicate expansions (double-count risk in Phase 4). Reopened, fixed, refrozen. Bookkeeping claims were all confirmed correct; the issues were structural.
+
+**1. Predicate domain/range validation added.** `phase3.PREDICATE_SIGNATURES` + `resolve_node_type()` + `signature_violations()` now enforce the load-bearing relational predicates as HARD validation errors: `TRIGGERS` = Event→Ability, `HAS_COUNTER_TYPE` = State→CounterType, `ENABLES` = State/Event/Gate→Ability/Operation, `PERSISTS_AS` = State→State, `ATTACHED_TO` object→object, `COUNTS`/`CONTRIBUTES_TO`/`QUALIFIES_FOR`/`HAS_STATE`/`SATISFIES`/`HAS_FACE`/`HAS_ABILITY`. The **actor** predicates (MOVES_*/CREATES_OBJECT/ADDS_COUNTER/PRODUCES/CAUSES/MODIFIES/SCALES_WITH/REFERENCES_RULE/INSTANTIATES/…) admit a CardFace/Ability/Operation subject — a documented Phase-3 card-local convention (Phase 4 canonicalizes actors into Operation nodes), consistent with the review's own `HAS_ABILITY: CardFace→…` signature. Scoping: 78 strict-relational violations across 58 faces; re-extraction set = those ∪ all 14 Amass cards = **68 faces**.
+
+**2. Amass template made object-bound.** Reworked over a single bound Army variable `obj:army-A`: `gate:amass-no-army CREATES_OBJECT obj:army-A` (the created Army IS A); `op:amass:select REQUIRES obj:army-A`; `obj:army-A HAS_STATE state:army-A:counters HAS_COUNTER_TYPE counter:+1/+1`; `op:amass:add-counters MODIFIES state:army-A:counters`; `obj:army-A HAS_TYPE obj:army`. Created and counted Army are the same node — executable, like the earlier Adventure/hone object-identity fixes. N + subtype ride on each per-card instance.
+
+**3. Typecycling template completed.** Added `HAS_COST cost:cycling`, discard-as-cost (`MOVES_TO zone:graveyard`), `REQUIRES obj:searched-type`, reveal + shuffle operations.
+
+**4. 68 faces re-extracted + re-critiqued (5 repair-extractor + 5 critic sub-agents).** Repaired TRIGGERS direction (via explicit event nodes; reflexive "when you do" as `ability/effect CAUSES event TRIGGERS reflexive-ability`), re-sourced `HAS_COUNTER_TYPE`/`PERSISTS_AS` to State nodes, fixed `ENABLES`/`ATTACHED_TO`, dropped forbidden `counter:lore TRIGGERS chapter` (Saga chapters reference `rule:saga`), and normalized all 14 Amass cards to `INSTANTIATES rule:amass` with **zero** inline `CREATES_OBJECT token:goblin-army` + `ADDS_COUNTER` duplicates. Re-adjudicated the resulting 36-face / 73-item queue: 62 accepted_critic, 9 accepted_extractor, 1 corrected, **1 unresolved** (I overrode the adjudicator: Thranduil's `a1 DERIVED_FROM zone:graveyard` — no clean primitive for "gains the activated abilities of Elf cards in your graveyard"; preserved out of the accepted graph). The v1 "Great Goblin" unresolved is now properly fixed (`event:counters-placed TRIGGERS a1`).
+
+**5. Regression tests** (68 pass total, +3): predicate-signature direction/domain (TRIGGERS, HAS_COUNTER_TYPE) + actor-convention not penalized; object-bound Amass (bound A, param propagation); completed typecycling.
+
+**FROZEN v2.** 210 face records; **418 accepted abilities, 1013 accepted edges**; **0 predicate-signature violations**; all **84 TRIGGERS are Event→Ability**; Amass fully normalized (0 inline duplicates); 1 unresolved; 0 `schema_extension_requests`; 0 dangling in the Phase 2 graph (335 nodes / 439 edges). Canonical rebuild unchanged: `reconcile → apply-dispositions → finalize-faces`. Now safe for Phase 4 assembly.
+
+Refs: [`docs/hob-kg-phase3-review.md`](./docs/hob-kg-phase3-review.md); [2026-08-14 00:30] DECISION — Phase 3 closure (v1); `reports/phase3_coverage.md`; `src/hobkg/{phase3,rules}.py`

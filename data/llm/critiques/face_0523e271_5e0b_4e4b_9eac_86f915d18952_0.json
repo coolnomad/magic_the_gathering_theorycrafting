@@ -13,7 +13,12 @@
           "keyword": "Flash"
         }
       ],
-      "oracle_spans": [[0, 5]],
+      "oracle_spans": [
+        [
+          0,
+          5
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -36,7 +41,12 @@
           "to_zone": "exile"
         }
       ],
-      "oracle_spans": [[6, 69]],
+      "oracle_spans": [
+        [
+          6,
+          69
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -58,7 +68,12 @@
           "token_ref": "token:wolf"
         }
       ],
-      "oracle_spans": [[70, 122]],
+      "oracle_spans": [
+        [
+          70,
+          122
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     }
@@ -70,7 +85,10 @@
       "predicate": "HAS_KEYWORD",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [0, 5],
+        "oracle_span": [
+          0,
+          5
+        ],
         "text": "Flash"
       }
     },
@@ -79,7 +97,10 @@
       "target": "ability:hoth-death-replacement",
       "predicate": "HAS_ABILITY",
       "provenance": {
-        "oracle_span": [6, 69],
+        "oracle_span": [
+          6,
+          69
+        ],
         "text": "If a creature an opponent controls would die, exile it instead."
       }
     },
@@ -90,7 +111,10 @@
       "scope": "creatures an opponent controls",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [6, 69],
+        "oracle_span": [
+          6,
+          69
+        ],
         "text": "If a creature an opponent controls would die, exile it instead."
       }
     },
@@ -101,17 +125,37 @@
       "scope": "creatures an opponent controls that would die",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [6, 69],
+        "oracle_span": [
+          6,
+          69
+        ],
         "text": "If a creature an opponent controls would die, exile it instead."
       }
     },
     {
       "source": "ability:hoth-death-replacement",
+      "target": "event:opponent-creature-exiled",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          6,
+          69
+        ],
+        "text": "If a creature an opponent controls would die, exile it instead.",
+        "note": "Exiling the opponent's creature via the replacement is the event the reflexive trigger keys off."
+      }
+    },
+    {
+      "source": "event:opponent-creature-exiled",
       "target": "ability:hoth-reflexive-token",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [70, 122],
+        "oracle_span": [
+          70,
+          122
+        ],
         "text": "When you do, create a 2/2 green Wolf creature token.",
         "note": "Reflexive trigger fires when the replacement exiles an opponent's creature."
       }
@@ -122,7 +166,10 @@
       "predicate": "CREATES_OBJECT",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [70, 122],
+        "oracle_span": [
+          70,
+          122
+        ],
         "text": "When you do, create a 2/2 green Wolf creature token."
       }
     }

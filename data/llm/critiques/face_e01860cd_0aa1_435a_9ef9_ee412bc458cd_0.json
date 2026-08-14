@@ -65,24 +65,9 @@
     },
     {
       "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
-      "target": "counter:lore",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [51, 65], "text": "a lore counter"}
-    },
-    {
-      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [88, 194], "text": "I — Target opponent reveals their hand. You choose a nonland card from it. That player discards that card."}
-    },
-    {
-      "source": "counter:lore",
-      "target": "a1",
-      "predicate": "TRIGGERS",
-      "certainty": "rules_explicit",
-      "scope": "chapter I; triggers as lore count reaches 1",
-      "provenance": {"oracle_span": [88, 194], "rule_ref": "CR 714 (Saga cards)", "text": "I — Target opponent reveals their hand. You choose a nonland card from it. That player discards that card."}
     },
     {
       "source": "a1",
@@ -96,18 +81,10 @@
       "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
       "target": "a2",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [195, 365], "text": "II — Amass Goblins 1."}
+      "provenance": {"oracle_span": [195, 365], "text": "II — Amass Goblins 1. (Put a +1/+1 counter on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first.)"}
     },
     {
-      "source": "counter:lore",
-      "target": "a2",
-      "predicate": "TRIGGERS",
-      "certainty": "rules_explicit",
-      "scope": "chapter II; triggers as lore count reaches 2",
-      "provenance": {"oracle_span": [195, 216], "rule_ref": "CR 714 (Saga cards)", "text": "II — Amass Goblins 1."}
-    },
-    {
-      "source": "a2",
+      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
       "target": "rule:amass",
       "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
@@ -119,14 +96,6 @@
       "target": "a3",
       "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [366, 425], "text": "III, IV — Target opponent loses 1 life and you gain 1 life."}
-    },
-    {
-      "source": "counter:lore",
-      "target": "a3",
-      "predicate": "TRIGGERS",
-      "certainty": "rules_explicit",
-      "scope": "chapters III and IV; triggers as lore count reaches 3 and again at 4",
-      "provenance": {"oracle_span": [366, 425], "rule_ref": "CR 714 (Saga cards)", "text": "III, IV — Target opponent loses 1 life and you gain 1 life."}
     },
     {
       "source": "a3",

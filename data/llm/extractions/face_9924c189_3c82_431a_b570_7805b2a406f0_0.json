@@ -32,10 +32,12 @@
   "proposed_edges": [
     { "source": "face:9924c189-3c82-431a-b570-7805b2a406f0:0", "target": "9924c189-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 176], "text": "When Dáin enters, create ... attach it to target creature you control." } },
     { "source": "face:9924c189-3c82-431a-b570-7805b2a406f0:0", "target": "9924c189-a2", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [178, 271], "text": "Whenever Dáin attacks, each equipped attacking creature gains double strike until end of turn." } },
-    { "source": "9924c189-a1", "target": "event:etb", "predicate": "TRIGGERS", "provenance": { "oracle_span": [0, 16], "text": "When Dáin enters" } },
+    { "source": "event:dain-enters", "target": "9924c189-a1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 16], "text": "When Dáin enters" } },
     { "source": "9924c189-a1", "target": "token:axe", "predicate": "CREATES_OBJECT", "certainty": "rules_explicit", "provenance": { "oracle_span": [18, 121], "text": "create a colorless Equipment artifact token named Axe with \"Equipped creature gets +1/+0\" and equip {2}" } },
-    { "source": "9924c189-a1", "target": "token:axe", "predicate": "ATTACHED_TO", "condition": "target creature you control; reflexive When-you-do trigger", "certainty": "rules_explicit", "provenance": { "oracle_span": [123, 176], "text": "When you do, attach it to target creature you control" } },
-    { "source": "9924c189-a2", "target": "event:attacks", "predicate": "TRIGGERS", "provenance": { "oracle_span": [178, 199], "text": "Whenever Dáin attacks" } },
+    { "source": "9924c189-a1", "target": "event:axe-created", "predicate": "CAUSES", "certainty": "rules_explicit", "note": "reflexive When-you-do: the create-token effect is the event the follow-up attach keys off", "provenance": { "oracle_span": [123, 176], "text": "When you do, attach it to target creature you control" } },
+    { "source": "event:axe-created", "target": "9924c189-a1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "note": "reflexive trigger; the attach is part of this ability", "provenance": { "oracle_span": [123, 176], "text": "When you do, attach it to target creature you control" } },
+    { "source": "token:axe", "target": "obj:target-creature", "predicate": "ATTACHED_TO", "certainty": "rules_explicit", "provenance": { "oracle_span": [123, 176], "text": "attach it to target creature you control" } },
+    { "source": "event:dain-attacks", "target": "9924c189-a2", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [178, 199], "text": "Whenever Dáin attacks" } },
     { "source": "9924c189-a2", "target": "keyword:double-strike", "predicate": "MODIFIES", "condition": "granted to each equipped attacking creature until end of turn", "provenance": { "oracle_span": [201, 271], "text": "each equipped attacking creature gains double strike until end of turn" } }
   ],
   "schema_extension_requests": []

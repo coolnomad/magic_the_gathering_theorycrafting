@@ -5,127 +5,33 @@
       "ability_id": "a1",
       "kind": "static",
       "effects": [
-        {
-          "op": "grant_keyword",
-          "keywords": [
-            "reach"
-          ],
-          "target": "this creature"
-        }
+        {"op": "grant_keyword", "keywords": ["reach"], "target": "this creature"}
       ],
       "controller": "you",
-      "oracle_spans": [
-        [
-          0,
-          5
-        ]
-      ],
+      "oracle_spans": [[0, 5]],
       "confidence": "high",
       "unresolved": []
     },
     {
       "ability_id": "a2",
       "kind": "triggered",
-      "trigger": {
-        "event": "draw_second_card",
-        "note": "whenever you draw your second card each turn",
-        "controller": "you"
-      },
+      "trigger": {"event": "draw_second_card", "note": "whenever you draw your second card each turn", "controller": "you"},
       "effects": [
-        {
-          "op": "put_counter",
-          "counter_type": "+1/+1",
-          "quantity": 1,
-          "target": "target creature"
-        },
-        {
-          "op": "grant_keyword",
-          "keywords": [
-            "lifelink"
-          ],
-          "target": "that creature",
-          "duration": "until end of turn"
-        }
+        {"op": "put_counter", "counter_type": "+1/+1", "quantity": 1, "target": "target creature"},
+        {"op": "grant_keyword", "keywords": ["lifelink"], "target": "that creature", "duration": "until end of turn"}
       ],
       "controller": "you",
-      "oracle_spans": [
-        [
-          6,
-          128
-        ]
-      ],
+      "oracle_spans": [[6, 128]],
       "confidence": "high",
       "unresolved": []
     }
   ],
   "proposed_edges": [
-    {
-      "source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0",
-      "target": "keyword:reach",
-      "predicate": "HAS_KEYWORD",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          0,
-          5
-        ],
-        "text": "Reach"
-      }
-    },
-    {
-      "source": "event:draw",
-      "target": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0",
-      "predicate": "TRIGGERS",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          6,
-          50
-        ],
-        "text": "Whenever you draw your second card each turn",
-        "note": "triggers on drawing the second card each turn"
-      }
-    },
-    {
-      "source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          52,
-          91
-        ],
-        "text": "put a +1/+1 counter on target creature."
-      }
-    },
-    {
-      "source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          58,
-          71
-        ],
-        "text": "+1/+1 counter"
-      }
-    },
-    {
-      "source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0",
-      "target": "keyword:lifelink",
-      "predicate": "PRODUCES",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          92,
-          128
-        ],
-        "text": "It gains lifelink until end of turn.",
-        "note": "grants lifelink to the target creature until end of turn"
-      }
-    }
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "keyword:reach", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 5], "text": "Reach"}},
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [6, 128], "text": "Whenever you draw your second card each turn, put a +1/+1 counter on target creature. It gains lifelink until end of turn."}},
+    {"source": "event:draw-second-card", "target": "a2", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": {"oracle_span": [6, 50], "text": "Whenever you draw your second card each turn", "note": "triggers on drawing the second card each turn"}},
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [52, 91], "text": "put a +1/+1 counter on target creature."}},
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "keyword:lifelink", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": {"oracle_span": [92, 128], "text": "It gains lifelink until end of turn.", "note": "grants lifelink to the target creature until end of turn"}}
   ],
   "schema_extension_requests": []
 }

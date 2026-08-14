@@ -11,7 +11,12 @@
           "subject": "this creature"
         }
       ],
-      "oracle_spans": [[0, 7]],
+      "oracle_spans": [
+        [
+          0,
+          7
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -25,7 +30,12 @@
           "subject": "other Bears you control"
         }
       ],
-      "oracle_spans": [[8, 41]],
+      "oracle_spans": [
+        [
+          8,
+          42
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -47,7 +57,7 @@
         {
           "type": "type_addition",
           "adds_type": "Bear",
-          "target": "the creature the counter was placed on",
+          "target": "that creature",
           "note": "in addition to its other types"
         },
         {
@@ -56,7 +66,12 @@
           "quantity": 2
         }
       ],
-      "oracle_spans": [[43, 254]],
+      "oracle_spans": [
+        [
+          43,
+          253
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     }
@@ -66,28 +81,55 @@
       "source": "face:30ca8e92-5955-46a1-86c1-094a873f518f:0",
       "target": "keyword:trample",
       "predicate": "HAS_KEYWORD",
-      "provenance": {"oracle_span": [0, 7], "text": "Trample"}
+      "provenance": {
+        "oracle_span": [
+          0,
+          7
+        ],
+        "text": "Trample"
+      }
+    },
+    {
+      "source": "event:beginning-of-combat",
+      "target": "beorn-combat-trigger",
+      "predicate": "TRIGGERS",
+      "scope": "on your turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          43,
+          83
+        ],
+        "text": "At the beginning of combat on your turn,"
+      }
     },
     {
       "source": "beorn-combat-trigger",
       "target": "counter:trample",
       "predicate": "ADDS_COUNTER",
       "optional": true,
-      "provenance": {"oracle_span": [84, 146], "text": "put a trample counter on up to one target creature you control"}
+      "provenance": {
+        "oracle_span": [
+          84,
+          146
+        ],
+        "text": "put a trample counter on up to one target creature you control"
+      }
     },
     {
-      "source": "beorn-combat-trigger",
-      "target": "counter:trample",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [90, 105], "text": "trample counter"}
-    },
-    {
-      "source": "beorn-combat-trigger",
+      "source": "state:is-bear",
       "target": "beorn-anthem-bears",
       "predicate": "ENABLES",
       "condition": "the targeted creature becomes a Bear",
-      "certainty": "high",
-      "provenance": {"oracle_span": [148, 196], "text": "It becomes a Bear in addition to its other types", "note": "adding Bear type can bring the creature under the Other Bears anthem"}
+      "certainty": "medium",
+      "provenance": {
+        "oracle_span": [
+          148,
+          196
+        ],
+        "text": "It becomes a Bear in addition to its other types",
+        "note": "adding the Bear type can bring the creature under the Other Bears anthem"
+      }
     },
     {
       "source": "beorn-combat-trigger",
@@ -95,7 +137,13 @@
       "predicate": "CAUSES",
       "condition": "you control three or more Bears",
       "optional": false,
-      "provenance": {"oracle_span": [203, 253], "text": "if you control three or more Bears, draw two cards"}
+      "provenance": {
+        "oracle_span": [
+          198,
+          253
+        ],
+        "text": "Then if you control three or more Bears, draw two cards"
+      }
     }
   ],
   "schema_extension_requests": []

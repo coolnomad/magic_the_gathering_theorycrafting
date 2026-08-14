@@ -32,8 +32,9 @@
   "proposed_edges": [
     {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 127], "text": "Whenever you put one or more counters on ... The Great Goblin deals 2 damage to target opponent."}},
     {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [128, 263], "text": "Whenever another Goblin, Orc, or Army you control dies, exile the top card of your library..."}},
+    {"source": "event:counters-placed", "target": "a1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 74], "text": "Whenever you put one or more counters on a Goblin, Orc, or Army you control", "note": "trigger keys off placing any counter type on a Goblin, Orc, or Army you control"}},
+    {"source": "event:dies", "target": "a2", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": {"oracle_span": [128, 181], "text": "Whenever another Goblin, Orc, or Army you control dies"}},
     {"source": "a1", "target": "target opponent", "predicate": "CAUSES", "polarity": "negative", "certainty": "rules_explicit", "provenance": {"oracle_span": [76, 126], "text": "The Great Goblin deals 2 damage to target opponent"}},
-    {"source": "a1", "target": "counter:generic", "predicate": "REFERENCES_RULE", "certainty": "high", "provenance": {"oracle_span": [12, 74], "text": "put one or more counters on a Goblin, Orc, or Army you control", "note": "trigger keys off placing any counter type"}},
     {"source": "a2", "target": "zone:exile", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [183, 220], "text": "exile the top card of your library"}},
     {"source": "a2", "target": "zone:library", "predicate": "MOVES_FROM", "certainty": "rules_explicit", "provenance": {"oracle_span": [183, 220], "text": "exile the top card of your library"}}
   ],

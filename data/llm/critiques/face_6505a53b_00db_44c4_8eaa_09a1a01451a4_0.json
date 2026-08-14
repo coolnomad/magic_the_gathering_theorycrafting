@@ -17,8 +17,8 @@
   ],
   "proposed_edges": [
     { "source": "face:6505a53b-00db-44c4-8eaa-09a1a01451a4:0", "target": "6505a53b0-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 54], "text": "At the beginning of your first main phase, add {R}{R}." } },
-    { "source": "6505a53b0-a1", "target": "event:begin-first-main-phase", "predicate": "TRIGGERS", "provenance": { "oracle_span": [0, 41], "text": "At the beginning of your first main phase" } },
-    { "source": "6505a53b0-a1", "target": "op:add-mana", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": { "oracle_span": [43, 53], "text": "add {R}{R}" } }
+    { "source": "event:begin-first-main-phase", "target": "6505a53b0-a1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 41], "text": "At the beginning of your first main phase" } },
+    { "source": "6505a53b0-a1", "target": "resource:mana", "predicate": "PRODUCES", "scope": "{R}{R}", "certainty": "rules_explicit", "provenance": { "oracle_span": [43, 53], "text": "add {R}{R}" } }
   ],
   "schema_extension_requests": []
 }

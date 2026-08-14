@@ -18,12 +18,7 @@
       ],
       "mode": 1,
       "controller": "you",
-      "oracle_spans": [
-        [
-          15,
-          51
-        ]
-      ],
+      "oracle_spans": [[15, 51]],
       "confidence": "high",
       "unresolved": []
     },
@@ -55,12 +50,7 @@
       ],
       "mode": 2,
       "controller": "you",
-      "oracle_spans": [
-        [
-          54,
-          226
-        ]
-      ],
+      "oracle_spans": [[54, 226]],
       "confidence": "high",
       "unresolved": []
     }
@@ -72,10 +62,7 @@
       "predicate": "CAUSES",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [
-          15,
-          51
-        ],
+        "oracle_span": [15, 51],
         "text": "Destroy target creature with flying."
       }
     },
@@ -85,24 +72,8 @@
       "predicate": "ADDS_COUNTER",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [
-          54,
-          105
-        ],
+        "oracle_span": [54, 105],
         "text": "Put a +1/+1 counter on target creature you control."
-      }
-    },
-    {
-      "source": "face:d1663b51-37a1-45a0-b477-2d3e7dd0828e:0",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [
-          60,
-          73
-        ],
-        "text": "+1/+1 counter"
       }
     },
     {
@@ -111,10 +82,7 @@
       "predicate": "PRODUCES",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [
-          106,
-          154
-        ],
+        "oracle_span": [106, 154],
         "text": "It gains trample and hexproof until end of turn.",
         "note": "grants trample until end of turn to the target creature you control"
       }
@@ -125,10 +93,7 @@
       "predicate": "PRODUCES",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [
-          106,
-          154
-        ],
+        "oracle_span": [106, 154],
         "text": "It gains trample and hexproof until end of turn.",
         "note": "grants hexproof until end of turn to the target creature you control"
       }

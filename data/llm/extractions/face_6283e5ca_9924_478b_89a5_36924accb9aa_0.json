@@ -26,9 +26,12 @@
     }
   ],
   "proposed_edges": [
+    {"source": "face:6283e5ca-9924-478b-89a5-36924accb9aa:0", "target": "a1", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [0, 40], "text": "This creature can't be blocked by tokens."}},
+    {"source": "face:6283e5ca-9924-478b-89a5-36924accb9aa:0", "target": "a2", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [41, 105], "text": "When this creature enters, put a +1/+1 counter on target creature."}},
     {"source": "face:6283e5ca-9924-478b-89a5-36924accb9aa:0", "target": "event:block", "predicate": "PREVENTS", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 40], "text": "This creature can't be blocked by tokens.", "note": "can't be blocked by token creatures"}},
-    {"source": "face:6283e5ca-9924-478b-89a5-36924accb9aa:0", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [41, 105], "text": "When this creature enters, put a +1/+1 counter on target creature."}},
-    {"source": "face:6283e5ca-9924-478b-89a5-36924accb9aa:0", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [76, 88], "text": "+1/+1 counter"}}
+    {"source": "event:this-creature-enters", "target": "a2", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": {"oracle_span": [41, 66], "text": "When this creature enters"}},
+    {"source": "a2", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [41, 105], "text": "When this creature enters, put a +1/+1 counter on target creature."}},
+    {"source": "state:has-plus-one-plus-one-counter", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [76, 88], "text": "+1/+1 counter"}}
   ],
   "schema_extension_requests": []
 }

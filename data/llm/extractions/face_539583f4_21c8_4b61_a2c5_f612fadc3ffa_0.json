@@ -58,11 +58,12 @@
   ],
   "proposed_edges": [
     {
-      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
-      "target": "counter:quest",
-      "predicate": "HAS_COUNTER_TYPE",
+      "source": "event:mountain-enters",
+      "target": "ability:quest-mountain-etb",
+      "predicate": "TRIGGERS",
+      "scope": "a Mountain you control",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [43, 62], "text": "put a quest counter on this enchantment"}
+      "provenance": {"oracle_span": [0, 42], "text": "Whenever a Mountain you control enters,"}
     },
     {
       "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
@@ -97,18 +98,11 @@
     },
     {
       "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
-      "target": "obj:mountain-card",
-      "predicate": "MOVES_TO",
+      "target": "rule:typecycling",
+      "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "note": "Mountaincycling: discard this card as cost, tutor a Mountain to hand",
-      "provenance": {"oracle_span": [263, 419], "text": "Mountaincycling {2}"}
-    },
-    {
-      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
-      "target": "zone:hand",
-      "predicate": "MOVES_TO",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [375, 400], "text": "put it into your hand"}
+      "scope": "Mountaincycling {2}; searched type = Mountain",
+      "provenance": {"oracle_span": [263, 419], "text": "Mountaincycling {2}", "rule_ref": "CR 702.29 (cycling / typecycling)"}
     }
   ],
   "schema_extension_requests": []

@@ -31,12 +31,12 @@
   ],
   "proposed_edges": [
     {
-      "source": "noncreature_cast_pump_and_ping",
-      "target": "event:cast_noncreature_spell",
+      "source": "event:cast_noncreature_spell",
+      "target": "noncreature_cast_pump_and_ping",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [0, 112],
+        "oracle_span": [0, 37],
         "text": "Whenever you cast a noncreature spell",
         "note": "Trigger conditioned on the cast spell being noncreature; triggers per such cast."
       }

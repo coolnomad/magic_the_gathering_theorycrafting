@@ -41,13 +41,6 @@
     },
     {
       "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
-      "target": "counter:lore",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [51, 65], "text": "a lore counter"}
-    },
-    {
-      "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [88, 262], "text": "I, II, III, IV — Exile up to one target creature or land you control. If you do, return it to the battlefield under its owner's control at the beginning of the next end step."}

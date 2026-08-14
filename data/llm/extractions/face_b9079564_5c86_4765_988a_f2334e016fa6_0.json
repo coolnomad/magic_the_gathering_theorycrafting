@@ -86,35 +86,14 @@
       }
     },
     {
-      "source": "power_scaling_full_graveyards",
-      "target": "state:graveyard_seven_or_more_cards",
-      "predicate": "COUNTS",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [10, 85],
-        "text": "for each graveyard with seven or more cards in it"
-      }
-    },
-    {
-      "source": "second_draw_mill_trigger",
-      "target": "event:draw_second_card_each_turn",
+      "source": "event:draw_second_card_each_turn",
+      "target": "second_draw_mill_trigger",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {
         "oracle_span": [86, 234],
         "text": "Whenever you draw your second card each turn",
         "note": "Card-specific trigger keyed to the second card drawn by you in a turn; requires tracking per-turn draw count."
-      }
-    },
-    {
-      "source": "second_draw_mill_trigger",
-      "target": "event:draw_second_card_each_turn",
-      "predicate": "COUNTS",
-      "certainty": "high",
-      "provenance": {
-        "oracle_span": [86, 234],
-        "text": "your second card each turn",
-        "note": "Requires counting the number of cards you have drawn during the current turn to identify the second one."
       }
     },
     {

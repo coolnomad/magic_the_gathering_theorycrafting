@@ -50,19 +50,36 @@
       "source": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
       "target": "keyword:landfall",
       "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
       "provenance": {"oracle_span": [0, 8], "text": "Landfall"}
+    },
+    {
+      "source": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
+      "target": "hospitality-landfall",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 97], "text": "Landfall — Whenever a land you control enters, put a +1/+1 counter on target creature you control."}
+    },
+    {
+      "source": "event:land-enters",
+      "target": "hospitality-landfall",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [11, 46], "text": "Whenever a land you control enters,"}
     },
     {
       "source": "hospitality-landfall",
       "target": "counter:+1/+1",
       "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
       "provenance": {"oracle_span": [47, 97], "text": "put a +1/+1 counter on target creature you control"}
     },
     {
-      "source": "hospitality-landfall",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [53, 66], "text": "+1/+1 counter"}
+      "source": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
+      "target": "hospitality-animate",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [99, 307], "text": "{5}{G}{G}: This enchantment becomes a Bear creature in addition to its other types and gains \"This creature's power and toughness are each equal to the number of lands you control.\" (This effect doesn't end.)"}
     },
     {
       "source": "hospitality-animate",

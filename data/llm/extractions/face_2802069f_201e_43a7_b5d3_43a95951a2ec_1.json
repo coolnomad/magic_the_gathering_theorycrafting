@@ -94,13 +94,6 @@
       "predicate": "MOVES_TO",
       "certainty": "rules_explicit",
       "provenance": {"oracle_span": [89, 108], "text": "Then exile this card."}
-    },
-    {
-      "source": "ability:gleam-adventure",
-      "target": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:0",
-      "predicate": "ENABLES",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [109, 152], "text": "You may cast the artifact later from exile.", "note": "After exile, the artifact face may be cast from exile."}
     }
   ],
   "schema_extension_requests": []

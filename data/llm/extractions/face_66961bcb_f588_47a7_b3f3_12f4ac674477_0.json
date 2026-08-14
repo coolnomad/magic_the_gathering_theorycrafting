@@ -76,8 +76,8 @@
       }
     },
     {
-      "source": "face:66961bcb-f588-47a7-b3f3-12f4ac674477:0",
-      "target": "ability:insideinfo-exile-play",
+      "source": "state:exiled-with-play-permission",
+      "target": "op:play-from-exile",
       "predicate": "ENABLES",
       "timing": "this turn",
       "certainty": "rules_explicit",

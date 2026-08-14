@@ -48,16 +48,8 @@
       "target": "rule:amass",
       "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "scope": "amass Goblins X performed by the destroyed creature's controller; Army subtype = Goblin; X = that creature's power",
+      "scope": "amass Goblins X performed by the destroyed creature's controller; Army subtype = Goblin; N = X = that creature's power",
       "provenance": {"oracle_span": [59, 126], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "Its controller amasses Goblins X, where X is that creature's power."}
-    },
-    {
-      "source": "a1",
-      "target": "counter:+1/+1",
-      "predicate": "SCALES_WITH",
-      "certainty": "rules_explicit",
-      "note": "X (counters amassed) equals the destroyed creature's power",
-      "provenance": {"oracle_span": [92, 126], "text": "where X is that creature's power."}
     },
     {
       "source": "a1",

@@ -69,37 +69,14 @@
     },
     {
       "source": "face:8c7641b6-3a6c-4441-a98c-3b5d61d91f76:0",
-      "target": "keyword:amass",
-      "predicate": "REFERENCES_RULE",
+      "target": "rule:amass",
+      "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
+      "scope": "amass Goblins 2; Army subtype = Goblin; N = 2",
       "provenance": {
         "oracle_span": [33, 49],
         "text": "Amass Goblins 2.",
-        "rule_ref": "Amass (keyword action)"
-      }
-    },
-    {
-      "source": "face:8c7641b6-3a6c-4441-a98c-3b5d61d91f76:0",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "scope": "an Army you control",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [33, 49],
-        "text": "Amass Goblins 2.",
-        "note": "Puts two +1/+1 counters on an Army."
-      }
-    },
-    {
-      "source": "face:8c7641b6-3a6c-4441-a98c-3b5d61d91f76:0",
-      "target": "token:goblin-army",
-      "predicate": "CREATES_OBJECT",
-      "condition": "if you control no Army",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [33, 49],
-        "text": "Amass Goblins 2.",
-        "note": "Creates a 0/0 black Goblin Army token first if you control no Army."
+        "rule_ref": "HOB mechanics article: Amass (keyword action)"
       }
     }
   ],

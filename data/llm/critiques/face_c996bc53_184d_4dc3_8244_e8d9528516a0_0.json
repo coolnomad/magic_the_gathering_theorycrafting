@@ -47,7 +47,7 @@
           "ordering": 2
         }
       ],
-      "oracle_spans": [[137, 212]],
+      "oracle_spans": [[135, 210]],
       "confidence": "high",
       "unresolved": []
     }
@@ -55,7 +55,7 @@
   "proposed_edges": [
     {
       "source": "face:c996bc53-184d-4dc3-8244-e8d9528516a0:0",
-      "target": "a1",
+      "target": "keyword:ward",
       "predicate": "HAS_KEYWORD",
       "certainty": "rules_explicit",
       "provenance": {
@@ -64,13 +64,23 @@
       }
     },
     {
-      "source": "a1",
-      "target": "event:opponent-targets-this",
+      "source": "face:c996bc53-184d-4dc3-8244-e8d9528516a0:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 134],
+        "text": "Ward {3} (Whenever this creature becomes the target of a spell or ability an opponent controls, counter it unless that player pays {3}.)"
+      }
+    },
+    {
+      "source": "event:opponent-targets-this",
+      "target": "a1",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {
         "oracle_span": [10, 94],
-        "text": "Whenever this creature becomes the target of a spell or ability an opponent controls,"
+        "text": "Whenever this creature becomes the target of a spell or ability an opponent controls"
       }
     },
     {
@@ -80,9 +90,10 @@
       "polarity": "negative",
       "condition": "unless that player pays {3}",
       "certainty": "high",
+      "note": "Ward counters the triggering spell or ability unless the opponent pays {3}",
       "provenance": {
-        "oracle_span": [96, 135],
-        "text": "counter it unless that player pays {3}."
+        "oracle_span": [95, 133],
+        "text": "counter it unless that player pays {3}"
       }
     },
     {
@@ -91,7 +102,7 @@
       "predicate": "HAS_ABILITY",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [137, 212],
+        "oracle_span": [135, 210],
         "text": "{6}: Gandalf's owner shuffles him into their library and draws three cards."
       }
     },
@@ -102,7 +113,7 @@
       "certainty": "high",
       "scope": "shuffle Gandalf into owner's library",
       "provenance": {
-        "oracle_span": [142, 189],
+        "oracle_span": [140, 188],
         "text": "Gandalf's owner shuffles him into their library"
       }
     },
@@ -113,7 +124,7 @@
       "certainty": "high",
       "scope": "owner draws three cards",
       "provenance": {
-        "oracle_span": [194, 212],
+        "oracle_span": [193, 210],
         "text": "draws three cards."
       }
     }

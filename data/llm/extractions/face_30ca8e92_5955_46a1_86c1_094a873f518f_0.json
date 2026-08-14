@@ -69,6 +69,14 @@
       "provenance": {"oracle_span": [0, 7], "text": "Trample"}
     },
     {
+      "source": "event:beginning-of-combat",
+      "target": "beorn-combat-trigger",
+      "predicate": "TRIGGERS",
+      "scope": "on your turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [43, 83], "text": "At the beginning of combat on your turn,"}
+    },
+    {
       "source": "beorn-combat-trigger",
       "target": "counter:trample",
       "predicate": "ADDS_COUNTER",
@@ -76,13 +84,7 @@
       "provenance": {"oracle_span": [84, 146], "text": "put a trample counter on up to one target creature you control"}
     },
     {
-      "source": "beorn-combat-trigger",
-      "target": "counter:trample",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [90, 105], "text": "trample counter"}
-    },
-    {
-      "source": "beorn-combat-trigger",
+      "source": "state:is-bear",
       "target": "beorn-anthem-bears",
       "predicate": "ENABLES",
       "condition": "targeted creature becomes a Bear",

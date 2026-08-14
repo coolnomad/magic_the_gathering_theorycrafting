@@ -48,17 +48,18 @@
       "provenance": {"oracle_span": [0, 5], "text": "Flash"}
     },
     {
+      "source": "event:this-creature-enters",
+      "target": "little-bear-etb",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [6, 35], "text": "When this creature enters,"}
+    },
+    {
       "source": "little-bear-etb",
       "target": "counter:+1/+1",
       "predicate": "ADDS_COUNTER",
       "condition": "the untapped creature is a Bear",
       "provenance": {"oracle_span": [76, 129], "text": "If that creature is a Bear, put a +1/+1 counter on it"}
-    },
-    {
-      "source": "little-bear-etb",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [110, 123], "text": "+1/+1 counter"}
     }
   ],
   "schema_extension_requests": []

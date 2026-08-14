@@ -42,16 +42,16 @@
       "provenance": {"oracle_span": [0, 7], "text": "Trample"}
     },
     {
-      "source": "guardian-pump",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "provenance": {"oracle_span": [19, 60], "text": "Put three +1/+1 counters on this creature"}
+      "source": "face:c3fb2829-64f2-4795-b815-edcc5bbbc360:0",
+      "target": "guardian-pump",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [8, 61], "text": "{5}{G}{G}: Put three +1/+1 counters on this creature."}
     },
     {
       "source": "guardian-pump",
       "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [29, 43], "text": "+1/+1 counters"}
+      "predicate": "ADDS_COUNTER",
+      "provenance": {"oracle_span": [19, 60], "text": "Put three +1/+1 counters on this creature"}
     }
   ],
   "schema_extension_requests": []

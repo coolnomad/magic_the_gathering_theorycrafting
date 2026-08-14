@@ -88,12 +88,12 @@
       "provenance": {"oracle_span": [211, 227], "text": "Equip Wizard {1}"}
     },
     {
-      "source": "a3",
-      "target": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "target": "obj:wizard-creature-you-control",
       "predicate": "ATTACHED_TO",
       "scope": "target Wizard creature you control",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [211, 227], "text": "Equip Wizard {1}"}
+      "provenance": {"oracle_span": [211, 227], "text": "Equip Wizard {1}", "note": "Equip Wizard attaches this Equipment to a Wizard creature you control."}
     },
     {
       "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
@@ -102,12 +102,12 @@
       "provenance": {"oracle_span": [228, 237], "text": "Equip {3}"}
     },
     {
-      "source": "a4",
-      "target": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "target": "obj:creature-you-control",
       "predicate": "ATTACHED_TO",
       "scope": "target creature you control",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [228, 237], "text": "Equip {3}"}
+      "provenance": {"oracle_span": [228, 237], "text": "Equip {3}", "note": "Equip attaches this Equipment to a creature you control."}
     }
   ],
   "schema_extension_requests": []

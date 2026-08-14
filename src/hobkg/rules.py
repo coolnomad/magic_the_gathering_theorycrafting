@@ -186,15 +186,21 @@ def _hone_generic(gb: GraphBuilder) -> None:
 
 
 def _amass_generic(gb: GraphBuilder) -> None:
-    """Generic Amass template (once), invoked per card via INSTANTIATES. Encodes the
-    conditional sequence: if the controller has no qualifying Army, create the 0/0 Army
-    token; then put N +1/+1 counters on an Army the controller controls. The Army
-    subtype and N are supplied by each instantiation. No `AMASSES` primitive is added
-    (Amass is a template, not a predicate — cf. Recruit)."""
+    """Generic Amass template (once), object-bound over a single Army variable A:
+    if no Army, create A; select the controlled Army A; add N +1/+1 counters to THAT
+    same A (via A's own +1/+1-count state) and ensure A has the Army subtype. The
+    created Army and the counter target are the SAME node (obj:army-A), so the
+    mechanism is executable, not a set of disconnected edges. N and the subtype are
+    supplied by each per-card instantiation. No `AMASSES` primitive (cf. Recruit)."""
     p = _rule_prov("amass")
-    gb.node("token:army", "TokenSpec", "0/0 Army token (subtype supplied by the amass instance)")
+    gb.node("obj:army", "ObjectClass", "Army")
+    gb.node("obj:army-A", "ObjectClass", "the Army A selected or created by amass")
+    gb.node("state:army-A:counters", "State", "+1/+1 counters on Army A",
+            {"object": "obj:army-A", "counter": "+1/+1"}, p)
+    gb.edge("obj:army-A", "obj:army", "HAS_TYPE", provenance=p)  # A is an Army (subtype S per instance)
     gb.node("op:amass", "Operation", "amass (generic keyword action)", provenance=p)
-    gb.node("op:amass:add-counters", "Operation", "put +1/+1 counters on an Army you control", provenance=p)
+    gb.node("op:amass:select", "Operation", "select an Army A you control", provenance=p)
+    gb.node("op:amass:add-counters", "Operation", "put N +1/+1 counters on Army A", provenance=p)
     gb.gate(Gate(gate_id="gate:amass-no-army", gate_type="branch_condition",
                  label="Amass: controller controls no qualifying Army",
                  definition={"predicate": {"op": "controls_no", "arg": "Army"}}, provenance=p))
@@ -203,24 +209,38 @@ def _amass_generic(gb: GraphBuilder) -> None:
         human_readable="the controller controls no Army", provenance=p))
     gb.edge("op:amass", "rule:amass", "REFERENCES_RULE", provenance=p)
     gb.edge("op:amass", "gate:amass-no-army", "CAUSES", provenance=p)
-    gb.edge("gate:amass-no-army", "token:army", "CREATES_OBJECT",
+    gb.edge("gate:amass-no-army", "obj:army-A", "CREATES_OBJECT",       # the created Army IS A
             condition_ids=["cond:amass-no-army"], provenance=p)
-    gb.edge("op:amass", "op:amass:add-counters", "CAUSES", timing="after", provenance=p)
+    gb.edge("op:amass", "op:amass:select", "CAUSES", timing="after", provenance=p)
+    gb.edge("op:amass:select", "obj:army-A", "REQUIRES", provenance=p)  # A is a controlled Army
+    gb.edge("obj:army-A", "state:army-A:counters", "HAS_STATE", provenance=p)
+    gb.edge("state:army-A:counters", "counter:+1/+1", "HAS_COUNTER_TYPE", provenance=p)
+    gb.edge("op:amass:select", "op:amass:add-counters", "CAUSES", timing="after", provenance=p)
+    gb.edge("op:amass:add-counters", "state:army-A:counters", "MODIFIES", provenance=p)  # add N to A's count
     gb.edge("op:amass:add-counters", "counter:+1/+1", "ADDS_COUNTER", provenance=p)
 
 
 def _typecycling_generic(gb: GraphBuilder) -> None:
-    """Generic typecycling template (once): pay the cycling cost AND discard this card ->
-    search library for a card of the named type, reveal, put into hand, shuffle. The
-    searched type is supplied by each instantiation. No new primitive predicate."""
+    """Generic typecycling template (once): pay the cycling mana cost AND discard THIS
+    card as a cost -> search library for a card of the named type (a requirement),
+    reveal it, put it into hand, then shuffle. The searched type is supplied by each
+    instantiation. No new primitive predicate."""
     p = _rule_prov("typecycling")
+    gb.node("cost:cycling", "Cost", "the cycling mana cost")
+    gb.node("obj:searched-type", "ObjectClass", "a card of the named type (in library)")
     gb.node("op:typecycling", "Operation", "typecycling (generic keyword action)", provenance=p)
     gb.node("op:typecycling:search", "Operation", "search library for a card of the named type", provenance=p)
+    gb.node("op:typecycling:reveal", "Operation", "reveal the searched card", provenance=p)
+    gb.node("op:typecycling:shuffle", "Operation", "shuffle", provenance=p)
     gb.edge("op:typecycling", "rule:typecycling", "REFERENCES_RULE", provenance=p)
-    gb.edge("op:typecycling", "zone:graveyard", "MOVES_TO", provenance=p)   # discard this card (cost)
+    gb.edge("op:typecycling", "cost:cycling", "HAS_COST", provenance=p)          # pay the mana cost
+    gb.edge("op:typecycling", "zone:graveyard", "MOVES_TO", provenance=p)        # discard THIS card (cost)
     gb.edge("op:typecycling", "op:typecycling:search", "CAUSES", provenance=p)
+    gb.edge("op:typecycling:search", "obj:searched-type", "REQUIRES", provenance=p)  # a card of the type
     gb.edge("op:typecycling:search", "zone:library", "MOVES_FROM", provenance=p)
     gb.edge("op:typecycling:search", "zone:hand", "MOVES_TO", provenance=p)
+    gb.edge("op:typecycling:search", "op:typecycling:reveal", "CAUSES", provenance=p)
+    gb.edge("op:typecycling:search", "op:typecycling:shuffle", "CAUSES", timing="after", provenance=p)
 
 
 # ===========================================================================

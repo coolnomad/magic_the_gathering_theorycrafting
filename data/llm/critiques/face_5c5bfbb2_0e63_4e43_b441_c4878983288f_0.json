@@ -21,7 +21,7 @@
       "oracle_spans": [
         [
           0,
-          70
+          69
         ]
       ],
       "confidence": "high",
@@ -40,7 +40,7 @@
       "controller": "you",
       "oracle_spans": [
         [
-          71,
+          70,
           109
         ]
       ],
@@ -65,7 +65,7 @@
       "oracle_spans": [
         [
           110,
-          278
+          277
         ]
       ],
       "confidence": "high",
@@ -74,23 +74,25 @@
   ],
   "proposed_edges": [
     {
-      "source": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0",
-      "target": "keyword:flash",
+      "source": "state:control-human",
+      "target": "a1",
       "predicate": "ENABLES",
       "certainty": "rules_explicit",
       "provenance": {
         "oracle_span": [
           0,
-          70
+          69
         ],
         "text": "You may cast this spell as though it had flash if you control a Human.",
-        "note": "conditional flash casting"
+        "note": "controlling a Human enables casting this spell as though it had flash"
       }
     },
     {
       "source": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0",
       "target": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0",
       "predicate": "MODIFIES",
+      "polarity": "positive",
+      "scope": "other creatures you control",
       "certainty": "rules_explicit",
       "provenance": {
         "oracle_span": [
@@ -98,7 +100,7 @@
           109
         ],
         "text": "Other creatures you control get +1/+1.",
-        "note": "static buff for other creatures you control"
+        "note": "static anthem for other creatures you control"
       }
     },
     {
@@ -111,22 +113,23 @@
           110,
           160
         ],
-        "text": "Whenever this creature enters or attacks, recruit."
+        "text": "Whenever this creature enters or attacks, recruit.",
+        "rule_ref": "HOB release notes / mechanics article: Recruit"
       }
     },
     {
       "source": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0",
       "target": "token:human-soldier",
       "predicate": "CREATES_OBJECT",
-      "optional": true,
       "certainty": "rules_explicit",
+      "condition": "if you discarded a nonland card via recruit",
       "provenance": {
         "oracle_span": [
           196,
           277
         ],
         "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token.",
-        "note": "conditional token from recruit; created only if the discarded card was nonland"
+        "note": "conditional token from recruit"
       }
     }
   ],

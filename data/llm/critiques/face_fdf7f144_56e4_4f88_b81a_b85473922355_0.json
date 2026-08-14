@@ -28,14 +28,21 @@
   "proposed_edges": [
     {
       "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+      "target": "sac-impulse-draw",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 180], "text": "Sacrifice another creature or artifact: Exile the top card of your library. You may play it until the end of your next turn. Activate only during your turn and only once each turn."}
+    },
+    {
+      "source": "sac-impulse-draw",
       "target": "obj:sacrificed-permanent",
       "predicate": "CONSUMES",
       "certainty": "rules_explicit",
       "note": "cost: sacrifice another creature or artifact",
-      "provenance": {"oracle_span": [0, 39], "text": "Sacrifice another creature or artifact:"}
+      "provenance": {"oracle_span": [0, 38], "text": "Sacrifice another creature or artifact"}
     },
     {
-      "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+      "source": "sac-impulse-draw",
       "target": "zone:exile",
       "predicate": "MOVES_TO",
       "certainty": "rules_explicit",
@@ -43,15 +50,15 @@
       "provenance": {"oracle_span": [40, 75], "text": "Exile the top card of your library."}
     },
     {
-      "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+      "source": "sac-impulse-draw",
       "target": "zone:library",
       "predicate": "MOVES_FROM",
       "certainty": "rules_explicit",
       "provenance": {"oracle_span": [40, 75], "text": "Exile the top card of your library."}
     },
     {
-      "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
-      "target": "zone:exile",
+      "source": "event:card-exiled",
+      "target": "op:play-exiled-card",
       "predicate": "ENABLES",
       "certainty": "rules_explicit",
       "note": "may play the exiled card until end of next turn",

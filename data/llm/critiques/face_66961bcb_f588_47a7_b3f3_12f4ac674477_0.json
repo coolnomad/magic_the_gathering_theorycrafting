@@ -55,17 +55,34 @@
   "proposed_edges": [
     {
       "source": "face:66961bcb-f588-47a7-b3f3-12f4ac674477:0",
+      "target": "insideinfo-exile-play",
+      "predicate": "HAS_ABILITY",
+      "provenance": { "oracle_span": [0, 87], "text": "Exile the top X cards of target opponent's library. You may play those cards this turn." }
+    },
+    {
+      "source": "face:66961bcb-f588-47a7-b3f3-12f4ac674477:0",
+      "target": "insideinfo-alt-cost",
+      "predicate": "HAS_ABILITY",
+      "provenance": { "oracle_span": [88, 181], "text": "If you cast a spell this way, pay life equal to its mana value rather than pay its mana cost." }
+    },
+    {
+      "source": "insideinfo-exile-play",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "scope": "top X cards of target opponent's library",
+      "certainty": "rules_explicit",
+      "provenance": { "oracle_span": [0, 51], "text": "Exile the top X cards of target opponent's library." }
+    },
+    {
+      "source": "insideinfo-exile-play",
       "target": "zone:exile",
       "predicate": "MOVES_TO",
       "scope": "top X cards of target opponent's library",
       "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [0, 51],
-        "text": "Exile the top X cards of target opponent's library."
-      }
+      "provenance": { "oracle_span": [0, 51], "text": "Exile the top X cards of target opponent's library." }
     },
     {
-      "source": "face:66961bcb-f588-47a7-b3f3-12f4ac674477:0",
+      "source": "insideinfo-exile-play",
       "target": "resource:card",
       "predicate": "SCALES_WITH",
       "certainty": "rules_explicit",
@@ -76,8 +93,8 @@
       }
     },
     {
-      "source": "face:66961bcb-f588-47a7-b3f3-12f4ac674477:0",
-      "target": "ability:insideinfo-exile-play",
+      "source": "state:exiled-with-play-permission",
+      "target": "op:play-from-exile",
       "predicate": "ENABLES",
       "timing": "this turn",
       "certainty": "rules_explicit",
@@ -87,7 +104,7 @@
       }
     },
     {
-      "source": "face:66961bcb-f588-47a7-b3f3-12f4ac674477:0",
+      "source": "insideinfo-alt-cost",
       "target": "resource:life",
       "predicate": "CONSUMES",
       "condition": "if you cast a spell this way",

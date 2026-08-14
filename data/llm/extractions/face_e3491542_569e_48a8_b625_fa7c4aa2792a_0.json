@@ -88,9 +88,21 @@
     },
     {
       "source": "face:e3491542-569e-48a8-b625-fa7c4aa2792a:0",
-      "target": "counter:lore",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [53, 65], "text": "lore counter"}
+      "target": "valley-chapter-I",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [88, 182], "text": "I — Search your library for a basic land card, reveal it, put it into your hand, then shuffle."}
+    },
+    {
+      "source": "face:e3491542-569e-48a8-b625-fa7c4aa2792a:0",
+      "target": "valley-chapter-II",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [183, 291], "text": "II — This Saga gains \"Landfall — Whenever a land you control enters, create a 1/1 green Elf creature token.\""}
+    },
+    {
+      "source": "face:e3491542-569e-48a8-b625-fa7c4aa2792a:0",
+      "target": "valley-chapter-III-IV",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [292, 367], "text": "III, IV — Elves you control get +1/+0 and gain vigilance until end of turn."}
     },
     {
       "source": "valley-chapter-I",

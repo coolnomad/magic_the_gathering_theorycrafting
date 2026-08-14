@@ -30,10 +30,9 @@
   ],
   "proposed_edges": [
     { "source": "face:85ceb4ac-7a1c-4c7e-95a3-515a5b5d6116:0", "target": "keyword:haste", "predicate": "HAS_KEYWORD", "provenance": { "oracle_span": [0, 5], "text": "Haste" } },
-    { "source": "face:85ceb4ac-7a1c-4c7e-95a3-515a5b5d6116:0", "target": "85ceb4ac-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [6, 198], "text": "When this creature enters, amass Goblins 1." } },
-    { "source": "85ceb4ac-a1", "target": "event:etb", "predicate": "TRIGGERS", "provenance": { "oracle_span": [6, 31], "text": "When this creature enters" } },
-    { "source": "85ceb4ac-a1", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": { "oracle_span": [33, 48], "text": "amass Goblins 1", "note": "amass N puts N +1/+1 counters on an Army" } },
-    { "source": "85ceb4ac-a1", "target": "token:goblin-army", "predicate": "CREATES_OBJECT", "condition": "only if you do not already control an Army", "certainty": "rules_explicit", "provenance": { "oracle_span": [33, 48], "text": "amass Goblins 1", "note": "creates a 0/0 black Goblin Army token if you control no Army" } }
+    { "source": "face:85ceb4ac-7a1c-4c7e-95a3-515a5b5d6116:0", "target": "85ceb4ac-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [6, 198], "text": "When this creature enters, amass Goblins 1. (Put a +1/+1 counter on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first.)" } },
+    { "source": "event:this-creature-enters", "target": "85ceb4ac-a1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [6, 31], "text": "When this creature enters" } },
+    { "source": "face:85ceb4ac-7a1c-4c7e-95a3-515a5b5d6116:0", "target": "rule:amass", "predicate": "INSTANTIATES", "certainty": "rules_explicit", "scope": "amass Goblins 1; Army subtype = Goblin; N = 1", "provenance": { "oracle_span": [33, 48], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "amass Goblins 1" } }
   ],
   "schema_extension_requests": []
 }

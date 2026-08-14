@@ -162,6 +162,16 @@ def build_shared_context(repo: Path = REPO) -> dict:
         "schema_version": SCHEMA_VERSION,
         "controlled_predicates": PREDICATES,
         "node_types": NODE_TYPES,
+        "predicate_signatures": {k: {"source_types": sorted(v[0]), "target_types": sorted(v[1])}
+                                 for k, v in PREDICATE_SIGNATURES.items()},
+        "predicate_signature_note": (
+            "These relational predicates are STRICTLY typed and validated: "
+            "TRIGGERS is Event->Ability (never Ability->Event or CounterType->Ability); "
+            "HAS_COUNTER_TYPE is State->CounterType; ENABLES is State/Event/Gate->Ability/Operation. "
+            "For a reflexive 'when you do' sequence, the preceding ability/effect CAUSES an Event, "
+            "then that Event TRIGGERS the reflexive ability. Do NOT emit Saga chapter triggers as "
+            "'counter:lore TRIGGERS <ability>'; reference the Saga template instead. Other (actor) "
+            "predicates may take a CardFace/Ability/Operation subject (card-local convention)."),
         "mechanic_templates": _mechanic_templates(),
         "known_tokens": known_tokens,
         "relevant_rules": {
@@ -298,6 +308,67 @@ def critic_prompt(face_id: str, candidate: dict, repo: Path = REPO) -> str:
 
 _VALIDATOR = Draft202012Validator(llm_output_schema())
 
+# --- predicate domain/range signatures (Phase 3 closure, per review) ---------
+# Resolve a local/edge node id to its node type by id convention. Ability ids
+# declared on the face resolve to Ability; the rest by prefix.
+_NODE_PREFIX_TYPES = {
+    "event:": "Event", "op:": "Operation", "ability:": "Ability", "ab:": "Ability",
+    "face:": "CardFace", "card:": "Card", "zone:": "Zone", "counter:": "CounterType",
+    "countertype:": "CounterType", "token:": "TokenSpec", "state:": "State",
+    "gate:": "Gate", "rule:": "Rule", "effect:": "Effect", "cost:": "Cost",
+    "obj:": "ObjectClass", "resource:": "Resource", "kw:": "ObjectClass",
+    "keyword:": "ObjectClass",
+}
+
+
+def resolve_node_type(nid: str, ability_ids: set) -> str:
+    if nid in ability_ids:
+        return "Ability"
+    for pre, t in _NODE_PREFIX_TYPES.items():
+        if nid.startswith(pre):
+            return t
+    return "Unknown"
+
+
+# Only the RELATIONAL predicates whose direction/domain is load-bearing are
+# enforced. The "actor" predicates (MOVES_*, CREATES_OBJECT, ADDS_COUNTER,
+# PRODUCES, CAUSES, MODIFIES, SCALES_WITH, REFERENCES_RULE, INSTANTIATES, ...)
+# admit a CardFace/Ability/Operation actor subject as a deliberate Phase-3
+# card-local convention; Phase 4 canonicalizes actors into Operation nodes.
+PREDICATE_SIGNATURES = {
+    "TRIGGERS": ({"Event"}, {"Ability"}),
+    "HAS_COUNTER_TYPE": ({"State"}, {"CounterType"}),
+    "PERSISTS_AS": ({"State"}, {"State"}),
+    "COUNTS": ({"Gate"}, {"ObjectClass"}),
+    "CONTRIBUTES_TO": ({"CardFace", "ObjectClass", "TokenSpec"}, {"Gate"}),
+    "QUALIFIES_FOR": ({"CardFace", "ObjectClass", "TokenSpec"}, {"Gate"}),
+    "ATTACHED_TO": ({"ObjectClass", "CardFace", "TokenSpec"}, {"ObjectClass", "CardFace", "TokenSpec"}),
+    "HAS_STATE": ({"ObjectClass", "CardFace", "TokenSpec"}, {"State"}),
+    "SATISFIES": ({"Resource", "State", "Event"}, {"Cost", "Gate"}),
+    "ENABLES": ({"State", "Resource", "Event", "Gate"}, {"Ability", "Operation"}),
+    "HAS_FACE": ({"Card"}, {"CardFace"}),
+    "HAS_ABILITY": ({"CardFace", "ObjectClass"}, {"Ability", "Operation"}),
+}
+
+
+def signature_violations(obj: dict) -> list[str]:
+    """Domain/range violations of the enforced relational predicates. Endpoints that
+    don't resolve to a known type are skipped (not penalized)."""
+    ability_ids = {a.get("ability_id") for a in obj.get("abilities", [])}
+    out = []
+    for e in obj.get("proposed_edges", []):
+        sig = PREDICATE_SIGNATURES.get(e.get("predicate"))
+        if not sig:
+            continue
+        s = resolve_node_type(e["source"], ability_ids)
+        t = resolve_node_type(e["target"], ability_ids)
+        if s == "Unknown" or t == "Unknown":
+            continue
+        if s not in sig[0] or t not in sig[1]:
+            out.append(f"predicate signature: {e['source']}({s}) -{e['predicate']}-> {e['target']}({t}) "
+                       f"violates {e['predicate']} :: {sorted(sig[0])} -> {sorted(sig[1])}")
+    return out
+
 
 def _strings(obj):
     if isinstance(obj, str):
@@ -313,6 +384,7 @@ def _strings(obj):
 def validate_output(obj: dict, face_id: str | None = None, oracle_len: int | None = None) -> list[str]:
     """Return a list of validation errors; empty list means the output is acceptable."""
     errors = [f"schema: {e.message}" for e in _VALIDATOR.iter_errors(obj)]
+    errors += signature_violations(obj)
     if face_id is not None and obj.get("face_id") != face_id:
         errors.append(f"face_id mismatch: expected {face_id}, got {obj.get('face_id')}")
     # evaluative language

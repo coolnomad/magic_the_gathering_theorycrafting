@@ -58,7 +58,7 @@
       "provenance": {"oracle_span": [35, 68], "text": "put a +1/+1 counter on this creature."}
     },
     {
-      "source": "face:7f961374-00b0-40df-83eb-9ced2bb519aa:0",
+      "source": "state:has-plus-one-plus-one-counter",
       "target": "counter:+1/+1",
       "predicate": "HAS_COUNTER_TYPE",
       "provenance": {"oracle_span": [35, 68], "text": "put a +1/+1 counter on this creature."}

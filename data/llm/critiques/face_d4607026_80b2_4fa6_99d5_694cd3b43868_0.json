@@ -90,7 +90,7 @@
     },
     {
       "source": "face:d4607026-80b2-4fa6-99d5-694cd3b43868:0",
-      "target": "a2",
+      "target": "keyword:crew",
       "predicate": "HAS_KEYWORD",
       "certainty": "rules_explicit",
       "provenance": {
@@ -99,13 +99,24 @@
       }
     },
     {
-      "source": "a2",
+      "source": "face:d4607026-80b2-4fa6-99d5-694cd3b43868:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [148, 285],
+        "text": "Crew 2 (Tap any number of creatures you control with total power 2 or more: This Vehicle becomes an artifact creature until end of turn.)"
+      }
+    },
+    {
+      "source": "face:d4607026-80b2-4fa6-99d5-694cd3b43868:0",
       "target": "state:artifact-creature",
       "predicate": "HAS_STATE",
       "certainty": "rules_explicit",
       "timing": "until end of turn",
+      "condition": "after this Vehicle is crewed",
       "provenance": {
-        "oracle_span": [224, 285],
+        "oracle_span": [224, 284],
         "text": "This Vehicle becomes an artifact creature until end of turn."
       }
     }

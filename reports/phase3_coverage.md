@@ -1,62 +1,62 @@
-# HOB Phase 3 — LLM Semantic Extraction Coverage (FROZEN)
+# HOB Phase 3 — LLM Semantic Extraction Coverage (FROZEN v2)
 
-> Extractor + independent critic performed by Claude Code agents (no API). Accepted =
-> assertions on which extractor and critic AGREE and which pass deterministic validation;
-> queued disagreements adjudicated into dispositions; every normalized face dispositioned.
+> Extractor + independent critic (Claude Code agents). Closure v2 adds predicate
+> domain/range validation, object-bound Amass + completed typecycling templates,
+> Amass normalized to INSTANTIATES (no inline duplicates), and every face dispositioned.
 
 - **normalized faces dispositioned**: 210 / 210 (209 extracted + 1 reviewed_empty)
-- **accepted abilities**: 417
-- **accepted edges**: 1001
-- **unresolved (preserved out of accepted graph)**: 2
-- **span warnings (extractor-candidate audit; 0 overruns in accepted)**: 16
-- **schema_extension_requests remaining**: 0 (Amass + typecycling now templates)
+- **accepted abilities**: 418
+- **accepted edges**: 1013
+- **unresolved (excluded from accepted)**: 1
+- **predicate-signature violations in accepted**: 0
+- **schema_extension_requests remaining**: 0
 
-## Disposition verdicts (25 queued faces, 40 disputed items)
+## Disposition verdicts (closure v2 queue)
 
-- accepted_critic: 38
-- unresolved: 2
+- accepted_critic: 62
+- accepted_extractor: 9
+- unresolved: 1
+- corrected: 1
 
 ## Accepted ability kinds
 
-- triggered: 141
-- static: 133
-- spell_effect: 68
+- triggered: 142
+- static: 134
+- spell_effect: 67
 - activated: 59
 - replacement: 16
 
 ## Accepted edge predicates
 
-- HAS_ABILITY: 234
-- MOVES_TO: 81
+- HAS_ABILITY: 268
+- TRIGGERS: 84
 - HAS_KEYWORD: 80
-- TRIGGERS: 74
-- CAUSES: 62
-- MODIFIES: 62
+- MOVES_TO: 78
+- CAUSES: 65
+- MODIFIES: 63
 - REFERENCES_RULE: 58
-- PRODUCES: 52
-- CREATES_OBJECT: 41
-- ADDS_COUNTER: 41
-- SCALES_WITH: 40
-- MOVES_FROM: 34
-- CONSUMES: 25
-- HAS_COUNTER_TYPE: 21
-- ENABLES: 17
-- REQUIRES: 14
-- ATTACHED_TO: 12
+- PRODUCES: 51
+- SCALES_WITH: 36
+- ADDS_COUNTER: 36
+- CREATES_OBJECT: 35
+- MOVES_FROM: 35
+- CONSUMES: 24
+- INSTANTIATES: 15
+- ENABLES: 15
+- REQUIRES: 12
 - HAS_COST: 12
+- ATTACHED_TO: 11
 - PREVENTS: 10
-- INSTANTIATES: 8
 - REPLACES: 7
+- HAS_STATE: 6
 - CAN_LEAD_TO: 5
-- PERSISTS_AS: 4
-- HAS_STATE: 3
-- COUNTS: 2
+- HAS_COUNTER_TYPE: 4
+- PERSISTS_AS: 1
 - QUALIFIES_FOR: 1
 - REMOVES_COUNTER: 1
 
-## Unresolved items (genuine ambiguity, excluded from accepted)
+## Unresolved (genuine ambiguity)
 
-- `face:4a5f76e7-40be-4b06-9935-4a3b2672e1c2:0` a1 -DERIVED_FROM-> zone:graveyard — DERIVED_FROM is a graph-provenance predicate, not a game-mechanic "gains the activated abilities of Elf cards in your graveyard" relation; no existing primitive cleanly models this, so preserve out of the accepted graph.
-- `face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0` a1 -TRIGGERS-> counter:generic — TRIGGERS is Event->Ability; asserting Ability->CounterType mis-directs it. The counter-placement trigger needs an explicit event node; preserve as unresolved pending a proper event-mediated form.
+- `face:4a5f76e7-40be-4b06-9935-4a3b2672e1c2:0` a1 -DERIVED_FROM-> zone:graveyard — No clean primitive for "gains the activated abilities of Elf cards in your graveyard"; DERIVED_FROM is a graph-provenance predicate, not a game-mechanic ability-grant relation.
 
 Coverage is not correctness; do not maximize edge count. (spec)

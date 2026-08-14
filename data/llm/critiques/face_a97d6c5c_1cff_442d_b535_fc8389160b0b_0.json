@@ -55,18 +55,15 @@
     }
   ],
   "proposed_edges": [
-    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-saga", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 86], "text": "Saga lore reminder" } },
-    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-ch1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [87, 156], "text": "I — This Saga deals 6 damage..." } },
-    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-ch2", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [157, 207], "text": "II — Destroy target artifact..." } },
-    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-ch34", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [208, 227], "text": "III, IV — Add {R}." } },
-    { "source": "a97d6c5c-saga", "target": "rule:saga", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 86], "text": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV." } },
-    { "source": "a97d6c5c-saga", "target": "counter:lore", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": { "oracle_span": [50, 62], "text": "add a lore counter" } },
-    { "source": "counter:lore", "target": "a97d6c5c-ch1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [87, 92], "text": "I —", "note": "chapter I triggers when lore count reaches 1" } },
-    { "source": "counter:lore", "target": "a97d6c5c-ch2", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [157, 163], "text": "II —", "note": "chapter II triggers when lore count reaches 2" } },
-    { "source": "counter:lore", "target": "a97d6c5c-ch34", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [208, 217], "text": "III, IV —", "note": "chapter triggers when lore count reaches 3 and again at 4" } },
+    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-saga", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 86], "text": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV." } },
+    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-ch1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [87, 156], "text": "\nI — This Saga deals 6 damage to target creature an opponent controls" } },
+    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-ch2", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [157, 207], "text": "\nII — Destroy target artifact an opponent controls" } },
+    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "a97d6c5c-ch34", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [208, 227], "text": "\nIII, IV — Add {R}." } },
+    { "source": "face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0", "target": "rule:saga", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 86], "rule_ref": "CR 714 (Saga cards)", "text": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV." } },
+    { "source": "a97d6c5c-saga", "target": "counter:lore", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": { "oracle_span": [51, 65], "text": "a lore counter" } },
     { "source": "a97d6c5c-ch1", "target": "op:deal-damage", "predicate": "CAUSES", "polarity": "negative", "provenance": { "oracle_span": [92, 156], "text": "This Saga deals 6 damage to target creature an opponent controls" } },
     { "source": "a97d6c5c-ch2", "target": "op:destroy", "predicate": "CAUSES", "polarity": "negative", "provenance": { "oracle_span": [163, 207], "text": "Destroy target artifact an opponent controls" } },
-    { "source": "a97d6c5c-ch34", "target": "op:add-mana", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": { "oracle_span": [217, 227], "text": "Add {R}." } }
+    { "source": "a97d6c5c-ch34", "target": "op:add-mana", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": { "oracle_span": [219, 227], "text": "Add {R}." } }
   ],
   "schema_extension_requests": []
 }

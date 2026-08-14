@@ -33,18 +33,11 @@
       "provenance": {"oracle_span": [0, 76], "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.)"}
     },
     {
-      "source": "a0",
+      "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
       "target": "rule:saga",
       "predicate": "REFERENCES_RULE",
       "certainty": "rules_explicit",
       "provenance": {"oracle_span": [0, 76], "rule_ref": "CR 714 (Saga cards)", "text": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV."}
-    },
-    {
-      "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
-      "target": "counter:lore",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [39, 51], "text": "a lore counter"}
     },
     {
       "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",

@@ -17,8 +17,10 @@
     }
   ],
   "proposed_edges": [
+    {"source": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 137], "text": "Ferocious — Whenever this creature attacks while you control a creature with power 4 or greater, put a +1/+1 counter on each creature you control."}},
+    {"source": "event:attacks", "target": "a1", "predicate": "TRIGGERS", "condition": "you control a creature with power 4 or greater", "certainty": "rules_explicit", "provenance": {"oracle_span": [12, 82], "text": "Whenever this creature attacks while you control a creature with power 4 or greater"}},
     {"source": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [96, 137], "text": "put a +1/+1 counter on each creature you control", "note": "on each creature you control"}},
-    {"source": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [102, 114], "text": "+1/+1 counter"}},
+    {"source": "state:has-plus-one-plus-one-counter", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [102, 114], "text": "+1/+1 counter"}},
     {"source": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0", "target": "keyword:ferocious", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 9], "text": "Ferocious"}},
     {"source": "keyword:ferocious", "target": "rule:ferocious", "predicate": "REFERENCES_RULE", "certainty": "high", "provenance": {"oracle_span": [12, 82], "text": "Whenever this creature attacks while you control a creature with power 4 or greater"}}
   ],

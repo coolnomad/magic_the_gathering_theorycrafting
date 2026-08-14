@@ -25,7 +25,7 @@
       "source": "face:a8b018a7-0350-4ee0-9582-8d391018bdee:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [0, 362], "text": "When Azog enters, destroy up to one other target creature. Its controller amasses Goblins X, where X is that creature's power. If you controlled that creature, draw a card."}
+      "provenance": {"oracle_span": [0, 362], "text": "When Azog enters, destroy up to one other target creature. Its controller amasses Goblins X, where X is that creature's power. If you controlled that creature, draw a card. (To amass Goblins X, that player puts X +1/+1 counters on an Army they control. It's also a Goblin. If they don't control an Army, they create a 0/0 black Goblin Army creature token first.)"}
     },
     {
       "source": "event:azog_enters",
@@ -48,22 +48,13 @@
       "target": "rule:amass",
       "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "scope": "amass Goblins X performed by the destroyed creature's controller; Army subtype = Goblin; X = that creature's power",
+      "scope": "amass Goblins X performed by the destroyed creature's controller; Army subtype = Goblin; N = X = that creature's power",
       "provenance": {"oracle_span": [59, 126], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "Its controller amasses Goblins X, where X is that creature's power."}
-    },
-    {
-      "source": "a1",
-      "target": "counter:+1/+1",
-      "predicate": "SCALES_WITH",
-      "certainty": "rules_explicit",
-      "note": "X (counters amassed) equals the destroyed creature's power",
-      "provenance": {"oracle_span": [92, 126], "text": "where X is that creature's power."}
     },
     {
       "source": "a1",
       "target": "resource:card_in_hand",
       "predicate": "PRODUCES",
-      "optional": true,
       "condition": "if you controlled the destroyed creature",
       "certainty": "rules_explicit",
       "provenance": {"oracle_span": [127, 172], "text": "If you controlled that creature, draw a card."}

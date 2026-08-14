@@ -17,7 +17,12 @@
           "target": "target creature you control"
         }
       ],
-      "oracle_spans": [[0, 124]],
+      "oracle_spans": [
+        [
+          0,
+          123
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -36,7 +41,12 @@
           "quantity": 1
         }
       ],
-      "oracle_spans": [[125, 211]],
+      "oracle_spans": [
+        [
+          124,
+          210
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     }
@@ -46,32 +56,79 @@
       "source": "face:5ba482e9-fbb0-4d9f-a3a9-414892bcdfed:0",
       "target": "keyword:landfall",
       "predicate": "HAS_KEYWORD",
-      "provenance": {"oracle_span": [125, 133], "text": "Landfall"}
+      "provenance": {
+        "oracle_span": [
+          125,
+          133
+        ],
+        "text": "Landfall"
+      }
+    },
+    {
+      "source": "event:cast-creature-spell",
+      "target": "dancing-cast-creature-trigger",
+      "predicate": "TRIGGERS",
+      "scope": "you cast a creature spell",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          0,
+          35
+        ],
+        "text": "Whenever you cast a creature spell,"
+      }
     },
     {
       "source": "dancing-cast-creature-trigger",
       "target": "counter:+1/+1",
       "predicate": "ADDS_COUNTER",
-      "provenance": {"oracle_span": [36, 87], "text": "put X +1/+1 counters on target creature you control"}
-    },
-    {
-      "source": "dancing-cast-creature-trigger",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [42, 56], "text": "+1/+1 counters"}
+      "provenance": {
+        "oracle_span": [
+          36,
+          87
+        ],
+        "text": "put X +1/+1 counters on target creature you control"
+      }
     },
     {
       "source": "dancing-cast-creature-trigger",
       "target": "counter:+1/+1",
       "predicate": "SCALES_WITH",
-      "condition": "cast creature spell's mana value",
-      "provenance": {"oracle_span": [89, 123], "text": "where X is that spell's mana value", "note": "number of counters equals the triggering spell's mana value"}
+      "condition": "the cast creature spell's mana value",
+      "provenance": {
+        "oracle_span": [
+          89,
+          123
+        ],
+        "text": "where X is that spell's mana value",
+        "note": "number of counters equals the triggering spell's mana value"
+      }
+    },
+    {
+      "source": "event:land-enters",
+      "target": "dancing-landfall",
+      "predicate": "TRIGGERS",
+      "scope": "a land you control enters",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          136,
+          171
+        ],
+        "text": "Whenever a land you control enters,"
+      }
     },
     {
       "source": "dancing-landfall",
       "target": "token:bear",
       "predicate": "CREATES_OBJECT",
-      "provenance": {"oracle_span": [172, 210], "text": "create a 2/2 green Bear creature token"}
+      "provenance": {
+        "oracle_span": [
+          172,
+          210
+        ],
+        "text": "create a 2/2 green Bear creature token"
+      }
     }
   ],
   "schema_extension_requests": []

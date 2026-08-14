@@ -76,9 +76,17 @@
     },
     {
       "source": "a2",
+      "target": "event:permanent-spell-exiled",
+      "predicate": "CAUSES",
+      "note": "the countered permanent spell is exiled instead of going to the graveyard",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [22, 116], "text": "If a permanent spell is countered this way, exile it instead of putting it into its owner's graveyard."}
+    },
+    {
+      "source": "event:permanent-spell-exiled",
       "target": "a3",
       "predicate": "ENABLES",
-      "note": "Exiling the permanent spell (a2) creates the exiled card that a3 grants permission to cast.",
+      "note": "Exiling the permanent spell creates the exiled card that a3 grants permission to cast.",
       "certainty": "high",
       "provenance": {"oracle_span": [117, 202], "text": "You may cast that card without paying its mana cost for as long as it remains exiled."}
     }

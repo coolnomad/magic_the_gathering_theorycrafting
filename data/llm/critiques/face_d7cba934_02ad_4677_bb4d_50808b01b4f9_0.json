@@ -17,13 +17,14 @@
       "effects": [
         {"op": "exile_instead_of_graveyard", "target": "the countered permanent spell", "condition": "a permanent spell is countered this way"}
       ],
-      "oracle_spans": [[22, 124]],
+      "oracle_spans": [[22, 123]],
       "confidence": "high",
       "unresolved": []
     },
     {
       "ability_id": "a3",
-      "kind": "spell_effect",
+      "kind": "static",
+      "trigger": null,
       "effects": [
         {"op": "grant_cast_permission", "target": "that exiled card", "without_paying_mana_cost": true, "duration": "for as long as it remains exiled", "controller": "you"}
       ],
@@ -37,6 +38,7 @@
       "source": "face:d7cba934-02ad-4677-bb4d-50808b01b4f9:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
       "provenance": {"oracle_span": [0, 21], "text": "Counter target spell."}
     },
     {
@@ -51,7 +53,8 @@
       "source": "face:d7cba934-02ad-4677-bb4d-50808b01b4f9:0",
       "target": "a2",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [22, 124], "text": "If a permanent spell is countered this way, exile it instead of putting it into its owner's graveyard."}
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [22, 123], "text": "If a permanent spell is countered this way, exile it instead of putting it into its owner's graveyard."}
     },
     {
       "source": "a2",
@@ -59,7 +62,7 @@
       "predicate": "MOVES_TO",
       "condition": "the countered spell is a permanent spell",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [22, 124], "text": "If a permanent spell is countered this way, exile it instead of putting it into its owner's graveyard."}
+      "provenance": {"oracle_span": [22, 123], "text": "If a permanent spell is countered this way, exile it instead of putting it into its owner's graveyard."}
     },
     {
       "source": "a2",
@@ -67,19 +70,28 @@
       "predicate": "REPLACES",
       "condition": "the countered spell is a permanent spell",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [66, 124], "text": "exile it instead of putting it into its owner's graveyard."}
+      "provenance": {"oracle_span": [66, 123], "text": "exile it instead of putting it into its owner's graveyard"}
     },
     {
       "source": "face:d7cba934-02ad-4677-bb4d-50808b01b4f9:0",
       "target": "a3",
       "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
       "provenance": {"oracle_span": [125, 210], "text": "You may cast that card without paying its mana cost for as long as it remains exiled."}
     },
     {
       "source": "a2",
+      "target": "event:permanent-spell-exiled",
+      "predicate": "CAUSES",
+      "note": "the countered permanent spell is exiled instead of going to the graveyard",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [22, 123], "text": "If a permanent spell is countered this way, exile it instead of putting it into its owner's graveyard."}
+    },
+    {
+      "source": "event:permanent-spell-exiled",
       "target": "a3",
       "predicate": "ENABLES",
-      "note": "Exiling the countered permanent spell (a2) puts the card in exile, which a3 grants permission to cast for as long as it remains exiled.",
+      "note": "Exiling the permanent spell creates the exiled card that a3 grants permission to cast for as long as it remains exiled.",
       "certainty": "high",
       "provenance": {"oracle_span": [125, 210], "text": "You may cast that card without paying its mana cost for as long as it remains exiled."}
     }

@@ -32,9 +32,9 @@
   "proposed_edges": [
     { "source": "face:bd4ab393-9538-4230-b2a1-bc77099481c9:0", "target": "keyword:reach", "predicate": "HAS_KEYWORD", "provenance": { "oracle_span": [0, 5], "text": "Reach" } },
     { "source": "face:bd4ab393-9538-4230-b2a1-bc77099481c9:0", "target": "keyword:trample", "predicate": "HAS_KEYWORD", "provenance": { "oracle_span": [7, 14], "text": "trample" } },
-    { "source": "face:bd4ab393-9538-4230-b2a1-bc77099481c9:0", "target": "bd4ab393-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [15, 118], "text": "When this creature enters, attach target Equipment you control to up to one target creature you control." } },
-    { "source": "bd4ab393-a1", "target": "event:etb", "predicate": "TRIGGERS", "provenance": { "oracle_span": [15, 40], "text": "When this creature enters" } },
-    { "source": "bd4ab393-a1", "target": "objectclass:equipment", "predicate": "ATTACHED_TO", "optional": true, "certainty": "rules_explicit", "condition": "attach target Equipment you control to up to one target creature you control; the creature target is optional (up to one)", "provenance": { "oracle_span": [42, 118], "text": "attach target Equipment you control to up to one target creature you control" } }
+    { "source": "face:bd4ab393-9538-4230-b2a1-bc77099481c9:0", "target": "bd4ab393-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [15, 118], "text": "When this creature enters, attach target Equipment you control to up to one target creature you control" } },
+    { "source": "event:this-creature-enters", "target": "bd4ab393-a1", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [15, 40], "text": "When this creature enters" } },
+    { "source": "objectclass:equipment", "target": "obj:target-creature", "predicate": "ATTACHED_TO", "certainty": "rules_explicit", "condition": "attach target Equipment you control to up to one target creature you control", "provenance": { "oracle_span": [42, 118], "text": "attach target Equipment you control to up to one target creature you control" } }
   ],
   "schema_extension_requests": []
 }

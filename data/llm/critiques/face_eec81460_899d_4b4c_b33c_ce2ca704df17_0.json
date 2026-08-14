@@ -46,6 +46,13 @@
       "provenance": {"oracle_span": [0, 82], "text": "When this Equipment enters, target opponent sacrifices a creature of their choice."}
     },
     {
+      "source": "event:this-equipment-enters",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 26], "text": "When this Equipment enters"}
+    },
+    {
       "source": "a1",
       "target": "event:creature_sacrificed",
       "predicate": "CAUSES",
@@ -76,9 +83,9 @@
     },
     {
       "source": "a3",
-      "target": "face:eec81460-899d-4b4c-b33c-ce2ca704df17:0",
-      "predicate": "ATTACHED_TO",
-      "scope": "target creature you control",
+      "target": "rule:equip",
+      "predicate": "REFERENCES_RULE",
+      "scope": "target creature you control; equip only as a sorcery",
       "certainty": "rules_explicit",
       "provenance": {"oracle_span": [113, 193], "text": "Equip {2} ({2}: Attach to target creature you control. Equip only as a sorcery.)"}
     }

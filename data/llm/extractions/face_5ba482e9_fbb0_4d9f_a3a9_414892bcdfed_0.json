@@ -49,6 +49,14 @@
       "provenance": {"oracle_span": [125, 133], "text": "Landfall"}
     },
     {
+      "source": "event:cast-creature-spell",
+      "target": "dancing-cast-creature-trigger",
+      "predicate": "TRIGGERS",
+      "scope": "you cast a creature spell",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 35], "text": "Whenever you cast a creature spell,"}
+    },
+    {
       "source": "dancing-cast-creature-trigger",
       "target": "counter:+1/+1",
       "predicate": "ADDS_COUNTER",
@@ -57,15 +65,17 @@
     {
       "source": "dancing-cast-creature-trigger",
       "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [42, 56], "text": "+1/+1 counters"}
-    },
-    {
-      "source": "dancing-cast-creature-trigger",
-      "target": "counter:+1/+1",
       "predicate": "SCALES_WITH",
       "condition": "cast creature spell's mana value",
       "provenance": {"oracle_span": [89, 123], "text": "where X is that spell's mana value", "note": "number of counters equals the triggering spell's mana value"}
+    },
+    {
+      "source": "event:land-enters",
+      "target": "dancing-landfall",
+      "predicate": "TRIGGERS",
+      "scope": "a land you control enters",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [125, 171], "text": "Landfall — Whenever a land you control enters,"}
     },
     {
       "source": "dancing-landfall",

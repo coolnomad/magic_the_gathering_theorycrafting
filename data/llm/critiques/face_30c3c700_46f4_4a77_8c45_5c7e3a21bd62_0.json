@@ -6,9 +6,19 @@
       "kind": "static",
       "trigger": null,
       "effects": [
-        {"op": "grant_keyword", "keyword": "prowess", "affects": "equipped creature", "note": "Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn."}
+        {
+          "op": "grant_keyword",
+          "keyword": "prowess",
+          "affects": "equipped creature",
+          "note": "Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn."
+        }
       ],
-      "oracle_spans": [[0, 127]],
+      "oracle_spans": [
+        [
+          0,
+          124
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -17,9 +27,18 @@
       "kind": "static",
       "trigger": null,
       "effects": [
-        {"op": "double_triggered_ability", "affects": "equipped creature", "note": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."}
+        {
+          "op": "double_triggered_ability",
+          "affects": "equipped creature",
+          "note": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."
+        }
       ],
-      "oracle_spans": [[128, 223]],
+      "oracle_spans": [
+        [
+          125,
+          223
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -27,13 +46,27 @@
       "ability_id": "a3",
       "kind": "activated",
       "costs": [
-        {"op": "pay_mana", "amount": "{1}"},
-        {"op": "restriction", "note": "target creature must be a Wizard you control; equip only as a sorcery"}
+        {
+          "op": "pay_mana",
+          "amount": "{1}"
+        },
+        {
+          "op": "restriction",
+          "note": "attach only to a Wizard; equip only as a sorcery"
+        }
       ],
       "effects": [
-        {"op": "attach", "target": "target Wizard creature you control"}
+        {
+          "op": "attach",
+          "target": "target Wizard creature you control"
+        }
       ],
-      "oracle_spans": [[224, 240]],
+      "oracle_spans": [
+        [
+          224,
+          240
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -41,13 +74,27 @@
       "ability_id": "a4",
       "kind": "activated",
       "costs": [
-        {"op": "pay_mana", "amount": "{3}"},
-        {"op": "restriction", "note": "equip only as a sorcery"}
+        {
+          "op": "pay_mana",
+          "amount": "{3}"
+        },
+        {
+          "op": "restriction",
+          "note": "equip only as a sorcery"
+        }
       ],
       "effects": [
-        {"op": "attach", "target": "target creature you control"}
+        {
+          "op": "attach",
+          "target": "target creature you control"
+        }
       ],
-      "oracle_spans": [[241, 250]],
+      "oracle_spans": [
+        [
+          241,
+          250
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     }
@@ -57,21 +104,40 @@
       "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [0, 127], "text": "Equipped creature has prowess. (Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn.)"}
+      "provenance": {
+        "oracle_span": [
+          0,
+          124
+        ],
+        "text": "Equipped creature has prowess. (Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn.)"
+      }
     },
     {
       "source": "a1",
-      "target": "kw:prowess",
-      "predicate": "PRODUCES",
+      "target": "keyword:prowess",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
       "scope": "granted to equipped creature",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [0, 30], "text": "Equipped creature has prowess."}
+      "provenance": {
+        "oracle_span": [
+          0,
+          30
+        ],
+        "text": "Equipped creature has prowess."
+      }
     },
     {
       "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
       "target": "a2",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [128, 223], "text": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."}
+      "provenance": {
+        "oracle_span": [
+          125,
+          223
+        ],
+        "text": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."
+      }
     },
     {
       "source": "a2",
@@ -79,35 +145,67 @@
       "predicate": "MODIFIES",
       "note": "Causes each triggered ability of the equipped creature to trigger one additional time.",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [128, 223], "text": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."}
+      "provenance": {
+        "oracle_span": [
+          128,
+          223
+        ],
+        "text": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."
+      }
     },
     {
       "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
       "target": "a3",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [224, 240], "text": "Equip Wizard {1}"}
+      "provenance": {
+        "oracle_span": [
+          224,
+          240
+        ],
+        "text": "Equip Wizard {1}"
+      }
     },
     {
-      "source": "a3",
-      "target": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "target": "obj:wizard-creature-you-control",
       "predicate": "ATTACHED_TO",
       "scope": "target Wizard creature you control",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [224, 240], "text": "Equip Wizard {1}"}
+      "provenance": {
+        "oracle_span": [
+          224,
+          240
+        ],
+        "text": "Equip Wizard {1}",
+        "note": "Equip Wizard attaches this Equipment to a Wizard creature you control."
+      }
     },
     {
       "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
       "target": "a4",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [241, 250], "text": "Equip {3}"}
+      "provenance": {
+        "oracle_span": [
+          241,
+          250
+        ],
+        "text": "Equip {3}"
+      }
     },
     {
-      "source": "a4",
-      "target": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",
+      "target": "obj:creature-you-control",
       "predicate": "ATTACHED_TO",
       "scope": "target creature you control",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [241, 250], "text": "Equip {3}"}
+      "provenance": {
+        "oracle_span": [
+          241,
+          250
+        ],
+        "text": "Equip {3}",
+        "note": "Equip attaches this Equipment to a creature you control."
+      }
     }
   ],
   "schema_extension_requests": []

@@ -92,23 +92,13 @@
     },
     {
       "source": "face:e4402d21-bb7f-4777-bc8d-b24bf2faccb0:0",
-      "target": "counter:lore",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [46, 64],
-        "text": "add a lore counter"
-      }
-    },
-    {
-      "source": "counter:lore",
       "target": "a1",
-      "predicate": "TRIGGERS",
+      "predicate": "HAS_ABILITY",
       "certainty": "rules_explicit",
-      "scope": "chapter I (lore count = 1)",
+      "scope": "chapter I",
       "provenance": {
-        "oracle_span": [88, 90],
-        "text": "I —"
+        "oracle_span": [88, 187],
+        "text": "I — Target creature you control gains hexproof for as long as this Saga remains on the battlefield."
       }
     },
     {
@@ -123,14 +113,14 @@
       }
     },
     {
-      "source": "counter:lore",
+      "source": "face:e4402d21-bb7f-4777-bc8d-b24bf2faccb0:0",
       "target": "a2",
-      "predicate": "TRIGGERS",
+      "predicate": "HAS_ABILITY",
       "certainty": "rules_explicit",
-      "scope": "chapter II (lore count = 2)",
+      "scope": "chapter II",
       "provenance": {
-        "oracle_span": [188, 191],
-        "text": "II —"
+        "oracle_span": [188, 313],
+        "text": "II — Prevent all damage that would be dealt by up to one target creature for as long as this Saga remains on the battlefield."
       }
     },
     {
@@ -146,14 +136,14 @@
       }
     },
     {
-      "source": "counter:lore",
+      "source": "face:e4402d21-bb7f-4777-bc8d-b24bf2faccb0:0",
       "target": "a3",
-      "predicate": "TRIGGERS",
+      "predicate": "HAS_ABILITY",
       "certainty": "rules_explicit",
-      "scope": "chapters III and IV (lore count = 3 and = 4)",
+      "scope": "chapters III and IV",
       "provenance": {
-        "oracle_span": [314, 323],
-        "text": "III, IV —"
+        "oracle_span": [314, 336],
+        "text": "III, IV — Draw a card."
       }
     },
     {

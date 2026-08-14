@@ -15,7 +15,7 @@
           "op": "amass",
           "kind_word": "Goblins",
           "amount": 4,
-          "detail": "Put four +1/+1 counters on an Army you control (also a Goblin); if you don't control an Army, first create a 0/0 black Goblin Army creature token.",
+          "detail": "amass Goblins 4: put four +1/+1 counters on an Army you control (it's also a Goblin); if you control no Army, first create a 0/0 black Goblin Army creature token.",
           "required": true
         }
       ],
@@ -34,27 +34,19 @@
       "provenance": {"oracle_span": [0, 209], "text": "When this creature dies, amass Goblins 4."}
     },
     {
-      "source": "a1",
-      "target": "token:goblin-army",
-      "predicate": "CREATES_OBJECT",
-      "optional": false,
-      "condition": "only if you don't already control an Army",
+      "source": "event:this-creature-dies",
+      "target": "a1",
+      "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [124, 208], "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first.", "note": "conditional creation as part of amass"}
+      "provenance": {"oracle_span": [0, 23], "text": "When this creature dies"}
     },
     {
-      "source": "a1",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
+      "source": "face:edbd3d4e-78a2-4c03-936d-dcb24cf7c87c:0",
+      "target": "rule:amass",
+      "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [42, 82], "text": "Put four +1/+1 counters on an Army you control.", "note": "amass Goblins 4 puts four +1/+1 counters"}
-    },
-    {
-      "source": "a1",
-      "target": "token:goblin-army",
-      "predicate": "ADDS_COUNTER",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [30, 41], "text": "amass Goblins 4", "note": "counters placed on the Army (Goblin Army token or existing Army)"}
+      "scope": "amass Goblins 4; Army subtype = Goblin; N = 4",
+      "provenance": {"oracle_span": [25, 40], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "amass Goblins 4"}
     }
   ],
   "schema_extension_requests": []

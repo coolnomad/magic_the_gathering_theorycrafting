@@ -917,3 +917,32 @@ Ready for **Phase 4 (global assembly)** whenever you are â€” that's where t
 
 ### [2026-08-14 10:22] USER
 write a document explaining what you just did and how the sub-agents you spun up handled it. I will be invoking this process again for future sets and I want to streamline it with another orchestrator harness. I had to manually approve many commands that didn't require it.
+
+### [2026-08-14 10:28] ASSISTANT
+I'll write a reusable orchestration playbook to the repo â€” covering exactly what ran, how the sub-agents were structured, the deterministic contract, the failure modes to pre-empt, and concrete streamlining (including killing the manual approvals).
+
+Let me fix a stray code-fence artifact at the end of the file.
+
+Committing and pushing the playbook.
+
+Written and pushed â€” [`docs/phase3-orchestration-playbook.md`](docs/phase3-orchestration-playbook.md) (`ab1a1c8..479d5d2`).
+
+## What it covers
+- **Two-plane architecture** â€” deterministic Python control plane vs. Claude Code sub-agent model plane, communicating *only through files* (which is what makes it resumable/parallel/auditable).
+- **The file contract** â€” exact inputs/outputs on disk (`tasks/`, `batches/`, `extractions/`, `critiques/`, `data/review/llm_*`).
+- **The 12-step sequence** actually run, with the pilot-first discipline and the closure loop.
+- **Sub-agent design** â€” the three roles (extractor / independent critic / adjudicator), what each reads and writes, the "keep correct assertions verbatim" instruction that makes reconciliation work, and why ~18 faces/batch is the sweet spot.
+- **The 7 failure modes we hit and the fixes now baked in** (schema strictness, span drift, agreement keying, fabricated edges, missing mechanic â†’ template-not-predicate, the 210-vs-209 denominator, adjudicator over-acceptance).
+- **A "run it for a new set" checklist** and calibration numbers (~29 agents, 40â€“125k tokens each).
+
+## On the manual approvals (Â§6.1)
+The friction was almost entirely the deterministic `Bash`/`PowerShell` calls (`python -m hobkg.cli â€¦`, `pytest`, `git add/status/commit`) â€” all safe, local, idempotent. Two ways to eliminate them:
+- Run **`/fewer-permission-prompts`** â€” it scans this session's transcript and writes a tailored `permissions.allow` to project settings.
+- Or drop in a `permissions.allow` block (example in the doc), deliberately leaving `git push`, deletes, and the raw source-fetch step *off* the allowlist so those stay conscious.
+
+And for the fan-out itself (Â§6.2): the natural home for a hands-off harness is the **`Workflow` tool** â€” a script can `pipeline()` each batch through extract â†’ ingest-gate â†’ critic with the deterministic CLI between phases, and *halt at the adjudication gate* for your sign-off.
+
+Want me to wire up the allowlist now? I can either run `/fewer-permission-prompts` or add a `permissions.allow` block directly to `.claude/settings.json` â€” tell me whether you're comfortable auto-allowing `git commit` (I'd keep `git push` manual regardless), and I'll set it up.
+
+### [2026-08-14 11:17] USER
+read docs/hob-kg-phase3-review.md review identified a few things to fix before moving on

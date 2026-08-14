@@ -39,7 +39,7 @@
   "proposed_edges": [
     {
       "source": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:0",
-      "target": "a1",
+      "target": "keyword:vigilance",
       "predicate": "HAS_KEYWORD",
       "certainty": "rules_explicit",
       "provenance": {
@@ -49,7 +49,7 @@
     },
     {
       "source": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:0",
-      "target": "a2",
+      "target": "keyword:ward",
       "predicate": "HAS_KEYWORD",
       "certainty": "rules_explicit",
       "provenance": {
@@ -58,8 +58,18 @@
       }
     },
     {
-      "source": "a2",
-      "target": "event:opponent-targets-this",
+      "source": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 146],
+        "text": "Ward {2} (Whenever this creature becomes the target of a spell or ability an opponent controls, counter it unless that player pays {2}.)"
+      }
+    },
+    {
+      "source": "event:opponent-targets-this",
+      "target": "a2",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
       "provenance": {

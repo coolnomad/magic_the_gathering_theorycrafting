@@ -62,11 +62,22 @@
     },
     {
       "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
-      "target": "obj:target-equipment",
-      "predicate": "CAUSES",
-      "certainty": "rules_explicit",
-      "note": "attaches target Equipment to a target creature on ETB",
+      "target": "etb-attach-equipment",
+      "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [8, 116], "text": "When Thorin enters, attach any number of target Equipment you control to target creature you control."}
+    },
+    {
+      "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
+      "target": "reflexive-damage",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [117, 251], "text": "When one or more Equipment become attached to that creature this way, that creature deals damage equal to its power to up to one target creature."}
+    },
+    {
+      "source": "event:thorin-enters",
+      "target": "etb-attach-equipment",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [8, 24], "text": "When Thorin enters"}
     },
     {
       "source": "obj:target-equipment",
@@ -76,17 +87,26 @@
       "provenance": {"oracle_span": [35, 116], "text": "attach any number of target Equipment you control to target creature you control"}
     },
     {
-      "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
-      "target": "obj:target-creature",
-      "predicate": "TRIGGERS",
+      "source": "etb-attach-equipment",
+      "target": "event:equipment-attached-this-way",
+      "predicate": "CAUSES",
       "certainty": "rules_explicit",
-      "note": "reflexive trigger when Equipment becomes attached this way; the equipped creature deals damage equal to its power",
-      "provenance": {"oracle_span": [117, 251], "text": "When one or more Equipment become attached to that creature this way, that creature deals damage equal to its power to up to one target creature."}
+      "note": "the ETB attachment is the event the reflexive ability keys off (this way)",
+      "provenance": {"oracle_span": [117, 179], "text": "When one or more Equipment become attached to that creature this way"}
     },
     {
-      "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
+      "source": "event:equipment-attached-this-way",
+      "target": "reflexive-damage",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "note": "reflexive trigger when Equipment becomes attached this way",
+      "provenance": {"oracle_span": [117, 179], "text": "When one or more Equipment become attached to that creature this way"}
+    },
+    {
+      "source": "reflexive-damage",
       "target": "obj:up-to-one-target-creature",
       "predicate": "CAUSES",
+      "polarity": "negative",
       "certainty": "rules_explicit",
       "note": "damage equal to the equipped creature's power",
       "provenance": {"oracle_span": [180, 251], "text": "that creature deals damage equal to its power to up to one target creature."}

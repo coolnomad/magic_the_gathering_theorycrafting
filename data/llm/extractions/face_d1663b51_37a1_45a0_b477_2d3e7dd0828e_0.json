@@ -32,7 +32,6 @@
   "proposed_edges": [
     {"source": "face:d1663b51-37a1-45a0-b477-2d3e7dd0828e:0", "target": "event:destroy", "predicate": "CAUSES", "certainty": "rules_explicit", "provenance": {"oracle_span": [12, 47], "text": "Destroy target creature with flying."}},
     {"source": "face:d1663b51-37a1-45a0-b477-2d3e7dd0828e:0", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [50, 92], "text": "Put a +1/+1 counter on target creature you control."}},
-    {"source": "face:d1663b51-37a1-45a0-b477-2d3e7dd0828e:0", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [56, 68], "text": "+1/+1 counter"}},
     {"source": "face:d1663b51-37a1-45a0-b477-2d3e7dd0828e:0", "target": "keyword:trample", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": {"oracle_span": [101, 145], "text": "It gains trample and hexproof until end of turn.", "note": "grants trample until end of turn"}},
     {"source": "face:d1663b51-37a1-45a0-b477-2d3e7dd0828e:0", "target": "keyword:hexproof", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": {"oracle_span": [101, 145], "text": "It gains trample and hexproof until end of turn.", "note": "grants hexproof until end of turn"}}
   ],

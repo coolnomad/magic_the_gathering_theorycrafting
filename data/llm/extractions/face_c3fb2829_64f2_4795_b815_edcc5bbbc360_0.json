@@ -46,12 +46,6 @@
       "target": "counter:+1/+1",
       "predicate": "ADDS_COUNTER",
       "provenance": {"oracle_span": [19, 60], "text": "Put three +1/+1 counters on this creature"}
-    },
-    {
-      "source": "guardian-pump",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "provenance": {"oracle_span": [29, 43], "text": "+1/+1 counters"}
     }
   ],
   "schema_extension_requests": []
