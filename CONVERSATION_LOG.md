@@ -829,3 +829,91 @@ Also report why it lacks Oracle text. This prevents the pipeline from silently r
 The current run looks very strong. This is a bounded closure pass, not a redesign. The critical instruction to the agent is:
 
 > Add Amass and Halflingcycling as reusable parameterized templates using existing primitive predicates; do not add `AMASSES`. Resolve or explicitly retain the review queue, inspectΓÇönot automatically repairΓÇöthe span warnings, and emit a Phase 3 disposition for all 210 normalized faces before beginning global assembly.
+
+### [2026-08-14 10:20] ASSISTANT
+Clear, well-scoped closure pass. I'll follow your order exactly: Amass + typecycling as parameterized templates (existing predicates, no `AMASSES`), re-expand the 8 flagged cards, adjudicate the 22 disagreements and inspect the 18 span warnings without auto-repair, add a disposition for the non-Oracle-bearing face 210, then re-reconcile and freeze.
+
+First, gathering the exact facts I need â€” which cards use Amass/typecycling, which 8 raised extension requests, and the identity of face 210.
+
+Facts gathered. **Amass** on 14 cards (all Goblins), **typecycling** on Last Light of Durin's Day (Mountain/Land-cycling) and Hobbit Hole (Halflingcycling). The 8 to re-expand = 7 Amass-flaggers + Hobbit Hole. Face 210 = **Ordinary Bear** (vanilla creature, no rules text). Let me confirm the two typecycling cards' exact wording so the template detection is right.
+
+Now I have exact wording. Implementing **step 1**: generic Amass + typecycling templates in `rules.py` (existing predicates, `INSTANTIATES`, no `AMASSES`).
+
+Now the per-card instantiation functions.
+
+Now wiring detection + instantiation into the pipeline.
+
+Now adding Amass/typecycling to the Phase 3 shared context so re-expansion agents reference the templates.
+
+Adding tests for the two new templates, then rebuilding the Phase 2 graph and task packets.
+
+Phase 2 rebuild clean: **Amass 14 + typecycling 2 instantiated** (INSTANTIATES now 26), 328 nodes / 429 edges / 0 dangling, 64 tests pass, shared context regenerated with the new templates.
+
+**Step 2:** re-expand the 8 flagged cards so they `INSTANTIATES rule:amass`/`rule:typecycling` and drop the extension requests.
+
+The 8 now `INSTANTIATES` the templates with empty extension requests. Re-critiquing those 8 (their prior critiques are stale) before reconciling.
+
+All 8 re-critiqued with `INSTANTIATES` and empty extension requests. Re-ingesting and reconciling.
+
+Re-expansion applied: **0 rejections, 978 accepted edges, 25 queued, 16 span-warnings** (extension requests now gone). The queue rose to 25 because the re-critic *added* legitimate edges the extractor omitted (e.g., Saga chapter `TRIGGERS`, Hobbit Hole's cycling moves) â€” genuine disagreements to adjudicate.
+
+Let me confirm the extension requests are gone and inspect the 25 queued items to prepare adjudication.
+
+Extension requests are 0, Amass cards now `INSTANTIATES rule:amass`. The 25 queued items are mostly clear-cut: the critic added correctly-omitted edges (Saga chapter triggers, equip cost, life gain, library destinations), removed fabricated ones (the `rule:adventure` refs, `keyword:fight`, `PRODUCES token:treasure`), or fixed predicates (`SCALES_WITH`â†’`REQUIRES`). A few are genuinely ambiguous.
+
+**Step 3â€“4:** I'll build the disposition apply-mechanism, then delegate the 25-item adjudication to a dedicated agent (reading extractor vs critic vs Oracle for each), which assigns one of `accepted_extractor`/`accepted_critic`/`corrected`/`unresolved` â€” not forcing all to accepted. First the deterministic apply function.
+
+Now delegating the 25-item adjudication to a dedicated agent â€” it reads extractor vs critic vs Oracle for each queued face and writes `llm_dispositions.jsonl` with per-item verdicts (not forcing acceptance).
+
+All 25 adjudicated (40 items) â€” the agent found the critic correct in every case (added omissions, dropped fabrications, fixed predicates), 0 unresolved. Given the user's explicit "don't force to accepted," I'll apply and then **spot-check the semantically debatable ones myself** (e.g., `DERIVED_FROMâ†’zone:graveyard`, self-`MODIFIES`) rather than rubber-stamp.
+
+Applied cleanly (0 validation errors, 1003 edges, 1 ability). Now the manual spot-check of the debatable cases before I trust the all-`accepted_critic` outcome.
+
+Good catches on spot-check. Two of the agent's `accepted_critic` verdicts rubber-stamped a semantically imperfect critic fix:
+- **Thranduil** `a1 -DERIVED_FROM-> zone:graveyard`: `DERIVED_FROM` is a graph-provenance predicate, not a game-mechanic "gains abilities of Elf cards in graveyard" relation â€” no clean primitive fits.
+- **The Great Goblin** `a1 -TRIGGERS-> counter:generic`: `TRIGGERS` is Eventâ†’Ability; this points Abilityâ†’CounterType (wrong direction; needs an event node).
+
+These are exactly the genuine-ambiguity cases the user said to preserve as **unresolved**, not force to accepted. (Gone Fishing/Speak Secrets fabricated edges correctly excluded; Boughside self-`MODIFIES` is acceptable.) Let me make apply idempotent (dedup) and reclassify those two to `unresolved`.
+
+Now **38 accepted_critic + 2 unresolved**, 1001 accepted edges, 0 validation errors. **Step 4:** review span warnings. Since the accepted graph uses the critics' corrected spans, let me measure the actual provenance drift remaining *in the accepted graph* (what matters for the frozen output), not just the raw extractor candidates.
+
+The accepted graph has **0 span overruns** â€” the independent critic already recomputed every accepted span against the real Oracle text (unambiguous corrections, no clamping). The 16 `llm_span_warnings` are retained as an audit trail of the *extractor-candidate* drift; the frozen accepted graph's provenance is sound. That satisfies step 4.
+
+**Step 5:** face-210 disposition + a status record for all 210 normalized faces (so the denominator can't silently shift). Adding a `finalize_faces` step.
+
+Now running the full deterministic finalize sequence (reconcile â†’ apply-dispositions â†’ finalize-faces) and adding a test for the 210-face coverage.
+
+One caveat: that integration test regenerates `llm_accepted` without dispositions, so I'll always finish with the canonical deterministic sequence (`reconcile â†’ apply-dispositions â†’ finalize-faces`) to produce the authoritative frozen outputs. Running tests, then the canonical sequence.
+
+65 tests pass; canonical sequence gives **210 face records** (209 extracted + 1 reviewed_empty). Let me produce the final frozen summary and verify integrity before recording and committing.
+
+Frozen Phase 3 integrity is clean: **210 face records** (209 extracted + Ordinary Bear reviewed_empty), 417 abilities / 1001 edges, **2 unresolved** (the two I reclassified), **0** extension requests, **0** span overruns in the accepted graph, 8 template `INSTANTIATES` in the LLM layer.
+
+One thing to flag: I re-expanded the **8 flagged** cards as you specified. The other 7 Amass cards (which never raised an extension request) still carry their original correct-but-inline `CREATES_OBJECT token:goblin-army` + `ADDS_COUNTER` representation in the LLM layer â€” the Phase 2 deterministic template covers all 14 regardless. I'll note that and can re-expand those 7 for LLM-layer uniformity if you want, but it's not required.
+
+Let me regenerate the coverage report and record the closure.
+
+Recorded. Freezing the closure pass â€” adding `tasks_index.jsonl` (regenerable) to gitignore, then committing.
+
+All staged (38 files). Committing and pushing the frozen Phase 3 closure.
+
+Committed and pushed â€” `bd42bb7..ab1a1c8` on `origin/main`, tree in sync. **Phase 3 is frozen.**
+
+## Closure pass â€” all three items resolved, in your order
+
+**1. Amass + typecycling templates (no `AMASSES` primitive)** â€” added generic `rule:amass` and `rule:typecycling` in `rules.py` using existing predicates. Amass encodes the conditional sequence (no-Army â†’ `CREATES_OBJECT token:army`; then `ADDS_COUNTER counter:+1/+1`); each card `INSTANTIATES op:amass` supplying subtype + N. Instantiated deterministically on all 14 Amass + 2 typecycling cards in the Phase 2 graph. Re-expanded the 8 flagged cards â†’ `INSTANTIATES`, extension requests now **0**. (Recruit needed a template, not a `RECRUITS` edge â€” same principle applied.)
+
+**2. 25 disagreements adjudicated** â†’ **38 `accepted_critic`, 2 `unresolved`**. I spot-checked and *overrode the agent* on two it rubber-stamped: Thranduil's `DERIVED_FROMâ†’zone:graveyard` (wrong predicate class) and Great Goblin's `TRIGGERSâ†’counter:generic` (mis-directed). Both preserved as **unresolved**, excluded from the accepted graph â€” genuine ambiguity kept, not forced.
+
+**3. Span warnings inspected, not clamped** â€” the critic already recomputed every accepted span against the real Oracle text â†’ **0 span overruns in the accepted graph**; the 16 warnings are retained as an extractor-candidate audit trail.
+
+**Face 210** â€” `finalize_faces` emits a disposition for all **210** normalized faces (209 `extracted` + 1 `reviewed_empty` = **Ordinary Bear**, a vanilla 2/2 with no printed rules text; reason recorded). Denominator can't silently narrow.
+
+**Frozen baseline:** 210 face records Â· 417 abilities Â· 1001 accepted edges Â· 2 unresolved Â· 0 extension requests Â· 0 span overruns. 65 tests pass. Canonical rebuild: `reconcile â†’ apply-dispositions â†’ finalize-faces`.
+
+**One judgment call I flagged** (didn't act on): the 7 Amass cards that never raised an extension request still carry a correct *inline* `CREATES_OBJECT`+`ADDS_COUNTER` Amass representation in the LLM layer (the Phase 2 template is authoritative for all 14). Say the word if you want those 7 re-expanded to `INSTANTIATES` for LLM-layer uniformity â€” otherwise it's harmless and merges in Phase 4.
+
+Ready for **Phase 4 (global assembly)** whenever you are â€” that's where these per-face local extractions merge with the Phase 2 template graph into the global typed multigraph, shared nodes canonicalize, and bare `ability_id`s get face-namespaced.
+
+### [2026-08-14 10:22] USER
+write a document explaining what you just did and how the sub-agents you spun up handled it. I will be invoking this process again for future sets and I want to streamline it with another orchestrator harness. I had to manually approve many commands that didn't require it.
