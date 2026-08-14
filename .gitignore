@@ -12,3 +12,9 @@ venv/
 
 # Claude Code logging-hook local dedup state (not part of the record)
 .claude/hooks/.last_assistant_uuid
+
+# Phase 3 task packets + shared context are regenerable from Phase 1/2 outputs
+# via `hobkg build-tasks` (the model OUTPUTS under data/llm/extractions,
+# data/llm/critiques, and data/review/llm_* ARE kept).
+data/llm/tasks/
+data/llm/shared_context.json

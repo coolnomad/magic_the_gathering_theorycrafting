@@ -577,3 +577,72 @@ Phase 2 is now in a state I'd treat as frozen. Ready for **Phase 3 (LLM semantic
 
 ### [2026-08-13 21:10] USER
 ok most issues are addressed. review revealed some more things. read: hob-kg-phase2-review-pt2.md and address them.
+
+### [2026-08-13 21:23] ASSISTANT
+Part 2 has two blocking issues (Saga chapter thresholds; hone Equipment-binding) plus token corrections. Before I fix the tokens, let me check the actual fetched token data â€” colors vs. color_indicator, and whether the Axe "creatre" is a Scryfall-side typo.
+
+The Scryfall token objects themselves are missing colors and contain the "creatre" typo â€” so the authoritative source for a token's color is the **producing card's** create-token clause (e.g. "create a 2/2 red Dwarf"). Let me confirm that's where the color lives.
+
+Confirmed â€” the producing card's create clause is authoritative: "2/2 **red** Dwarf", "4/4 **white** Bird Soldier â€¦ flying", and Axe defined as "Equipped creature gets +1/+0" + equip {2} (the "creatre" is a Scryfall reminder-text typo). So the correct fix is to derive token colors from the producing card, not hardcode. Let me address all three review items.
+
+First, models: add `HAS_STATE` predicate and a token `characteristic_key`.
+
+Now the token color-derivation + typo correction in `normalize.py`.
+
+Now the two blocking rules fixes. First, hone â€” bind counters and bonus to the same Equipment variable.
+
+Now the Saga chapter thresholds â€” a `state_transition_equals` condition per chapter, attached to the `ENABLES` edge, with multi-number chapters handled.
+
+Updating the Saga/hone tests for the new thresholds and Equipment binding, and the token corrections.
+
+49 tests pass. Full build + validate, then spot-check the token corrections and a Saga chapter condition on real data.
+
+All pt2 items verified on live data:
+- **Tokens:** Dwarf `['R']`, Bird Soldier `['W']` (from producing-card text), Human Soldier `['W']`; Axe typo corrected with a recorded note; `characteristic_key` added.
+- **Saga:** 20 chapter conditions, `state_transition_equals` with `accepted_values`, "X lore count becomes N", attached to the `ENABLES` edges.
+- **Hone:** bound Equipment variable (`obj:equipment-E` â†’ `state:hone-count:E`, `ATTACHED_TO obj:creature-C`, boost `SCALES_WITH` the state and `MODIFIES` C).
+
+Recording the pt2 correction in the lab notebook.
+
+Committing and pushing the pt2 fixes.
+
+The here-string tripped on the quoted `("I, II")`. I'll commit via a message file instead.
+
+Committed and pushed â€” `0bf61a4..b0ea9bc` on `origin/main` (working tree clean).
+
+Both pt2 blocking issues and the token corrections are resolved:
+
+| Review item | Status | Fix |
+|---|---|---|
+| **Saga chapter thresholds** (blocking) | âœ… | 20 `state_transition_equals` conditions â€” "lore count *becomes* n" â€” attached to each chapter's `ENABLES` edge; multi-number headers accept a value set |
+| **Hone Equipment binding** (blocking) | âœ… | Parameterized over one bound Equipment `E`: `HAS_STATE`/`ATTACHED_TO`/`SCALES_WITH`/`MODIFIES` all reference the same `E` and its creature `C` |
+| Dwarf â†’ red, Bird Soldier â†’ white | âœ… | Derived from producing-card text; `color_source` records provenance |
+| Axe "creatre" typo | âœ… | Corrected in normalized output (raw snapshot untouched), recorded in `notes` |
+| Token identity by characteristics | âœ… | Added `characteristic_key` (name\|colors\|types\|subtypes\|P/T) |
+
+Graph: 292 nodes / 387 edges / 21 structured conditions, 0 dangling, 49 tests passing. Lab notebook has a `CORRECTION` + `OBSERVATION` entry, and the pt2 review doc is preserved.
+
+That was the reviewer's bar for accepting Phase 2 â€” both semantic gaps closed and the data corrections applied. The one carried-forward item remains the **Phase 3 coverage requirement**: the LLM driver must process all 209 Oracle-bearing faces (not just the ~103 with graph nodes or the faces with syntactic extractions). It's recorded in the notebook so it gates Phase 3.
+
+I'll wait for your go before starting Phase 3 (LLM semantic extraction + critic pass).
+
+### [2026-08-13 21:26] USER
+start phase 3
+
+### [2026-08-13 21:31] ASSISTANT
+I've loaded the Claude API reference. Key facts for the build: default model `claude-opus-4-8`, adaptive thinking + `output_config.effort`, prompt-cache the stable shared context, and structured/validated JSON output. The anthropic SDK 0.86 is installed but **`ANTHROPIC_API_KEY` is not set** â€” so I'll build the complete, tested Phase 3 machinery now against a pluggable model client (with an offline mock for tests/dry-runs, zero spend), and gate the actual paid run on your key + go-ahead.
+
+Let me lay out the plan concretely before building, since Phase 3 is the first phase that spends money.
+
+What would you like to clarify? A few things I can expand on if useful:
+
+- **Cost / model** â€” the ~$15â€“40 estimate and the default `claude-opus-4-8`; I can break down the token math, or switch models.
+- **Scope of the run** â€” all 209 Oracle-bearing faces (the review's hard requirement) vs. a subset.
+- **API key / billing** â€” how the key gets supplied (`ANTHROPIC_API_KEY`), and whose account is billed.
+- **What "build the machinery" includes** â€” schemas, extractor + critic prompts, caching/resume, validation, offline-mock tests.
+- **The extractor/critic design itself** â€” the two-pass accept-on-agreement logic, JSON-schema validation, reject/queue behavior.
+
+Tell me what's on your mind and I'll reframe.
+
+### [2026-08-13 21:34] USER
+we won't use the API. i have claude subscription with plenty of usage remaining for this task. we'll do the full scope. we could either have you do it in this session or set a sub-agent on it?

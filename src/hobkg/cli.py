@@ -30,6 +30,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(pipeline.validate(), indent=2))
     elif cmd == "schemas":
         print(json.dumps(pipeline.export_schemas(), indent=2))
+    elif cmd == "build-tasks":
+        from . import phase3
+        print(json.dumps(phase3.build_tasks(), indent=2))
+    elif cmd == "build-prompt":
+        from . import phase3
+        print(phase3.build_prompt(argv[1]))
+    elif cmd == "ingest":
+        from . import phase3
+        print(json.dumps(phase3.ingest(), indent=2))
+    elif cmd == "reconcile":
+        from . import phase3
+        print(json.dumps(phase3.reconcile(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

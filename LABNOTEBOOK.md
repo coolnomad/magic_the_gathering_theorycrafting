@@ -433,3 +433,21 @@ Refs: [`docs/hob-kg-phase2-review-pt2.md`](./docs/hob-kg-phase2-review-pt2.md); 
 Rebuilt (`hobkg.cli build`); 0 dangling edges; **49 pytest tests pass** (new: chapter-transition conditions, multi-number chapters, hone Equipment-variable binding, token color/typo corrections). Graph: 292 nodes, 387 edges, 2 gates, **21 structured conditions**. New/updated predicate counts: `HAS_STATE` 1, `ATTACHED_TO` 1, `HAS_COUNTER_TYPE` 9 (8 Saga lore states + 1 hone). Live checks: *The Mountain-king's Return* chapters carry becomes-1/2/3 conditions; Dwarf/Bird Soldier colors corrected from producing-card text; Axe reminder typo fixed. Still capacity-only; no outcomes/quality/archetype claims.
 
 Refs: [2026-08-13 21:20] CORRECTION — Phase 2 pt2 fixes; `data/graph/`; `data/normalized/tokens.jsonl`
+
+---
+
+## [2026-08-13 22:10] DECISION — Phase 3 architecture: Claude Code agents as the "LLM" (no Anthropic API)
+
+Began the build spec's **Phase 3 (LLM semantic extraction)**. Per the user's standing preference, the "LLM" is **this Claude Code session / spawned sub-agents**, not the Anthropic API (they have a Claude subscription; no per-token API billing). This does not change the spec's method — only who runs the model.
+
+**Architecture.** Deterministic Python (`src/hobkg/phase3.py`) is the control plane; Claude Code agents do the two model passes.
+- **Task packets** — `build_tasks()` emits one self-contained packet per **Oracle-bearing face (209 of 210)** to `data/llm/tasks/<safe_id>.json`: card, face (incl. Oracle text), detected mechanics, and the Phase-1 `mechanical_extractions`. Plus a stable `shared_context.json` (controlled predicates, node types, mechanic templates, known tokens, rule refs) — the spec's LLM input unit.
+- **Extractor pass** — agents split Oracle text into structured abilities (trigger/cost/effect/conditions), resolve pronouns, propose typed edges (controlled vocab only), cite Oracle spans, flag ambiguity in `unresolved` — JSON only, per `schema/llm_output.schema.json`.
+- **Independent critic pass** — separate (fresh-context) agents review and return corrected JSON. Independence satisfies the spec's second-pass requirement.
+- **Deterministic routing** — `validate_output()` enforces JSON-Schema + controlled-predicate vocabulary + provenance-present + Oracle-span-in-bounds + **no evaluative/value-judgment language** (regex rejects synergy/win-rate/archetype/tier/bomb/strong-weak/etc.). `ingest()` → `llm_candidates.jsonl` / `llm_rejections.jsonl`; `reconcile()` accepts only edges/abilities on which extractor and critic **agree** (and validate) → `llm_accepted.jsonl`, queuing the rest → `llm_queued.jsonl`. Never silently repairs invalid output (spec discipline #8).
+
+**Scaffolding built and tested first** (spec discipline: schemas + tests before bulk extraction): `phase3.py`, `schema/llm_output.schema.json` (generated from the predicate vocabulary — single source of truth), CLI (`build-tasks`/`build-prompt`/`ingest`/`reconcile`), 9 new tests (58 total pass). Added `jsonschema` dependency. `data/llm/tasks/` + `shared_context.json` are gitignored (regenerable); the model **outputs** will be committed.
+
+**Still to run:** the extractor + critic agent fan-out over all 209 faces (vertical-slice pilot on Recruit/Storied/Adventure first, then the rest), then `ingest`/`reconcile`. No graph assembly yet (Phase 4). No outcomes/quality claims.
+
+Refs: [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Phase 3"); memory `phase3-llm-via-subagents`; `src/hobkg/phase3.py`

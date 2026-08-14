@@ -7,7 +7,7 @@ name = "hobkg"
 version = "0.1.0"
 description = "Mechanistic knowledge-graph builder for MTG—The Hobbit (HOB). Phase 1: deterministic normalization."
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2"]
+dependencies = ["pydantic>=2", "jsonschema>=4"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
