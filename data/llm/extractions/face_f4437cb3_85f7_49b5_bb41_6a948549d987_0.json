@@ -8,7 +8,7 @@
       "effects": [
         {"op": "return_from_graveyard", "target": "target creature card in your graveyard", "to": "your hand", "controller": "you"}
       ],
-      "oracle_spans": [[0, 82]],
+      "oracle_spans": [[0, 91]],
       "confidence": "high",
       "unresolved": []
     },
@@ -17,9 +17,9 @@
       "kind": "triggered",
       "trigger": {"event": "a creature card leaves your graveyard"},
       "effects": [
-        {"op": "amass", "subtype": "Goblins", "amount": 1, "note": "Put a +1/+1 counter on an Army you control (creating a 0/0 black Goblin Army token first if none)."}
+        {"op": "amass", "subtype": "Goblins", "amount": 1, "detail": "amass Goblins 1 (put a +1/+1 counter on an Army you control, which becomes a Goblin; create a 0/0 black Goblin Army token first if you control no Army)"}
       ],
-      "oracle_spans": [[83, 143]],
+      "oracle_spans": [[92, 156]],
       "confidence": "high",
       "unresolved": []
     },
@@ -32,7 +32,7 @@
       "effects": [
         {"op": "grant_keyword", "keyword": "menace", "affects": "Goblins and Orcs you control", "duration": "until end of turn"}
       ],
-      "oracle_spans": [[144, 203]],
+      "oracle_spans": [[157, 224]],
       "confidence": "high",
       "unresolved": []
     }
@@ -42,7 +42,7 @@
       "source": "face:f4437cb3-85f7-49b5-bb41-6a948549d987:0",
       "target": "a1",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [0, 82], "text": "When this enchantment enters, return target creature card from your graveyard to your hand."}
+      "provenance": {"oracle_span": [0, 91], "text": "When this enchantment enters, return target creature card from your graveyard to your hand."}
     },
     {
       "source": "a1",
@@ -50,7 +50,7 @@
       "predicate": "MOVES_FROM",
       "scope": "target creature card",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [29, 82], "text": "return target creature card from your graveyard to your hand."}
+      "provenance": {"oracle_span": [30, 91], "text": "return target creature card from your graveyard to your hand."}
     },
     {
       "source": "a1",
@@ -58,20 +58,20 @@
       "predicate": "MOVES_TO",
       "scope": "target creature card",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [29, 82], "text": "return target creature card from your graveyard to your hand."}
+      "provenance": {"oracle_span": [30, 91], "text": "return target creature card from your graveyard to your hand."}
     },
     {
       "source": "face:f4437cb3-85f7-49b5-bb41-6a948549d987:0",
       "target": "a2",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [83, 143], "text": "Whenever a creature card leaves your graveyard, amass Goblins 1."}
+      "provenance": {"oracle_span": [92, 156], "text": "Whenever a creature card leaves your graveyard, amass Goblins 1."}
     },
     {
       "source": "event:creature_card_leaves_graveyard",
       "target": "a2",
       "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [83, 128], "text": "Whenever a creature card leaves your graveyard,"}
+      "provenance": {"oracle_span": [92, 139], "text": "Whenever a creature card leaves your graveyard,"}
     },
     {
       "source": "a1",
@@ -79,29 +79,21 @@
       "predicate": "CAN_LEAD_TO",
       "note": "a1 returns a creature card from the graveyard to hand, which is a creature card leaving the graveyard, the trigger condition of a2.",
       "certainty": "high",
-      "provenance": {"oracle_span": [83, 128], "text": "Whenever a creature card leaves your graveyard, amass Goblins 1."}
+      "provenance": {"oracle_span": [92, 139], "text": "Whenever a creature card leaves your graveyard,"}
     },
     {
       "source": "a2",
-      "target": "token:goblin-army",
-      "predicate": "CREATES_OBJECT",
-      "condition": "if you control no Army when amass resolves",
+      "target": "rule:amass",
+      "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [130, 143], "text": "amass Goblins 1", "note": "Amass creates a 0/0 black Goblin Army token if none is controlled, then adds a +1/+1 counter."}
-    },
-    {
-      "source": "a2",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "scope": "one +1/+1 counter on an Army",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [130, 143], "text": "amass Goblins 1"}
+      "scope": "amass Goblins 1; Army subtype = Goblin; N = 1",
+      "provenance": {"oracle_span": [140, 156], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "amass Goblins 1."}
     },
     {
       "source": "face:f4437cb3-85f7-49b5-bb41-6a948549d987:0",
       "target": "a3",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [144, 203], "text": "{1}{B}: Goblins and Orcs you control gain menace until end of turn."}
+      "provenance": {"oracle_span": [157, 224], "text": "{1}{B}: Goblins and Orcs you control gain menace until end of turn."}
     },
     {
       "source": "a3",
@@ -109,14 +101,8 @@
       "predicate": "PRODUCES",
       "scope": "Goblins and Orcs you control, until end of turn",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [152, 203], "text": "Goblins and Orcs you control gain menace until end of turn."}
+      "provenance": {"oracle_span": [165, 224], "text": "Goblins and Orcs you control gain menace until end of turn."}
     }
   ],
-  "schema_extension_requests": [
-    {
-      "proposed_predicate": "AMASSES",
-      "rationale": "Amass Goblins N is a keyword action combining conditional token creation with counter placement and a subtype-grant on an Army; no single controlled predicate captures the composite keyword action, and there is no shared rule id (rule:amass) or mechanic_template for Amass in shared_context. Modeled here via CREATES_OBJECT + ADDS_COUNTER as a workaround.",
-      "oracle_span": [130, 143]
-    }
-  ]
+  "schema_extension_requests": []
 }

@@ -646,3 +646,186 @@ Tell me what's on your mind and I'll reframe.
 
 ### [2026-08-13 21:34] USER
 we won't use the API. i have claude subscription with plenty of usage remaining for this task. we'll do the full scope. we could either have you do it in this session or set a sub-agent on it?
+
+### [2026-08-13 23:06] ASSISTANT
+Got it â€” that changes the architecture for the better. No API, no key, no per-token cost: **you (Claude, this session) or sub-agents are the "LLM"** for Phase 3's semantic extraction and critic pass. The deterministic Python stays the control plane; the model work is done by Claude Code agents. Let me record that preference so it sticks.
+
+Preference saved. Here's the **revised Phase 3 architecture** (no API, Claude Code agents as the "LLM"):
+
+**Control plane (deterministic Python)** builds a self-contained *task packet* per Oracle-bearing face â€” `{card, face, mechanic_templates, controlled_predicates, node_types, known_tokens, relevant_rules, mechanical_extractions}` (the spec's LLM input unit) â€” validates every returned extraction against `llm_output.schema.json` (+ predicate-vocab, provenance, and no-evaluative-language checks), and routes to candidates / rejections / accepted / queued.
+
+**Model work (Claude Code agents)** does the two spec passes:
+- **Extractor** sub-agents split each face's Oracle text into structured abilities (trigger/cost/effect/conditions), resolve pronouns, propose typed edges, cite Oracle spans â€” JSON only.
+- **Independent critic** sub-agents (fresh context â€” satisfies the spec's "independent critic" requirement) review and return corrected JSON. Accept only where extractor + critic agree and validation passes; queue the rest.
+
+**My recommendation:** drive it from **this session with parallel sub-agents in batches** (not one big inline pass, not a single background agent). Reasons: 209 faces Ã— 2 passes would overflow one context and degrade quality; sub-agents isolate per-batch context and run concurrently; and a separate critic agent *is* the independence the spec demands. I keep the deterministic control plane (validate/reject/queue between passes) so nothing unvalidated lands.
+
+Per spec discipline ("write schemas and tests before bulk LLM extraction"), I'll build and test the scaffolding first â€” no model calls yet â€” then spawn the agent fan-out. Starting the scaffolding now.
+
+Now the ingest + reconcile (accept-on-agreement) logic.
+
+Now wiring the CLI and writing tests.
+
+58 tests pass. Let me generate the task packets and inspect one packet + its prompt to confirm they're self-contained and correct.
+
+Task packets are self-contained and complete (209, each carrying card + face + detected mechanics + Phase-1 extractions + Oracle text). Scaffolding is done and tested. Let me record it, gitignore the regenerable task packets, and commit before running the model fan-out.
+
+`data/llm/` stays untracked (task packets are gitignored; outputs come later). Committing and pushing the scaffolding.
+
+Scaffolding is live (`b0ea9bc..e0ae52e`). Now the model run. Following the spec's "test on Recruit and Storied as vertical slices" discipline, I'll pilot the extractorâ†’criticâ†’reconcile flow on a handful of representative faces before fanning out to all 209. Let me pull the pilot faces' task files.
+
+Pilot set covers Recruit (Patient Instructor), Saga+Recruit-chapter (Mountain-king's Return), Adventure both faces (Gandalf), the second-draw payoff (Master's Councillors), and Storied (KÃ¡li). Spawning the extractor agent on this vertical slice â€” it reads each packet, extracts per the schema, and writes JSON outputs to `data/llm/extractions/`.
+
+Extractor pilot done â€” 6 faces, all self-reported valid. Let me run deterministic `ingest` to independently validate against the schema + provenance + no-evaluative-language checks.
+
+All 6 pass deterministic validation (0 rejections). Let me eyeball two for quality â€” Master's Councillors (second-draw semantics) and Patient Instructor (Recruit deferral).
+
+Quality is strong â€” Master's Councillors correctly captures the **second-draw trigger** (`event:draw_second_card_each_turn` + mill zone moves), which is exactly the counterpart to Recruit's draw event (spec invariant #2), and Patient Instructor properly defers Recruit internals to `rule:recruit`. One note for Phase 4 assembly: bare ability-ids (e.g. `power_scaling_full_graveyards`) will need face-namespacing to be globally unique.
+
+Now the **independent critic pass** (fresh agent context) over the 6 candidates.
+
+Critic kept the assertions verbatim where correct (only clarifications to `detail` fields, which don't affect the agreement keys). Running `reconcile`.
+
+Pilot is a clean end-to-end success: **6 faces â†’ 30 accepted edges, 0 queued, 0 rejections** â€” extractor and critic fully agreed, and the deterministic control plane validated everything. The approach is proven (including the second-draw and Adventure/Storied cases). Now fanning out to the remaining 203 faces. Let me partition them into batch manifests so the agents (and any re-runs) are deterministic and resumable.
+
+12 batches (18 faces each, last is 5). Launching the extractor fan-out. Wave 1 = batches 00â€“05 (6 agents in parallel); each reads its manifest and writes one extraction per face.
+
+Wave 1 done â€” 108 extractions (6 batches Ã— 18). Notable signal: multiple agents flagged **Amass** as a mechanic missing from the Phase 2 template set (proposing an `AMASSES` extension; worked around via `CREATES_OBJECT token:goblin-army` + `ADDS_COUNTER`). That's the schema-extension mechanism working as intended â€” I'll capture it. Let me ingest now to validate the 114 extractions so far before continuing.
+
+33 rejections â€” need to see the failure modes before continuing. Let me inspect the rejection reasons.
+
+Clear, fixable causes â€” and mostly **my schema being too strict**, not bad extractions:
+- **39 schema errors**: agents added legitimate descriptive keys (`controller`, `note`) that the spec itself names ("identify ... controller ... duration") but my ability/edge schema forbade via `additionalProperties: false`. That's my gap.
+- **12 span overruns**: `end` offsets slightly past text length (agents miscounted multi-line/em-dash text). The `text` quote is the real provenance; an offset drift shouldn't discard a correct assertion.
+
+Fixes: (1) allow descriptive keys on ability/edge objects (keep the hard guards â€” required fields, predicate enum, provenance, no-evaluative-language, top-level strictness); (2) make span *end*-overrun a recorded warning, not a hard reject (keep start-validity hard). Also capturing the **Amass** schema-extension signal. Let me apply.
+
+Now updating the two affected tests and re-exporting the schema, then re-ingesting.
+
+Fixed â€” **114 candidates, 0 rejections**, 12 soft span-warnings recorded for later cleanup; 60 tests pass; schema re-exported. Launching extractor wave 2 (batches 06â€“11) to finish all 209 faces.
+
+Wave 2 done â€” all **209 faces extracted**. Schema-extension signals surfaced (Amass â†’ `AMASSES`, Halflingcycling â†’ typecycling), recorded in the outputs. Ingesting the full set.
+
+All 209 validated as candidates (0 rejections; 18 soft span-warnings). Now the **independent critic pass** over the 203 non-pilot faces (pilot 6 already critiqued). Launching critic wave 1 (batches 00â€“05).
+
+Critic wave 1 done (108 faces). The critics did excellent work â€” fixing pervasive span drift (em-dash/bullet miscounts), removing two fabricated `REFERENCES_RULEâ†’rule:adventure` edges, adding omitted outputs, and correcting controller/identity â€” while keeping edge tuples verbatim where correct.
+
+But this exposes a reconcile flaw: I key ability-agreement on `(kind, first-span)`, and the critics legitimately *corrected spans*, which would spuriously mark unchanged abilities as disputed. Ability identity should key on the stable `ability_id`, not the span. Fixing that before reconciling.
+
+Now critic wave 2 (batches 06â€“11) to finish the independent review of all 209 faces.
+
+All 209 faces critiqued. The critics' work was overwhelmingly span-precision fixes (the em-dash miscount), plus a handful of genuine corrections â€” removed unentailed edges, fixed two predicate mis-uses, added omitted outputs/optionality. Because those substantive changes alter the agreement keys, they'll correctly route to the queue rather than being auto-accepted. Running tests, then `reconcile`.
+
+**Phase 3 complete: 209 faces â†’ 983 accepted LLM-derived edges, 22 queued for review.** Let me summarize the result (predicate distribution, queued reasons) and write a coverage report before committing.
+
+Strong Phase 3 result â€” 416 abilities + 983 edges accepted across all 209 faces, rich kind/predicate distributions, and the Amass/typecycling schema-extension requests surfaced. Let me write the coverage report, then record and commit.
+
+Recorded. Committing the full Phase 3 output (extractions, critiques, review results, control-plane fixes, report).
+
+440 files staged (209 extractions + 209 critiques + 12 batch manifests + 5 review results + code/report/notebook). Committing and pushing.
+
+Committed and pushed â€” `bd42bb7` on `origin/main`, tree in sync. (`data/llm/tasks_index.jsonl` is the only untracked item â€” regenerable via `build-tasks`.)
+
+## Phase 3 complete
+
+The spec's LLM semantic extraction ran end-to-end with **Claude Code agents as the model** (no API, no spend), deterministic Python as the control plane:
+
+| | |
+|---|---|
+| Faces processed | **209 / 209** Oracle-bearing |
+| Extractorâ†’ingest | 209 candidates, **0 rejections** |
+| Independent critic â†’ reconcile | **416 abilities + 983 edges accepted** (extractor & critic agree + validate) |
+| Queued for review | **22** genuine disagreements |
+| Soft span-warnings | 18 (recorded, not repaired) |
+
+- **Vertical slice first** (spec discipline): Recruit / Saga+Recruit-chapter / **second-draw** (Master's Councillors, invariant #2) / Adventure (Gandalf) / Storied â€” 30 edges, 0 queued.
+- **Critics earned their keep**: fixed pervasive Oracle-span drift, and correctly routed to the queue two *fabricated* `REFERENCES_RULEâ†’rule:adventure` edges (provenance cited type-line text absent from the Oracle body), a couple predicate mis-uses, and added missing optionality/outputs.
+- **Two control-plane fixes** mid-run (recorded, 60 tests pass): allow spec-named descriptive keys (`controller`/`duration`/`note`) while keeping the hard guards; treat span-*end* overrun as a soft warning; key ability-agreement on stable `ability_id` not span.
+
+## Decisions for you
+
+1. **Amass** (and Halflingcycling) surfaced as `schema_extension_requests` (7 + 1 cards). Amass is currently represented with existing predicates (`CREATES_OBJECT token:goblin-army` + `ADDS_COUNTER`). Options: **(a)** leave as-is, **(b)** add a proper Phase-2-style **Amass template** + an `AMASSES` predicate (a deliberate schema change, matching how Recruit/Storied got templates). I'd lean (b) for fidelity, but it's your call per the spec's "stop and report on a new mechanic" rule.
+2. **The 22 queued + 18 span-warnings** â€” want a cleanup/review pass now, or defer?
+3. **Phase 4 (global graph assembly)** is next in the spec â€” merging these per-face local extractions into the global typed multigraph, canonicalizing shared nodes, and namespacing the bare `ability_id`s per face.
+
+I'll wait for your direction on whether to resolve the Amass schema decision, clear the queue, or move to Phase 4.
+
+### [2026-08-13 23:10] USER
+I would pause before Phase 4 and do a short Phase 3 closure pass. There are three things to resolve.
+
+1. Add Amass as a reusable mechanic template, but do not add `AMASSES` as a primitive predicate.
+
+The existing primitives are sufficient. The template should encode the conditional sequence:
+
+```text
+amass N
+  ΓåÆ if controller has no qualifying Army:
+      create the appropriate 0/0 Army token
+  ΓåÆ choose an Army the controller controls
+  ΓåÆ put N +1/+1 counters on that Army
+```
+
+Each card-specific ability should `INSTANTIATES` the Amass template and supply:
+
+* Army subtype;
+* value of `N`;
+* any card-specific preceding or subsequent effects.
+
+`AMASSES` could exist later as a derived/query relation, but adding it as a primitive would duplicate the mechanism hidden inside it. Recruit needed a template, not a `RECRUITS` edge; the same principle applies here.
+
+Halflingcycling should likewise become an instantiation of a generic typecycling template:
+
+```text
+pay cycling cost
+AND discard this card
+  ΓåÆ search library for a Halfling card
+  ΓåÆ reveal it
+  ΓåÆ put it into hand
+  ΓåÆ shuffle
+```
+
+No new primitive predicate is necessary.
+
+2. Resolve the 22 disagreements before assembly.
+
+These are exactly what the extractorΓÇôcritic architecture was intended to expose. Review each and assign one of:
+
+* `accepted_extractor`
+* `accepted_critic`
+* `corrected`
+* `unresolved`
+
+Do not force all 22 to an accepted answer. Genuine ambiguity should survive as `unresolved` and remain excluded from the accepted primitive graph.
+
+Review the 18 span warnings in the same pass. A span mismatch does not necessarily invalidate the semantic assertion, but provenance is part of the graphΓÇÖs epistemic structure. Correct spans when the intended supporting text is unambiguous; otherwise preserve the warning. Do not mechanically clamp span endpoints.
+
+3. Account for face 210.
+
+ΓÇ£209/209 Oracle-bearingΓÇ¥ is internally coherent, but v1.1 requires a disposition for every normalized face, not merely every Oracle-bearing face. The remaining face should receive an explicit record such as:
+
+```json
+{
+  "face_id": "face:...",
+  "status": "reviewed_empty",
+  "abilities": [],
+  "proposed_edges": [],
+  "unresolved": [],
+  "reason": "No Oracle text requiring semantic extraction"
+}
+```
+
+Also report why it lacks Oracle text. This prevents the pipeline from silently redefining its denominator.
+
+### Recommended order
+
+1. Implement generic Amass and typecycling templates using existing predicates.
+2. Re-expand the eight affected cards.
+3. Review the 22 disagreements and 18 provenance warnings.
+4. Add the disposition for the non-Oracle-bearing face.
+5. Rerun extractor/critic reconciliation and all invariants.
+6. Freeze the accepted Phase 3 outputs.
+7. Proceed to Phase 4.
+
+The current run looks very strong. This is a bounded closure pass, not a redesign. The critical instruction to the agent is:
+
+> Add Amass and Halflingcycling as reusable parameterized templates using existing primitive predicates; do not add `AMASSES`. Resolve or explicitly retain the review queue, inspectΓÇönot automatically repairΓÇöthe span warnings, and emit a Phase 3 disposition for all 210 normalized faces before beginning global assembly.

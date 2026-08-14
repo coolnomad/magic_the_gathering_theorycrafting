@@ -2,10 +2,10 @@
 
 > Rule-expansion graph fragments. Possibility only; no value judgments. (spec)
 
-- **nodes**: 292
-- **edges**: 387
-- **gates**: 2
-- **conditions**: 21
+- **nodes**: 328
+- **edges**: 429
+- **gates**: 3
+- **conditions**: 22
 - **dangling edges**: 0
 
 ## Instantiations
@@ -15,42 +15,44 @@
 - hone: 2
 - adventure: 17
 - saga: 8
+- amass: 14
+- typecycling: 2
 - storied_qualifier_faces: 74
 - storied_qualifier_tokens: 3
 
 ## Node types
 
-- Operation: 107
-- CardFace: 103
+- Operation: 127
+- CardFace: 114
 - Ability: 29
 - State: 27
+- Rule: 7
 - Zone: 6
-- Rule: 5
+- TokenSpec: 5
 - ObjectClass: 5
-- TokenSpec: 4
-- CounterType: 2
-- Gate: 2
+- CounterType: 3
+- Gate: 3
 - Event: 1
 - Effect: 1
 
 ## Edge predicates
 
 - QUALIFIES_FOR: 77
-- HAS_ABILITY: 54
-- MOVES_FROM: 51
+- HAS_ABILITY: 70
+- MOVES_FROM: 52
 - ENABLES: 46
-- REFERENCES_RULE: 38
-- MOVES_TO: 26
+- REFERENCES_RULE: 40
+- MOVES_TO: 28
+- INSTANTIATES: 26
 - PRODUCES: 19
 - MODIFIES: 19
 - CAN_LEAD_TO: 17
-- CAUSES: 11
-- INSTANTIATES: 10
+- CAUSES: 14
 - HAS_COUNTER_TYPE: 9
 - COUNTS: 3
-- ADDS_COUNTER: 2
+- ADDS_COUNTER: 3
+- CREATES_OBJECT: 2
 - PERSISTS_AS: 1
-- CREATES_OBJECT: 1
 - HAS_STATE: 1
 - ATTACHED_TO: 1
 - SCALES_WITH: 1

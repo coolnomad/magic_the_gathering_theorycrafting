@@ -6,19 +6,14 @@
       "kind": "activated",
       "trigger": null,
       "costs": [
-        {"type": "tap", "detail": "{T}"},
-        {"type": "sacrifice", "detail": "Sacrifice this land"}
+        {"op": "tap", "detail": "{T}"},
+        {"op": "sacrifice", "detail": "Sacrifice this land"}
       ],
       "conditions": [],
       "effects": [
-        {
-          "op": "search_library",
-          "filter": "a basic land card",
-          "to_zone": "battlefield",
-          "enters_tapped": true,
-          "detail": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."
-        }
+        {"op": "search_library", "filter": "a basic land card", "to_zone": "battlefield", "enters_tapped": true, "detail": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
       ],
+      "controller": "you",
       "oracle_spans": [[0, 118]],
       "confidence": "high",
       "unresolved": []
@@ -28,18 +23,14 @@
       "kind": "activated",
       "trigger": null,
       "costs": [
-        {"type": "mana", "detail": "{4}"},
-        {"type": "discard", "detail": "Discard this card"}
+        {"op": "pay_mana", "amount": "{4}"},
+        {"op": "discard", "detail": "Discard this card"}
       ],
       "conditions": [],
       "effects": [
-        {
-          "op": "search_library",
-          "filter": "a Halfling card",
-          "to_zone": "hand",
-          "detail": "Search your library for a Halfling card, reveal it, put it into your hand, then shuffle."
-        }
+        {"op": "typecycling", "searched_type": "Halfling", "detail": "Search your library for a Halfling card, reveal it, put it into your hand, then shuffle."}
       ],
+      "controller": "you",
       "oracle_spans": [[119, 253]],
       "confidence": "high",
       "unresolved": []
@@ -48,68 +39,47 @@
   "proposed_edges": [
     {
       "source": "face:17492186-9814-4c41-8111-1f000a96c212:0",
-      "target": "ability:hobbithole-sac-fetch",
+      "target": "hobbithole-sac-fetch",
       "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [0, 118], "text": "{T}, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
     },
     {
-      "source": "ability:hobbithole-sac-fetch",
+      "source": "hobbithole-sac-fetch",
       "target": "face:17492186-9814-4c41-8111-1f000a96c212:0",
       "predicate": "CONSUMES",
       "certainty": "rules_explicit",
       "provenance": {"oracle_span": [5, 24], "text": "Sacrifice this land", "note": "Sacrifice of this land is part of the activation cost."}
     },
     {
-      "source": "ability:hobbithole-sac-fetch",
+      "source": "hobbithole-sac-fetch",
       "target": "zone:library",
       "predicate": "MOVES_FROM",
       "scope": "a basic land card",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [25, 118], "text": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
+      "provenance": {"oracle_span": [26, 118], "text": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
     },
     {
-      "source": "ability:hobbithole-sac-fetch",
+      "source": "hobbithole-sac-fetch",
       "target": "zone:battlefield",
       "predicate": "MOVES_TO",
       "scope": "a basic land card (enters tapped)",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [25, 118], "text": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
+      "provenance": {"oracle_span": [26, 118], "text": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
     },
     {
       "source": "face:17492186-9814-4c41-8111-1f000a96c212:0",
-      "target": "ability:hobbithole-halflingcycling",
+      "target": "hobbithole-halflingcycling",
       "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [119, 253], "text": "Halflingcycling {4} ({4}, Discard this card: Search your library for a Halfling card, reveal it, put it into your hand, then shuffle.)"}
     },
     {
-      "source": "ability:hobbithole-halflingcycling",
-      "target": "face:17492186-9814-4c41-8111-1f000a96c212:0",
-      "predicate": "CONSUMES",
+      "source": "face:17492186-9814-4c41-8111-1f000a96c212:0",
+      "target": "rule:typecycling",
+      "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [143, 160], "text": "Discard this card", "note": "Discard of this card is part of the Halflingcycling activation cost."}
-    },
-    {
-      "source": "ability:hobbithole-halflingcycling",
-      "target": "zone:library",
-      "predicate": "MOVES_FROM",
-      "scope": "a Halfling card",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [162, 251], "text": "Search your library for a Halfling card, reveal it, put it into your hand, then shuffle."}
-    },
-    {
-      "source": "ability:hobbithole-halflingcycling",
-      "target": "zone:hand",
-      "predicate": "MOVES_TO",
-      "scope": "a Halfling card",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [162, 251], "text": "Search your library for a Halfling card, reveal it, put it into your hand, then shuffle."}
+      "scope": "Halflingcycling {4}; searched type = Halfling",
+      "provenance": {"oracle_span": [119, 253], "rule_ref": "CR 702.29 (cycling / typecycling)", "text": "Halflingcycling {4} ({4}, Discard this card: Search your library for a Halfling card, reveal it, put it into your hand, then shuffle.)"}
     }
   ],
-  "schema_extension_requests": [
-    {
-      "proposed_predicate": "HAS_KEYWORD_TYPECYCLING",
-      "rationale": "Halflingcycling is a typecycling variant (a discard-activated ability to search for a card of a named type). It is represented here with existing predicates (CONSUMES for the discard cost, MOVES_FROM/MOVES_TO library->hand). No existing predicate specifically records that this is a keyworded typecycling ability; flagging in case the graph wants to tag the keyword itself.",
-      "oracle_span": [119, 138]
-    }
-  ]
+  "schema_extension_requests": []
 }

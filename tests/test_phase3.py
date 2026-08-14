@@ -90,6 +90,20 @@ def test_build_prompt_is_self_contained():
     assert idx["face_id"] in prompt
 
 
+def test_finalize_covers_all_210_faces():
+    phase3.build_tasks()
+    phase3.reconcile()
+    phase3.finalize_faces()
+    status = [json.loads(l) for l in (REPO / "data/review/llm_face_status.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert len(status) == 210
+    empties = [s for s in status if s["status"] == "reviewed_empty"]
+    assert len(empties) == 1 and empties[0]["card"] == "Ordinary Bear"
+    assert empties[0].get("reason")
+    # the reviewed_empty face must have an accepted record too
+    acc = {json.loads(l)["face_id"] for l in (REPO / "data/review/llm_accepted.jsonl").read_text(encoding="utf-8").splitlines()}
+    assert empties[0]["face_id"] in acc
+
+
 def test_reconcile_accepts_agreement_and_queues_disputes(tmp_path):
     # minimal tmp repo layout
     (tmp_path / "data/review").mkdir(parents=True)

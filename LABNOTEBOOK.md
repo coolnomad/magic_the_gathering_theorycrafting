@@ -473,3 +473,21 @@ Ran the two model passes as Claude Code sub-agents (12 extractor batches + a 6-f
 **Boundaries.** These are per-face *local* extractions (structured abilities + card-specific proposed edges). NOT done: Phase 4 global assembly/canonicalization (e.g. namespacing bare `ability_id`s per face, merging shared nodes), and Phase 5 pair projection. No outcomes/quality/archetype claims. The 22 queued items and 18 span-warnings remain for a review pass.
 
 Refs: [2026-08-13 22:10] DECISION — Phase 3 architecture; `reports/phase3_coverage.md`; `data/review/llm_{candidates,accepted,queued,rejections,span_warnings}.jsonl`; `data/llm/{extractions,critiques}/`
+
+---
+
+## [2026-08-14 00:30] DECISION — Phase 3 closure pass (Amass/typecycling templates, adjudication, face-210 disposition) and FREEZE
+
+A bounded closure pass (user-directed) resolved three items before Phase 4. No redesign.
+
+**1. Amass + typecycling as parameterized templates — no new primitive predicate.** Added generic `rule:amass` and `rule:typecycling` templates to `src/hobkg/rules.py` using only existing predicates. Amass encodes the conditional sequence (if no qualifying Army → `CREATES_OBJECT token:army`; then `ADDS_COUNTER counter:+1/+1`), and each card's ability `INSTANTIATES op:amass` supplying Army subtype + N; typecycling encodes discard→search-library-for-type→hand→shuffle, instantiated with the searched type. Deterministically instantiated on all 14 Amass cards + 2 typecycling cards in the Phase 2 graph (now 328 nodes / 429 edges; `INSTANTIATES` 26). `AMASSES` was deliberately NOT added as a primitive — Recruit needed a template, not a `RECRUITS` edge; same principle (a derived/query `AMASSES` relation could exist later). Re-expanded the **8** cards that had raised `schema_extension_requests` (7 Amass + Hobbit Hole) so their LLM extractions `INSTANTIATES rule:amass`/`rule:typecycling` with empty extension requests. (The other 7 Amass cards retain a correct inline `CREATES_OBJECT`+`ADDS_COUNTER` representation in the LLM layer; the Phase 2 template is authoritative for all 14.)
+
+**2. Adjudicated the 25 queued disagreements (40 disputed items).** An adjudicator agent read extractor vs critic vs Oracle for each and assigned `accepted_extractor`/`accepted_critic`/`corrected`/`unresolved`; `apply_dispositions()` folds the verdicts into the accepted graph deterministically. Outcome: **38 accepted_critic, 2 unresolved**. On manual spot-check I overrode the agent on two it had rubber-stamped: `a1 -DERIVED_FROM-> zone:graveyard` (Thranduil — `DERIVED_FROM` is a graph-provenance predicate, not "gains abilities of Elf cards in graveyard"; no clean primitive) and `a1 -TRIGGERS-> counter:generic` (The Great Goblin — `TRIGGERS` is Event→Ability; this mis-directs it). Both preserved as **unresolved**, excluded from the accepted graph (`data/review/llm_unresolved.jsonl`) — genuine ambiguity kept, not forced.
+
+**3. Span warnings inspected, not clamped.** The independent critic had already recomputed every *accepted* span against the real Oracle text → **0 span overruns in the accepted graph**. The 16 `llm_span_warnings` are retained as an audit trail of extractor-candidate drift (corrected via the critic pass where unambiguous; never mechanically clamped).
+
+**4. Every normalized face dispositioned (210, not 209).** `finalize_faces()` emits `data/review/llm_face_status.jsonl` for all 210 faces and a `reviewed_empty` accepted record for the one non-Oracle-bearing face, **Ordinary Bear** — a vanilla 2/2 Bear with no printed rules text (Scryfall returns empty `oracle_text`), reason recorded. Prevents the denominator silently narrowing to 209.
+
+**FROZEN Phase 3 result.** 210 face records (209 extracted + 1 reviewed_empty); **417 accepted abilities, 1001 accepted edges**; 2 unresolved; 0 remaining `schema_extension_requests`; 0 span overruns in accepted. 65 pytest tests pass (5 new: Amass/typecycling templates, no-primitive-predicate guard, 210-face coverage). Canonical rebuild sequence: `reconcile → apply-dispositions → finalize-faces`. This is the frozen Phase 3 baseline for Phase 4 global assembly.
+
+Refs: [2026-08-13 23:40] OBSERVATION — Phase 3 run; `reports/phase3_coverage.md`; `data/review/llm_{accepted,unresolved,dispositions,face_status,queued,span_warnings}.jsonl`; `src/hobkg/{rules,phase3,pipeline}.py`

@@ -8,22 +8,11 @@
       "costs": [],
       "conditions": [],
       "effects": [
-        {
-          "op": "amass",
-          "creature_type": "Goblins",
-          "amount": 1,
-          "detail": "Put 1 +1/+1 counter on an Army you control; it's also a Goblin; if you don't control an Army, create a 0/0 black Goblin Army creature token first"
-        },
-        {
-          "op": "conditional_amass",
-          "condition": "this spell was cast from a graveyard",
-          "creature_type": "Goblins",
-          "amount": 3,
-          "detail": "amass Goblins 3 instead"
-        }
+        {"op": "amass", "subtype": "Goblins", "amount": 1, "detail": "amass Goblins 1 (put 1 +1/+1 counter on an Army you control, which becomes a Goblin; create a 0/0 black Goblin Army token first if you control no Army)"},
+        {"op": "conditional_amass", "condition": "this spell was cast from a graveyard", "subtype": "Goblins", "amount": 3, "detail": "amass Goblins 3 instead"}
       ],
       "controller": "you",
-      "oracle_spans": [[0, 297]],
+      "oracle_spans": [[0, 82]],
       "confidence": "high",
       "unresolved": []
     },
@@ -38,13 +27,10 @@
         {"condition": "cast from graveyard"}
       ],
       "effects": [
-        {
-          "op": "flashback",
-          "detail": "You may cast this card from your graveyard for its flashback cost. Then exile it."
-        }
+        {"op": "flashback", "detail": "You may cast this card from your graveyard for its flashback cost. Then exile it."}
       ],
       "controller": "you",
-      "oracle_spans": [[298, 396]],
+      "oracle_spans": [[253, 353]],
       "confidence": "high",
       "unresolved": []
     }
@@ -52,28 +38,25 @@
   "proposed_edges": [
     {
       "source": "face:5753f4d6-08d0-4e12-85c5-875ee6441626:0",
-      "target": "token:goblin-army",
-      "predicate": "CREATES_OBJECT",
-      "certainty": "rules_explicit",
-      "condition": "you don't control an Army",
-      "note": "Amass Goblins; creates the Army token only if none is controlled",
-      "provenance": {"oracle_span": [210, 293], "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first."}
-    },
-    {
-      "source": "face:5753f4d6-08d0-4e12-85c5-875ee6441626:0",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "certainty": "rules_explicit",
-      "note": "put X +1/+1 counters on an Army; X=1, or 3 if cast from graveyard",
+      "target": "amass-goblins",
+      "predicate": "HAS_ABILITY",
       "provenance": {"oracle_span": [0, 82], "text": "Amass Goblins 1. If this spell was cast from a graveyard, amass Goblins 3 instead."}
     },
     {
       "source": "face:5753f4d6-08d0-4e12-85c5-875ee6441626:0",
+      "target": "rule:amass",
+      "predicate": "INSTANTIATES",
+      "certainty": "rules_explicit",
+      "scope": "amass Goblins N; Army subtype = Goblin; N = 1, or 3 if cast from a graveyard",
+      "provenance": {"oracle_span": [0, 16], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "Amass Goblins 1."}
+    },
+    {
+      "source": "amass-goblins",
       "target": "counter:+1/+1",
       "predicate": "SCALES_WITH",
       "certainty": "rules_explicit",
       "note": "amount of counters scales on whether the spell was cast from a graveyard (1 vs 3)",
-      "provenance": {"oracle_span": [16, 82], "text": "If this spell was cast from a graveyard, amass Goblins 3 instead."}
+      "provenance": {"oracle_span": [17, 82], "text": "If this spell was cast from a graveyard, amass Goblins 3 instead."}
     },
     {
       "source": "face:5753f4d6-08d0-4e12-85c5-875ee6441626:0",
@@ -81,7 +64,7 @@
       "predicate": "MOVES_FROM",
       "certainty": "rules_explicit",
       "note": "Flashback: cast from graveyard",
-      "provenance": {"oracle_span": [298, 396], "text": "Flashback {3}{R} (You may cast this card from your graveyard for its flashback cost. Then exile it.)"}
+      "provenance": {"oracle_span": [253, 353], "text": "Flashback {3}{R} (You may cast this card from your graveyard for its flashback cost. Then exile it.)"}
     },
     {
       "source": "face:5753f4d6-08d0-4e12-85c5-875ee6441626:0",
@@ -89,22 +72,16 @@
       "predicate": "MOVES_TO",
       "certainty": "rules_explicit",
       "note": "after resolving a flashback cast, the card is exiled",
-      "provenance": {"oracle_span": [298, 396], "text": "Then exile it."}
+      "provenance": {"oracle_span": [253, 353], "text": "Then exile it."}
     },
     {
-      "source": "face:5753f4d6-08d0-4e12-85c5-875ee6441626:0",
-      "target": "face:5753f4d6-08d0-4e12-85c5-875ee6441626:0",
+      "source": "flashback",
+      "target": "amass-goblins",
       "predicate": "ENABLES",
       "certainty": "high",
       "note": "casting via Flashback (from graveyard) satisfies the 'cast from a graveyard' condition that upgrades amass 1 to amass 3",
-      "provenance": {"oracle_span": [16, 82], "text": "If this spell was cast from a graveyard, amass Goblins 3 instead."}
+      "provenance": {"oracle_span": [17, 82], "text": "If this spell was cast from a graveyard, amass Goblins 3 instead."}
     }
   ],
-  "schema_extension_requests": [
-    {
-      "proposed_predicate": "AMASSES",
-      "rationale": "Amass has no mechanic_template in shared_context; the conditional token-creation-plus-counter compound is represented via CREATES_OBJECT + ADDS_COUNTER, but a dedicated predicate would preserve the keyword's atomicity.",
-      "oracle_span": [0, 15]
-    }
-  ]
+  "schema_extension_requests": []
 }

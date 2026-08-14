@@ -143,6 +143,10 @@ def _mechanic_templates() -> list[dict]:
          "summary": "Cast the Adventure (instant/sorcery) face from hand; on resolution it exiles; you may later cast the permanent face from exile. The permanent may also be cast normally from hand."},
         {"mechanic": "Saga", "rule_ref": rules.RULE_REFS["saga"],
          "summary": "Enters with a lore counter, adds one after your draw step; chapter abilities trigger as the lore count reaches their number; sacrificed after the final chapter."},
+        {"mechanic": "Amass", "rule_ref": rules.RULE_REFS["amass"], "rule_node": "rule:amass",
+         "summary": "amass <Subtype> N: if you control no Army, create a 0/0 Army token of that subtype; then put N +1/+1 counters on an Army you control (it becomes that subtype). INSTANTIATES rule:amass (no AMASSES predicate); focus edges on this card's own preceding/following effects and supply subtype + N."},
+        {"mechanic": "typecycling", "rule_ref": rules.RULE_REFS["typecycling"], "rule_node": "rule:typecycling",
+         "summary": "<Type>cycling {cost}: pay the cost and discard this card to search your library for a card of <Type>, reveal it, put it into hand, then shuffle. INSTANTIATES rule:typecycling; supply the searched type."},
     ]
 
 
@@ -438,3 +442,100 @@ def reconcile(repo: Path = REPO) -> dict:
     total_edges = sum(len(a["proposed_edges"]) for a in accepted)
     return {"faces": len(candidates), "accepted_faces": len(accepted),
             "accepted_edges": total_edges, "queued_items": len(queued)}
+
+
+def finalize_faces(repo: Path = REPO) -> dict:
+    """Emit a Phase 3 disposition for EVERY normalized face (all 210), not just the
+    Oracle-bearing ones. Oracle-bearing faces are 'extracted'; a face with no Oracle
+    text gets an explicit 'reviewed_empty' record (empty abilities/edges) with a reason.
+    Prevents the pipeline from silently redefining its denominator. Idempotent."""
+    faces = _load_dicts(repo / "data" / "normalized" / "faces.jsonl")
+    cards = {c["id"]: c for c in _load_dicts(repo / "data" / "normalized" / "cards.jsonl")}
+    review = repo / "data" / "review"
+    accepted = {a["face_id"]: a for a in _load_dicts(review / "llm_accepted.jsonl")}
+
+    status_rows, empty = [], 0
+    for f in faces:
+        card = cards[f["card_id"]]
+        has_text = bool(f.get("oracle_text"))
+        if has_text:
+            status = "extracted"
+            reason = None
+        else:
+            status = "reviewed_empty"
+            reason = ("No Oracle text requiring semantic extraction — vanilla creature "
+                      f"({f.get('type_line_raw')}); Scryfall returns empty oracle_text for "
+                      "cards with no printed rules text.")
+            accepted.setdefault(f["id"], {
+                "face_id": f["id"], "status": "reviewed_empty",
+                "abilities": [], "proposed_edges": [], "schema_extension_requests": [],
+                "unresolved": [], "reason": reason})
+            empty += 1
+        status_rows.append({"face_id": f["id"], "card": card["name"], "role": f["role"],
+                            "has_oracle_text": has_text, "status": status,
+                            **({"reason": reason} if reason else {})})
+
+    _write_dicts(review / "llm_accepted.jsonl", list(accepted.values()))
+    _write_dicts(review / "llm_face_status.jsonl", status_rows)
+    return {"normalized_faces": len(faces), "extracted": len(faces) - empty,
+            "reviewed_empty": empty, "accepted_records": len(accepted)}
+
+
+def apply_dispositions(repo: Path = REPO) -> dict:
+    """Fold human/agent adjudications (data/review/llm_dispositions.jsonl) into the
+    accepted graph. Each disposition record: {face_id, include_edges:[...],
+    include_abilities:[...], unresolved:[{kind, object, reason}], verdicts:[...]}.
+    Verdicts assign accepted_extractor|accepted_critic|corrected|unresolved per item;
+    only non-unresolved items land in `include_*`. Unresolved items are preserved out
+    of the accepted graph (data/review/llm_unresolved.jsonl). Idempotent: rebuilt from
+    the reconcile-agreed base each run."""
+    review = repo / "data" / "review"
+    disp_path = review / "llm_dispositions.jsonl"
+    if not disp_path.exists():
+        return {"dispositions": 0, "note": "no llm_dispositions.jsonl"}
+    disp = {d["face_id"]: d for d in _load_dicts(disp_path)}
+    accepted = {a["face_id"]: a for a in _load_dicts(review / "llm_accepted.jsonl")}
+
+    added_edges = added_abils = 0
+    unresolved_rows = []
+    verdict_counts: dict[str, int] = {}
+    for face_id, d in disp.items():
+        acc = accepted.setdefault(face_id, {"face_id": face_id, "abilities": [],
+                                            "proposed_edges": [], "schema_extension_requests": []})
+        for e in d.get("include_edges", []):
+            acc["proposed_edges"].append(e); added_edges += 1
+        for a in d.get("include_abilities", []):
+            acc["abilities"].append(a); added_abils += 1
+        for u in d.get("unresolved", []):
+            unresolved_rows.append({"face_id": face_id, **u})
+        for v in d.get("verdicts", []):
+            verdict_counts[v.get("verdict", "?")] = verdict_counts.get(v.get("verdict", "?"), 0) + 1
+
+    # dedup within each face so re-applying is idempotent
+    for a in accepted.values():
+        seen_e, ded_e = set(), []
+        for e in a["proposed_edges"]:
+            k = (e["source"], e["predicate"], e["target"])
+            if k not in seen_e:
+                seen_e.add(k); ded_e.append(e)
+        a["proposed_edges"] = ded_e
+        seen_a, ded_a = set(), []
+        for ab in a["abilities"]:
+            k = ab.get("ability_id")
+            if k not in seen_a:
+                seen_a.add(k); ded_a.append(ab)
+        a["abilities"] = ded_a
+
+    # validate the resolved accepted graph
+    errors = []
+    for face_id, a in accepted.items():
+        for e in validate_output(a, oracle_len=_oracle_len(face_id, repo)):
+            errors.append(f"{face_id}: {e}")
+
+    _write_dicts(review / "llm_accepted.jsonl", list(accepted.values()))
+    _write_dicts(review / "llm_unresolved.jsonl", unresolved_rows)
+    total_edges = sum(len(a["proposed_edges"]) for a in accepted.values())
+    return {"dispositions": len(disp), "verdicts": verdict_counts,
+            "edges_added": added_edges, "abilities_added": added_abils,
+            "unresolved": len(unresolved_rows), "accepted_edges_total": total_edges,
+            "validation_errors": errors}

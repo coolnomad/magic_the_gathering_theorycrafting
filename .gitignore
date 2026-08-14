@@ -18,3 +18,4 @@ venv/
 # data/llm/critiques, and data/review/llm_* ARE kept).
 data/llm/tasks/
 data/llm/shared_context.json
+data/llm/tasks_index.jsonl

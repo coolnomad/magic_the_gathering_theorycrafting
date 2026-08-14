@@ -4,9 +4,13 @@
     {
       "ability_id": "a1",
       "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
       "effects": [
         {"op": "return_from_graveyard", "target": "up to one target creature card in your graveyard", "to": "your hand", "controller": "you", "optional": true}
       ],
+      "controller": "you",
       "oracle_spans": [[0, 71]],
       "confidence": "high",
       "unresolved": []
@@ -14,9 +18,13 @@
     {
       "ability_id": "a2",
       "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
       "effects": [
-        {"op": "amass", "subtype": "Goblins", "amount": 3, "controller": "you", "note": "Put three +1/+1 counters on an Army you control, creating a 0/0 black Goblin Army token first if none."}
+        {"op": "amass", "subtype": "Goblins", "amount": 3, "detail": "amass Goblins 3 (put three +1/+1 counters on an Army you control, which becomes a Goblin; create a 0/0 black Goblin Army token first if you control no Army)"}
       ],
+      "controller": "you",
       "oracle_spans": [[72, 242]],
       "confidence": "high",
       "unresolved": []
@@ -51,30 +59,16 @@
       "source": "face:85e1556d-c4da-4979-a5db-4ce3842c7797:0",
       "target": "a2",
       "predicate": "HAS_ABILITY",
-      "provenance": {"oracle_span": [72, 242], "text": "Amass Goblins 3. (Put three +1/+1 counters on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first.)"}
+      "provenance": {"oracle_span": [72, 242], "text": "Amass Goblins 3."}
     },
     {
-      "source": "a2",
-      "target": "token:goblin-army",
-      "predicate": "CREATES_OBJECT",
-      "condition": "you control no Army when amass resolves",
+      "source": "face:85e1556d-c4da-4979-a5db-4ce3842c7797:0",
+      "target": "rule:amass",
+      "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [72, 88], "text": "Amass Goblins 3.", "note": "Amass creates a 0/0 black Goblin Army token if you control no Army."}
-    },
-    {
-      "source": "a2",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "scope": "three +1/+1 counters on an Army you control",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [72, 88], "text": "Amass Goblins 3."}
+      "scope": "amass Goblins 3; Army subtype = Goblin; N = 3",
+      "provenance": {"oracle_span": [72, 88], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "Amass Goblins 3."}
     }
   ],
-  "schema_extension_requests": [
-    {
-      "proposed_predicate": "AMASSES",
-      "rationale": "Amass Goblins N is a composite keyword action (conditional Army token creation plus N +1/+1 counters plus Goblin subtype) not captured by any single controlled predicate, with no shared rule:amass id in shared_context. Modeled via CREATES_OBJECT + ADDS_COUNTER as a workaround.",
-      "oracle_span": [72, 88]
-    }
-  ]
+  "schema_extension_requests": []
 }

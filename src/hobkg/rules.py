@@ -22,6 +22,8 @@ RULE_REFS = {
     "hone": "CR 122.1j (hone counter)",
     "adventure": "CR 715 (Adventurer cards)",
     "saga": "CR 714 (Saga cards)",
+    "amass": "HOB mechanics article: Amass (keyword action)",
+    "typecycling": "CR 702.29 (cycling / typecycling)",
 }
 
 _ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6}
@@ -104,9 +106,12 @@ def add_shared_nodes(gb: GraphBuilder) -> None:
                                         "types": ["Creature"], "subtypes": ["Human", "Soldier"]})
     for oc, lbl in [("legendary", "Legendary permanent"), ("artifact", "Artifact"), ("saga", "Saga")]:
         gb.node(f"obj:{oc}", "ObjectClass", lbl)
+    gb.node("counter:+1/+1", "CounterType", "+1/+1 counter")
     _storied_gate(gb)
     _recruit_generic(gb)
     _hone_generic(gb)
+    _amass_generic(gb)
+    _typecycling_generic(gb)
 
 
 def _storied_gate(gb: GraphBuilder) -> None:
@@ -178,6 +183,44 @@ def _hone_generic(gb: GraphBuilder) -> None:
     gb.edge(boost, hc, "SCALES_WITH", provenance=p)   # +n scales with THIS E's hone-count
     gb.edge(boost, cr, "MODIFIES", provenance=p)      # applies to THIS E's attached creature
     gb.edge(boost, "rule:hone", "REFERENCES_RULE", provenance=p)
+
+
+def _amass_generic(gb: GraphBuilder) -> None:
+    """Generic Amass template (once), invoked per card via INSTANTIATES. Encodes the
+    conditional sequence: if the controller has no qualifying Army, create the 0/0 Army
+    token; then put N +1/+1 counters on an Army the controller controls. The Army
+    subtype and N are supplied by each instantiation. No `AMASSES` primitive is added
+    (Amass is a template, not a predicate — cf. Recruit)."""
+    p = _rule_prov("amass")
+    gb.node("token:army", "TokenSpec", "0/0 Army token (subtype supplied by the amass instance)")
+    gb.node("op:amass", "Operation", "amass (generic keyword action)", provenance=p)
+    gb.node("op:amass:add-counters", "Operation", "put +1/+1 counters on an Army you control", provenance=p)
+    gb.gate(Gate(gate_id="gate:amass-no-army", gate_type="branch_condition",
+                 label="Amass: controller controls no qualifying Army",
+                 definition={"predicate": {"op": "controls_no", "arg": "Army"}}, provenance=p))
+    gb.condition(StructuredCondition(
+        condition_id="cond:amass-no-army", expression={"op": "controls_no", "arg": "Army"},
+        human_readable="the controller controls no Army", provenance=p))
+    gb.edge("op:amass", "rule:amass", "REFERENCES_RULE", provenance=p)
+    gb.edge("op:amass", "gate:amass-no-army", "CAUSES", provenance=p)
+    gb.edge("gate:amass-no-army", "token:army", "CREATES_OBJECT",
+            condition_ids=["cond:amass-no-army"], provenance=p)
+    gb.edge("op:amass", "op:amass:add-counters", "CAUSES", timing="after", provenance=p)
+    gb.edge("op:amass:add-counters", "counter:+1/+1", "ADDS_COUNTER", provenance=p)
+
+
+def _typecycling_generic(gb: GraphBuilder) -> None:
+    """Generic typecycling template (once): pay the cycling cost AND discard this card ->
+    search library for a card of the named type, reveal, put into hand, shuffle. The
+    searched type is supplied by each instantiation. No new primitive predicate."""
+    p = _rule_prov("typecycling")
+    gb.node("op:typecycling", "Operation", "typecycling (generic keyword action)", provenance=p)
+    gb.node("op:typecycling:search", "Operation", "search library for a card of the named type", provenance=p)
+    gb.edge("op:typecycling", "rule:typecycling", "REFERENCES_RULE", provenance=p)
+    gb.edge("op:typecycling", "zone:graveyard", "MOVES_TO", provenance=p)   # discard this card (cost)
+    gb.edge("op:typecycling", "op:typecycling:search", "CAUSES", provenance=p)
+    gb.edge("op:typecycling:search", "zone:library", "MOVES_FROM", provenance=p)
+    gb.edge("op:typecycling:search", "zone:hand", "MOVES_TO", provenance=p)
 
 
 # ===========================================================================
@@ -261,6 +304,31 @@ def expand_adventure(gb: GraphBuilder, primary: dict, adventure: dict) -> None:
     gb.edge(cast_exile, "zone:exile", "MOVES_FROM", provenance=p)
     gb.edge(cast_hand, "zone:hand", "MOVES_FROM", optional=True, provenance=p)
     gb.edge(cast_adv, "rule:adventure", "REFERENCES_RULE", provenance=p)
+
+
+def expand_amass(gb: GraphBuilder, face: dict, army_subtype: str, n: str) -> None:
+    """This face amasses: its amass op INSTANTIATES the generic Amass template, supplying
+    the Army subtype and N (card-specific preceding/following effects stay on the card)."""
+    fid, cid = face["id"], face["card_id"]
+    p = [_prov(cid, fid, "amass", "amass", _find_span(face.get("oracle_text"), r"\bamass\b"))]
+    gb.node(fid, "CardFace", face.get("name", fid))
+    op = gb.node(f"op:{fid}:amass", "Operation", f"amass {army_subtype} {n}",
+                 {"army_subtype": army_subtype, "n": n}, p)
+    gb.edge(fid, op, "HAS_ABILITY", provenance=p)
+    gb.edge(op, "op:amass", "INSTANTIATES", provenance=p)
+
+
+def expand_typecycling(gb: GraphBuilder, face: dict, search_type: str) -> None:
+    """This face has a typecycling variant (e.g. Halflingcycling): its typecycling op
+    INSTANTIATES the generic template, supplying the searched card type."""
+    fid, cid = face["id"], face["card_id"]
+    p = [_prov(cid, fid, "typecycling", f"{search_type}cycling",
+               _find_span(face.get("oracle_text"), r"\b\w+cycling\b"))]
+    gb.node(fid, "CardFace", face.get("name", fid))
+    op = gb.node(f"op:{fid}:typecycling", "Operation", f"{search_type}cycling",
+                 {"search_type": search_type}, p)
+    gb.edge(fid, op, "HAS_ABILITY", provenance=p)
+    gb.edge(op, "op:typecycling", "INSTANTIATES", provenance=p)
 
 
 def expand_saga(gb: GraphBuilder, face: dict) -> None:

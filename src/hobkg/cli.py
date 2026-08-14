@@ -42,6 +42,12 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "reconcile":
         from . import phase3
         print(json.dumps(phase3.reconcile(), indent=2))
+    elif cmd == "apply-dispositions":
+        from . import phase3
+        print(json.dumps(phase3.apply_dispositions(), indent=2))
+    elif cmd == "finalize-faces":
+        from . import phase3
+        print(json.dumps(phase3.finalize_faces(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

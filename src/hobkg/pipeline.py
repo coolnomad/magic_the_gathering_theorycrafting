@@ -6,6 +6,7 @@ outputs from the raw snapshot.
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -176,7 +177,12 @@ def build_templates(repo: Path = REPO) -> dict:
     rules.add_shared_nodes(gb)
 
     counts = {"recruit": 0, "storied_payoff": 0, "hone": 0, "adventure": 0, "saga": 0,
+              "amass": 0, "typecycling": 0,
               "storied_qualifier_faces": 0, "storied_qualifier_tokens": 0}
+    # all detected mechanics per face (any source), for keyword templates like Amass
+    mech_all_by_face: dict[str, set[str]] = {}
+    for m in mechanics:
+        mech_all_by_face.setdefault(m["face_id"], set()).add(m["mechanic"])
 
     for fid in sorted(by_mech.get("Recruit", set())):
         rules.expand_recruit(gb, faces_by_id[fid]); counts["recruit"] += 1
@@ -197,6 +203,21 @@ def build_templates(repo: Path = REPO) -> dict:
         parsed = f.get("type_line") or {}
         if f["role"] == "primary" and "Saga" in parsed.get("subtypes", []):
             rules.expand_saga(gb, f); counts["saga"] += 1
+
+    # Amass: faces with the Amass keyword; parse subtype + N from "amass <Subtype> <N>"
+    _AMASS = re.compile(r"\bamass\s+(\w+)\s+([0-9]+|X)\b", re.I)
+    for f in faces:
+        if "Amass" in mech_all_by_face.get(f["id"], set()):
+            m = _AMASS.search(f.get("oracle_text") or "")
+            subtype, n = (m.group(1), m.group(2)) if m else ("Goblin", "N")
+            rules.expand_amass(gb, f, subtype, n); counts["amass"] += 1
+
+    # Typecycling variants (Halflingcycling, Mountaincycling, ...); exclude bare "Cycling"
+    _TYPECYC = re.compile(r"\b([A-Z][a-z]+)cycling\b")
+    for f in faces:
+        m = _TYPECYC.search(f.get("oracle_text") or "")
+        if m:
+            rules.expand_typecycling(gb, f, m.group(1)); counts["typecycling"] += 1
 
     # Storied contributors: qualifying permanent faces + qualifying tokens
     for f in faces:

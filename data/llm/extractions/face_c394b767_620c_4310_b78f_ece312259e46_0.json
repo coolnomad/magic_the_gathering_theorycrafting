@@ -4,21 +4,14 @@
     {
       "ability_id": "attack-amass-goblins-2",
       "kind": "triggered",
-      "trigger": {
-        "event": "you_attack"
-      },
+      "trigger": {"event": "you_attack"},
       "costs": [],
       "conditions": [],
       "effects": [
-        {
-          "op": "amass",
-          "creature_type": "Goblins",
-          "amount": 2,
-          "detail": "Put two +1/+1 counters on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first."
-        }
+        {"op": "amass", "subtype": "Goblins", "amount": 2, "detail": "amass Goblins 2 (put two +1/+1 counters on an Army you control, which becomes a Goblin; create a 0/0 black Goblin Army token first if you control no Army)"}
       ],
       "controller": "you",
-      "oracle_spans": [[0, 227]],
+      "oracle_spans": [[0, 189]],
       "confidence": "high",
       "unresolved": []
     }
@@ -26,35 +19,25 @@
   "proposed_edges": [
     {
       "source": "face:c394b767-620c-4310-b78f-ece312259e46:0",
-      "target": "token:goblin-army",
-      "predicate": "CREATES_OBJECT",
+      "target": "attack-amass-goblins-2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 189], "text": "Whenever you attack, amass Goblins 2."}
+    },
+    {
+      "source": "event:you_attack",
+      "target": "attack-amass-goblins-2",
+      "predicate": "TRIGGERS",
       "certainty": "rules_explicit",
-      "condition": "you don't control an Army",
-      "note": "Amass Goblins 2; creates the Army token only if none is controlled",
-      "provenance": {"oracle_span": [141, 224], "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first."}
+      "provenance": {"oracle_span": [0, 20], "text": "Whenever you attack,"}
     },
     {
       "source": "face:c394b767-620c-4310-b78f-ece312259e46:0",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
+      "target": "rule:amass",
+      "predicate": "INSTANTIATES",
       "certainty": "rules_explicit",
-      "condition": "you attack",
-      "note": "two +1/+1 counters onto an Army you control",
-      "provenance": {"oracle_span": [45, 90], "text": "Put two +1/+1 counters on an Army you control."}
-    },
-    {
-      "source": "face:c394b767-620c-4310-b78f-ece312259e46:0",
-      "target": "counter:+1/+1",
-      "predicate": "HAS_COUNTER_TYPE",
-      "certainty": "rules_explicit",
-      "provenance": {"oracle_span": [45, 68], "text": "two +1/+1 counters"}
+      "scope": "amass Goblins 2; Army subtype = Goblin; N = 2",
+      "provenance": {"oracle_span": [21, 37], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "amass Goblins 2."}
     }
   ],
-  "schema_extension_requests": [
-    {
-      "proposed_predicate": "AMASSES",
-      "rationale": "Amass has no mechanic_template in shared_context and no single controlled predicate captures the conditional token-creation-plus-counter compound; represented here via CREATES_OBJECT + ADDS_COUNTER, but a dedicated predicate would preserve the keyword's atomicity.",
-      "oracle_span": [21, 38]
-    }
-  ]
+  "schema_extension_requests": []
 }
