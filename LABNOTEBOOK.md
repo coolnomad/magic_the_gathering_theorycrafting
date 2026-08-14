@@ -511,3 +511,23 @@ An external review (`docs/hob-kg-phase3-review.md`) found the v1 freeze not yet 
 **FROZEN v2.** 210 face records; **418 accepted abilities, 1013 accepted edges**; **0 predicate-signature violations**; all **84 TRIGGERS are Event→Ability**; Amass fully normalized (0 inline duplicates); 1 unresolved; 0 `schema_extension_requests`; 0 dangling in the Phase 2 graph (335 nodes / 439 edges). Canonical rebuild unchanged: `reconcile → apply-dispositions → finalize-faces`. Now safe for Phase 4 assembly.
 
 Refs: [`docs/hob-kg-phase3-review.md`](./docs/hob-kg-phase3-review.md); [2026-08-14 00:30] DECISION — Phase 3 closure (v1); `reports/phase3_coverage.md`; `src/hobkg/{phase3,rules}.py`
+
+---
+
+## [2026-08-14 18:45] CORRECTION — Multiface keyword attribution fix (Clap! Snap! Amass); refrozen v3
+
+A third review (`docs/hob-kog-phase3-review-pt2.md`) found one remaining attribution defect on the adventure card *Great Ugly-Looking Goblin // Clap! Snap!*: the card-level Scryfall `Amass` keyword was attributed to the permanent face `:0`, but "Amass Goblins 2" is on the Adventure spell face `:1`. Consequences: a bogus `op:…:0:amass` (n=`N`, span null), `:1` still carrying the inline `CREATES_OBJECT token:goblin-army` + `ADDS_COUNTER` + `REFERENCES_RULE keyword:amass` (the mixed inline/template case), only 13 correct LLM `INSTANTIATES`, and Great Ugly-Looking Goblin falsely showing an Amass capability. Root cause: card-level Scryfall keywords were blindly attached to the index-0 face; **card-level keywords cannot determine face ownership on multiface cards**. Bounded deterministic fix (no Phase 3 reopen), per user direction.
+
+**1. Multiface attribution fix (`pipeline.py`).** Each card-level Scryfall keyword now attaches to the face(s) whose Oracle text supports it (word-boundary match). For **multiface** cards there is **no primary-face fallback** when unsupported — an ambiguous-attribution record is emitted to `data/rules/keyword_attribution_ambiguous.jsonl` instead (per user: emit unresolved, don't guess). Single-face cards attach to their one face. Correctly re-routes Amass → Clap! Snap! `:1` (and, as a bonus, Scry/Mill on four other adventure cards to their spell faces — catalogue-only). HOB has 0 ambiguous cases.
+
+**2. Phase 2 rebuild.** Amass now instantiates `op:face:…:1:amass` with `army_subtype="Goblins", n="2"` and a real Oracle span `[0,5]`; the bogus `op:…:0:amass` is gone. Still 14 instantiations, all with non-null spans.
+
+**3. Deterministic LLM fix on face `:1`** (extraction AND critique, no sub-agent — the review fully specifies the target): removed the 3 inline amass edges, added `face:…:1 -INSTANTIATES-> rule:amass` (span `[0,15]`, matching the LLM-layer convention used by 11/13 other Amass cards), kept the Adventure-spell ability. Face `:0` needed no change.
+
+**4. Regression tests (72 pass, +4):** Amass on the supporting face not the primary; no multiface keyword on an unsupported face (the general invariant); Phase 2 gives 14 `op:{face}:amass INSTANTIATES op:amass` edges all with spans, `op:…:1:amass` params `{Goblins, 2}`, `op:…:0:amass` absent; **0 inline amass expansions in the LLM layer**.
+
+**5. Phase 4 amass canonicalization invariant recorded** (`docs/phase4-requirements.md`): all Amass assertions must canonicalize to `op:{face}:amass INSTANTIATES op:amass` with **no `face/ability -INSTANTIATES-> rule:amass` face-to-rule edges remaining** after assembly. Also captured the deferred actor→Operation canonicalization, ability-id namespacing, all-210-faces, and shared-node merge requirements.
+
+**FROZEN v3.** 210 face records; **418 accepted abilities, 1011 accepted edges**; 0 predicate-signature violations; all 84 TRIGGERS Event→Ability; **Amass 14 `INSTANTIATES`, 0 inline** (Clap! Snap! `:1` correct, Great Ugly `:0` clean); 1 unresolved; 0 `schema_extension_requests`; 0 dangling (Phase 2: 335 nodes / 439 edges). Also set a scoped `permissions.allow` + `acceptEdits` in `.claude/settings.json` so the deterministic pipeline/git/pytest steps run without per-command approval.
+
+Refs: [`docs/hob-kog-phase3-review-pt2.md`](./docs/hob-kog-phase3-review-pt2.md); [`docs/phase4-requirements.md`](./docs/phase4-requirements.md); [2026-08-14 02:30] CORRECTION — Phase 3 v2; `src/hobkg/pipeline.py`; `reports/phase3_coverage.md`

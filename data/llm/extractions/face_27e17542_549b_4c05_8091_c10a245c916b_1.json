@@ -9,14 +9,19 @@
       "conditions": [],
       "effects": [
         {
-          "op": "amass",
-          "subtype": "Goblins",
-          "amount": 2,
-          "detail": "Put two +1/+1 counters on an Army you control (it becomes a Goblin); if you control no Army, first create a 0/0 black Goblin Army creature token.",
-          "references_mechanic": "Amass"
+          "amass": {
+            "army_subtype": "Goblins",
+            "n": "2"
+          },
+          "detail": "Amass Goblins 2 (INSTANTIATES rule:amass)"
         }
       ],
-      "oracle_spans": [[0, 15]],
+      "oracle_spans": [
+        [
+          0,
+          15
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     },
@@ -33,7 +38,12 @@
           "references_mechanic": "Adventure"
         }
       ],
-      "oracle_spans": [[16, 77]],
+      "oracle_spans": [
+        [
+          16,
+          77
+        ]
+      ],
       "confidence": "high",
       "unresolved": []
     }
@@ -41,46 +51,14 @@
   "proposed_edges": [
     {
       "source": "face:27e17542-549b-4c05-8091-c10a245c916b:1",
-      "target": "keyword:amass",
-      "predicate": "REFERENCES_RULE",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [0, 15],
-        "text": "Amass Goblins 2.",
-        "rule_ref": "Amass (keyword action)"
-      }
-    },
-    {
-      "source": "face:27e17542-549b-4c05-8091-c10a245c916b:1",
-      "target": "counter:+1/+1",
-      "predicate": "ADDS_COUNTER",
-      "scope": "an Army you control",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [0, 15],
-        "text": "Amass Goblins 2.",
-        "note": "Amass Goblins 2 puts two +1/+1 counters on an Army."
-      }
-    },
-    {
-      "source": "face:27e17542-549b-4c05-8091-c10a245c916b:1",
-      "target": "token:goblin-army",
-      "predicate": "CREATES_OBJECT",
-      "condition": "if you control no Army",
-      "certainty": "rules_explicit",
-      "provenance": {
-        "oracle_span": [0, 15],
-        "text": "Amass Goblins 2.",
-        "note": "Creates a 0/0 black Goblin Army token first if you control no Army."
-      }
-    },
-    {
-      "source": "face:27e17542-549b-4c05-8091-c10a245c916b:1",
       "target": "rule:adventure",
       "predicate": "REFERENCES_RULE",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [16, 77],
+        "oracle_span": [
+          16,
+          77
+        ],
         "text": "(Then exile this card. You may cast the creature later from exile.)"
       }
     },
@@ -90,8 +68,23 @@
       "predicate": "MOVES_TO",
       "certainty": "rules_explicit",
       "provenance": {
-        "oracle_span": [16, 77],
+        "oracle_span": [
+          16,
+          77
+        ],
         "text": "(Then exile this card. You may cast the creature later from exile.)"
+      }
+    },
+    {
+      "source": "face:27e17542-549b-4c05-8091-c10a245c916b:1",
+      "target": "rule:amass",
+      "predicate": "INSTANTIATES",
+      "provenance": {
+        "oracle_span": [
+          0,
+          15
+        ],
+        "text": "Amass Goblins 2"
       }
     }
   ],

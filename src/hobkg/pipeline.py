@@ -76,6 +76,7 @@ def run(repo: Path = REPO) -> dict:
     faces: list[Face] = []
     token_lists: list[list[TokenSpec]] = []
     mechanics: list[MechanicDetection] = []
+    keyword_attr_ambiguous: list[dict] = []
     extractions: list[MechanicalExtraction] = []
     unresolved: list[UnresolvedExtraction] = []
     conditions: list[ConditionRecord] = []
@@ -86,16 +87,28 @@ def run(repo: Path = REPO) -> dict:
         faces.extend(cfaces)
         token_lists.append(extract_tokens(raw, card.id))
 
-        # Scryfall keywords are card-level; attach to the primary (index-0) face.
-        primary = cfaces[0]
+        # Scryfall keywords are card-level HINTS; attach each to the face(s) whose
+        # Oracle text supports it (word-boundary match). For MULTIFACE cards, do NOT
+        # fall back to the primary face when unsupported — a card-level keyword cannot
+        # determine face ownership on a multiface card; record an ambiguous attribution
+        # instead. Single-face cards attach to their one face (the card IS the face).
         for kw in card.keywords_scryfall:
-            mechanics.append(
-                MechanicDetection(
-                    face_id=primary.id, card_id=card.id, mechanic=kw,
-                    source="scryfall_keyword",
-                    provenance=Provenance(card_id=card.id, face_id=primary.id, source="scryfall.keywords", text=kw),
-                )
-            )
+            supporting = [f for f in cfaces if f.oracle_text
+                          and re.search(r"\b" + re.escape(kw) + r"\b", f.oracle_text, re.I)]
+            if supporting:
+                targets = supporting
+            elif len(cfaces) == 1:
+                targets = [cfaces[0]]
+            else:
+                keyword_attr_ambiguous.append({
+                    "card_id": card.id, "card": card.name, "keyword": kw,
+                    "candidate_faces": [f.id for f in cfaces],
+                    "reason": "card-level keyword not supported by any face's Oracle text/type line"})
+                continue
+            for f in targets:
+                mechanics.append(MechanicDetection(
+                    face_id=f.id, card_id=card.id, mechanic=kw, source="scryfall_keyword",
+                    provenance=Provenance(card_id=card.id, face_id=f.id, source="scryfall.keywords", text=kw)))
         for f in cfaces:
             mechanics.extend(detect_mechanics(f.id, card.id, f.oracle_text))
             ex, un, co = extract_face(f.id, card.id, f.oracle_text)
@@ -125,6 +138,9 @@ def run(repo: Path = REPO) -> dict:
     rd = repo / "data" / "rules"
     _write_jsonl(rd / "mechanics.jsonl", mechanics)
     _write_jsonl(rd / "conditions.jsonl", conditions)
+    with (rd / "keyword_attribution_ambiguous.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for r in keyword_attr_ambiguous:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
     _write_jsonl(repo / "data" / "review" / "unresolved.jsonl", unresolved)
 
     schemas = export_schemas(repo)
