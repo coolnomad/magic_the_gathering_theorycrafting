@@ -1,0 +1,65 @@
+{
+  "face_id": "face:53c6c6bf-0256-424d-b937-1cc7d9e2d574:0",
+  "abilities": [
+    {
+      "ability_id": "little-bear-flash",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "grant_keyword",
+          "keyword": "flash",
+          "subject": "this card"
+        }
+      ],
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "little-bear-etb",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature enters",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "untap",
+          "target": "another target creature you control"
+        },
+        {
+          "type": "add_counter",
+          "counter_type": "+1/+1",
+          "quantity": 1,
+          "target": "that creature",
+          "condition": "that creature is a Bear"
+        }
+      ],
+      "oracle_spans": [[6, 130]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:53c6c6bf-0256-424d-b937-1cc7d9e2d574:0",
+      "target": "keyword:flash",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [0, 5], "text": "Flash"}
+    },
+    {
+      "source": "little-bear-etb",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "condition": "the untapped creature is a Bear",
+      "provenance": {"oracle_span": [76, 129], "text": "If that creature is a Bear, put a +1/+1 counter on it"}
+    },
+    {
+      "source": "little-bear-etb",
+      "target": "counter:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "provenance": {"oracle_span": [110, 123], "text": "+1/+1 counter"}
+    }
+  ],
+  "schema_extension_requests": []
+}

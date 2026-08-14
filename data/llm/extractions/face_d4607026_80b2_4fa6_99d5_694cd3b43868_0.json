@@ -1,0 +1,114 @@
+{
+  "face_id": "face:d4607026-80b2-4fa6-99d5-694cd3b43868:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you attack"
+      },
+      "effects": [
+        {
+          "op": "recruit",
+          "keyword": "Recruit",
+          "note": "Draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 147]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "activated",
+      "costs": [
+        {
+          "type": "crew",
+          "value": "Crew 2",
+          "note": "Tap any number of creatures you control with total power 2 or more"
+        }
+      ],
+      "effects": [
+        {
+          "op": "become_artifact_creature",
+          "target": "this Vehicle",
+          "duration": "until end of turn",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[148, 285]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:d4607026-80b2-4fa6-99d5-694cd3b43868:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 29],
+        "text": "Whenever you attack, recruit."
+      }
+    },
+    {
+      "source": "event:you-attack",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 20],
+        "text": "Whenever you attack,"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [21, 29],
+        "text": "recruit.",
+        "rule_ref": "HOB release notes / mechanics article: Recruit"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "token:human-soldier",
+      "predicate": "CREATES_OBJECT",
+      "optional": false,
+      "condition": "if the discarded card was a nonland card",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [64, 146],
+        "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token."
+      }
+    },
+    {
+      "source": "face:d4607026-80b2-4fa6-99d5-694cd3b43868:0",
+      "target": "a2",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [148, 154],
+        "text": "Crew 2"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "state:artifact-creature",
+      "predicate": "HAS_STATE",
+      "certainty": "rules_explicit",
+      "timing": "until end of turn",
+      "provenance": {
+        "oracle_span": [223, 284],
+        "text": "This Vehicle becomes an artifact creature until end of turn."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,76 @@
+{
+  "face_id": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:1",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "op": "exile",
+          "target": "two target creatures and/or lands you control",
+          "controller": "you",
+          "required": true,
+          "ordering": 1
+        },
+        {
+          "op": "return_to_battlefield",
+          "target": "them (the exiled permanents)",
+          "under_control": "owner",
+          "timing": "immediately (same resolution)",
+          "controller": "you",
+          "required": true,
+          "ordering": 2
+        }
+      ],
+      "oracle_spans": [[0, 116]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:1",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 116],
+        "text": "Exile two target creatures and/or lands you control, then return them to the battlefield under their owner's control."
+      }
+    },
+    {
+      "source": "a1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [0, 51],
+        "text": "Exile two target creatures and/or lands you control"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [53, 116],
+        "text": "then return them to the battlefield under their owner's control.",
+        "note": "blink effect; permanents return as new objects, resetting states such as tapped and counters"
+      }
+    },
+    {
+      "source": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 116],
+        "text": "Instant - Adventure face",
+        "rule_ref": "CR 715 (Adventurer cards)",
+        "note": "type_line is Instant - Adventure; after resolving, card is exiled and creature face may be cast later"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

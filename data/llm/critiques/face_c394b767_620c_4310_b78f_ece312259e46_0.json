@@ -1,0 +1,60 @@
+{
+  "face_id": "face:c394b767-620c-4310-b78f-ece312259e46:0",
+  "abilities": [
+    {
+      "ability_id": "attack-amass-goblins-2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you_attack"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "amass",
+          "creature_type": "Goblins",
+          "amount": 2,
+          "detail": "Put two +1/+1 counters on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 189]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:c394b767-620c-4310-b78f-ece312259e46:0",
+      "target": "token:goblin-army",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "condition": "you don't control an Army",
+      "note": "Amass Goblins 2; creates the Army token only if none is controlled",
+      "provenance": {"oracle_span": [106, 188], "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first."}
+    },
+    {
+      "source": "face:c394b767-620c-4310-b78f-ece312259e46:0",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "condition": "you attack",
+      "note": "two +1/+1 counters onto an Army you control",
+      "provenance": {"oracle_span": [39, 84], "text": "Put two +1/+1 counters on an Army you control"}
+    },
+    {
+      "source": "face:c394b767-620c-4310-b78f-ece312259e46:0",
+      "target": "counter:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [43, 61], "text": "two +1/+1 counters"}
+    }
+  ],
+  "schema_extension_requests": [
+    {
+      "proposed_predicate": "AMASSES",
+      "rationale": "Amass has no mechanic_template in shared_context and no single controlled predicate captures the conditional token-creation-plus-counter compound; represented here via CREATES_OBJECT + ADDS_COUNTER, but a dedicated predicate would preserve the keyword's atomicity.",
+      "oracle_span": [21, 36]
+    }
+  ]
+}

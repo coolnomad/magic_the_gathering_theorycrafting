@@ -1,0 +1,51 @@
+{
+  "face_id": "face:dbcf2a79-b455-43ac-9cf0-9e63708800f4:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "effects": [
+        {"op": "counter_spell", "target": "target spell"},
+        {"op": "recruit", "condition": "that spell's mana value was 2 or less", "note": "Draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier."}
+      ],
+      "conditions": [
+        {"applies_to": "the recruit clause", "condition": "the countered spell's mana value was 2 or less"}
+      ],
+      "oracle_spans": [[0, 197]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:dbcf2a79-b455-43ac-9cf0-9e63708800f4:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 197], "text": "Counter target spell. If that spell's mana value was 2 or less, recruit."}
+    },
+    {
+      "source": "a1",
+      "target": "event:spell_countered",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 20], "text": "Counter target spell."}
+    },
+    {
+      "source": "a1",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "condition": "the countered spell's mana value was 2 or less",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [21, 71], "rule_ref": "HOB release notes / mechanics article: Recruit", "text": "If that spell's mana value was 2 or less, recruit."}
+    },
+    {
+      "source": "a1",
+      "target": "token:human-soldier",
+      "predicate": "CREATES_OBJECT",
+      "condition": "recruit occurs and the discarded card was nonland",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [72, 197], "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token."}
+    }
+  ],
+  "schema_extension_requests": []
+}

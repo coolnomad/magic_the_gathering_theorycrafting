@@ -1,0 +1,61 @@
+{
+  "face_id": "face:fa85f9e6-69ff-4669-b70a-440aa7b16c97:1",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "op": "scry",
+          "amount": 2,
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 7]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "spell_effect",
+      "trigger": null,
+      "conditions": [],
+      "effects": [
+        {
+          "op": "exile_self_on_resolution",
+          "note": "Adventure resolution: exile this card; may later cast the creature face from exile",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[8, 75]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:fa85f9e6-69ff-4669-b70a-440aa7b16c97:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [8, 75],
+        "text": "(Then exile this card. You may cast the creature later from exile.)",
+        "rule_ref": "CR 715 (Adventurer cards)"
+      }
+    },
+    {
+      "source": "face:fa85f9e6-69ff-4669-b70a-440aa7b16c97:1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [14, 29],
+        "text": "exile this card"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

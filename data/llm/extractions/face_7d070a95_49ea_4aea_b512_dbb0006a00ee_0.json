@@ -1,0 +1,51 @@
+{
+  "face_id": "face:7d070a95-49ea-4aea-b512-dbb0006a00ee:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "activated",
+      "costs": [
+        {
+          "type": "mana",
+          "value": "{4}{U}"
+        }
+      ],
+      "effects": [
+        {
+          "op": "grant_unblockable",
+          "target": "target creature",
+          "duration": "this turn",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 51]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:7d070a95-49ea-4aea-b512-dbb0006a00ee:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 51],
+        "text": "{4}{U}: Target creature can't be blocked this turn."
+      }
+    },
+    {
+      "source": "a1",
+      "target": "state:unblockable",
+      "predicate": "CAUSES",
+      "certainty": "high",
+      "timing": "this turn",
+      "provenance": {
+        "oracle_span": [8, 51],
+        "text": "Target creature can't be blocked this turn."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

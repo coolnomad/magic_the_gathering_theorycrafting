@@ -1,0 +1,172 @@
+{
+  "face_id": "face:e4402d21-bb7f-4777-bc8d-b24bf2faccb0:0",
+  "abilities": [
+    {
+      "ability_id": "a0",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "saga_mechanic",
+          "keyword": "Saga",
+          "note": "Enters with a lore counter, adds one after your draw step; sacrificed after chapter IV",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 87]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore count reaches I (first chapter)",
+        "chapter": "I"
+      },
+      "effects": [
+        {
+          "op": "grant_hexproof",
+          "target": "target creature you control",
+          "duration": "for as long as this Saga remains on the battlefield",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[88, 187]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore count reaches II (second chapter)",
+        "chapter": "II"
+      },
+      "effects": [
+        {
+          "op": "prevent_damage",
+          "target": "up to one target creature",
+          "scope": "all damage that would be dealt by that creature",
+          "duration": "for as long as this Saga remains on the battlefield",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[188, 313]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore count reaches III and IV (both chapters share this ability)",
+        "chapter": "III, IV"
+      },
+      "effects": [
+        {
+          "op": "draw",
+          "amount": 1,
+          "controller": "you",
+          "required": true,
+          "note": "triggers on chapter III and again on chapter IV"
+        }
+      ],
+      "oracle_spans": [[314, 336]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:e4402d21-bb7f-4777-bc8d-b24bf2faccb0:0",
+      "target": "rule:saga",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 87],
+        "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.)",
+        "rule_ref": "CR 714 (Saga cards)"
+      }
+    },
+    {
+      "source": "face:e4402d21-bb7f-4777-bc8d-b24bf2faccb0:0",
+      "target": "counter:lore",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [46, 64],
+        "text": "add a lore counter"
+      }
+    },
+    {
+      "source": "counter:lore",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "scope": "chapter I (lore count = 1)",
+      "provenance": {
+        "oracle_span": [88, 90],
+        "text": "I —"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "state:hexproof",
+      "predicate": "CAUSES",
+      "certainty": "high",
+      "scope": "target creature you control; lasts while Saga on battlefield",
+      "provenance": {
+        "oracle_span": [92, 187],
+        "text": "Target creature you control gains hexproof for as long as this Saga remains on the battlefield."
+      }
+    },
+    {
+      "source": "counter:lore",
+      "target": "a2",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "scope": "chapter II (lore count = 2)",
+      "provenance": {
+        "oracle_span": [188, 191],
+        "text": "II —"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "obj:target-creature",
+      "predicate": "PREVENTS",
+      "polarity": "negative",
+      "certainty": "high",
+      "scope": "prevents all damage that would be dealt by up to one target creature; lasts while Saga on battlefield",
+      "provenance": {
+        "oracle_span": [194, 313],
+        "text": "Prevent all damage that would be dealt by up to one target creature for as long as this Saga remains on the battlefield."
+      }
+    },
+    {
+      "source": "counter:lore",
+      "target": "a3",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "scope": "chapters III and IV (lore count = 3 and = 4)",
+      "provenance": {
+        "oracle_span": [314, 323],
+        "text": "III, IV —"
+      }
+    },
+    {
+      "source": "a3",
+      "target": "resource:card-in-hand",
+      "predicate": "PRODUCES",
+      "certainty": "high",
+      "scope": "one card on chapter III, another on chapter IV",
+      "provenance": {
+        "oracle_span": [324, 336],
+        "text": "Draw a card."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

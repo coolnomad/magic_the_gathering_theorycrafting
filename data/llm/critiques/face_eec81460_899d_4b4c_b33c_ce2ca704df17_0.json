@@ -1,0 +1,87 @@
+{
+  "face_id": "face:eec81460-899d-4b4c-b33c-ce2ca704df17:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "this Equipment enters the battlefield"},
+      "effects": [
+        {"op": "sacrifice", "who": "target opponent", "what": "a creature of their choice", "controller": "target opponent chooses"}
+      ],
+      "oracle_spans": [[0, 82]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {"op": "modify_pt", "power": 2, "toughness": 1, "affects": "equipped creature"}
+      ],
+      "oracle_spans": [[83, 112]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "activated",
+      "costs": [
+        {"op": "pay_mana", "amount": "{2}"},
+        {"op": "restriction", "note": "equip only as a sorcery"}
+      ],
+      "effects": [
+        {"op": "attach", "target": "target creature you control"}
+      ],
+      "oracle_spans": [[113, 193]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:eec81460-899d-4b4c-b33c-ce2ca704df17:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 82], "text": "When this Equipment enters, target opponent sacrifices a creature of their choice."}
+    },
+    {
+      "source": "a1",
+      "target": "event:creature_sacrificed",
+      "predicate": "CAUSES",
+      "scope": "a creature the target opponent chooses",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [28, 82], "text": "target opponent sacrifices a creature of their choice."}
+    },
+    {
+      "source": "face:eec81460-899d-4b4c-b33c-ce2ca704df17:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [83, 112], "text": "Equipped creature gets +2/+1."}
+    },
+    {
+      "source": "a2",
+      "target": "equipped_creature",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "scope": "+2/+1 while attached",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [83, 112], "text": "Equipped creature gets +2/+1."}
+    },
+    {
+      "source": "face:eec81460-899d-4b4c-b33c-ce2ca704df17:0",
+      "target": "a3",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [113, 193], "text": "Equip {2} ({2}: Attach to target creature you control. Equip only as a sorcery.)"}
+    },
+    {
+      "source": "a3",
+      "target": "face:eec81460-899d-4b4c-b33c-ce2ca704df17:0",
+      "predicate": "ATTACHED_TO",
+      "scope": "target creature you control",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [113, 193], "text": "Equip {2} ({2}: Attach to target creature you control. Equip only as a sorcery.)"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,100 @@
+{
+  "face_id": "face:d51136fa-3c13-48a5-83fd-51fe00010a4b:0",
+  "abilities": [
+    {
+      "ability_id": "etb_exile_each_opponent",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "this enchantment"
+      },
+      "effects": [
+        {
+          "effect": "exile",
+          "scope": "for each opponent",
+          "target": "up to one target nonland permanent that player controls",
+          "quantity": "up to one per opponent",
+          "duration": "until this enchantment leaves the battlefield",
+          "note": "Exiled permanents return when this enchantment leaves the battlefield."
+        }
+      ],
+      "oracle_spans": [[0, 157]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "etb_recruit",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "this enchantment"
+      },
+      "effects": [
+        {
+          "effect": "recruit",
+          "references_rule": "rule:recruit",
+          "note": "Draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier."
+        }
+      ],
+      "oracle_spans": [[158, 314]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:d51136fa-3c13-48a5-83fd-51fe00010a4b:0",
+      "target": "ability:etb_exile_each_opponent",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 157], "text": "When this enchantment enters, for each opponent, exile up to one target nonland permanent..."}
+    },
+    {
+      "source": "face:d51136fa-3c13-48a5-83fd-51fe00010a4b:0",
+      "target": "ability:etb_recruit",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [158, 314], "text": "When this enchantment enters, recruit."}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:etb_exile_each_opponent",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 28], "text": "When this enchantment enters"}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:etb_recruit",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [158, 186], "text": "When this enchantment enters"}
+    },
+    {
+      "source": "ability:etb_exile_each_opponent",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "optional": true,
+      "scope": "for each opponent",
+      "timing": "until this enchantment leaves the battlefield",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [49, 156], "text": "exile up to one target nonland permanent that player controls until this enchantment leaves the battlefield"}
+    },
+    {
+      "source": "ability:etb_recruit",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [188, 196], "text": "recruit.", "rule_ref": "HOB release notes / mechanics article: Recruit"}
+    },
+    {
+      "source": "ability:etb_recruit",
+      "target": "token:human-soldier",
+      "predicate": "CREATES_OBJECT",
+      "condition": "discarded card was nonland",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [231, 313], "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token"}
+    }
+  ],
+  "schema_extension_requests": []
+}

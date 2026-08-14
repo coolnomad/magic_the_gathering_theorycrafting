@@ -1,0 +1,76 @@
+{
+  "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1",
+  "abilities": [
+    {
+      "ability_id": "grant_protection",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "effect": "grant_keyword",
+          "keywords": ["hexproof", "indestructible"],
+          "target": "target artifact or creature you control",
+          "duration": "until end of turn"
+        }
+      ],
+      "oracle_spans": [[0, 88]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "adventure_exile",
+      "kind": "replacement",
+      "effects": [
+        {
+          "effect": "exile_this_card",
+          "note": "On resolution the Adventure card is exiled instead of going to the graveyard; the creature face may later be cast from exile.",
+          "references_rule": "rule:adventure"
+        }
+      ],
+      "oracle_spans": [[89, 158]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1",
+      "target": "ability:grant_protection",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 88], "text": "Target artifact or creature you control gains hexproof and indestructible until end of turn."}
+    },
+    {
+      "source": "ability:grant_protection",
+      "target": "kw:hexproof",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [46, 54], "text": "hexproof"}
+    },
+    {
+      "source": "ability:grant_protection",
+      "target": "kw:indestructible",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [59, 72], "text": "indestructible"}
+    },
+    {
+      "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [89, 158], "text": "(Then exile this card. You may cast the creature later from exile.)", "rule_ref": "CR 715 (Adventurer cards)"}
+    },
+    {
+      "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [96, 111], "text": "exile this card"}
+    }
+  ],
+  "schema_extension_requests": []
+}

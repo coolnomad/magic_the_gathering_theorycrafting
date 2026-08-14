@@ -1,0 +1,77 @@
+{
+  "face_id": "face:dc788b66-d03d-4066-be35-481be96ed2f7:0",
+  "abilities": [
+    {
+      "ability_id": "wanderers-etb-dig",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature enters",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "look",
+          "quantity": 4,
+          "zone": "top of library"
+        },
+        {
+          "type": "select_to_hand",
+          "selection": "a permanent card",
+          "optional": true,
+          "destination": "hand"
+        },
+        {
+          "type": "move",
+          "subject": "the rest",
+          "destination": "bottom of library",
+          "order": "random"
+        }
+      ],
+      "oracle_spans": [[0, 207]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "wanderers-landfall",
+      "kind": "triggered",
+      "trigger": {
+        "event": "a land you control enters",
+        "keyword": "Landfall",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "pt_boost",
+          "amount": "+2/+2",
+          "subject": "this creature",
+          "duration": "until end of turn"
+        }
+      ],
+      "oracle_spans": [[208, 298]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:dc788b66-d03d-4066-be35-481be96ed2f7:0",
+      "target": "keyword:landfall",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [208, 216], "text": "Landfall"}
+    },
+    {
+      "source": "wanderers-etb-dig",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "optional": true,
+      "provenance": {"oracle_span": [71, 144], "text": "You may reveal a permanent card from among them and put it into your hand"}
+    },
+    {
+      "source": "wanderers-etb-dig",
+      "target": "zone:library",
+      "predicate": "MOVES_TO",
+      "provenance": {"oracle_span": [146, 206], "text": "Put the rest on the bottom of your library in a random order"}
+    }
+  ],
+  "schema_extension_requests": []
+}

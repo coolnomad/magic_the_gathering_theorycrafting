@@ -1,0 +1,74 @@
+{
+  "face_id": "face:38503d34-f4f9-4eeb-9b1e-4fec1df921b3:1",
+  "abilities": [
+    {
+      "ability_id": "38503d34-1-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "create_token",
+          "quantity": "X",
+          "token": "2/2 red Dwarf creature token"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 39]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "38503d34-1-adv",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "adventure",
+          "note": "Then exile this card. You may cast the enchantment later from exile."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[40, 105]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:38503d34-f4f9-4eeb-9b1e-4fec1df921b3:1",
+      "target": "38503d34-1-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 39], "text": "Create X 2/2 red Dwarf creature tokens."}
+    },
+    {
+      "source": "38503d34-1-a1",
+      "target": "token:dwarf",
+      "predicate": "CREATES_OBJECT",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 39], "text": "Create X 2/2 red Dwarf creature tokens."}
+    },
+    {
+      "source": "38503d34-1-a1",
+      "target": "X",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 39], "text": "Create X 2/2 red Dwarf creature tokens.", "note": "number of tokens equals X"}
+    },
+    {
+      "source": "face:38503d34-f4f9-4eeb-9b1e-4fec1df921b3:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [40, 105], "text": "(Then exile this card. You may cast the enchantment later from exile.)", "rule_ref": "CR 715 (Adventurer cards)"}
+    },
+    {
+      "source": "38503d34-1-adv",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [40, 105], "text": "Then exile this card. You may cast the enchantment later from exile."}
+    }
+  ],
+  "schema_extension_requests": []
+}

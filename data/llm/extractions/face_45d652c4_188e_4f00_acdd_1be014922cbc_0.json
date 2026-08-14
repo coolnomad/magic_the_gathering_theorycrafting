@@ -1,0 +1,63 @@
+{
+  "face_id": "face:45d652c4-188e-4f00-acdd-1be014922cbc:0",
+  "abilities": [
+    {
+      "ability_id": "keywords",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "grant_keyword", "keyword": "reach", "target": "this creature"},
+        {"op": "grant_keyword", "keyword": "deathtouch", "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 17]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "landfall-pump",
+      "kind": "triggered",
+      "trigger": {
+        "event": "land_enters",
+        "filter": "a land you control"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "modify_pt", "power": 1, "toughness": 1, "target": "this creature", "duration": "until end of turn"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[18, 106]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:45d652c4-188e-4f00-acdd-1be014922cbc:0",
+      "target": "keyword:reach",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 5], "text": "Reach"}
+    },
+    {
+      "source": "face:45d652c4-188e-4f00-acdd-1be014922cbc:0",
+      "target": "keyword:deathtouch",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [7, 17], "text": "deathtouch"}
+    },
+    {
+      "source": "face:45d652c4-188e-4f00-acdd-1be014922cbc:0",
+      "target": "face:45d652c4-188e-4f00-acdd-1be014922cbc:0",
+      "predicate": "MODIFIES",
+      "certainty": "rules_explicit",
+      "condition": "a land you control enters",
+      "note": "+1/+1 until end of turn on itself (landfall)",
+      "provenance": {"oracle_span": [18, 106], "text": "Landfall — Whenever a land you control enters, this creature gets +1/+1 until end of turn."}
+    }
+  ],
+  "schema_extension_requests": []
+}

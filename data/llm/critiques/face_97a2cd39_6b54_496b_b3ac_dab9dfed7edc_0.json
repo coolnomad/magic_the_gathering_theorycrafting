@@ -1,0 +1,91 @@
+{
+  "face_id": "face:97a2cd39-6b54-496b-b3ac-dab9dfed7edc:0",
+  "abilities": [
+    {
+      "ability_id": "elvenpassage-fetch-behold",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "tap", "detail": "{T}"},
+        {"type": "life", "detail": "Pay 1 life"},
+        {"type": "sacrifice", "detail": "Sacrifice this land"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "search_library",
+          "filter": "a basic land card",
+          "to_zone": "battlefield",
+          "enters_tapped": true,
+          "detail": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."
+        },
+        {
+          "op": "behold",
+          "subtype": "Elf",
+          "optional": true,
+          "references_mechanic": "Behold",
+          "detail": "You may behold an Elf (choose an Elf you control or reveal an Elf card from your hand)."
+        },
+        {
+          "op": "untap",
+          "target": "that land",
+          "condition": "if you beheld an Elf",
+          "detail": "If you behold an Elf, untap the searched-out land that entered the battlefield tapped."
+        }
+      ],
+      "oracle_spans": [[0, 265]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:97a2cd39-6b54-496b-b3ac-dab9dfed7edc:0",
+      "target": "ability:elvenpassage-fetch-behold",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 181], "text": "{T}, Pay 1 life, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. You may behold an Elf. If you do, untap that land."}
+    },
+    {
+      "source": "ability:elvenpassage-fetch-behold",
+      "target": "face:97a2cd39-6b54-496b-b3ac-dab9dfed7edc:0",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [17, 36], "text": "Sacrifice this land", "note": "Sacrifice of this land is part of the activation cost."}
+    },
+    {
+      "source": "ability:elvenpassage-fetch-behold",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "scope": "a basic land card",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [38, 130], "text": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
+    },
+    {
+      "source": "ability:elvenpassage-fetch-behold",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "scope": "a basic land card (enters tapped)",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [38, 130], "text": "Search your library for a basic land card, put it onto the battlefield tapped, then shuffle."}
+    },
+    {
+      "source": "ability:elvenpassage-fetch-behold",
+      "target": "keyword:behold",
+      "predicate": "REFERENCES_RULE",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [131, 265], "text": "You may behold an Elf. If you do, untap that land. (To behold an Elf, choose an Elf you control or reveal an Elf card from your hand.)", "rule_ref": "Behold (keyword action)"}
+    },
+    {
+      "source": "ability:elvenpassage-fetch-behold",
+      "target": "that land",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "optional": true,
+      "condition": "if you behold an Elf",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [154, 181], "text": "If you do, untap that land.", "note": "Untaps the land put onto the battlefield tapped, only if you beheld an Elf."}
+    }
+  ],
+  "schema_extension_requests": []
+}

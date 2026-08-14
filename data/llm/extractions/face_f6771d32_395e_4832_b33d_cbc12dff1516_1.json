@@ -1,0 +1,27 @@
+{
+  "face_id": "face:f6771d32-395e-4832-b33d-cbc12dff1516:1",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "mill", "amount": 4, "controller": "you", "required": true, "ordering": 1},
+        {"op": "move_to_hand", "target": "up to two land cards from among the milled cards", "destination": "your hand", "optional_count": "up to two", "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 146]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:f6771d32-395e-4832-b33d-cbc12dff1516:1", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 146], "text": "Mill four cards, then put up to two land cards from among them into your hand."}},
+    {"source": "a1", "target": "zone:graveyard", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 15], "text": "Mill four cards", "note": "mill puts cards from library into graveyard"}},
+    {"source": "a1", "target": "zone:hand", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [22, 77], "text": "put up to two land cards from among them into your hand"}},
+    {"source": "face:f6771d32-395e-4832-b33d-cbc12dff1516:1", "target": "rule:adventure", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [79, 145], "text": "(Then exile this card. You may cast the creature later from exile.)"}},
+    {"source": "face:f6771d32-395e-4832-b33d-cbc12dff1516:1", "target": "zone:exile", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [79, 145], "text": "Then exile this card. You may cast the creature later from exile.", "note": "Adventure spell exiles on resolution"}}
+  ],
+  "schema_extension_requests": []
+}

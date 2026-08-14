@@ -1,0 +1,160 @@
+{
+  "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0",
+  "abilities": [
+    {
+      "ability_id": "saga_lore_reminder",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "effect": "saga_lore_counter_management",
+          "detail": "As this Saga enters and after the controller's draw step, add a lore counter; sacrifice this permanent after chapter III. This is the standard Saga rules templating (reminder text), not a card-specific ability.",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[0, 88]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "chapter_I_recruit",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore_count_reaches",
+        "chapter": "I",
+        "detail": "First chapter ability; triggers when the number of lore counters reaches I (per Saga rules)."
+      },
+      "effects": [
+        {
+          "effect": "recruit",
+          "detail": "Perform the Recruit keyword action: draw a card, then discard a card; if the discarded card was a nonland card, create a 1/1 white Human Soldier creature token.",
+          "controller": "you",
+          "references_mechanic": "Recruit"
+        }
+      ],
+      "oracle_spans": [[89, 219]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "chapter_II_reanimate",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore_count_reaches",
+        "chapter": "II",
+        "detail": "Second chapter ability; triggers when the number of lore counters reaches II."
+      },
+      "conditions": [
+        {
+          "condition": "target_is_creature_card_in_your_graveyard_with_mana_value_3_or_less",
+          "detail": "The target must be a creature card in your graveyard whose mana value is 3 or less."
+        }
+      ],
+      "effects": [
+        {
+          "effect": "return_to_battlefield",
+          "object": "target creature card with mana value 3 or less",
+          "from_zone": "graveyard",
+          "to_zone": "battlefield",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[220, 318]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "chapter_III_plus_counter",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore_count_reaches",
+        "chapter": "III",
+        "detail": "Third and final chapter ability; triggers when the number of lore counters reaches III. Saga is sacrificed after this chapter resolves."
+      },
+      "effects": [
+        {
+          "effect": "put_counter",
+          "counter_type": "+1/+1",
+          "quantity": 1,
+          "target": "up to one target creature",
+          "optional_target": true,
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[319, 374]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [89, 219],
+        "text": "I — Recruit. (Draw a card, then discard a card. If you discarded a nonland card, create a 1/1 white Human Soldier creature token.)",
+        "rule_ref": "HOB release notes / mechanics article: Recruit"
+      }
+    },
+    {
+      "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0",
+      "target": "token:human-soldier",
+      "predicate": "CREATES_OBJECT",
+      "optional": false,
+      "condition": "the discarded card during Recruit was a nonland card",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [89, 219],
+        "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token.",
+        "note": "Token creation is conditional on the Recruit discard being nonland."
+      }
+    },
+    {
+      "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [220, 318],
+        "text": "Return target creature card with mana value 3 or less from your graveyard to the battlefield."
+      }
+    },
+    {
+      "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [220, 318],
+        "text": "Return target creature card with mana value 3 or less from your graveyard to the battlefield.",
+        "note": "The returned creature card enters the battlefield under your control (it is returned from your graveyard)."
+      }
+    },
+    {
+      "source": "chapter_II_reanimate",
+      "target": "state:mana_value_3_or_less",
+      "predicate": "REQUIRES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [220, 318],
+        "text": "target creature card with mana value 3 or less",
+        "note": "Target restriction: creature card whose mana value is 3 or less."
+      }
+    },
+    {
+      "source": "chapter_III_plus_counter",
+      "target": "counter:plus1plus1",
+      "predicate": "ADDS_COUNTER",
+      "optional": true,
+      "condition": "up to one target creature (may choose zero targets)",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [319, 374],
+        "text": "Put a +1/+1 counter on up to one target creature."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

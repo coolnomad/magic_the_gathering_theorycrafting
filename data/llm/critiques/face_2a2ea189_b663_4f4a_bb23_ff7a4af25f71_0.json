@@ -1,0 +1,60 @@
+{
+  "face_id": "face:2a2ea189-b663-4f4a-bb23-ff7a4af25f71:0",
+  "abilities": [
+    {
+      "ability_id": "2a2ea189-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "exile",
+          "target": "all attacking creatures target player controls",
+          "zone_to": "exile"
+        },
+        {
+          "op": "search_library",
+          "controller": "that player",
+          "optional": true,
+          "for": "that many basic land cards",
+          "note": "that player may search their library for a number of basic land cards equal to the number of creatures exiled this way, put those cards onto the battlefield tapped, then shuffle",
+          "scales_with": "number of attacking creatures exiled"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 181]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:2a2ea189-b663-4f4a-bb23-ff7a4af25f71:0",
+      "target": "2a2ea189-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 181], "text": "Exile all attacking creatures target player controls. That player may search their library for that many basic land cards, put those cards onto the battlefield tapped, then shuffle."}
+    },
+    {
+      "source": "2a2ea189-a1",
+      "target": "all attacking creatures target player controls",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 53], "text": "Exile all attacking creatures target player controls.", "note": "exiles the affected creatures"}
+    },
+    {
+      "source": "2a2ea189-a1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 53], "text": "Exile all attacking creatures target player controls."}
+    },
+    {
+      "source": "2a2ea189-a1",
+      "target": "number of attacking creatures exiled",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [70, 121], "text": "search their library for that many basic land cards", "note": "'that many' refers to creatures exiled"}
+    }
+  ],
+  "schema_extension_requests": []
+}

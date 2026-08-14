@@ -1,0 +1,42 @@
+{
+  "face_id": "face:84d648c7-655e-4590-a3e0-366a8a4a4cb3:0",
+  "abilities": [
+    {
+      "ability_id": "radagast-first-creature-discount",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "cost_reduction",
+          "reduces": "the first creature spell you cast each turn",
+          "amount": "{2}",
+          "note": "reduces the generic component of the total cost to cast that spell"
+        },
+        {
+          "type": "grant_cast_permission",
+          "subject": "the first creature spell you cast each turn",
+          "permission": "may be cast as though it had flash"
+        }
+      ],
+      "oracle_spans": [[0, 106]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "radagast-first-creature-discount",
+      "target": "face:84d648c7-655e-4590-a3e0-366a8a4a4cb3:0",
+      "predicate": "MODIFIES",
+      "scope": "the first creature spell you cast each turn",
+      "provenance": {"oracle_span": [44, 66], "text": "costs {2} less to cast", "note": "reduces generic mana cost of first creature spell each turn"}
+    },
+    {
+      "source": "radagast-first-creature-discount",
+      "target": "face:84d648c7-655e-4590-a3e0-366a8a4a4cb3:0",
+      "predicate": "ENABLES",
+      "scope": "the first creature spell you cast each turn",
+      "provenance": {"oracle_span": [71, 105], "text": "can be cast as though it had flash", "note": "grants flash timing to first creature spell each turn"}
+    }
+  ],
+  "schema_extension_requests": []
+}

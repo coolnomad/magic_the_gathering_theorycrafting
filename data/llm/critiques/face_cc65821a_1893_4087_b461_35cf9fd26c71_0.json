@@ -1,0 +1,135 @@
+{
+  "face_id": "face:cc65821a-1893-4087-b461-35cf9fd26c71:0",
+  "abilities": [
+    {
+      "ability_id": "orcrist-static-buff",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "modify_pt",
+          "target": "equipped creature",
+          "power": 2,
+          "toughness": 2,
+          "detail": "Equipped creature gets +2/+2."
+        },
+        {
+          "op": "grant_keyword",
+          "keyword": "trample",
+          "target": "equipped creature"
+        }
+      ],
+      "oracle_spans": [[0, 45]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "orcrist-combat-treasure",
+      "kind": "triggered",
+      "trigger": {
+        "event": "equipped creature deals combat damage to a player",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "choose",
+          "detail": "Choose a creature type."
+        },
+        {
+          "op": "create_token",
+          "token": "Treasure",
+          "token_ref": "token:treasure",
+          "count": "one for each creature you control of the chosen type",
+          "scales_with": "number of creatures you control of the chosen type",
+          "detail": "Create a Treasure token for each creature you control of the chosen type."
+        }
+      ],
+      "oracle_spans": [[46, 197]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "orcrist-equip",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{3}"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Equip only as a sorcery."}
+      ],
+      "effects": [
+        {
+          "op": "attach",
+          "target": "target creature you control",
+          "references_mechanic": "Equip",
+          "detail": "Attach this Equipment to target creature you control."
+        }
+      ],
+      "oracle_spans": [[198, 207]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:cc65821a-1893-4087-b461-35cf9fd26c71:0",
+      "target": "ability:orcrist-static-buff",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 45], "text": "Equipped creature gets +2/+2 and has trample."}
+    },
+    {
+      "source": "ability:orcrist-static-buff",
+      "target": "equipped creature",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 45], "text": "Equipped creature gets +2/+2 and has trample."}
+    },
+    {
+      "source": "face:cc65821a-1893-4087-b461-35cf9fd26c71:0",
+      "target": "ability:orcrist-combat-treasure",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [46, 197], "text": "Whenever equipped creature deals combat damage to a player, choose a creature type. Create a Treasure token for each creature you control of that type."}
+    },
+    {
+      "source": "event:equipped-creature-deals-combat-damage-to-player",
+      "target": "ability:orcrist-combat-treasure",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [46, 105], "text": "Whenever equipped creature deals combat damage to a player,"}
+    },
+    {
+      "source": "ability:orcrist-combat-treasure",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [130, 197], "text": "Create a Treasure token for each creature you control of that type."}
+    },
+    {
+      "source": "ability:orcrist-combat-treasure",
+      "target": "token:treasure",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [130, 197], "text": "Create a Treasure token for each creature you control of that type.", "note": "Number of Treasure tokens equals creatures you control of the chosen creature type."}
+    },
+    {
+      "source": "face:cc65821a-1893-4087-b461-35cf9fd26c71:0",
+      "target": "keyword:equip",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [198, 207], "text": "Equip {3}"}
+    },
+    {
+      "source": "face:cc65821a-1893-4087-b461-35cf9fd26c71:0",
+      "target": "ability:orcrist-equip",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [198, 207], "text": "Equip {3}"}
+    }
+  ],
+  "schema_extension_requests": []
+}

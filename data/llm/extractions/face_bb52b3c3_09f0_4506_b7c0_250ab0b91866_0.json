@@ -1,0 +1,75 @@
+{
+  "face_id": "face:bb52b3c3-09f0-4506-b7c0-250ab0b91866:0",
+  "abilities": [
+    {
+      "ability_id": "sac_tutor_lands",
+      "kind": "activated",
+      "costs": [
+        {"cost": "mana", "value": "{2}"},
+        {"cost": "tap", "value": "{T}"},
+        {"cost": "sacrifice", "value": "this creature"}
+      ],
+      "effects": [
+        {
+          "effect": "search_library",
+          "for": "up to two basic land cards",
+          "then": [
+            "reveal them",
+            "put one onto the battlefield tapped",
+            "put the other into your hand",
+            "shuffle"
+          ]
+        }
+      ],
+      "oracle_spans": [[0, 181]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:bb52b3c3-09f0-4506-b7c0-250ab0b91866:0",
+      "target": "ability:sac_tutor_lands",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 181], "text": "{2}, {T}, Sacrifice this creature: Search your library..."}
+    },
+    {
+      "source": "ability:sac_tutor_lands",
+      "target": "cost:mana:{2}",
+      "predicate": "HAS_COST",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 3], "text": "{2}"}
+    },
+    {
+      "source": "ability:sac_tutor_lands",
+      "target": "cost:tap",
+      "predicate": "HAS_COST",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [5, 8], "text": "{T}"}
+    },
+    {
+      "source": "ability:sac_tutor_lands",
+      "target": "face:bb52b3c3-09f0-4506-b7c0-250ab0b91866:0",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [10, 33], "text": "Sacrifice this creature"}
+    },
+    {
+      "source": "ability:sac_tutor_lands",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "timing": "enters_tapped",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [100, 135], "text": "put one onto the battlefield tapped"}
+    },
+    {
+      "source": "ability:sac_tutor_lands",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [140, 166], "text": "the other into your hand"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,44 @@
+{
+  "face_id": "face:81c2913f-42b7-4cfa-adc0-b3416fbe2ec6:0",
+  "abilities": [
+    {
+      "ability_id": "81c2913f-a1",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "modify_power", "target": "this creature", "amount_expr": "+2/+0 for each Mountain you control", "required": true, "text": "This creature gets +2/+0 for each Mountain you control." }
+      ],
+      "oracle_spans": [[0, 54]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "81c2913f-a2",
+      "kind": "triggered",
+      "trigger": { "event": "you attack with creatures with total power 12 or greater for the first time each turn", "text": "Whenever you attack with creatures with total power 12 or greater for the first time each turn" },
+      "costs": [],
+      "conditions": [
+        { "text": "total power of attacking creatures is 12 or greater; first time each turn" }
+      ],
+      "effects": [
+        { "op": "untap", "target": "all attacking creatures", "required": true, "text": "untap all attacking creatures" },
+        { "op": "add_combat_phase", "detail": "after this phase, an additional combat phase", "required": true, "text": "After this phase, there is an additional combat phase" }
+      ],
+      "oracle_spans": [[55, 236]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:81c2913f-42b7-4cfa-adc0-b3416fbe2ec6:0", "target": "81c2913f-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 54], "text": "This creature gets +2/+0 for each Mountain you control." } },
+    { "source": "face:81c2913f-42b7-4cfa-adc0-b3416fbe2ec6:0", "target": "81c2913f-a2", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [55, 236], "text": "Whenever you attack with creatures with total power 12 or greater..." } },
+    { "source": "81c2913f-a1", "target": "face:81c2913f-42b7-4cfa-adc0-b3416fbe2ec6:0", "predicate": "MODIFIES", "provenance": { "oracle_span": [0, 54], "text": "This creature gets +2/+0 for each Mountain you control", "note": "self power buff" } },
+    { "source": "81c2913f-a1", "target": "objectclass:mountain", "predicate": "SCALES_WITH", "condition": "+2/+0 per Mountain you control", "provenance": { "oracle_span": [21, 53], "text": "+2/+0 for each Mountain you control" } },
+    { "source": "81c2913f-a2", "target": "event:attack", "predicate": "TRIGGERS", "condition": "total power of attackers >= 12, first time each turn", "provenance": { "oracle_span": [56, 150], "text": "Whenever you attack with creatures with total power 12 or greater for the first time each turn" } },
+    { "source": "81c2913f-a2", "target": "op:untap", "predicate": "CAUSES", "provenance": { "oracle_span": [152, 181], "text": "untap all attacking creatures" } },
+    { "source": "81c2913f-a2", "target": "op:additional-combat-phase", "predicate": "CAUSES", "provenance": { "oracle_span": [183, 236], "text": "After this phase, there is an additional combat phase" } }
+  ],
+  "schema_extension_requests": []
+}

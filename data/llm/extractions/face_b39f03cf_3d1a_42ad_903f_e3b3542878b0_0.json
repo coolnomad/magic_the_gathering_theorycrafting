@@ -1,0 +1,41 @@
+{
+  "face_id": "face:b39f03cf-3d1a-42ad-903f-e3b3542878b0:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "this creature dies"},
+      "effects": [
+        {"op": "modify_pt", "power": -1, "toughness": -1, "target": "target creature an opponent controls", "duration": "until end of turn"}
+      ],
+      "oracle_spans": [[0, 89]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:b39f03cf-3d1a-42ad-903f-e3b3542878b0:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 89], "text": "When this creature dies, target creature an opponent controls gets -1/-1 until end of turn."}
+    },
+    {
+      "source": "event:this_creature_dies",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 27], "text": "When this creature dies,"}
+    },
+    {
+      "source": "a1",
+      "target": "opponent_creature",
+      "predicate": "MODIFIES",
+      "polarity": "negative",
+      "scope": "-1/-1 until end of turn on target creature an opponent controls",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [28, 89], "text": "target creature an opponent controls gets -1/-1 until end of turn."}
+    }
+  ],
+  "schema_extension_requests": []
+}

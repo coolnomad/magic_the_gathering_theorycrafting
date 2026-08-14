@@ -1,0 +1,35 @@
+{
+  "face_id": "face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0",
+  "abilities": [
+    {
+      "ability_id": "gollum-ss-menace",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "Menace",
+          "detail": "This creature can't be blocked except by two or more creatures."
+        }
+      ],
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0",
+      "target": "keyword:menace",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 6],
+        "text": "Menace"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,84 @@
+{
+  "face_id": "face:80bcb154-b4be-4bbd-bbc1-b116a59045b7:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "keyword",
+          "keyword": "Vigilance",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 9]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you draw your second card each turn",
+        "frequency": "once per turn (on the second draw)"
+      },
+      "effects": [
+        {
+          "op": "put_counter",
+          "counter_type": "+1/+1",
+          "amount": 1,
+          "target": "this creature",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[10, 93]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:80bcb154-b4be-4bbd-bbc1-b116a59045b7:0",
+      "target": "a1",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 9],
+        "text": "Vigilance"
+      }
+    },
+    {
+      "source": "face:80bcb154-b4be-4bbd-bbc1-b116a59045b7:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 93],
+        "text": "Whenever you draw your second card each turn, put a +1/+1 counter on this creature."
+      }
+    },
+    {
+      "source": "event:draw-second-card-each-turn",
+      "target": "a2",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 54],
+        "text": "Whenever you draw your second card each turn,"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "counter:plus1plus1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "scope": "on this creature",
+      "provenance": {
+        "oracle_span": [56, 92],
+        "text": "put a +1/+1 counter on this creature."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,30 @@
+{
+  "face_id": "face:f1b36dde-9cde-46c8-8d5a-9ad93feba41f:0",
+  "abilities": [
+    {
+      "ability_id": "pathmaker-cda-pt",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "set_pt",
+          "subject": "this creature",
+          "value": "equal to the number of lands you control",
+          "note": "characteristic-defining ability"
+        }
+      ],
+      "oracle_spans": [[0, 91]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "pathmaker-cda-pt",
+      "target": "face:f1b36dde-9cde-46c8-8d5a-9ad93feba41f:0",
+      "predicate": "SCALES_WITH",
+      "condition": "number of lands you control",
+      "provenance": {"oracle_span": [0, 91], "text": "Mirkwood Pathmaker's power and toughness are each equal to the number of lands you control.", "note": "P/T defined by land count"}
+    }
+  ],
+  "schema_extension_requests": []
+}

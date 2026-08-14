@@ -1,0 +1,22 @@
+{
+  "face_id": "face:03253076-9add-4efb-9227-b0a062c86534:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "this_creature_attacks", "text": "Whenever Nori attacks"},
+      "conditions": [],
+      "costs": [],
+      "effects": [{"op": "grant_keyword", "keyword": "first strike", "target": "target attacking creature", "duration": "until end of turn", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[0, 84]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:03253076-9add-4efb-9227-b0a062c86534:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 84], "text": "Whenever Nori attacks, target attacking creature gains first strike until end of turn."}},
+    {"source": "a1", "target": "keyword:first-strike", "predicate": "MODIFIES", "polarity": "positive", "certainty": "rules_explicit", "provenance": {"oracle_span": [23, 83], "text": "target attacking creature gains first strike until end of turn", "note": "grants first strike to a chosen attacking creature until end of turn"}}
+  ],
+  "schema_extension_requests": []
+}

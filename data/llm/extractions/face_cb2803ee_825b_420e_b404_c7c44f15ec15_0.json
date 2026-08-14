@@ -1,0 +1,52 @@
+{
+  "face_id": "face:cb2803ee-825b-420e-b404-c7c44f15ec15:0",
+  "abilities": [
+    {"ability_id": "a1", "kind": "static", "effects": [{"op": "grant_keyword", "keyword": "flash", "required": true}], "oracle_spans": [[0, 5]], "confidence": "high", "unresolved": []},
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "this_permanent_enters", "text": "When The Black Arrow enters"},
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "deal_damage", "amount": 1, "target": "any target", "required": true, "ordering": 1},
+        {"op": "destroy", "target": "that Dragon", "condition": "if a Dragon was dealt damage this way", "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[6, 117]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "static",
+      "effects": [
+        {"op": "modify_pt", "amount": "+1/+1", "scope": "equipped creature", "required": true},
+        {"op": "grant_keyword", "keyword": "reach", "scope": "equipped creature", "required": true}
+      ],
+      "oracle_spans": [[118, 161]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a4",
+      "kind": "activated",
+      "costs": [{"op": "pay_mana", "amount": "{1}"}],
+      "conditions": [{"note": "sorcery-speed only (equip)"}],
+      "effects": [{"op": "attach", "scope": "target creature you control", "detail": "Equip: attach this Equipment", "required": true}],
+      "oracle_spans": [[162, 242]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:cb2803ee-825b-420e-b404-c7c44f15ec15:0", "target": "keyword:flash", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 5], "text": "Flash"}},
+    {"source": "face:cb2803ee-825b-420e-b404-c7c44f15ec15:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [6, 117], "text": "When The Black Arrow enters, it deals 1 damage to any target. If a Dragon is dealt damage this way, destroy it."}},
+    {"source": "face:cb2803ee-825b-420e-b404-c7c44f15ec15:0", "target": "a3", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [118, 161], "text": "Equipped creature gets +1/+1 and has reach."}},
+    {"source": "face:cb2803ee-825b-420e-b404-c7c44f15ec15:0", "target": "a4", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [162, 242], "text": "Equip {1} ({1}: Attach to target creature you control. Equip only as a sorcery.)"}},
+    {"source": "a2", "target": "any target", "predicate": "CAUSES", "polarity": "negative", "certainty": "rules_explicit", "provenance": {"oracle_span": [34, 67], "text": "it deals 1 damage to any target"}},
+    {"source": "a2", "target": "that Dragon", "predicate": "CAUSES", "polarity": "negative", "condition": "if a Dragon was dealt damage this way", "certainty": "rules_explicit", "provenance": {"oracle_span": [68, 116], "text": "If a Dragon is dealt damage this way, destroy it.", "note": "conditional destroy of a damaged Dragon"}},
+    {"source": "a4", "target": "rule:equip", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [162, 171], "text": "Equip {1}"}}
+  ],
+  "schema_extension_requests": []
+}

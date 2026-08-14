@@ -1,0 +1,83 @@
+{
+  "face_id": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:0",
+  "abilities": [
+    {
+      "ability_id": "glamdring-cost-reduction",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "cost_reduction",
+          "affects": "instant and sorcery spells you cast",
+          "amount": "{X} where X is equipped creature's power",
+          "scales_with": "equipped creature's power",
+          "detail": "Instant and sorcery spells you cast cost {X} less to cast, where X is equipped creature's power."
+        }
+      ],
+      "oracle_spans": [[0, 96]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "glamdring-equip",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{2}"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Equip only as a sorcery."}
+      ],
+      "effects": [
+        {
+          "op": "attach",
+          "target": "target creature you control",
+          "references_mechanic": "Equip",
+          "detail": "Attach this Equipment to target creature you control."
+        }
+      ],
+      "oracle_spans": [[97, 106]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:0",
+      "target": "ability:glamdring-cost-reduction",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 96], "text": "Instant and sorcery spells you cast cost {X} less to cast, where X is equipped creature's power."}
+    },
+    {
+      "source": "ability:glamdring-cost-reduction",
+      "target": "cost:instant-sorcery-spells",
+      "predicate": "MODIFIES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 96], "text": "Instant and sorcery spells you cast cost {X} less to cast, where X is equipped creature's power.", "note": "Reduces generic mana cost of instant and sorcery spells you cast."}
+    },
+    {
+      "source": "ability:glamdring-cost-reduction",
+      "target": "cost:instant-sorcery-spells",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [64, 95], "text": "where X is equipped creature's power", "note": "Amount of reduction equals the equipped creature's power."}
+    },
+    {
+      "source": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:0",
+      "target": "keyword:equip",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [97, 106], "text": "Equip {2}"}
+    },
+    {
+      "source": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:0",
+      "target": "ability:glamdring-equip",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [97, 106], "text": "Equip {2}"}
+    }
+  ],
+  "schema_extension_requests": []
+}

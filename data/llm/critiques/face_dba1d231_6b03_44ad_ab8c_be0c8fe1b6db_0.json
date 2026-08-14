@@ -1,0 +1,84 @@
+{
+  "face_id": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "keyword",
+          "keyword": "Vigilance",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 9]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature becomes the target of a spell or ability an opponent controls",
+        "keyword": "Ward"
+      },
+      "effects": [
+        {
+          "op": "counter_unless_pay",
+          "target": "the targeting spell or ability",
+          "unless": "that player pays {2}",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[10, 146]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:0",
+      "target": "a1",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 9],
+        "text": "Vigilance"
+      }
+    },
+    {
+      "source": "face:dba1d231-6b03-44ad-ab8c-be0c8fe1b6db:0",
+      "target": "a2",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 18],
+        "text": "Ward {2}"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "event:opponent-targets-this",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [20, 104],
+        "text": "Whenever this creature becomes the target of a spell or ability an opponent controls,"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "event:opponent-spell-or-ability",
+      "predicate": "PREVENTS",
+      "polarity": "negative",
+      "condition": "unless that player pays {2}",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [106, 145],
+        "text": "counter it unless that player pays {2}."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

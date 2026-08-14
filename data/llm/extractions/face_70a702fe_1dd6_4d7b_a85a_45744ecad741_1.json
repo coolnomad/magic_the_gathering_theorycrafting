@@ -1,0 +1,66 @@
+{
+  "face_id": "face:70a702fe-1dd6-4d7b-a85a-45744ecad741:1",
+  "abilities": [
+    {
+      "ability_id": "70a702fe-1-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "tap",
+          "target": "one or two target creatures"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 34]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "70a702fe-1-adv",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "adventure",
+          "note": "Then exile this card. You may cast the creature later from exile."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[35, 97]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:70a702fe-1dd6-4d7b-a85a-45744ecad741:1",
+      "target": "70a702fe-1-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 34], "text": "Tap one or two target creatures."}
+    },
+    {
+      "source": "70a702fe-1-a1",
+      "target": "one or two target creatures",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 34], "text": "Tap one or two target creatures.", "note": "taps the target creature(s)"}
+    },
+    {
+      "source": "face:70a702fe-1dd6-4d7b-a85a-45744ecad741:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [35, 97], "text": "(Then exile this card. You may cast the creature later from exile.)", "rule_ref": "CR 715 (Adventurer cards)"}
+    },
+    {
+      "source": "70a702fe-1-adv",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [35, 97], "text": "Then exile this card. You may cast the creature later from exile."}
+    }
+  ],
+  "schema_extension_requests": []
+}

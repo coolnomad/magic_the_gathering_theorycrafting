@@ -1,0 +1,94 @@
+{
+  "face_id": "face:c53b7602-5e36-4900-896c-844bf6eac22e:0",
+  "abilities": [
+    {
+      "ability_id": "keywords",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "grant_keyword", "keyword": "flying", "target": "this creature"},
+        {"op": "grant_keyword", "keyword": "haste", "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 13]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "attack-treasure-damage",
+      "kind": "triggered",
+      "trigger": {"event": "smaug_attacks"},
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "deal_damage",
+          "amount": "number of Treasures you control",
+          "target": "any target"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[14, 113]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "upkeep-treasure",
+      "kind": "triggered",
+      "trigger": {"event": "beginning_of_your_upkeep"},
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "create_token", "token": "token:treasure", "amount": 1}
+      ],
+      "controller": "you",
+      "oracle_spans": [[114, 171]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:c53b7602-5e36-4900-896c-844bf6eac22e:0",
+      "target": "keyword:flying",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 6], "text": "Flying"}
+    },
+    {
+      "source": "face:c53b7602-5e36-4900-896c-844bf6eac22e:0",
+      "target": "keyword:haste",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [8, 13], "text": "haste"}
+    },
+    {
+      "source": "face:c53b7602-5e36-4900-896c-844bf6eac22e:0",
+      "target": "obj:any-target",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "condition": "Smaug attacks",
+      "note": "damage equal to number of Treasures controlled",
+      "provenance": {"oracle_span": [14, 113], "text": "Whenever Smaug attacks, he deals damage equal to the number of Treasures you control to any target."}
+    },
+    {
+      "source": "face:c53b7602-5e36-4900-896c-844bf6eac22e:0",
+      "target": "token:treasure",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "note": "attack damage scales with number of Treasures controlled",
+      "provenance": {"oracle_span": [47, 98], "text": "damage equal to the number of Treasures you control"}
+    },
+    {
+      "source": "face:c53b7602-5e36-4900-896c-844bf6eac22e:0",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "condition": "beginning of your upkeep",
+      "provenance": {"oracle_span": [114, 171], "text": "At the beginning of your upkeep, create a Treasure token."}
+    }
+  ],
+  "schema_extension_requests": []
+}

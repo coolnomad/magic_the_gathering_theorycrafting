@@ -1,0 +1,91 @@
+{
+  "face_id": "face:7907bbf0-f6d9-4e5b-b5de-73cd94979f98:0",
+  "abilities": [
+    {
+      "ability_id": "7907bbf0-mode1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "conditions": [
+        "this mode chosen",
+        "target creature has power 4 or greater"
+      ],
+      "effects": [
+        {
+          "op": "destroy",
+          "target": "target creature with power 4 or greater"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 62]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "7907bbf0-mode2",
+      "kind": "spell_effect",
+      "trigger": null,
+      "conditions": [
+        "this mode chosen"
+      ],
+      "effects": [
+        {
+          "op": "type_change",
+          "target": "target creature",
+          "add_type": "artifact",
+          "duration": "until end of turn"
+        },
+        {
+          "op": "grant_keyword",
+          "target": "target creature",
+          "keyword": "indestructible",
+          "duration": "until end of turn"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[63, 226]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:7907bbf0-f6d9-4e5b-b5de-73cd94979f98:0",
+      "target": "7907bbf0-mode1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 62], "text": "Choose one —\n• Destroy target creature with power 4 or greater."}
+    },
+    {
+      "source": "face:7907bbf0-f6d9-4e5b-b5de-73cd94979f98:0",
+      "target": "7907bbf0-mode2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [63, 226], "text": "• Until end of turn, target creature becomes an artifact in addition to its other types and gains indestructible."}
+    },
+    {
+      "source": "7907bbf0-mode1",
+      "target": "target creature with power 4 or greater",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "condition": "target creature has power 4 or greater",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [14, 62], "text": "Destroy target creature with power 4 or greater."}
+    },
+    {
+      "source": "7907bbf0-mode2",
+      "target": "target creature",
+      "predicate": "MODIFIES",
+      "timing": "until_end_of_turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [65, 160], "text": "Until end of turn, target creature becomes an artifact in addition to its other types", "note": "adds artifact type"}
+    },
+    {
+      "source": "7907bbf0-mode2",
+      "target": "target creature",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "timing": "until_end_of_turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [161, 184], "text": "and gains indestructible", "note": "grants indestructible"}
+    }
+  ],
+  "schema_extension_requests": []
+}

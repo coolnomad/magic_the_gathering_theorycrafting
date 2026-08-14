@@ -1,0 +1,75 @@
+{
+  "face_id": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
+  "abilities": [
+    {
+      "ability_id": "a0",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {"op": "saga_rules", "note": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV."}
+      ],
+      "oracle_spans": [[0, 87]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "lore counter reaches I, II, III, or IV", "chapters": ["I", "II", "III", "IV"]},
+      "effects": [
+        {"op": "exile", "target": "up to one target creature or land you control", "optional": true},
+        {"op": "return_to_battlefield", "target": "the exiled permanent", "controller": "its owner", "timing": "at the beginning of the next end step", "condition": "if you exiled it (if you do)"}
+      ],
+      "oracle_spans": [[88, 262]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
+      "target": "a0",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 87], "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.)"}
+    },
+    {
+      "source": "a0",
+      "target": "rule:saga",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 87], "rule_ref": "CR 714 (Saga cards)", "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.)"}
+    },
+    {
+      "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
+      "target": "counter:lore",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [51, 65], "text": "a lore counter"}
+    },
+    {
+      "source": "face:aa913409-7a7a-4e74-82ff-7ff8195585ad:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [88, 262], "text": "I, II, III, IV — Exile up to one target creature or land you control. If you do, return it to the battlefield under its owner's control at the beginning of the next end step."}
+    },
+    {
+      "source": "a1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "optional": true,
+      "scope": "up to one target creature or land you control",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [105, 157], "text": "Exile up to one target creature or land you control."}
+    },
+    {
+      "source": "a1",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "condition": "if you exiled a permanent this way",
+      "timing": "at the beginning of the next end step",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [158, 262], "text": "If you do, return it to the battlefield under its owner's control at the beginning of the next end step."}
+    }
+  ],
+  "schema_extension_requests": []
+}

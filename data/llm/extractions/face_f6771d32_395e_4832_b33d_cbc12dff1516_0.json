@@ -1,0 +1,33 @@
+{
+  "face_id": "face:f6771d32-395e-4832-b33d-cbc12dff1516:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [{"op": "modify_pt", "amount": "+1/+1", "scope": "other Elves you control", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[0, 34]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "land_enters", "text": "Whenever a land you control enters", "scope": "a land you control", "keyword": "Landfall"},
+      "conditions": [],
+      "costs": [],
+      "effects": [{"op": "create_token", "token": "token:elf", "amount": 1, "detail": "1/1 green Elf creature token", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[35, 120]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:f6771d32-395e-4832-b33d-cbc12dff1516:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 34], "text": "Other Elves you control get +1/+1."}},
+    {"source": "face:f6771d32-395e-4832-b33d-cbc12dff1516:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [35, 120], "text": "Landfall — Whenever a land you control enters, create a 1/1 green Elf creature token."}},
+    {"source": "a2", "target": "rule:landfall", "predicate": "REFERENCES_RULE", "certainty": "high", "provenance": {"oracle_span": [35, 80], "text": "Landfall — Whenever a land you control enters"}},
+    {"source": "a2", "target": "token:elf", "predicate": "CREATES_OBJECT", "certainty": "rules_explicit", "provenance": {"oracle_span": [82, 119], "text": "create a 1/1 green Elf creature token"}}
+  ],
+  "schema_extension_requests": []
+}

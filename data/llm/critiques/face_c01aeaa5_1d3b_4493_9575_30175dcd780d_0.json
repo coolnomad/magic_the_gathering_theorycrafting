@@ -1,0 +1,82 @@
+{
+  "face_id": "face:c01aeaa5-1d3b-4493-9575-30175dcd780d:0",
+  "abilities": [
+    {
+      "ability_id": "opp_second_draw_treasure",
+      "kind": "triggered",
+      "trigger": {
+        "event": "player_draws_card",
+        "subject": "an opponent",
+        "condition": "their second card each turn"
+      },
+      "effects": [
+        {
+          "effect": "create_token",
+          "token": "token:treasure",
+          "quantity": 1,
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[0, 84]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "symmetric_draw",
+      "kind": "activated",
+      "costs": [
+        {"cost": "mana", "value": "{2}{W}"}
+      ],
+      "effects": [
+        {
+          "effect": "draw",
+          "target": "two target players",
+          "amount": 1,
+          "note": "Each of the two chosen players draws a card."
+        }
+      ],
+      "oracle_spans": [[85, 129]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:c01aeaa5-1d3b-4493-9575-30175dcd780d:0",
+      "target": "ability:opp_second_draw_treasure",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 84], "text": "Whenever an opponent draws their second card each turn, you create a Treasure token."}
+    },
+    {
+      "source": "event:player_draws_card",
+      "target": "ability:opp_second_draw_treasure",
+      "predicate": "TRIGGERS",
+      "scope": "an opponent's second card each turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 54], "text": "Whenever an opponent draws their second card each turn"}
+    },
+    {
+      "source": "ability:opp_second_draw_treasure",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [56, 83], "text": "you create a Treasure token"}
+    },
+    {
+      "source": "face:c01aeaa5-1d3b-4493-9575-30175dcd780d:0",
+      "target": "ability:symmetric_draw",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [85, 129], "text": "{2}{W}: Two target players each draw a card."}
+    },
+    {
+      "source": "ability:symmetric_draw",
+      "target": "cost:mana:{2}{W}",
+      "predicate": "HAS_COST",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [85, 91], "text": "{2}{W}"}
+    }
+  ],
+  "schema_extension_requests": []
+}

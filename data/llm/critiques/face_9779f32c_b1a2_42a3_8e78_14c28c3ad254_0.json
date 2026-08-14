@@ -1,0 +1,127 @@
+{
+  "face_id": "face:9779f32c-b1a2-42a3-8e78-14c28c3ad254:0",
+  "abilities": [
+    {
+      "ability_id": "sting-flash",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "grant_keyword", "keyword": "Flash"}
+      ],
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "sting-etb-hone-attach",
+      "kind": "triggered",
+      "trigger": {
+        "event": "Sting enters",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "add_counter",
+          "counter_type": "hone",
+          "target": "Sting",
+          "amount": "one for each creature target opponent controls",
+          "scales_with": "number of creatures target opponent controls",
+          "references_mechanic": "hone",
+          "detail": "Put a hone counter on Sting for each creature target opponent controls."
+        },
+        {
+          "op": "attach",
+          "target": "up to one target creature you control",
+          "optional": true,
+          "detail": "Attach Sting to up to one target creature you control."
+        }
+      ],
+      "oracle_spans": [[6, 151]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "sting-equip",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{3}"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Equip only as a sorcery."}
+      ],
+      "effects": [
+        {
+          "op": "attach",
+          "target": "target creature you control",
+          "references_mechanic": "Equip",
+          "detail": "Attach this Equipment to target creature you control."
+        }
+      ],
+      "oracle_spans": [[223, 232]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:9779f32c-b1a2-42a3-8e78-14c28c3ad254:0",
+      "target": "keyword:flash",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 5], "text": "Flash"}
+    },
+    {
+      "source": "face:9779f32c-b1a2-42a3-8e78-14c28c3ad254:0",
+      "target": "ability:sting-etb-hone-attach",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [6, 151], "text": "When Sting enters, put a hone counter on Sting for each creature target opponent controls. Attach Sting to up to one target creature you control."}
+    },
+    {
+      "source": "event:sting-enters",
+      "target": "ability:sting-etb-hone-attach",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [6, 24], "text": "When Sting enters,"}
+    },
+    {
+      "source": "ability:sting-etb-hone-attach",
+      "target": "counter:hone",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [25, 96], "text": "put a hone counter on Sting for each creature target opponent controls."}
+    },
+    {
+      "source": "ability:sting-etb-hone-attach",
+      "target": "counter:hone",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [25, 96], "text": "put a hone counter on Sting for each creature target opponent controls.", "note": "Number of hone counters equals the number of creatures the target opponent controls."}
+    },
+    {
+      "source": "ability:sting-etb-hone-attach",
+      "target": "rule:hone",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [152, 222], "text": "(Each hone counter on an Equipment grants +1/+0 to equipped creature.)", "rule_ref": "CR 122.1j (hone counter)"}
+    },
+    {
+      "source": "face:9779f32c-b1a2-42a3-8e78-14c28c3ad254:0",
+      "target": "keyword:equip",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [223, 232], "text": "Equip {3}"}
+    },
+    {
+      "source": "face:9779f32c-b1a2-42a3-8e78-14c28c3ad254:0",
+      "target": "ability:sting-equip",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [223, 232], "text": "Equip {3}"}
+    }
+  ],
+  "schema_extension_requests": []
+}

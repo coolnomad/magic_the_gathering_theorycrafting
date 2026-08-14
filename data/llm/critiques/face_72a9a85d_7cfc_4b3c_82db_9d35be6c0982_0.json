@@ -1,0 +1,83 @@
+{
+  "face_id": "face:72a9a85d-7cfc-4b3c-82db-9d35be6c0982:0",
+  "abilities": [
+    {
+      "ability_id": "72a9a85d-a1",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "reduce_cost",
+          "amount": "{1}",
+          "applies_to": "spells you cast from anywhere other than your hand"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 72]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "72a9a85d-a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "attacks",
+        "source": "Bilbo"
+      },
+      "effects": [
+        {
+          "op": "cast_from_graveyard",
+          "optional": true,
+          "what": "an artifact, instant, or sorcery spell from your graveyard"
+        },
+        {
+          "op": "replacement",
+          "note": "If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead.",
+          "zone_to": "exile"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[74, 267]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:72a9a85d-7cfc-4b3c-82db-9d35be6c0982:0",
+      "target": "72a9a85d-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 72], "text": "Spells you cast from anywhere other than your hand cost {1} less to cast."}
+    },
+    {
+      "source": "72a9a85d-a1",
+      "target": "spells you cast from anywhere other than your hand",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 72], "text": "Spells you cast from anywhere other than your hand cost {1} less to cast.", "note": "reduces cost by {1}"}
+    },
+    {
+      "source": "face:72a9a85d-7cfc-4b3c-82db-9d35be6c0982:0",
+      "target": "72a9a85d-a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [74, 267], "text": "Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead."}
+    },
+    {
+      "source": "72a9a85d-a2",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_FROM",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [98, 170], "text": "you may cast an artifact, instant, or sorcery spell from your graveyard.", "note": "casts spell from graveyard"}
+    },
+    {
+      "source": "72a9a85d-a2",
+      "target": "zone:exile",
+      "predicate": "REPLACES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [171, 267], "text": "If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead.", "note": "replacement: graveyard -> exile"}
+    }
+  ],
+  "schema_extension_requests": []
+}

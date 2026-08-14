@@ -1,0 +1,69 @@
+{
+  "face_id": "face:a73d9109-36e0-40ea-ab06-5c5f7eb4ac54:1",
+  "abilities": [
+    {
+      "ability_id": "a73d9109-1-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "conditions": [
+        "the two target nonland permanents share a card type"
+      ],
+      "effects": [
+        {
+          "op": "exchange_control",
+          "target": "two target nonland permanents that share a card type"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 71]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a73d9109-1-adv",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "adventure",
+          "note": "Then exile this card. You may cast the creature later from exile."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[72, 134]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:a73d9109-36e0-40ea-ab06-5c5f7eb4ac54:1",
+      "target": "a73d9109-1-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 71], "text": "Exchange control of two target nonland permanents that share a card type."}
+    },
+    {
+      "source": "a73d9109-1-a1",
+      "target": "two target nonland permanents that share a card type",
+      "predicate": "CAUSES",
+      "condition": "the two target permanents share a card type",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 71], "text": "Exchange control of two target nonland permanents that share a card type.", "note": "swaps control of the two targets"}
+    },
+    {
+      "source": "face:a73d9109-36e0-40ea-ab06-5c5f7eb4ac54:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [72, 134], "text": "(Then exile this card. You may cast the creature later from exile.)", "rule_ref": "CR 715 (Adventurer cards)"}
+    },
+    {
+      "source": "a73d9109-1-adv",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [72, 134], "text": "Then exile this card. You may cast the creature later from exile."}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -44,10 +44,25 @@ def test_evaluative_language_rejected():
     assert any("evaluative" in e for e in phase3.validate_output(o))
 
 
-def test_span_out_of_bounds_rejected():
+def test_span_start_out_of_bounds_rejected():
     o = _valid()
-    o["abilities"][0]["oracle_spans"] = [[0, 200]]
-    assert any("out of bounds" in e for e in phase3.validate_output(o, face_id="face:x:0", oracle_len=100))
+    o["abilities"][0]["oracle_spans"] = [[150, 160]]  # start past end of text
+    assert any("start invalid" in e for e in phase3.validate_output(o, face_id="face:x:0", oracle_len=100))
+
+
+def test_span_end_overrun_is_warning_not_error():
+    o = _valid()
+    o["abilities"][0]["oracle_spans"] = [[0, 120]]  # end drifts past len — soft, not a reject
+    assert phase3.validate_output(o, face_id="face:x:0", oracle_len=100) == []
+    assert phase3.span_warnings(o, 100)
+
+
+def test_descriptive_keys_allowed_on_ability_and_edge():
+    o = _valid()
+    o["abilities"][0]["controller"] = "you"
+    o["abilities"][0]["duration"] = "until end of turn"
+    o["proposed_edges"][0]["note"] = "self-reference resolved to this face"
+    assert phase3.validate_output(o, face_id="face:x:0", oracle_len=100) == []
 
 
 def test_face_id_mismatch_rejected():

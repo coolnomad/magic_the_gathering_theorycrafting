@@ -1,0 +1,148 @@
+{
+  "face_id": "face:188a3f61-3f7c-450d-8ee7-e12ad13b86c6:0",
+  "abilities": [
+    {
+      "ability_id": "gnashing-modal-choice",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "modal_choice",
+          "detail": "Choose one of the two bulleted modes on resolution."
+        }
+      ],
+      "effects": [
+        {
+          "op": "choose_mode",
+          "count": 1,
+          "detail": "Caster chooses exactly one of the two modes below."
+        }
+      ],
+      "oracle_spans": [[0, 12]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gnashing-mode1-minus5",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "mode_selected",
+          "detail": "This mode applies only if the first bullet is chosen."
+        }
+      ],
+      "effects": [
+        {
+          "op": "modify_power_toughness",
+          "target": "one target creature",
+          "amount": "-5/-5",
+          "duration": "until end of turn"
+        },
+        {
+          "op": "replacement",
+          "detail": "If that creature would die this turn, exile it instead of it dying.",
+          "target": "the target creature",
+          "duration": "this turn"
+        }
+      ],
+      "oracle_spans": [[15, 118]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gnashing-mode2-massminus1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "mode_selected",
+          "detail": "This mode applies only if the second bullet is chosen."
+        }
+      ],
+      "effects": [
+        {
+          "op": "modify_power_toughness",
+          "target": "creatures the target player controls",
+          "amount": "-1/-1",
+          "duration": "until end of turn"
+        }
+      ],
+      "oracle_spans": [[121, 189]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:188a3f61-3f7c-450d-8ee7-e12ad13b86c6:0",
+      "target": "ability:gnashing-mode1-minus5",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [15, 118],
+        "text": "Target creature gets -5/-5 until end of turn. If that creature would die this turn, exile it instead."
+      }
+    },
+    {
+      "source": "ability:gnashing-mode1-minus5",
+      "target": "one target creature",
+      "predicate": "MODIFIES",
+      "polarity": "negative",
+      "timing": "until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [15, 60],
+        "text": "Target creature gets -5/-5 until end of turn."
+      }
+    },
+    {
+      "source": "ability:gnashing-mode1-minus5",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "condition": "if that creature would die this turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [61, 118],
+        "text": "If that creature would die this turn, exile it instead."
+      }
+    },
+    {
+      "source": "ability:gnashing-mode1-minus5",
+      "target": "event:creature-dies",
+      "predicate": "REPLACES",
+      "condition": "if that creature would die this turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [61, 118],
+        "text": "If that creature would die this turn, exile it instead.",
+        "note": "Death-to-exile replacement effect applying to the -5/-5 target for the turn."
+      }
+    },
+    {
+      "source": "face:188a3f61-3f7c-450d-8ee7-e12ad13b86c6:0",
+      "target": "ability:gnashing-mode2-massminus1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [121, 189],
+        "text": "Creatures target player controls get -1/-1 until end of turn."
+      }
+    },
+    {
+      "source": "ability:gnashing-mode2-massminus1",
+      "target": "creatures target player controls",
+      "predicate": "MODIFIES",
+      "polarity": "negative",
+      "timing": "until end of turn",
+      "scope": "each creature the target player controls",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [121, 189],
+        "text": "Creatures target player controls get -1/-1 until end of turn."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

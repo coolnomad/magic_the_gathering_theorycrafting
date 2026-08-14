@@ -1,0 +1,142 @@
+{
+  "face_id": "face:b9079564-5c86-4765-988a-f2334e016fa6:0",
+  "abilities": [
+    {
+      "ability_id": "vigilance",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "effect": "keyword_ability",
+          "keyword": "Vigilance",
+          "detail": "This creature doesn't tap when attacking.",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[0, 9]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "power_scaling_full_graveyards",
+      "kind": "static",
+      "trigger": null,
+      "conditions": [
+        {
+          "condition": "count_graveyards_with_seven_or_more_cards",
+          "detail": "Count each graveyard (any player's, including your own and opponents') that has seven or more cards in it."
+        }
+      ],
+      "effects": [
+        {
+          "effect": "power_toughness_modification",
+          "modification": "+2/+0",
+          "per": "each graveyard with seven or more cards in it",
+          "scales_with": "number of graveyards containing seven or more cards",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[10, 85]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "second_draw_mill_trigger",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you_draw_your_second_card_each_turn",
+        "detail": "Triggers when you draw the second card in a given turn. Tracks the per-turn count of cards you have drawn; fires on the specific event of drawing the second one.",
+        "frequency": "each turn (on the second draw of that turn)",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "effect": "mill",
+          "quantity": 3,
+          "target": "target player",
+          "detail": "Target player puts the top three cards of their library into their graveyard. The milled player is chosen when the ability is put on the stack and may be any player.",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[86, 234]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:b9079564-5c86-4765-988a-f2334e016fa6:0",
+      "target": "kw:vigilance",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 9],
+        "text": "Vigilance"
+      }
+    },
+    {
+      "source": "power_scaling_full_graveyards",
+      "target": "state:graveyard_seven_or_more_cards",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 85],
+        "text": "This creature gets +2/+0 for each graveyard with seven or more cards in it.",
+        "note": "Power bonus scales with the count of graveyards (any player's) holding seven or more cards."
+      }
+    },
+    {
+      "source": "power_scaling_full_graveyards",
+      "target": "state:graveyard_seven_or_more_cards",
+      "predicate": "COUNTS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 85],
+        "text": "for each graveyard with seven or more cards in it"
+      }
+    },
+    {
+      "source": "second_draw_mill_trigger",
+      "target": "event:draw_second_card_each_turn",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [86, 234],
+        "text": "Whenever you draw your second card each turn",
+        "note": "Card-specific trigger keyed to the second card drawn by you in a turn; requires tracking per-turn draw count."
+      }
+    },
+    {
+      "source": "second_draw_mill_trigger",
+      "target": "event:draw_second_card_each_turn",
+      "predicate": "COUNTS",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [86, 234],
+        "text": "your second card each turn",
+        "note": "Requires counting the number of cards you have drawn during the current turn to identify the second one."
+      }
+    },
+    {
+      "source": "second_draw_mill_trigger",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [86, 234],
+        "text": "They put the top three cards of their library into their graveyard."
+      }
+    },
+    {
+      "source": "second_draw_mill_trigger",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [86, 234],
+        "text": "target player mills three cards. (They put the top three cards of their library into their graveyard.)"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

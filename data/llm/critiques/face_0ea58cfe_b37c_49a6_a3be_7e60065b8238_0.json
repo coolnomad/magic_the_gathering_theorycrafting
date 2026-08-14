@@ -1,0 +1,46 @@
+{
+  "face_id": "face:0ea58cfe-b37c-49a6-a3be-7e60065b8238:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "activated",
+      "costs": [
+        {"op": "pay_mana", "amount": "{1}"},
+        {"op": "sacrifice", "target": "another creature"}
+      ],
+      "conditions": [],
+      "effects": [
+        {"op": "draw", "amount": "equal to the sacrificed creature's power", "required": true, "ordering": 1},
+        {"op": "discard", "amount": 1, "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 106]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "this_creature_dies", "text": "When Tom, Bert, and William die"},
+      "conditions": [{"note": "intervening-if: they were a creature (as they last existed on the battlefield)"}],
+      "costs": [],
+      "effects": [
+        {"op": "return_to_battlefield", "target": "this permanent", "detail": "return them to the battlefield", "required": true, "ordering": 1},
+        {"op": "set_type", "type": "artifact", "detail": "they're an artifact and no longer a creature", "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[107, 249]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:0ea58cfe-b37c-49a6-a3be-7e60065b8238:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 106], "text": "{1}, Sacrifice another creature: Draw cards equal to the sacrificed creature's power, then discard a card."}},
+    {"source": "face:0ea58cfe-b37c-49a6-a3be-7e60065b8238:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [107, 249], "text": "When Tom, Bert, and William die, if they were a creature, return them to the battlefield. They're an artifact."}},
+    {"source": "a1", "target": "another creature you control", "predicate": "CONSUMES", "certainty": "rules_explicit", "provenance": {"oracle_span": [5, 31], "text": "Sacrifice another creature", "note": "sacrifice cost"}},
+    {"source": "a1", "target": "draw", "predicate": "SCALES_WITH", "certainty": "rules_explicit", "provenance": {"oracle_span": [33, 84], "text": "Draw cards equal to the sacrificed creature's power", "note": "cards drawn scale with sacrificed creature's power"}},
+    {"source": "a2", "target": "zone:battlefield", "predicate": "MOVES_TO", "condition": "if they were a creature when they died", "certainty": "rules_explicit", "provenance": {"oracle_span": [165, 195], "text": "return them to the battlefield"}},
+    {"source": "a2", "target": "zone:graveyard", "predicate": "MOVES_FROM", "condition": "if they were a creature when they died", "certainty": "rules_explicit", "provenance": {"oracle_span": [165, 195], "text": "return them to the battlefield", "note": "returns from graveyard where they went on death"}}
+  ],
+  "schema_extension_requests": []
+}

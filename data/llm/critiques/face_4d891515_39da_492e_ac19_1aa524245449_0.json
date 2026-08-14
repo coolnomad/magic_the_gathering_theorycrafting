@@ -1,0 +1,77 @@
+{
+  "face_id": "face:4d891515-39da-492e-ac19-1aa524245449:0",
+  "abilities": [
+    {
+      "ability_id": "4d891515-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "text": "creature cards in your opponents' graveyards that were put there from the battlefield this turn"
+        }
+      ],
+      "effects": [
+        {
+          "op": "put_onto_battlefield",
+          "controller": "you",
+          "object_set": "all creature cards in your opponents' graveyards that were put there from the battlefield this turn",
+          "from_zone": "graveyard",
+          "to_zone": "battlefield",
+          "control": "you",
+          "required": true,
+          "text": "Put onto the battlefield under your control all creature cards in your opponents' graveyards that were put there from the battlefield this turn."
+        },
+        {
+          "op": "change_characteristics",
+          "target": "those permanents",
+          "result": "They are Food artifacts with an activated ability, losing all other types and subtypes.",
+          "granted_ability": "{2}, {T}, Sacrifice this artifact: You gain 3 life.",
+          "required": true,
+          "text": "They are Food artifacts with \"{2}, {T}, Sacrifice this artifact: You gain 3 life.\" (They lose all other types and subtypes.)"
+        }
+      ],
+      "oracle_spans": [[0, 144], [145, 269]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:4d891515-39da-492e-ac19-1aa524245449:0",
+      "target": "4d891515-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": { "oracle_span": [0, 269], "text": "full spell effect" }
+    },
+    {
+      "source": "4d891515-a1",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": { "oracle_span": [44, 142], "text": "all creature cards in your opponents' graveyards that were put there from the battlefield this turn" }
+    },
+    {
+      "source": "4d891515-a1",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": { "oracle_span": [0, 43], "text": "Put onto the battlefield under your control" }
+    },
+    {
+      "source": "4d891515-a1",
+      "target": "objectclass:food-artifact",
+      "predicate": "MODIFIES",
+      "certainty": "rules_explicit",
+      "condition": "the returned permanents become Food artifacts and lose all other types and subtypes",
+      "provenance": { "oracle_span": [145, 269], "text": "They are Food artifacts with \"{2}, {T}, Sacrifice this artifact: You gain 3 life.\" (They lose all other types and subtypes.)" }
+    },
+    {
+      "source": "objectclass:food-artifact",
+      "target": "op:gain-life",
+      "predicate": "PRODUCES",
+      "condition": "granted activated ability: {2}, {T}, Sacrifice this artifact",
+      "provenance": { "oracle_span": [175, 226], "text": "{2}, {T}, Sacrifice this artifact: You gain 3 life." }
+    }
+  ],
+  "schema_extension_requests": []
+}

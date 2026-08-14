@@ -1,0 +1,66 @@
+{
+  "face_id": "face:8790f842-e842-4bed-adf4-5b3cc5fd68a9:0",
+  "abilities": [
+    {
+      "ability_id": "spider-reach",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "grant_keyword",
+          "keyword": "reach",
+          "subject": "this creature"
+        }
+      ],
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "spider-evasion",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "cant_be_blocked_by",
+          "subject": "this creature",
+          "restriction": "creatures with power 2 or less"
+        }
+      ],
+      "oracle_spans": [[6, 71]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "spider-targeted-draw",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature becomes the target of a spell or ability an opponent controls",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "draw",
+          "quantity": 1
+        }
+      ],
+      "oracle_spans": [[72, 170]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8790f842-e842-4bed-adf4-5b3cc5fd68a9:0",
+      "target": "keyword:reach",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [0, 5], "text": "Reach"}
+    },
+    {
+      "source": "spider-targeted-draw",
+      "target": "event:draw",
+      "predicate": "CAUSES",
+      "condition": "this creature becomes target of an opponent's spell or ability",
+      "provenance": {"oracle_span": [158, 169], "text": "draw a card"}
+    }
+  ],
+  "schema_extension_requests": []
+}

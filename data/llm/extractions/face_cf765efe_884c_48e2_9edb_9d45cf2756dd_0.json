@@ -1,0 +1,55 @@
+{
+  "face_id": "face:cf765efe-884c-48e2-9edb-9d45cf2756dd:0",
+  "abilities": [
+    {
+      "ability_id": "dies_recruit",
+      "kind": "triggered",
+      "trigger": {
+        "event": "dies",
+        "subject": "this creature"
+      },
+      "effects": [
+        {
+          "effect": "recruit",
+          "references_rule": "rule:recruit",
+          "note": "Draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier."
+        }
+      ],
+      "oracle_spans": [[0, 151]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:cf765efe-884c-48e2-9edb-9d45cf2756dd:0",
+      "target": "ability:dies_recruit",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 151], "text": "When this creature dies, recruit."}
+    },
+    {
+      "source": "event:dies",
+      "target": "ability:dies_recruit",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 23], "text": "When this creature dies"}
+    },
+    {
+      "source": "ability:dies_recruit",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [25, 33], "text": "recruit.", "rule_ref": "HOB release notes / mechanics article: Recruit"}
+    },
+    {
+      "source": "ability:dies_recruit",
+      "target": "token:human-soldier",
+      "predicate": "CREATES_OBJECT",
+      "condition": "discarded card was nonland",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [69, 149], "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token"}
+    }
+  ],
+  "schema_extension_requests": []
+}

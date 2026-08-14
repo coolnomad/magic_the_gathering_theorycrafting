@@ -1,0 +1,77 @@
+{
+  "face_id": "face:34d34f2c-06ff-4acf-8f2f-ff867774b777:1",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "op": "mill",
+          "amount": 4,
+          "controller": "you",
+          "required": true,
+          "ordering": 1
+        },
+        {
+          "op": "put_into_hand",
+          "target": "an instant or sorcery card from among the milled cards",
+          "controller": "you",
+          "required": true,
+          "ordering": 2,
+          "note": "selection restricted to instant/sorcery among the four milled; may be none if no such card"
+        }
+      ],
+      "oracle_spans": [[0, 83]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:34d34f2c-06ff-4acf-8f2f-ff867774b777:1",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 83],
+        "text": "Mill four cards, then put an instant or sorcery card from among them into your hand."
+      }
+    },
+    {
+      "source": "a1",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_TO",
+      "certainty": "high",
+      "scope": "mill four from top of library",
+      "provenance": {
+        "oracle_span": [0, 15],
+        "text": "Mill four cards"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "resource:card-in-hand",
+      "predicate": "PRODUCES",
+      "condition": "an instant or sorcery card is among the four milled",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [22, 83],
+        "text": "put an instant or sorcery card from among them into your hand.",
+        "note": "moved from graveyard to hand"
+      }
+    },
+    {
+      "source": "face:34d34f2c-06ff-4acf-8f2f-ff867774b777:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 83],
+        "text": "Sorcery - Adventure face",
+        "rule_ref": "CR 715 (Adventurer cards)",
+        "note": "type_line is Sorcery - Adventure; card exiles after resolution and creature face may be cast later"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

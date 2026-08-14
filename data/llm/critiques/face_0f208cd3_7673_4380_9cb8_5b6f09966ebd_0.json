@@ -1,0 +1,70 @@
+{
+  "face_id": "face:0f208cd3-7673-4380-9cb8-5b6f09966ebd:0",
+  "abilities": [
+    {
+      "ability_id": "0f208cd3-a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "beginning_of_combat",
+        "timing": "beginning of combat on your turn"
+      },
+      "conditions": [
+        "you've drawn two or more cards this turn"
+      ],
+      "effects": [
+        {
+          "op": "pump",
+          "target": "another target creature you control",
+          "amount": "+3/+0",
+          "duration": "until end of turn"
+        },
+        {
+          "op": "grant_keyword",
+          "target": "another target creature you control",
+          "keyword": "first strike",
+          "duration": "until end of turn"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 174]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:0f208cd3-7673-4380-9cb8-5b6f09966ebd:0",
+      "target": "0f208cd3-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 174], "text": "At the beginning of combat on your turn, if you've drawn two or more cards this turn, another target creature you control gets +3/+0 and gains first strike until end of turn."}
+    },
+    {
+      "source": "0f208cd3-a1",
+      "target": "another target creature you control",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until_end_of_turn",
+      "condition": "you've drawn two or more cards this turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [122, 132], "text": "gets +3/+0"}
+    },
+    {
+      "source": "0f208cd3-a1",
+      "target": "another target creature you control",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "timing": "until_end_of_turn",
+      "condition": "you've drawn two or more cards this turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [137, 173], "text": "gains first strike until end of turn"}
+    },
+    {
+      "source": "0f208cd3-a1",
+      "target": "you've drawn two or more cards this turn",
+      "predicate": "REQUIRES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [41, 84], "text": "if you've drawn two or more cards this turn"}
+    }
+  ],
+  "schema_extension_requests": []
+}

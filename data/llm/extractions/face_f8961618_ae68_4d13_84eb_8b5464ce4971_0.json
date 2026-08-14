@@ -1,0 +1,66 @@
+{
+  "face_id": "face:f8961618-ae68-4d13-84eb-8b5464ce4971:0",
+  "abilities": [
+    {
+      "ability_id": "f8961618-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "untap",
+          "target": "target creature you control"
+        },
+        {
+          "op": "pump",
+          "target": "target creature you control",
+          "amount": "+2/+2",
+          "duration": "until end of turn"
+        },
+        {
+          "op": "attach_equipment",
+          "optional": true,
+          "condition": "the target creature is a Dwarf",
+          "note": "you may attach an Equipment you control to it"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 132]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:f8961618-ae68-4d13-84eb-8b5464ce4971:0",
+      "target": "f8961618-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 132], "text": "Untap target creature you control. It gets +2/+2 until end of turn. If it's a Dwarf, you may attach an Equipment you control to it."}
+    },
+    {
+      "source": "f8961618-a1",
+      "target": "target creature you control",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 35], "text": "Untap target creature you control.", "note": "untaps the target"}
+    },
+    {
+      "source": "f8961618-a1",
+      "target": "target creature you control",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until_end_of_turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [36, 68], "text": "It gets +2/+2 until end of turn."}
+    },
+    {
+      "source": "f8961618-a1",
+      "target": "target creature you control",
+      "predicate": "ATTACHED_TO",
+      "optional": true,
+      "condition": "the target creature is a Dwarf",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [69, 132], "text": "If it's a Dwarf, you may attach an Equipment you control to it.", "note": "may attach an Equipment you control to the Dwarf target"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,63 @@
+{
+  "face_id": "face:8973bd99-20f8-4867-90ef-50392147ee1b:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters",
+        "subject": "this creature"
+      },
+      "effects": [
+        {
+          "op": "search_library",
+          "for": "a Forest card",
+          "destination": "battlefield"
+        },
+        {
+          "op": "shuffle",
+          "subject": "your library"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          0,
+          115
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8973bd99-20f8-4867-90ef-50392147ee1b:0",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          27,
+          64
+        ],
+        "text": "search your library for a Forest card"
+      }
+    },
+    {
+      "source": "face:8973bd99-20f8-4867-90ef-50392147ee1b:0",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          66,
+          100
+        ],
+        "text": "put that card onto the battlefield",
+        "note": "the found Forest card is put onto the battlefield, then library is shuffled"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

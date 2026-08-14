@@ -1,0 +1,106 @@
+{
+  "face_id": "face:fa602f8f-1d80-4f6d-8b8f-d1a1f36037bd:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "conditions": [
+        {
+          "type": "control",
+          "requirement": "you control another Goblin"
+        }
+      ],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keywords": [
+            "haste"
+          ],
+          "target": "this creature"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          0,
+          62
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "activated",
+      "costs": [
+        {
+          "type": "tap",
+          "symbol": "{T}"
+        },
+        {
+          "type": "sacrifice",
+          "what": "another Goblin"
+        }
+      ],
+      "effects": [
+        {
+          "op": "add_mana",
+          "mana": "{B}{R}"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          62,
+          105
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:fa602f8f-1d80-4f6d-8b8f-d1a1f36037bd:0",
+      "target": "keyword:haste",
+      "predicate": "HAS_KEYWORD",
+      "condition": "as long as you control another Goblin",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          0,
+          62
+        ],
+        "text": "This creature has haste as long as you control another Goblin."
+      }
+    },
+    {
+      "source": "face:fa602f8f-1d80-4f6d-8b8f-d1a1f36037bd:0",
+      "target": "event:sacrifice",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          68,
+          92
+        ],
+        "text": "Sacrifice another Goblin",
+        "note": "activation cost: sacrifice another Goblin"
+      }
+    },
+    {
+      "source": "face:fa602f8f-1d80-4f6d-8b8f-d1a1f36037bd:0",
+      "target": "resource:mana",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          94,
+          105
+        ],
+        "text": "Add {B}{R}."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

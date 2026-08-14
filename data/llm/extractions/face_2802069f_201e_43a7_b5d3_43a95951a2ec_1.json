@@ -1,0 +1,107 @@
+{
+  "face_id": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:1",
+  "abilities": [
+    {
+      "ability_id": "gleam-mill-retrieve",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "mill",
+          "amount": 6,
+          "controller": "you",
+          "detail": "Mill six cards."
+        },
+        {
+          "op": "move_cards",
+          "from_zone": "graveyard",
+          "to_zone": "hand",
+          "filter": "instant and sorcery cards from among the milled cards",
+          "detail": "Put all instant and sorcery cards from among the milled six into your hand."
+        }
+      ],
+      "oracle_spans": [[0, 86]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gleam-adventure",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "exile",
+          "target": "this card",
+          "references_mechanic": "Adventure",
+          "detail": "Then exile this card; you may cast the artifact (Glamdring, Foe-hammer) later from exile."
+        }
+      ],
+      "oracle_spans": [[88, 153]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:1",
+      "target": "ability:gleam-mill-retrieve",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 86], "text": "Mill six cards, then put all instant and sorcery cards from among them into your hand."}
+    },
+    {
+      "source": "ability:gleam-mill-retrieve",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 14], "text": "Mill six cards", "note": "Mill puts the top six cards of your library into your graveyard."}
+    },
+    {
+      "source": "ability:gleam-mill-retrieve",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "scope": "instant and sorcery cards among the six milled",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [21, 85], "text": "put all instant and sorcery cards from among them into your hand"}
+    },
+    {
+      "source": "ability:gleam-mill-retrieve",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_FROM",
+      "scope": "instant and sorcery cards among the six milled",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [21, 85], "text": "put all instant and sorcery cards from among them into your hand", "note": "The retrieved cards move from the graveyard (where the mill placed them) to hand."}
+    },
+    {
+      "source": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:1",
+      "target": "ability:gleam-adventure",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [88, 153], "text": "(Then exile this card. You may cast the artifact later from exile.)"}
+    },
+    {
+      "source": "ability:gleam-adventure",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [88, 153], "text": "(Then exile this card. You may cast the artifact later from exile.)", "rule_ref": "CR 715 (Adventurer cards)"}
+    },
+    {
+      "source": "ability:gleam-adventure",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [89, 108], "text": "Then exile this card."}
+    },
+    {
+      "source": "ability:gleam-adventure",
+      "target": "face:2802069f-201e-43a7-b5d3-43a95951a2ec:0",
+      "predicate": "ENABLES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [109, 152], "text": "You may cast the artifact later from exile.", "note": "After exile, the artifact face may be cast from exile."}
+    }
+  ],
+  "schema_extension_requests": []
+}

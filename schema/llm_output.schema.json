@@ -25,7 +25,7 @@
           "confidence",
           "unresolved"
         ],
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
           "ability_id": {
             "type": "string"
@@ -92,7 +92,7 @@
           "predicate",
           "provenance"
         ],
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
           "source": {
             "type": "string"

@@ -1,0 +1,78 @@
+{
+  "face_id": "face:5ba482e9-fbb0-4d9f-a3a9-414892bcdfed:0",
+  "abilities": [
+    {
+      "ability_id": "dancing-cast-creature-trigger",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you cast a creature spell",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "add_counter",
+          "counter_type": "+1/+1",
+          "quantity": "X",
+          "x_definition": "that spell's mana value",
+          "target": "target creature you control"
+        }
+      ],
+      "oracle_spans": [[0, 124]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "dancing-landfall",
+      "kind": "triggered",
+      "trigger": {
+        "event": "a land you control enters",
+        "keyword": "Landfall",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "create_token",
+          "token": "2/2 green Bear creature token",
+          "quantity": 1
+        }
+      ],
+      "oracle_spans": [[125, 211]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:5ba482e9-fbb0-4d9f-a3a9-414892bcdfed:0",
+      "target": "keyword:landfall",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [125, 133], "text": "Landfall"}
+    },
+    {
+      "source": "dancing-cast-creature-trigger",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "provenance": {"oracle_span": [36, 87], "text": "put X +1/+1 counters on target creature you control"}
+    },
+    {
+      "source": "dancing-cast-creature-trigger",
+      "target": "counter:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "provenance": {"oracle_span": [42, 56], "text": "+1/+1 counters"}
+    },
+    {
+      "source": "dancing-cast-creature-trigger",
+      "target": "counter:+1/+1",
+      "predicate": "SCALES_WITH",
+      "condition": "cast creature spell's mana value",
+      "provenance": {"oracle_span": [89, 123], "text": "where X is that spell's mana value", "note": "number of counters equals the triggering spell's mana value"}
+    },
+    {
+      "source": "dancing-landfall",
+      "target": "token:bear",
+      "predicate": "CREATES_OBJECT",
+      "provenance": {"oracle_span": [172, 210], "text": "create a 2/2 green Bear creature token"}
+    }
+  ],
+  "schema_extension_requests": []
+}

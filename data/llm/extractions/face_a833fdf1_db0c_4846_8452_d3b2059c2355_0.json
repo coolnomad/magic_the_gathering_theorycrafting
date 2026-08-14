@@ -1,0 +1,94 @@
+{
+  "face_id": "face:a833fdf1-db0c-4846-8452-d3b2059c2355:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "keyword",
+          "keyword": "Flying",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature enters"
+      },
+      "effects": [
+        {
+          "op": "recruit",
+          "keyword": "Recruit",
+          "note": "Draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[7, 160]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:a833fdf1-db0c-4846-8452-d3b2059c2355:0",
+      "target": "a1",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 6],
+        "text": "Flying"
+      }
+    },
+    {
+      "source": "face:a833fdf1-db0c-4846-8452-d3b2059c2355:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [7, 42],
+        "text": "When this creature enters, recruit."
+      }
+    },
+    {
+      "source": "event:this-creature-enters",
+      "target": "a2",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [7, 33],
+        "text": "When this creature enters,"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [34, 42],
+        "text": "recruit.",
+        "rule_ref": "HOB release notes / mechanics article: Recruit"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "token:human-soldier",
+      "predicate": "CREATES_OBJECT",
+      "optional": false,
+      "condition": "if the discarded card was a nonland card",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [78, 159],
+        "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

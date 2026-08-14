@@ -1,0 +1,91 @@
+{
+  "face_id": "face:ef71ef07-8a35-41ec-a851-d95e9e3a221b:0",
+  "abilities": [
+    {
+      "ability_id": "gift_a_treasure",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "gift",
+          "gift_object": "token:treasure",
+          "note": "As you cast this spell you may promise an opponent a gift; if you do, that opponent creates a Treasure token before this spell's other effects.",
+          "optional": true,
+          "controller_of_created_token": "the promised opponent"
+        }
+      ],
+      "oracle_spans": [[0, 220]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "bounce_spell_and_lock",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "effect": "return_to_hand",
+          "target": "target spell",
+          "destination": "its owner's hand"
+        },
+        {
+          "effect": "prevent_casting",
+          "scope": "all players",
+          "duration": "this turn",
+          "condition": "the gift was promised"
+        }
+      ],
+      "oracle_spans": [[221, 324]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:ef71ef07-8a35-41ec-a851-d95e9e3a221b:0",
+      "target": "ability:gift_a_treasure",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 220], "text": "Gift a Treasure (...)"}
+    },
+    {
+      "source": "face:ef71ef07-8a35-41ec-a851-d95e9e3a221b:0",
+      "target": "ability:bounce_spell_and_lock",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [221, 324], "text": "Return target spell to its owner's hand..."}
+    },
+    {
+      "source": "ability:gift_a_treasure",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "optional": true,
+      "condition": "gift promised",
+      "scope": "the promised opponent creates the token",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [87, 141], "text": "they create a Treasure token before its other effects."}
+    },
+    {
+      "source": "ability:bounce_spell_and_lock",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [221, 261], "text": "Return target spell to its owner's hand."}
+    },
+    {
+      "source": "ability:bounce_spell_and_lock",
+      "target": "zone:stack",
+      "predicate": "MOVES_FROM",
+      "certainty": "high",
+      "provenance": {"oracle_span": [228, 240], "text": "target spell", "note": "A spell exists on the stack; returning it moves it from the stack to hand."}
+    },
+    {
+      "source": "ability:bounce_spell_and_lock",
+      "target": "event:cast_spell",
+      "predicate": "PREVENTS",
+      "scope": "all players",
+      "condition": "gift promised",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [262, 324], "text": "If the gift was promised, players can't cast spells this turn."}
+    }
+  ],
+  "schema_extension_requests": []
+}

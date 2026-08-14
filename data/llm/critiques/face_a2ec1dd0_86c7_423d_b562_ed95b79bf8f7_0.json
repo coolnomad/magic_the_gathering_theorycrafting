@@ -1,0 +1,56 @@
+{
+  "face_id": "face:a2ec1dd0-86c7-423d-b562-ed95b79bf8f7:0",
+  "abilities": [
+    {
+      "ability_id": "a2ec1dd0-a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "opponent_casts_spell",
+        "condition": "an opponent casts their first noncreature spell each turn"
+      },
+      "effects": [
+        {
+          "op": "recruit",
+          "note": "draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier creature token"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 198]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:a2ec1dd0-86c7-423d-b562-ed95b79bf8f7:0",
+      "target": "a2ec1dd0-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 80], "text": "Whenever an opponent casts their first noncreature spell each turn, you recruit."}
+    },
+    {
+      "source": "a2ec1dd0-a1",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [68, 80], "text": "you recruit.", "rule_ref": "HOB release notes / mechanics article: Recruit"}
+    },
+    {
+      "source": "a2ec1dd0-a1",
+      "target": "opponent's first noncreature spell each turn",
+      "predicate": "REQUIRES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 66], "text": "Whenever an opponent casts their first noncreature spell each turn"}
+    },
+    {
+      "source": "a2ec1dd0-a1",
+      "target": "token:human-soldier",
+      "predicate": "CAN_LEAD_TO",
+      "polarity": "positive",
+      "optional": false,
+      "condition": "the discarded card was nonland",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [116, 197], "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token."}
+    }
+  ],
+  "schema_extension_requests": []
+}

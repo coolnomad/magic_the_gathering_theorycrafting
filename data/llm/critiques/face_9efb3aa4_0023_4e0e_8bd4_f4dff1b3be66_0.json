@@ -1,0 +1,37 @@
+{
+  "face_id": "face:9efb3aa4-0023-4e0e-8bd4-f4dff1b3be66:0",
+  "abilities": [
+    {
+      "ability_id": "galion-attack-trigger",
+      "kind": "triggered",
+      "trigger": {
+        "event": "Galion attacks",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "set_base_pt",
+          "target": "up to one other target creature you control",
+          "value": "equal to Galion's power and toughness",
+          "duration": "until end of turn",
+          "optional": true
+        }
+      ],
+      "oracle_spans": [[0, 169]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "galion-attack-trigger",
+      "target": "face:9efb3aa4-0023-4e0e-8bd4-f4dff1b3be66:0",
+      "predicate": "SCALES_WITH",
+      "condition": "the target creature's new base power and toughness equal Galion's current power and toughness",
+      "optional": true,
+      "timing": "combat, on attack; until end of turn",
+      "provenance": {"oracle_span": [77, 168], "text": "Its base power and toughness become equal to Galion's power and toughness until end of turn", "note": "target creature's base P/T set equal to Galion's current P/T; effect applies to up to one OTHER creature you control (not Galion itself)"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,152 @@
+{
+  "face_id": "face:86214b4c-a3ad-4372-b5fe-8f742a7a3d4c:0",
+  "abilities": [
+    {
+      "ability_id": "reverent-modal-choice",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "modal_choice",
+          "detail": "Choose one of the two bulleted modes on resolution."
+        }
+      ],
+      "effects": [
+        {
+          "op": "choose_mode",
+          "count": 1,
+          "detail": "Caster chooses exactly one of the two modes below."
+        }
+      ],
+      "oracle_spans": [[0, 12]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "reverent-mode1-draw-drain",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "mode_selected",
+          "detail": "Applies only if the first bullet is chosen."
+        }
+      ],
+      "effects": [
+        {
+          "op": "draw",
+          "amount": 2,
+          "target": "target player"
+        },
+        {
+          "op": "lose_life",
+          "amount": 2,
+          "target": "target player"
+        }
+      ],
+      "oracle_spans": [[15, 62]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "reverent-mode2-pump-lifelink",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "mode_selected",
+          "detail": "Applies only if the second bullet is chosen."
+        }
+      ],
+      "effects": [
+        {
+          "op": "modify_power_toughness",
+          "target": "target creature",
+          "amount": "+2/+2",
+          "duration": "until end of turn"
+        },
+        {
+          "op": "grant_keyword",
+          "keyword": "Lifelink",
+          "target": "target creature",
+          "duration": "until end of turn"
+        }
+      ],
+      "oracle_spans": [[65, 129]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:86214b4c-a3ad-4372-b5fe-8f742a7a3d4c:0",
+      "target": "ability:reverent-mode1-draw-drain",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [15, 62],
+        "text": "Target player draws two cards and loses 2 life."
+      }
+    },
+    {
+      "source": "ability:reverent-mode1-draw-drain",
+      "target": "resource:card",
+      "predicate": "PRODUCES",
+      "scope": "target player",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [15, 62],
+        "text": "Target player draws two cards and loses 2 life."
+      }
+    },
+    {
+      "source": "ability:reverent-mode1-draw-drain",
+      "target": "resource:life",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "scope": "target player",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [15, 62],
+        "text": "Target player draws two cards and loses 2 life."
+      }
+    },
+    {
+      "source": "face:86214b4c-a3ad-4372-b5fe-8f742a7a3d4c:0",
+      "target": "ability:reverent-mode2-pump-lifelink",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [65, 129],
+        "text": "Target creature gets +2/+2 and gains lifelink until end of turn."
+      }
+    },
+    {
+      "source": "ability:reverent-mode2-pump-lifelink",
+      "target": "target creature",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [65, 129],
+        "text": "Target creature gets +2/+2 and gains lifelink until end of turn."
+      }
+    },
+    {
+      "source": "ability:reverent-mode2-pump-lifelink",
+      "target": "keyword:lifelink",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until end of turn",
+      "scope": "target creature",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [65, 129],
+        "text": "Target creature gets +2/+2 and gains lifelink until end of turn."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,76 @@
+{
+  "face_id": "face:cb4b4b63-682b-4439-9757-84cca7a27db2:0",
+  "abilities": [
+    {
+      "ability_id": "flying",
+      "kind": "static",
+      "effects": [
+        {"effect": "grants_keyword", "keyword": "Flying"}
+      ],
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "attacks_scaling_pump",
+      "kind": "triggered",
+      "trigger": {
+        "event": "attacks",
+        "subject": "this creature"
+      },
+      "effects": [
+        {
+          "effect": "modify_pt",
+          "target": "this creature",
+          "power": "+1 per other creature you control",
+          "toughness": "+1 per other creature you control",
+          "duration": "until end of turn",
+          "scales_with": "number of other creatures you control"
+        }
+      ],
+      "oracle_spans": [[7, 107]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:cb4b4b63-682b-4439-9757-84cca7a27db2:0",
+      "target": "kw:flying",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 6], "text": "Flying"}
+    },
+    {
+      "source": "face:cb4b4b63-682b-4439-9757-84cca7a27db2:0",
+      "target": "ability:attacks_scaling_pump",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [7, 107], "text": "Whenever this creature attacks, it gets +1/+1 until end of turn for each other creature you control."}
+    },
+    {
+      "source": "event:attack",
+      "target": "ability:attacks_scaling_pump",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [7, 37], "text": "Whenever this creature attacks"}
+    },
+    {
+      "source": "ability:attacks_scaling_pump",
+      "target": "face:cb4b4b63-682b-4439-9757-84cca7a27db2:0",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [39, 70], "text": "it gets +1/+1 until end of turn"}
+    },
+    {
+      "source": "ability:attacks_scaling_pump",
+      "target": "objectclass:other_creatures_you_control",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [71, 106], "text": "for each other creature you control"}
+    }
+  ],
+  "schema_extension_requests": []
+}

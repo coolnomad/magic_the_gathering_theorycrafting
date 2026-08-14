@@ -1,0 +1,92 @@
+{
+  "face_id": "face:8060d231-7477-441d-b249-8e75aa1d7791:0",
+  "abilities": [
+    {
+      "ability_id": "warg-deathtouch",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "Deathtouch"
+        }
+      ],
+      "oracle_spans": [[0, 10]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "warg-ferocious-attack",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature attacks",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [
+        {
+          "type": "ferocious",
+          "detail": "Only while you control a creature with power 4 or greater.",
+          "references_mechanic": "Ferocious"
+        }
+      ],
+      "effects": [
+        {
+          "op": "gain_life",
+          "amount": 2,
+          "target": "you"
+        }
+      ],
+      "oracle_spans": [[11, 108]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8060d231-7477-441d-b249-8e75aa1d7791:0",
+      "target": "keyword:deathtouch",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 10],
+        "text": "Deathtouch"
+      }
+    },
+    {
+      "source": "face:8060d231-7477-441d-b249-8e75aa1d7791:0",
+      "target": "ability:warg-ferocious-attack",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [11, 108],
+        "text": "Ferocious — Whenever this creature attacks while you control a creature with power 4 or greater, you gain 2 life."
+      }
+    },
+    {
+      "source": "event:this-creature-attacks",
+      "target": "ability:warg-ferocious-attack",
+      "predicate": "TRIGGERS",
+      "condition": "you control a creature with power 4 or greater",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [22, 96],
+        "text": "Whenever this creature attacks while you control a creature with power 4 or greater,"
+      }
+    },
+    {
+      "source": "ability:warg-ferocious-attack",
+      "target": "resource:life",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "scope": "you",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [97, 108],
+        "text": "you gain 2 life."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

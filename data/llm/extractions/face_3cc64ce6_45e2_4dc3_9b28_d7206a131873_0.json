@@ -1,0 +1,67 @@
+{
+  "face_id": "face:3cc64ce6-45e2-4dc3-9b28-d7206a131873:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {"op": "reduce_cost", "amount": "{3}", "condition": "a creature died this turn", "affects": "this spell's own casting cost"}
+      ],
+      "conditions": [
+        {"condition": "a creature died this turn"}
+      ],
+      "oracle_spans": [[0, 56]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {"op": "grant_keyword", "keyword": "Flying", "affects": "this creature"},
+        {"op": "grant_keyword", "keyword": "deathtouch", "affects": "this creature"}
+      ],
+      "oracle_spans": [[57, 76]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3cc64ce6-45e2-4dc3-9b28-d7206a131873:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 56], "text": "This spell costs {3} less to cast if a creature died this turn."}
+    },
+    {
+      "source": "a1",
+      "target": "face:3cc64ce6-45e2-4dc3-9b28-d7206a131873:0",
+      "predicate": "MODIFIES",
+      "note": "Reduces this spell's own mana cost by {3} when a creature died this turn.",
+      "condition": "a creature died this turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 56], "text": "This spell costs {3} less to cast if a creature died this turn."}
+    },
+    {
+      "source": "face:3cc64ce6-45e2-4dc3-9b28-d7206a131873:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [57, 76], "text": "Flying, deathtouch"}
+    },
+    {
+      "source": "face:3cc64ce6-45e2-4dc3-9b28-d7206a131873:0",
+      "target": "kw:flying",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [57, 63], "text": "Flying"}
+    },
+    {
+      "source": "face:3cc64ce6-45e2-4dc3-9b28-d7206a131873:0",
+      "target": "kw:deathtouch",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [65, 75], "text": "deathtouch"}
+    }
+  ],
+  "schema_extension_requests": []
+}

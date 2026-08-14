@@ -1,0 +1,40 @@
+{
+  "face_id": "face:c9634afc-4a5b-4cf6-b63d-0ff9909dd5a7:0",
+  "abilities": [
+    {
+      "ability_id": "c9634afc-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "deal_damage", "amount": 3, "target": "each non-Dragon creature", "required": true, "text": "Desolation of Smaug deals 3 damage to each non-Dragon creature." }
+      ],
+      "oracle_spans": [[0, 62]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "c9634afc-a2",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "add_mana", "amount": 4, "detail": "four mana in any combination of colors", "required": true, "text": "Add four mana in any combination of colors." },
+        { "op": "restrict_mana_use", "restriction": "spend this mana only to cast Dragon spells", "required": true, "text": "Spend this mana only to cast Dragon spells." }
+      ],
+      "oracle_spans": [[64, 150]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:c9634afc-4a5b-4cf6-b63d-0ff9909dd5a7:0", "target": "c9634afc-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 62], "text": "Desolation of Smaug deals 3 damage to each non-Dragon creature." } },
+    { "source": "face:c9634afc-4a5b-4cf6-b63d-0ff9909dd5a7:0", "target": "c9634afc-a2", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [64, 150], "text": "Add four mana in any combination of colors. Spend this mana only to cast Dragon spells." } },
+    { "source": "c9634afc-a1", "target": "op:deal-damage", "predicate": "CAUSES", "polarity": "negative", "provenance": { "oracle_span": [0, 62], "text": "deals 3 damage to each non-Dragon creature" } },
+    { "source": "c9634afc-a2", "target": "op:add-mana", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": { "oracle_span": [64, 106], "text": "Add four mana in any combination of colors" } },
+    { "source": "c9634afc-a2", "target": "op:add-mana", "predicate": "MODIFIES", "condition": "the mana produced may be spent only to cast Dragon spells", "provenance": { "oracle_span": [108, 150], "text": "Spend this mana only to cast Dragon spells" } }
+  ],
+  "schema_extension_requests": []
+}

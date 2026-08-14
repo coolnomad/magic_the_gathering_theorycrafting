@@ -1,0 +1,41 @@
+{
+  "face_id": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "counters_placed", "text": "Whenever you put one or more counters on a Goblin, Orc, or Army you control", "scope": "a Goblin, Orc, or Army you control"},
+      "conditions": [],
+      "costs": [],
+      "effects": [{"op": "deal_damage", "amount": 2, "target": "target opponent", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[0, 127]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "creature_dies", "text": "Whenever another Goblin, Orc, or Army you control dies", "scope": "another Goblin, Orc, or Army you control"},
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "exile_top_of_library", "amount": 1, "target": "top card of your library", "required": true},
+        {"op": "grant_play_permission", "detail": "You may play it until the end of your next turn", "duration": "until the end of your next turn", "required": false}
+      ],
+      "controller": "you",
+      "oracle_spans": [[128, 269]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 127], "text": "Whenever you put one or more counters on ... The Great Goblin deals 2 damage to target opponent."}},
+    {"source": "face:83dcfac0-6efd-4e37-9402-15f9889e84e1:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [128, 269], "text": "Whenever another Goblin, Orc, or Army you control dies, exile the top card of your library. You may play it until the end of your next turn."}},
+    {"source": "a1", "target": "target opponent", "predicate": "CAUSES", "polarity": "negative", "certainty": "rules_explicit", "provenance": {"oracle_span": [77, 127], "text": "The Great Goblin deals 2 damage to target opponent"}},
+    {"source": "a1", "target": "counter:generic", "predicate": "TRIGGERS", "certainty": "high", "provenance": {"oracle_span": [13, 74], "text": "put one or more counters on a Goblin, Orc, or Army you control", "note": "ability triggers when any counter is placed on a Goblin, Orc, or Army you control"}},
+    {"source": "a2", "target": "zone:exile", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [185, 219], "text": "exile the top card of your library"}},
+    {"source": "a2", "target": "zone:library", "predicate": "MOVES_FROM", "certainty": "rules_explicit", "provenance": {"oracle_span": [185, 219], "text": "exile the top card of your library"}}
+  ],
+  "schema_extension_requests": []
+}

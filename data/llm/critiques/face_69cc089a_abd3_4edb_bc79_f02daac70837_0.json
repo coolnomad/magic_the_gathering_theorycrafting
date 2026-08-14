@@ -1,0 +1,92 @@
+{
+  "face_id": "face:69cc089a-abd3-4edb-bc79-f02daac70837:0",
+  "abilities": [
+    {
+      "ability_id": "69cc089a-a1",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "keyword_ability",
+          "keyword": "Storied",
+          "note": "if you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 129]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "69cc089a-a2",
+      "kind": "static",
+      "trigger": null,
+      "conditions": [
+        "you have an enduring story"
+      ],
+      "effects": [
+        {
+          "op": "pump",
+          "target": "Ori",
+          "amount": "+1/+0"
+        },
+        {
+          "op": "grant_keyword",
+          "target": "Ori",
+          "keyword": "vigilance"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[130, 202]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:69cc089a-abd3-4edb-bc79-f02daac70837:0",
+      "target": "69cc089a-a1",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [0, 7], "text": "Storied"}
+    },
+    {
+      "source": "69cc089a-a1",
+      "target": "gate:storied",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 129], "text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)", "rule_ref": "HOB release notes / mechanics article: Storied"}
+    },
+    {
+      "source": "face:69cc089a-abd3-4edb-bc79-f02daac70837:0",
+      "target": "69cc089a-a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [130, 202], "text": "As long as you have an enduring story, Ori gets +1/+0 and has vigilance."}
+    },
+    {
+      "source": "69cc089a-a2",
+      "target": "state:enduring_story",
+      "predicate": "REQUIRES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [130, 167], "text": "As long as you have an enduring story"}
+    },
+    {
+      "source": "69cc089a-a2",
+      "target": "face:69cc089a-abd3-4edb-bc79-f02daac70837:0",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "condition": "you have an enduring story",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [169, 202], "text": "Ori gets +1/+0 and has vigilance.", "note": "self-buff +1/+0"}
+    },
+    {
+      "source": "69cc089a-a2",
+      "target": "face:69cc089a-abd3-4edb-bc79-f02daac70837:0",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "condition": "you have an enduring story",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [169, 202], "text": "Ori gets +1/+0 and has vigilance.", "note": "grants vigilance to self"}
+    }
+  ],
+  "schema_extension_requests": []
+}

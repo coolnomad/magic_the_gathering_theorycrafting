@@ -1,0 +1,44 @@
+{
+  "face_id": "face:11932191-4b19-49b1-bfe4-abb7b83b2e59:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "this_creature_enters", "text": "When this creature enters"},
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "draw", "amount": 1, "required": true, "ordering": 1},
+        {"op": "discard", "amount": 1, "required": true, "ordering": 2},
+        {"op": "return_to_battlefield", "target": "the discarded land card", "source_zone": "your graveyard", "state": "tapped", "condition": "if you discarded a land card this way", "required": true, "ordering": 3}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 153]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "land_enters", "text": "Whenever a land you control enters", "scope": "a land you control", "keyword": "Landfall"},
+      "conditions": [],
+      "costs": [{"op": "pay_mana", "amount": "{1}{G}{U}", "optional": true}],
+      "effects": [{"op": "return_to_hand", "target": "this card", "source_zone": "your graveyard", "destination": "your hand", "condition": "if you pay the cost", "required": true}],
+      "controller": "you",
+      "optionality": "optional",
+      "oracle_spans": [[154, 285]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:11932191-4b19-49b1-bfe4-abb7b83b2e59:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 153], "text": "When this creature enters, draw a card, then discard a card. If you discard a land card this way, put it from your graveyard onto the battlefield tapped."}},
+    {"source": "face:11932191-4b19-49b1-bfe4-abb7b83b2e59:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [154, 285], "text": "Landfall — Whenever a land you control enters, you may pay {1}{G}{U}. If you do, return this card from your graveyard to your hand."}},
+    {"source": "a1", "target": "zone:battlefield", "predicate": "MOVES_TO", "condition": "if a land card was discarded this way", "certainty": "rules_explicit", "provenance": {"oracle_span": [98, 152], "text": "put it from your graveyard onto the battlefield tapped"}},
+    {"source": "a1", "target": "zone:graveyard", "predicate": "MOVES_FROM", "condition": "if a land card was discarded this way", "certainty": "rules_explicit", "provenance": {"oracle_span": [98, 152], "text": "put it from your graveyard onto the battlefield tapped"}},
+    {"source": "a2", "target": "rule:landfall", "predicate": "REFERENCES_RULE", "certainty": "high", "provenance": {"oracle_span": [154, 199], "text": "Landfall — Whenever a land you control enters"}},
+    {"source": "a2", "target": "zone:graveyard", "predicate": "MOVES_FROM", "optional": true, "condition": "if you pay {1}{G}{U}", "certainty": "rules_explicit", "provenance": {"oracle_span": [235, 284], "text": "return this card from your graveyard to your hand"}},
+    {"source": "a2", "target": "zone:hand", "predicate": "MOVES_TO", "optional": true, "condition": "if you pay {1}{G}{U}", "certainty": "rules_explicit", "provenance": {"oracle_span": [235, 284], "text": "return this card from your graveyard to your hand"}}
+  ],
+  "schema_extension_requests": []
+}

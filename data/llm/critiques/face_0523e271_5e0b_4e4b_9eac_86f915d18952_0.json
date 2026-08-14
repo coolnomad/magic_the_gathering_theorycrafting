@@ -1,0 +1,131 @@
+{
+  "face_id": "face:0523e271-5e0b-4e4b-9eac-86f915d18952:0",
+  "abilities": [
+    {
+      "ability_id": "hoth-flash",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "Flash"
+        }
+      ],
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "hoth-death-replacement",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "object_qualifier",
+          "detail": "Applies when a creature an opponent controls would die."
+        }
+      ],
+      "effects": [
+        {
+          "op": "replacement",
+          "detail": "If a creature an opponent controls would die, exile it instead of it dying.",
+          "from_zone": "battlefield",
+          "to_zone": "exile"
+        }
+      ],
+      "oracle_spans": [[6, 69]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "hoth-reflexive-token",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you exile a creature this way (via the replacement effect)",
+        "detail": "Reflexive trigger: 'When you do' refers to exiling the opponent's creature via the replacement.",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "create_token",
+          "count": 1,
+          "token": "2/2 green Wolf creature token",
+          "token_ref": "token:wolf"
+        }
+      ],
+      "oracle_spans": [[70, 122]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:0523e271-5e0b-4e4b-9eac-86f915d18952:0",
+      "target": "keyword:flash",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 5],
+        "text": "Flash"
+      }
+    },
+    {
+      "source": "face:0523e271-5e0b-4e4b-9eac-86f915d18952:0",
+      "target": "ability:hoth-death-replacement",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [6, 69],
+        "text": "If a creature an opponent controls would die, exile it instead."
+      }
+    },
+    {
+      "source": "ability:hoth-death-replacement",
+      "target": "event:opponent-creature-dies",
+      "predicate": "REPLACES",
+      "scope": "creatures an opponent controls",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [6, 69],
+        "text": "If a creature an opponent controls would die, exile it instead."
+      }
+    },
+    {
+      "source": "ability:hoth-death-replacement",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "scope": "creatures an opponent controls that would die",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [6, 69],
+        "text": "If a creature an opponent controls would die, exile it instead."
+      }
+    },
+    {
+      "source": "ability:hoth-death-replacement",
+      "target": "ability:hoth-reflexive-token",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [70, 122],
+        "text": "When you do, create a 2/2 green Wolf creature token.",
+        "note": "Reflexive trigger fires when the replacement exiles an opponent's creature."
+      }
+    },
+    {
+      "source": "ability:hoth-reflexive-token",
+      "target": "token:wolf",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [70, 122],
+        "text": "When you do, create a 2/2 green Wolf creature token."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,26 @@
+{
+  "face_id": "face:66630640-9605-44da-afdf-eb9d458d056f:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "this_creature_enters", "text": "When this creature enters"},
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "return_to_hand", "target": "up to one other target permanent you control", "destination": "its owner's hand", "required": false, "optional_count": "up to one", "ordering": 1},
+        {"op": "add_counter", "counter_type": "+1/+1", "amount": 1, "target": "this creature", "condition": "if you returned a permanent this way", "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 148]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:66630640-9605-44da-afdf-eb9d458d056f:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 148], "text": "When this creature enters, return up to one other target permanent you control to its owner's hand. If you do, put a +1/+1 counter on this creature."}},
+    {"source": "a1", "target": "zone:hand", "predicate": "MOVES_TO", "optional": true, "condition": "if a permanent is chosen (up to one)", "certainty": "rules_explicit", "provenance": {"oracle_span": [27, 98], "text": "return up to one other target permanent you control to its owner's hand"}},
+    {"source": "a1", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "condition": "if a permanent was returned this way", "certainty": "rules_explicit", "provenance": {"oracle_span": [100, 148], "text": "If you do, put a +1/+1 counter on this creature."}}
+  ],
+  "schema_extension_requests": []
+}

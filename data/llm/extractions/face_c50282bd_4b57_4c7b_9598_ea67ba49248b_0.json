@@ -1,0 +1,103 @@
+{
+  "face_id": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
+  "abilities": [
+    {
+      "ability_id": "saga-reminder",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "saga_mechanic",
+          "detail": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 82]],
+      "confidence": "high",
+      "unresolved": [],
+      "note": "reminder text for the Saga keyword; references CR 714"
+    },
+    {
+      "ability_id": "chapter-I-II-III-IV",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore_counter_reaches",
+        "chapters": ["I", "II", "III", "IV"]
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "create_token",
+          "token": "token:treasure",
+          "amount": 1
+        },
+        {
+          "op": "conditional_sacrifice",
+          "condition": "you control four or more Treasures",
+          "then": "sacrifice this Saga"
+        },
+        {
+          "op": "conditional_create_token",
+          "condition": "you sacrificed this Saga this way",
+          "then": "create a 6/6 red Dragon creature token with flying",
+          "token": "token:dragon"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[83, 274]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
+      "target": "rule:saga",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 82], "rule_ref": "CR 714 (Saga cards)", "text": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV."}
+    },
+    {
+      "source": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
+      "target": "counter:lore",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 82], "text": "add a lore counter"}
+    },
+    {
+      "source": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [96, 121], "text": "Create a Treasure token."}
+    },
+    {
+      "source": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
+      "target": "token:treasure",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "note": "sacrifice branch gated on controlling four or more Treasures",
+      "provenance": {"oracle_span": [122, 187], "text": "Then if you control four or more Treasures, sacrifice this Saga."}
+    },
+    {
+      "source": "face:c50282bd-4b57-4c7b-9598-ea67ba49248b:0",
+      "target": "token:dragon",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "condition": "sacrificed this Saga via the four-Treasure clause",
+      "provenance": {"oracle_span": [192, 245], "text": "create a 6/6 red Dragon creature token with flying"}
+    },
+    {
+      "source": "token:treasure",
+      "target": "token:dragon",
+      "predicate": "ENABLES",
+      "certainty": "high",
+      "note": "accumulating four Treasures satisfies the condition that yields the Dragon token",
+      "provenance": {"oracle_span": [122, 245], "text": "if you control four or more Treasures, sacrifice this Saga. If you do, create a 6/6 red Dragon"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,117 @@
+{
+  "face_id": "face:3cc333a1-c854-4b7c-8002-910e48222371:0",
+  "abilities": [
+    {
+      "ability_id": "spatula-etb-lifegain",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this Equipment enters",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "gain_life",
+          "amount": 2,
+          "controller": "you",
+          "detail": "You gain 2 life."
+        }
+      ],
+      "oracle_spans": [[0, 44]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "spatula-static-buff",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "modify_pt",
+          "target": "equipped creature",
+          "power": 1,
+          "toughness": 1,
+          "detail": "Equipped creature gets +1/+1."
+        }
+      ],
+      "oracle_spans": [[45, 74]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "spatula-equip",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{1}"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Equip only as a sorcery."}
+      ],
+      "effects": [
+        {
+          "op": "attach",
+          "target": "target creature you control",
+          "references_mechanic": "Equip",
+          "detail": "Attach this Equipment to target creature you control."
+        }
+      ],
+      "oracle_spans": [[75, 155]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3cc333a1-c854-4b7c-8002-910e48222371:0",
+      "target": "ability:spatula-etb-lifegain",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 44], "text": "When this Equipment enters, you gain 2 life."}
+    },
+    {
+      "source": "event:this-equipment-enters",
+      "target": "ability:spatula-etb-lifegain",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 27], "text": "When this Equipment enters,"}
+    },
+    {
+      "source": "ability:spatula-etb-lifegain",
+      "target": "resource:life",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [28, 44], "text": "you gain 2 life."}
+    },
+    {
+      "source": "face:3cc333a1-c854-4b7c-8002-910e48222371:0",
+      "target": "ability:spatula-static-buff",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [45, 74], "text": "Equipped creature gets +1/+1."}
+    },
+    {
+      "source": "ability:spatula-static-buff",
+      "target": "equipped creature",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [45, 74], "text": "Equipped creature gets +1/+1."}
+    },
+    {
+      "source": "face:3cc333a1-c854-4b7c-8002-910e48222371:0",
+      "target": "keyword:equip",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [75, 84], "text": "Equip {1}"}
+    },
+    {
+      "source": "face:3cc333a1-c854-4b7c-8002-910e48222371:0",
+      "target": "ability:spatula-equip",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [75, 155], "text": "Equip {1} ({1}: Attach to target creature you control. Equip only as a sorcery.)"}
+    }
+  ],
+  "schema_extension_requests": []
+}

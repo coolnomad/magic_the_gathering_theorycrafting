@@ -1,0 +1,42 @@
+{
+  "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0",
+  "abilities": [
+    {"ability_id": "a1", "kind": "static", "effects": [{"op": "grant_keyword", "keyword": "flying", "required": true}], "oracle_spans": [[0, 6]], "confidence": "high", "unresolved": []},
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "this_creature_enters", "text": "When Smaug enters"},
+      "conditions": [],
+      "costs": [],
+      "effects": [{"op": "create_token", "token": "token:treasure", "amount": "X", "state": "tapped", "detail": "X is the number of artifacts your opponents control", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[7, 117]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "triggered",
+      "trigger": {"event": "you_cast_spell", "text": "Whenever you cast a spell"},
+      "conditions": [{"note": "intervening-if: mana from a Treasure was spent to cast that spell"}],
+      "costs": [],
+      "effects": [
+        {"op": "draw", "amount": 1, "required": true},
+        {"op": "lose_life", "amount": 1, "controller": "you", "required": true}
+      ],
+      "controller": "you",
+      "oracle_spans": [[118, 223]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:20535126-f811-4386-bdce-d73f30691724:0", "target": "keyword:flying", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 6], "text": "Flying"}},
+    {"source": "face:20535126-f811-4386-bdce-d73f30691724:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [7, 117], "text": "When Smaug enters, create X tapped Treasure tokens, where X is the number of artifacts your opponents control."}},
+    {"source": "face:20535126-f811-4386-bdce-d73f30691724:0", "target": "a3", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [118, 223], "text": "Whenever you cast a spell, if mana from a Treasure was spent to cast it, you draw a card and lose 1 life."}},
+    {"source": "a2", "target": "token:treasure", "predicate": "CREATES_OBJECT", "certainty": "rules_explicit", "provenance": {"oracle_span": [26, 116], "text": "create X tapped Treasure tokens, where X is the number of artifacts your opponents control"}},
+    {"source": "a2", "target": "token:treasure", "predicate": "SCALES_WITH", "certainty": "rules_explicit", "provenance": {"oracle_span": [58, 116], "text": "X is the number of artifacts your opponents control", "note": "token count scales with opponents' artifact count"}},
+    {"source": "a3", "target": "token:treasure", "predicate": "REQUIRES", "certainty": "rules_explicit", "provenance": {"oracle_span": [145, 189], "text": "if mana from a Treasure was spent to cast it", "note": "trigger conditioned on Treasure mana having been spent"}}
+  ],
+  "schema_extension_requests": []
+}

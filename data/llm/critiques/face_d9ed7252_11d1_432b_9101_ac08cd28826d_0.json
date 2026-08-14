@@ -1,0 +1,83 @@
+{
+  "face_id": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
+  "abilities": [
+    {
+      "ability_id": "hospitality-landfall",
+      "kind": "triggered",
+      "trigger": {
+        "event": "a land you control enters",
+        "keyword": "Landfall",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "add_counter",
+          "counter_type": "+1/+1",
+          "quantity": 1,
+          "target": "target creature you control"
+        }
+      ],
+      "oracle_spans": [[0, 98]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "hospitality-animate",
+      "kind": "activated",
+      "costs": [
+        {"type": "mana", "cost": "{5}{G}{G}"}
+      ],
+      "effects": [
+        {
+          "type": "type_addition",
+          "adds_type": "Bear creature",
+          "subject": "this enchantment",
+          "note": "in addition to its other types"
+        },
+        {
+          "type": "grant_ability",
+          "granted": "This creature's power and toughness are each equal to the number of lands you control.",
+          "duration": "does not end"
+        }
+      ],
+      "oracle_spans": [[99, 307]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
+      "target": "keyword:landfall",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [0, 8], "text": "Landfall"}
+    },
+    {
+      "source": "hospitality-landfall",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "provenance": {"oracle_span": [47, 97], "text": "put a +1/+1 counter on target creature you control"}
+    },
+    {
+      "source": "hospitality-landfall",
+      "target": "counter:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "provenance": {"oracle_span": [53, 66], "text": "+1/+1 counter"}
+    },
+    {
+      "source": "hospitality-animate",
+      "target": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
+      "predicate": "MODIFIES",
+      "note": "adds Bear creature type to this enchantment",
+      "provenance": {"oracle_span": [110, 181], "text": "This enchantment becomes a Bear creature in addition to its other types"}
+    },
+    {
+      "source": "hospitality-animate",
+      "target": "face:d9ed7252-11d1-432b-9101-ac08cd28826d:0",
+      "predicate": "SCALES_WITH",
+      "condition": "number of lands you control, after this enchantment becomes a creature",
+      "provenance": {"oracle_span": [193, 278], "text": "This creature's power and toughness are each equal to the number of lands you control", "note": "P/T set by land count once animated"}
+    }
+  ],
+  "schema_extension_requests": []
+}

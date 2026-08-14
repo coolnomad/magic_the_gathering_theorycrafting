@@ -62,7 +62,9 @@ def llm_output_schema() -> dict:
     ability = {
         "type": "object",
         "required": ["ability_id", "kind", "effects", "oracle_spans", "confidence", "unresolved"],
-        "additionalProperties": False,
+        # Descriptive keys (controller, duration, target, ...) the spec itself names are
+        # allowed; the hard guards are the required fields + enums below.
+        "additionalProperties": True,
         "properties": {
             "ability_id": {"type": "string"},
             "kind": {"enum": ["triggered", "activated", "static", "replacement", "spell_effect"]},
@@ -81,7 +83,8 @@ def llm_output_schema() -> dict:
     edge = {
         "type": "object",
         "required": ["source", "target", "predicate", "provenance"],
-        "additionalProperties": False,
+        # Descriptive annotations (note, ...) allowed; predicate enum + provenance are the guards.
+        "additionalProperties": True,
         "properties": {
             "source": {"type": "string"},
             "target": {"type": "string"},
@@ -314,13 +317,26 @@ def validate_output(obj: dict, face_id: str | None = None, oracle_len: int | Non
         if m:
             errors.append(f"evaluative language: '{m.group(0)}'")
             break
-    # oracle spans within bounds
+    # oracle spans: a broken START is a hard error; an END overrunning the text is a
+    # soft provenance drift (the `text` quote is the real provenance) -> see span_warnings().
     if oracle_len is not None:
         for ab in obj.get("abilities", []):
             for span in ab.get("oracle_spans", []):
-                if len(span) == 2 and not (0 <= span[0] <= span[1] <= oracle_len):
-                    errors.append(f"oracle span out of bounds: {span} (len {oracle_len})")
+                if len(span) == 2 and not (0 <= span[0] <= span[1] and span[0] <= oracle_len):
+                    errors.append(f"oracle span start invalid: {span} (len {oracle_len})")
     return errors
+
+
+def span_warnings(obj: dict, oracle_len: int | None) -> list[str]:
+    """Soft provenance issues that do NOT block acceptance (recorded, not repaired)."""
+    warns = []
+    if oracle_len is None:
+        return warns
+    for ab in obj.get("abilities", []):
+        for span in ab.get("oracle_spans", []):
+            if len(span) == 2 and span[1] > oracle_len:
+                warns.append(f"span end {span[1]} > oracle_len {oracle_len} in {ab.get('ability_id')}")
+    return warns
 
 
 def _oracle_len(face_id: str, repo: Path) -> int | None:
@@ -354,17 +370,23 @@ def ingest(repo: Path = REPO) -> dict:
     """Validate raw extractor outputs (data/llm/extractions/*.json) and route them to
     llm_candidates.jsonl (valid) or llm_rejections.jsonl (invalid). Never repairs."""
     raw = _load_json_dir(repo / "data" / "llm" / "extractions")
-    candidates, rejections = [], []
+    candidates, rejections, warnings = [], [], []
     for face_id, obj in raw.items():
-        errs = validate_output(obj, face_id=face_id, oracle_len=_oracle_len(face_id, repo))
+        olen = _oracle_len(face_id, repo)
+        errs = validate_output(obj, face_id=face_id, oracle_len=olen)
         if errs:
             rejections.append({"face_id": face_id, "errors": errs, "raw": obj})
         else:
             candidates.append(obj)
+            w = span_warnings(obj, olen)
+            if w:
+                warnings.append({"face_id": face_id, "warnings": w})
     review = repo / "data" / "review"
     _write_dicts(review / "llm_candidates.jsonl", candidates)
     _write_dicts(review / "llm_rejections.jsonl", rejections)
-    return {"extractions": len(raw), "candidates": len(candidates), "rejections": len(rejections)}
+    _write_dicts(review / "llm_span_warnings.jsonl", warnings)
+    return {"extractions": len(raw), "candidates": len(candidates),
+            "rejections": len(rejections), "span_warnings": len(warnings)}
 
 
 def _edge_key(e: dict) -> tuple:
@@ -372,8 +394,9 @@ def _edge_key(e: dict) -> tuple:
 
 
 def _ability_key(a: dict) -> tuple:
-    span = tuple(a["oracle_spans"][0]) if a.get("oracle_spans") else ()
-    return (a["kind"], span)
+    # Key on the stable ability_id + kind, NOT the span: the critic legitimately
+    # corrects Oracle spans, and span-only fixes must not read as a disagreement.
+    return (a.get("ability_id"), a.get("kind"))
 
 
 def reconcile(repo: Path = REPO) -> dict:

@@ -1,0 +1,64 @@
+{
+  "face_id": "face:27e17542-549b-4c05-8091-c10a245c916b:0",
+  "abilities": [
+    {
+      "ability_id": "guglob-counter-menace",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "object_qualifier",
+          "detail": "Applies to each creature you control that has a +1/+1 counter on it."
+        }
+      ],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "Menace",
+          "target": "each creature you control with a +1/+1 counter on it",
+          "detail": "It can't be blocked except by two or more creatures."
+        }
+      ],
+      "oracle_spans": [[0, 63]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:27e17542-549b-4c05-8091-c10a245c916b:0",
+      "target": "ability:guglob-counter-menace",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [0, 63],
+        "text": "Each creature you control with a +1/+1 counter on it has menace."
+      }
+    },
+    {
+      "source": "ability:guglob-counter-menace",
+      "target": "keyword:menace",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "scope": "each creature you control with a +1/+1 counter on it",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 63],
+        "text": "Each creature you control with a +1/+1 counter on it has menace."
+      }
+    },
+    {
+      "source": "ability:guglob-counter-menace",
+      "target": "counter:+1/+1",
+      "predicate": "REQUIRES",
+      "scope": "each affected creature must have a +1/+1 counter on it",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 63],
+        "text": "Each creature you control with a +1/+1 counter on it has menace.",
+        "note": "Membership in the set of affected creatures is conditioned on the presence of a +1/+1 counter."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

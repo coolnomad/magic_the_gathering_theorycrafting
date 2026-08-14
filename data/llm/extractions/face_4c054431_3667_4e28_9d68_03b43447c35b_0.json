@@ -1,0 +1,32 @@
+{
+  "face_id": "face:4c054431-3667-4e28-9d68-03b43447c35b:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "effects": [
+        {"op": "destroy", "target": "target creature"}
+      ],
+      "oracle_spans": [[0, 24]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:4c054431-3667-4e28-9d68-03b43447c35b:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 24], "text": "Destroy target creature."}
+    },
+    {
+      "source": "a1",
+      "target": "event:creature_destroyed",
+      "predicate": "CAUSES",
+      "scope": "target creature",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 24], "text": "Destroy target creature."}
+    }
+  ],
+  "schema_extension_requests": []
+}

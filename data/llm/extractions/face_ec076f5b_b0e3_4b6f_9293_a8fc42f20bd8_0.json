@@ -1,0 +1,37 @@
+{
+  "face_id": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {"op": "grant_keyword", "keywords": ["reach"], "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "draw_second_card", "note": "whenever you draw your second card each turn", "controller": "you"},
+      "effects": [
+        {"op": "put_counter", "counter_type": "+1/+1", "quantity": 1, "target": "target creature"},
+        {"op": "grant_keyword", "keywords": ["lifelink"], "target": "that creature", "duration": "until end of turn"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[6, 128]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "keyword:reach", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 5], "text": "Reach"}},
+    {"source": "event:draw", "target": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": {"oracle_span": [6, 49], "text": "Whenever you draw your second card each turn", "note": "triggers on drawing the second card each turn"}},
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [51, 91], "text": "put a +1/+1 counter on target creature."}},
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "counter:+1/+1", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [57, 69], "text": "+1/+1 counter"}},
+    {"source": "face:ec076f5b-b0e3-4b6f-9293-a8fc42f20bd8:0", "target": "keyword:lifelink", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": {"oracle_span": [92, 128], "text": "It gains lifelink until end of turn.", "note": "grants lifelink to target creature until end of turn"}}
+  ],
+  "schema_extension_requests": []
+}

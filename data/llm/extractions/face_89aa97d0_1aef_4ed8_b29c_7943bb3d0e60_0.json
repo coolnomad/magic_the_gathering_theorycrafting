@@ -1,0 +1,93 @@
+{
+  "face_id": "face:89aa97d0-1aef-4ed8-b29c-7943bb3d0e60:0",
+  "abilities": [
+    {
+      "ability_id": "nighthowl-menace",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "Menace"
+        }
+      ],
+      "oracle_spans": [[0, 7]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "nighthowl-ferocious-attack",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature attacks",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [
+        {
+          "type": "ferocious",
+          "detail": "Only while you control a creature with power 4 or greater.",
+          "references_mechanic": "Ferocious"
+        }
+      ],
+      "effects": [
+        {
+          "op": "modify_power_toughness",
+          "target": "this creature",
+          "amount": "+2/+2",
+          "duration": "until end of turn"
+        }
+      ],
+      "oracle_spans": [[70, 202]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:89aa97d0-1aef-4ed8-b29c-7943bb3d0e60:0",
+      "target": "keyword:menace",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 7],
+        "text": "Menace"
+      }
+    },
+    {
+      "source": "face:89aa97d0-1aef-4ed8-b29c-7943bb3d0e60:0",
+      "target": "ability:nighthowl-ferocious-attack",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [70, 202],
+        "text": "Ferocious — Whenever this creature attacks while you control a creature with power 4 or greater, this creature gets +2/+2 until end of turn."
+      }
+    },
+    {
+      "source": "event:this-creature-attacks",
+      "target": "ability:nighthowl-ferocious-attack",
+      "predicate": "TRIGGERS",
+      "condition": "you control a creature with power 4 or greater",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [81, 165],
+        "text": "Whenever this creature attacks while you control a creature with power 4 or greater,"
+      }
+    },
+    {
+      "source": "ability:nighthowl-ferocious-attack",
+      "target": "face:89aa97d0-1aef-4ed8-b29c-7943bb3d0e60:0",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [166, 202],
+        "text": "this creature gets +2/+2 until end of turn."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

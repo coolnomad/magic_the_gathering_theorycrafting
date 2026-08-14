@@ -1,0 +1,36 @@
+{
+  "face_id": "face:db05b114-2eb5-46bc-81e7-7e036d8eaab3:0",
+  "abilities": [
+    {
+      "ability_id": "quarrel-fight-damage",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "type": "deal_damage",
+          "source": "target creature you control",
+          "amount": "equal to its power",
+          "target": "target creature an opponent controls"
+        }
+      ],
+      "oracle_spans": [[0, 100]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "quarrel-fight-damage",
+      "target": "event:damage",
+      "predicate": "CAUSES",
+      "provenance": {"oracle_span": [0, 100], "text": "Target creature you control deals damage equal to its power to target creature an opponent controls."}
+    },
+    {
+      "source": "quarrel-fight-damage",
+      "target": "event:damage",
+      "predicate": "SCALES_WITH",
+      "condition": "power of the controlled creature",
+      "provenance": {"oracle_span": [0, 100], "text": "Target creature you control deals damage equal to its power to target creature an opponent controls.", "note": "damage dealt equals the controlled creature's power"}
+    }
+  ],
+  "schema_extension_requests": []
+}

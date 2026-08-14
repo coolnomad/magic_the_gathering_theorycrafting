@@ -1,0 +1,66 @@
+{
+  "face_id": "face:77c97dad-17cc-4a28-a48b-907c044d9034:0",
+  "abilities": [
+    {
+      "ability_id": "keepers-affinity-elves",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "cost_reduction",
+          "reduces": "this spell's cost",
+          "amount": "{1}",
+          "per": "each Elf you control",
+          "note": "cost reduction while casting"
+        }
+      ],
+      "oracle_spans": [[0, 79]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "keepers-etb-mill",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature enters",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "type": "mill",
+          "quantity": 4
+        },
+        {
+          "type": "move",
+          "subject": "all Elf cards from among the milled cards",
+          "destination": "hand"
+        }
+      ],
+      "oracle_spans": [[80, 179]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:77c97dad-17cc-4a28-a48b-907c044d9034:0",
+      "target": "keyword:affinity",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [0, 18], "text": "Affinity for Elves"}
+    },
+    {
+      "source": "keepers-affinity-elves",
+      "target": "face:77c97dad-17cc-4a28-a48b-907c044d9034:0",
+      "predicate": "SCALES_WITH",
+      "condition": "number of Elves you control",
+      "provenance": {"oracle_span": [20, 78], "text": "This spell costs {1} less to cast for each Elf you control", "note": "casting cost reduced per Elf controlled"}
+    },
+    {
+      "source": "keepers-etb-mill",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "condition": "milled cards are Elf cards",
+      "provenance": {"oracle_span": [130, 178], "text": "put all Elf cards from among them into your hand"}
+    }
+  ],
+  "schema_extension_requests": []
+}

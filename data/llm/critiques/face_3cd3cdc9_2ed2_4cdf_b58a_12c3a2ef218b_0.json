@@ -1,0 +1,160 @@
+{
+  "face_id": "face:3cd3cdc9-2ed2-4cdf-b58a-12c3a2ef218b:0",
+  "abilities": [
+    {
+      "ability_id": "3cd3cdc9-saga",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "saga_reminder",
+          "note": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 87]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "3cd3cdc9-c1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "chapter",
+        "chapter": "I",
+        "lore_count": 1
+      },
+      "effects": [
+        {
+          "op": "search_library",
+          "for": "up to two basic Plains cards",
+          "then": "exile them, then shuffle"
+        },
+        {
+          "op": "gain_life",
+          "amount": 2
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[88, 188]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "3cd3cdc9-c2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "chapter",
+        "chapter": "II, III",
+        "lore_count": [2, 3]
+      },
+      "effects": [
+        {
+          "op": "return_exiled_card",
+          "note": "Put a card exiled with this Saga into its owner's hand.",
+          "source": "cards exiled with this Saga",
+          "destination": "owner's hand"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[189, 254]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "3cd3cdc9-c3",
+      "kind": "triggered",
+      "trigger": {
+        "event": "chapter",
+        "chapter": "IV",
+        "lore_count": 4
+      },
+      "effects": [
+        {
+          "op": "delayed_trigger",
+          "note": "Whenever you attack this turn, target creature you control gets +1/+1 until end of turn for each Plains you control.",
+          "scales_with": "number of Plains you control",
+          "duration": "until end of turn"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[255, 376]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3cd3cdc9-2ed2-4cdf-b58a-12c3a2ef218b:0",
+      "target": "3cd3cdc9-saga",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 87], "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.)", "rule_ref": "CR 714 (Saga cards)"}
+    },
+    {
+      "source": "3cd3cdc9-saga",
+      "target": "counter:lore",
+      "predicate": "ADDS_COUNTER",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [47, 65], "text": "add a lore counter", "rule_ref": "CR 714 (Saga cards)"}
+    },
+    {
+      "source": "face:3cd3cdc9-2ed2-4cdf-b58a-12c3a2ef218b:0",
+      "target": "3cd3cdc9-c1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [88, 188], "text": "I — Search your library for up to two basic Plains cards, exile them, then shuffle. You gain 2 life."}
+    },
+    {
+      "source": "3cd3cdc9-c1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [146, 170], "text": "exile them, then shuffle"}
+    },
+    {
+      "source": "3cd3cdc9-c1",
+      "target": "you",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [172, 188], "text": "You gain 2 life.", "note": "gain 2 life"}
+    },
+    {
+      "source": "face:3cd3cdc9-2ed2-4cdf-b58a-12c3a2ef218b:0",
+      "target": "3cd3cdc9-c2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [189, 254], "text": "II, III — Put a card exiled with this Saga into its owner's hand."}
+    },
+    {
+      "source": "3cd3cdc9-c2",
+      "target": "zone:exile",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [189, 254], "text": "Put a card exiled with this Saga into its owner's hand."}
+    },
+    {
+      "source": "face:3cd3cdc9-2ed2-4cdf-b58a-12c3a2ef218b:0",
+      "target": "3cd3cdc9-c3",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [255, 376], "text": "IV — Whenever you attack this turn, target creature you control gets +1/+1 until end of turn for each Plains you control."}
+    },
+    {
+      "source": "3cd3cdc9-c3",
+      "target": "target creature you control",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until_end_of_turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [255, 376], "text": "target creature you control gets +1/+1 until end of turn for each Plains you control"}
+    },
+    {
+      "source": "3cd3cdc9-c3",
+      "target": "number of Plains you control",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [348, 375], "text": "for each Plains you control"}
+    }
+  ],
+  "schema_extension_requests": []
+}

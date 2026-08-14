@@ -1,0 +1,98 @@
+{
+  "face_id": "face:6f83da19-fd89-44ec-88f3-0c3fddfbd1b2:0",
+  "abilities": [
+    {
+      "ability_id": "flash",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "grants_keyword",
+          "keyword": "Flash",
+          "note": "May be cast any time you could cast an instant."
+        }
+      ],
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "reach",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "grants_keyword",
+          "keyword": "Reach",
+          "note": "Can block creatures with flying."
+        }
+      ],
+      "oracle_spans": [[6, 11]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "etb_treasure",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "this creature"
+      },
+      "effects": [
+        {
+          "effect": "create_token",
+          "token": "token:treasure",
+          "quantity": 1,
+          "enters_tapped": true
+        }
+      ],
+      "oracle_spans": [[12, 152]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:6f83da19-fd89-44ec-88f3-0c3fddfbd1b2:0",
+      "target": "kw:flash",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 5], "text": "Flash"}
+    },
+    {
+      "source": "face:6f83da19-fd89-44ec-88f3-0c3fddfbd1b2:0",
+      "target": "kw:reach",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [6, 11], "text": "Reach"}
+    },
+    {
+      "source": "face:6f83da19-fd89-44ec-88f3-0c3fddfbd1b2:0",
+      "target": "ability:etb_treasure",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [12, 152], "text": "When this creature enters, create a tapped Treasure token."}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:etb_treasure",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [12, 41], "text": "When this creature enters"}
+    },
+    {
+      "source": "ability:etb_treasure",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "timing": "enters_tapped",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [43, 74], "text": "create a tapped Treasure token"}
+    },
+    {
+      "source": "ability:etb_treasure",
+      "target": "token:treasure",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [43, 74], "text": "create a tapped Treasure token"}
+    }
+  ],
+  "schema_extension_requests": []
+}

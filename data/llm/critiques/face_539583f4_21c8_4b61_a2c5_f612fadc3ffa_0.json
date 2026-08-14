@@ -1,0 +1,115 @@
+{
+  "face_id": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+  "abilities": [
+    {
+      "ability_id": "quest-mountain-etb",
+      "kind": "triggered",
+      "trigger": {
+        "event": "permanent_enters",
+        "filter": "a Mountain you control"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "add_counter",
+          "counter_type": "quest",
+          "amount": 1,
+          "target": "this enchantment"
+        },
+        {
+          "op": "conditional_sacrifice",
+          "condition": "this enchantment has six or more quest counters on it",
+          "then": "sacrifice this enchantment"
+        },
+        {
+          "op": "conditional_tutor",
+          "condition": "you sacrificed this enchantment this way",
+          "then": "search your hand and/or library for a Dragon card and put it onto the battlefield; if you searched your library, shuffle",
+          "target": "a Dragon card"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 278]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "mountaincycling",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"op": "pay_mana", "amount": "{2}"},
+        {"op": "discard", "target": "this card"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "search_library",
+          "target": "a Mountain card",
+          "then": "reveal it, put it into your hand, then shuffle"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[279, 413]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+      "target": "counter:quest",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [40, 79], "text": "put a quest counter on this enchantment"}
+    },
+    {
+      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+      "target": "counter:quest",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "condition": "a Mountain you control enters",
+      "provenance": {"oracle_span": [0, 79], "text": "Whenever a Mountain you control enters, put a quest counter on this enchantment"}
+    },
+    {
+      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+      "target": "counter:quest",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "note": "sacrifice branch gated on six or more quest counters",
+      "provenance": {"oracle_span": [81, 138], "text": "If it has six or more quest counters on it, sacrifice it."}
+    },
+    {
+      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+      "target": "obj:dragon-card",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "condition": "sacrificed this enchantment via the six-counter clause",
+      "provenance": {"oracle_span": [150, 231], "text": "search your hand and/or library for a Dragon card and put it onto the battlefield"}
+    },
+    {
+      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [204, 231], "text": "put it onto the battlefield"}
+    },
+    {
+      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+      "target": "obj:mountain-card",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "note": "Mountaincycling: discard this card as cost, tutor a Mountain to hand",
+      "provenance": {"oracle_span": [279, 413], "text": "Mountaincycling {2} ({2}, Discard this card: Search your library for a Mountain card, reveal it, put it into your hand, then shuffle.)"}
+    },
+    {
+      "source": "face:539583f4-21c8-4b61-a2c5-f612fadc3ffa:0",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [376, 397], "text": "put it into your hand"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,54 @@
+{
+  "face_id": "face:acfe54b3-10e3-4fdb-b874-d39fde96c40a:0",
+  "abilities": [
+    {
+      "ability_id": "forestgate-ramp",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "type": "look",
+          "quantity": 20,
+          "zone": "top of library"
+        },
+        {
+          "type": "put_onto_battlefield",
+          "selection": "any number of land cards from among them",
+          "state": "tapped",
+          "then": "shuffle"
+        }
+      ],
+      "oracle_spans": [[0, 133]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "forestgate-lifegain",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "type": "gain_life",
+          "quantity": 8
+        }
+      ],
+      "oracle_spans": [[134, 150]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "forestgate-ramp",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "scope": "any number of land cards from top twenty",
+      "provenance": {"oracle_span": [46, 118], "text": "put any number of land cards from among them onto the battlefield tapped"}
+    },
+    {
+      "source": "forestgate-ramp",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "provenance": {"oracle_span": [0, 44], "text": "Look at the top twenty cards of your library"}
+    }
+  ],
+  "schema_extension_requests": []
+}

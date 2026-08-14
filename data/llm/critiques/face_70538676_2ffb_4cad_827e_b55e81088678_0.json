@@ -1,0 +1,25 @@
+{
+  "face_id": "face:70538676-2ffb-4cad-827e-b55e81088678:0",
+  "abilities": [
+    {
+      "ability_id": "70538676-a1",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        { "text": "equip abilities you activate that target this creature" }
+      ],
+      "effects": [
+        { "op": "cost_reduction", "amount": "{2}", "affected": "equip abilities you activate that target this creature", "required": true, "text": "Equip abilities you activate that target this creature cost {2} less to activate." }
+      ],
+      "oracle_spans": [[0, 80]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:70538676-2ffb-4cad-827e-b55e81088678:0", "target": "70538676-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 80], "text": "Equip abilities you activate that target this creature cost {2} less to activate." } },
+    { "source": "70538676-a1", "target": "cost:equip", "predicate": "MODIFIES", "condition": "reduces equip activation cost by {2} when the equip ability targets this creature", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 80], "text": "Equip abilities you activate that target this creature cost {2} less to activate" } }
+  ],
+  "schema_extension_requests": []
+}

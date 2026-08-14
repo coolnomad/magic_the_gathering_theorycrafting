@@ -1,0 +1,51 @@
+{
+  "face_id": "face:8fcab221-8737-4357-b8ee-bad9421739a3:0",
+  "abilities": [
+    {
+      "ability_id": "anthem_pump",
+      "kind": "activated",
+      "costs": [
+        {"cost": "mana", "value": "{3}{W}"}
+      ],
+      "effects": [
+        {
+          "effect": "modify_pt",
+          "target": "creatures you control",
+          "power": "+1",
+          "toughness": "+1",
+          "duration": "until end of turn"
+        }
+      ],
+      "oracle_spans": [[0, 56]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8fcab221-8737-4357-b8ee-bad9421739a3:0",
+      "target": "ability:anthem_pump",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 56], "text": "{3}{W}: Creatures you control get +1/+1 until end of turn."}
+    },
+    {
+      "source": "ability:anthem_pump",
+      "target": "cost:mana:{3}{W}",
+      "predicate": "HAS_COST",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 6], "text": "{3}{W}"}
+    },
+    {
+      "source": "ability:anthem_pump",
+      "target": "objectclass:creatures_you_control",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until end of turn",
+      "scope": "creatures you control",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [8, 56], "text": "Creatures you control get +1/+1 until end of turn"}
+    }
+  ],
+  "schema_extension_requests": []
+}

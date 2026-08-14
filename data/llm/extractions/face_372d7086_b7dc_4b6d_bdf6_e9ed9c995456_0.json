@@ -1,0 +1,46 @@
+{
+  "face_id": "face:372d7086-b7dc-4b6d-bdf6-e9ed9c995456:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {"op": "grant_keyword", "keywords": ["trample"], "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 8]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "conditions": [{"type": "control", "requirement": "you control two or more other Wolves"}],
+      "effects": [
+        {"op": "attack_restriction", "note": "this creature can't attack unless you control two or more other Wolves"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[9, 71]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "triggered",
+      "trigger": {"event": "upkeep", "phase": "beginning of your upkeep", "controller": "you"},
+      "effects": [
+        {"op": "create_token", "token": "token:wolf", "quantity": 1}
+      ],
+      "controller": "you",
+      "oracle_spans": [[72, 138]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:372d7086-b7dc-4b6d-bdf6-e9ed9c995456:0", "target": "keyword:trample", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 8], "text": "Trample"}},
+    {"source": "face:372d7086-b7dc-4b6d-bdf6-e9ed9c995456:0", "target": "event:attack", "predicate": "REQUIRES", "certainty": "rules_explicit", "provenance": {"oracle_span": [9, 71], "text": "This creature can't attack unless you control two or more other Wolves.", "note": "attacking requires two or more other Wolves"}},
+    {"source": "face:372d7086-b7dc-4b6d-bdf6-e9ed9c995456:0", "target": "token:wolf", "predicate": "CREATES_OBJECT", "certainty": "rules_explicit", "provenance": {"oracle_span": [72, 138], "text": "At the beginning of your upkeep, create a 2/2 green Wolf creature token."}}
+  ],
+  "schema_extension_requests": []
+}

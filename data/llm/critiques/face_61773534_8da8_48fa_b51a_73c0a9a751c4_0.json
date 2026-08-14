@@ -1,0 +1,27 @@
+{
+  "face_id": "face:61773534-8da8-48fa-b51a-73c0a9a751c4:0",
+  "abilities": [
+    {
+      "ability_id": "61773534-a1",
+      "kind": "triggered",
+      "trigger": { "event": "this creature enters the battlefield", "text": "When this creature enters" },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "exile", "detail": "top card of your library", "from_zone": "library", "to_zone": "exile", "required": true, "text": "exile the top card of your library" },
+        { "op": "grant_play_permission", "detail": "you may play that exiled card until the end of your next turn", "target": "the exiled card", "duration": "until the end of your next turn", "optional": true, "text": "Until the end of your next turn, you may play that card" }
+      ],
+      "oracle_spans": [[0, 118]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:61773534-8da8-48fa-b51a-73c0a9a751c4:0", "target": "61773534-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 118], "text": "When this creature enters, exile the top card of your library. Until the end of your next turn, you may play that card." } },
+    { "source": "61773534-a1", "target": "event:etb", "predicate": "TRIGGERS", "provenance": { "oracle_span": [0, 25], "text": "When this creature enters" } },
+    { "source": "61773534-a1", "target": "zone:library", "predicate": "MOVES_FROM", "certainty": "rules_explicit", "provenance": { "oracle_span": [27, 61], "text": "exile the top card of your library" } },
+    { "source": "61773534-a1", "target": "zone:exile", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": { "oracle_span": [27, 61], "text": "exile the top card of your library" } },
+    { "source": "61773534-a1", "target": "op:play-from-exile", "predicate": "ENABLES", "optional": true, "condition": "you may play the exiled card until the end of your next turn", "provenance": { "oracle_span": [63, 118], "text": "Until the end of your next turn, you may play that card" } }
+  ],
+  "schema_extension_requests": []
+}

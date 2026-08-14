@@ -1,0 +1,118 @@
+{
+  "face_id": "face:5ebe8de1-aa3d-410d-b43d-1685259c7a97:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keywords": [
+            "menace"
+          ],
+          "target": "this creature"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          0,
+          72
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "attacks",
+        "subject": "you",
+        "note": "whenever you attack"
+      },
+      "conditions": [
+        {
+          "type": "control",
+          "requirement": "you control a creature with power 4 or greater"
+        }
+      ],
+      "effects": [
+        {
+          "op": "draw",
+          "quantity": 1
+        },
+        {
+          "op": "lose_life",
+          "amount": 1
+        }
+      ],
+      "controller": "you",
+      "keyword": "Ferocious",
+      "oracle_spans": [
+        [
+          72,
+          191
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:5ebe8de1-aa3d-410d-b43d-1685259c7a97:0",
+      "target": "keyword:menace",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          0,
+          6
+        ],
+        "text": "Menace"
+      }
+    },
+    {
+      "source": "face:5ebe8de1-aa3d-410d-b43d-1685259c7a97:0",
+      "target": "keyword:ferocious",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          73,
+          82
+        ],
+        "text": "Ferocious"
+      }
+    },
+    {
+      "source": "keyword:ferocious",
+      "target": "rule:ferocious",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [
+          85,
+          157
+        ],
+        "text": "Whenever you attack while you control a creature with power 4 or greater"
+      }
+    },
+    {
+      "source": "face:5ebe8de1-aa3d-410d-b43d-1685259c7a97:0",
+      "target": "event:draw",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          159,
+          190
+        ],
+        "text": "you draw a card and lose 1 life",
+        "note": "draw a card and lose 1 life on attack"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

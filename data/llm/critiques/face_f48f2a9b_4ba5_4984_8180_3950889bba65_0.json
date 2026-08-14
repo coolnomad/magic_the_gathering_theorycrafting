@@ -1,0 +1,69 @@
+{
+  "face_id": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:0",
+  "abilities": [
+    {
+      "ability_id": "noncreature_cast_pump_and_ping",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you_cast_a_noncreature_spell",
+        "detail": "Triggers whenever you cast a spell that is not a creature spell.",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "effect": "power_toughness_modification",
+          "modification": "+1/+1",
+          "target": "Gandalf, Goblins' Bane (this creature)",
+          "duration": "until end of turn",
+          "controller": "you"
+        },
+        {
+          "effect": "deal_damage",
+          "amount": 1,
+          "target": "each opponent",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[0, 112]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "noncreature_cast_pump_and_ping",
+      "target": "event:cast_noncreature_spell",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 112],
+        "text": "Whenever you cast a noncreature spell",
+        "note": "Trigger conditioned on the cast spell being noncreature; triggers per such cast."
+      }
+    },
+    {
+      "source": "noncreature_cast_pump_and_ping",
+      "target": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:0",
+      "predicate": "MODIFIES",
+      "timing": "until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 112],
+        "text": "Gandalf gets +1/+1 until end of turn",
+        "note": "Temporary +1/+1 buff to this creature itself; self-reference resolved to Gandalf face."
+      }
+    },
+    {
+      "source": "noncreature_cast_pump_and_ping",
+      "target": "obj:each_opponent",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 112],
+        "text": "deals 1 damage to each opponent"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

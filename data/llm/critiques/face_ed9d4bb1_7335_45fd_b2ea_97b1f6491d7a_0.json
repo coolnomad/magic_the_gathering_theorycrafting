@@ -1,0 +1,48 @@
+{
+  "face_id": "face:ed9d4bb1-7335-45fd-b2ea-97b1f6491d7a:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "activated",
+      "costs": [
+        {"op": "pay_life", "amount": 2}
+      ],
+      "conditions": [
+        {"condition": "activate only once each turn"}
+      ],
+      "effects": [
+        {"op": "modify_pt", "power": 2, "toughness": 2, "affects": "this creature", "duration": "until end of turn"}
+      ],
+      "oracle_spans": [[0, 82]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:ed9d4bb1-7335-45fd-b2ea-97b1f6491d7a:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 82], "text": "Pay 2 life: This creature gets +2/+2 until end of turn. Activate only once each turn."}
+    },
+    {
+      "source": "a1",
+      "target": "resource:life",
+      "predicate": "CONSUMES",
+      "polarity": "negative",
+      "scope": "2 life as activation cost",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 10], "text": "Pay 2 life:"}
+    },
+    {
+      "source": "a1",
+      "target": "face:ed9d4bb1-7335-45fd-b2ea-97b1f6491d7a:0",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "scope": "+2/+2 until end of turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [11, 54], "text": "This creature gets +2/+2 until end of turn."}
+    }
+  ],
+  "schema_extension_requests": []
+}

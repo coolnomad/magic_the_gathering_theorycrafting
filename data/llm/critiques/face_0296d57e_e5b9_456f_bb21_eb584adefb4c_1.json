@@ -1,0 +1,106 @@
+{
+  "face_id": "face:0296d57e-e5b9-456f-bb21-eb584adefb4c:1",
+  "abilities": [
+    {
+      "ability_id": "meager-meal-counter",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "add_counter",
+          "counter_type": "+1/+1",
+          "count": 1,
+          "target": "up to one target creature",
+          "optional_target": true
+        }
+      ],
+      "oracle_spans": [[0, 49]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "meager-meal-lifegain",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "gain_life",
+          "amount": 2,
+          "target": "target player"
+        }
+      ],
+      "oracle_spans": [[50, 77]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "meager-meal-adventure",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "adventure_exile",
+          "detail": "Then exile this card; you may cast the creature face later from exile.",
+          "references_mechanic": "Adventure"
+        }
+      ],
+      "oracle_spans": [[78, 145]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:0296d57e-e5b9-456f-bb21-eb584adefb4c:1",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "optional": true,
+      "scope": "up to one target creature",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 49],
+        "text": "Put a +1/+1 counter on up to one target creature."
+      }
+    },
+    {
+      "source": "face:0296d57e-e5b9-456f-bb21-eb584adefb4c:1",
+      "target": "resource:life",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "scope": "target player",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [50, 77],
+        "text": "Target player gains 2 life."
+      }
+    },
+    {
+      "source": "face:0296d57e-e5b9-456f-bb21-eb584adefb4c:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [78, 145],
+        "text": "(Then exile this card. You may cast the creature later from exile.)"
+      }
+    },
+    {
+      "source": "face:0296d57e-e5b9-456f-bb21-eb584adefb4c:1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [78, 145],
+        "text": "(Then exile this card. You may cast the creature later from exile.)",
+        "note": "Adventure resolution exiles this card to be cast later as the creature face."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

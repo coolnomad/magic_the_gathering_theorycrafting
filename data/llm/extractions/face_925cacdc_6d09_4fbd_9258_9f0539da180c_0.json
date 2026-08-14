@@ -1,0 +1,103 @@
+{
+  "face_id": "face:925cacdc-6d09-4fbd-9258-9f0539da180c:0",
+  "abilities": [
+    {
+      "ability_id": "throrsmap-etb-fetch",
+      "kind": "triggered",
+      "trigger": {
+        "event": "Thrór's Map enters",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "search_library",
+          "filter": "a basic land card",
+          "to_zone": "hand",
+          "detail": "Search your library for a basic land card, reveal it, put it into your hand, then shuffle."
+        }
+      ],
+      "oracle_spans": [[0, 115]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "throrsmap-loot",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{2}"},
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "draw",
+          "amount": 1,
+          "detail": "Draw a card."
+        },
+        {
+          "op": "discard",
+          "amount": 1,
+          "detail": "Then discard a card."
+        }
+      ],
+      "oracle_spans": [[116, 159]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:925cacdc-6d09-4fbd-9258-9f0539da180c:0",
+      "target": "ability:throrsmap-etb-fetch",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 115], "text": "When Thrór's Map enters, search your library for a basic land card, reveal it, put it into your hand, then shuffle."}
+    },
+    {
+      "source": "event:throrsmap-enters",
+      "target": "ability:throrsmap-etb-fetch",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 24], "text": "When Thrór's Map enters,"}
+    },
+    {
+      "source": "ability:throrsmap-etb-fetch",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "scope": "a basic land card",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [25, 115], "text": "search your library for a basic land card, reveal it, put it into your hand, then shuffle."}
+    },
+    {
+      "source": "ability:throrsmap-etb-fetch",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "scope": "a basic land card",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [25, 115], "text": "search your library for a basic land card, reveal it, put it into your hand, then shuffle."}
+    },
+    {
+      "source": "face:925cacdc-6d09-4fbd-9258-9f0539da180c:0",
+      "target": "ability:throrsmap-loot",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [116, 159], "text": "{2}, {T}: Draw a card, then discard a card."}
+    },
+    {
+      "source": "ability:throrsmap-loot",
+      "target": "resource:cards",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [126, 137], "text": "Draw a card"}
+    },
+    {
+      "source": "ability:throrsmap-loot",
+      "target": "resource:cards",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [144, 158], "text": "discard a card", "note": "A card is discarded from hand after the draw."}
+    }
+  ],
+  "schema_extension_requests": []
+}

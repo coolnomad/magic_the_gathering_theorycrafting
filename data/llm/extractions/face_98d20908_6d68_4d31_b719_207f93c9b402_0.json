@@ -1,0 +1,94 @@
+{
+  "face_id": "face:98d20908-6d68-4d31-b719-207f93c9b402:0",
+  "abilities": [
+    {
+      "ability_id": "goblintown-enters-tapped",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "enters_tapped", "target": "this land", "detail": "This land enters the battlefield tapped."}
+      ],
+      "oracle_spans": [[0, 24]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "goblintown-mana",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [],
+      "effects": [
+        {"op": "add_mana", "amount": 1, "options": ["B", "R"], "detail": "Add {B} or {R}."}
+      ],
+      "oracle_spans": [[25, 45]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "goblintown-sac-counters",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{2}{B}{R}"},
+        {"type": "tap", "detail": "{T}"},
+        {"type": "sacrifice", "detail": "Sacrifice this land"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Activate only as a sorcery."}
+      ],
+      "effects": [
+        {"op": "add_counter", "counter_type": "+1/+1", "amount": 2, "target": "target Goblin or Orc you control", "detail": "Put two +1/+1 counters on target Goblin or Orc you control."}
+      ],
+      "oracle_spans": [[46, 170]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:98d20908-6d68-4d31-b719-207f93c9b402:0",
+      "target": "ability:goblintown-enters-tapped",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 24], "text": "This land enters tapped."}
+    },
+    {
+      "source": "face:98d20908-6d68-4d31-b719-207f93c9b402:0",
+      "target": "ability:goblintown-mana",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [25, 45], "text": "{T}: Add {B} or {R}."}
+    },
+    {
+      "source": "ability:goblintown-mana",
+      "target": "resource:mana",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [30, 45], "text": "Add {B} or {R}."}
+    },
+    {
+      "source": "face:98d20908-6d68-4d31-b719-207f93c9b402:0",
+      "target": "ability:goblintown-sac-counters",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [46, 170], "text": "{2}{B}{R}, {T}, Sacrifice this land: Put two +1/+1 counters on target Goblin or Orc you control. Activate only as a sorcery."}
+    },
+    {
+      "source": "ability:goblintown-sac-counters",
+      "target": "face:98d20908-6d68-4d31-b719-207f93c9b402:0",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [62, 81], "text": "Sacrifice this land", "note": "Sacrifice of this land is part of the activation cost."}
+    },
+    {
+      "source": "ability:goblintown-sac-counters",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [83, 142], "text": "Put two +1/+1 counters on target Goblin or Orc you control."}
+    }
+  ],
+  "schema_extension_requests": []
+}

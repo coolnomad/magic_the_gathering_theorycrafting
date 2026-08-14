@@ -1,0 +1,85 @@
+{
+  "face_id": "face:76c036df-44f5-4021-b7fc-656147351341:0",
+  "abilities": [
+    {
+      "ability_id": "key-unblockable",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{2}"},
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_unblockable",
+          "target": "target creature",
+          "duration": "this turn",
+          "detail": "Target creature can't be blocked this turn."
+        }
+      ],
+      "oracle_spans": [[0, 53]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "key-draw",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{1}"},
+        {"type": "tap", "detail": "{T}"},
+        {"type": "discard", "detail": "Discard a legendary card with the same name as a legendary permanent you control"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "draw",
+          "amount": 2,
+          "detail": "Draw two cards."
+        }
+      ],
+      "oracle_spans": [[54, 161]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:76c036df-44f5-4021-b7fc-656147351341:0",
+      "target": "ability:key-unblockable",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 53], "text": "{2}, {T}: Target creature can't be blocked this turn."}
+    },
+    {
+      "source": "ability:key-unblockable",
+      "target": "target creature",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "this turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [10, 53], "text": "Target creature can't be blocked this turn."}
+    },
+    {
+      "source": "face:76c036df-44f5-4021-b7fc-656147351341:0",
+      "target": "ability:key-draw",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [54, 161], "text": "{1}, {T}, Discard a legendary card with the same name as a legendary permanent you control: Draw two cards."}
+    },
+    {
+      "source": "ability:key-draw",
+      "target": "legendary card with the same name as a legendary permanent you control",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [64, 144], "text": "Discard a legendary card with the same name as a legendary permanent you control", "note": "Discard is part of the activation cost; requires a name-matching legendary permanent you control."}
+    },
+    {
+      "source": "ability:key-draw",
+      "target": "resource:cards",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [146, 161], "text": "Draw two cards."}
+    }
+  ],
+  "schema_extension_requests": []
+}

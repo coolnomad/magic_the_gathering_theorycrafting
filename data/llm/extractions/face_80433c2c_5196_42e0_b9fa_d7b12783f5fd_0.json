@@ -1,0 +1,115 @@
+{
+  "face_id": "face:80433c2c-5196-42e0-b9fa-d7b12783f5fd:0",
+  "abilities": [
+    {
+      "ability_id": "boulder-etb-scry",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this artifact enters",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "scry",
+          "amount": 2,
+          "detail": "Look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order."
+        }
+      ],
+      "oracle_spans": [[0, 34]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "boulder-mana",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{1}"},
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "add_mana",
+          "amount": 1,
+          "detail": "Add one mana of any color."
+        }
+      ],
+      "oracle_spans": [[156, 192]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "boulder-destroy",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{7}"},
+        {"type": "tap", "detail": "{T}"},
+        {"type": "sacrifice", "detail": "Sacrifice this artifact"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "destroy",
+          "target": "target permanent",
+          "detail": "Destroy target permanent."
+        }
+      ],
+      "oracle_spans": [[193, 253]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:80433c2c-5196-42e0-b9fa-d7b12783f5fd:0",
+      "target": "ability:boulder-etb-scry",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 34], "text": "When this artifact enters, scry 2."}
+    },
+    {
+      "source": "event:this-artifact-enters",
+      "target": "ability:boulder-etb-scry",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 26], "text": "When this artifact enters,"}
+    },
+    {
+      "source": "face:80433c2c-5196-42e0-b9fa-d7b12783f5fd:0",
+      "target": "ability:boulder-mana",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [156, 192], "text": "{1}, {T}: Add one mana of any color."}
+    },
+    {
+      "source": "ability:boulder-mana",
+      "target": "resource:mana",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [166, 192], "text": "Add one mana of any color."}
+    },
+    {
+      "source": "face:80433c2c-5196-42e0-b9fa-d7b12783f5fd:0",
+      "target": "ability:boulder-destroy",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [193, 253], "text": "{7}, {T}, Sacrifice this artifact: Destroy target permanent."}
+    },
+    {
+      "source": "ability:boulder-destroy",
+      "target": "face:80433c2c-5196-42e0-b9fa-d7b12783f5fd:0",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [203, 227], "text": "Sacrifice this artifact", "note": "Sacrifice of this artifact is part of the activation cost."}
+    },
+    {
+      "source": "ability:boulder-destroy",
+      "target": "target permanent",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [228, 253], "text": "Destroy target permanent."}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,150 @@
+{
+  "face_id": "face:514b451b-814d-45fb-a2ba-8fe6f0bdad60:0",
+  "abilities": [
+    {
+      "ability_id": "gollum-rm-choose-parity",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {
+          "type": "as_enters",
+          "detail": "This choice is made as Gollum enters the battlefield."
+        }
+      ],
+      "effects": [
+        {
+          "op": "choose_designation",
+          "detail": "Choose 'odd' or 'even' (zero counts as even). This chosen quality is referenced by the triggered ability.",
+          "produces_state": "chosen parity (odd or even)"
+        }
+      ],
+      "oracle_spans": [[0, 53]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gollum-rm-opponent-cast-trigger",
+      "kind": "triggered",
+      "trigger": {
+        "event": "an opponent casts a spell",
+        "condition": "the spell's mana value matches the chosen parity (odd or even)",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [
+        {
+          "type": "mana_value_parity",
+          "detail": "The cast spell must have a mana value of the chosen quality (odd or even)."
+        }
+      ],
+      "effects": [
+        {
+          "op": "choose_mode",
+          "count": 1,
+          "detail": "Choose one mode that hasn't been chosen before by this ability, then apply it.",
+          "modes": [
+            "Put a +1/+1 counter on Gollum.",
+            "Each opponent loses 2 life and you gain 2 life.",
+            "Draw a card."
+          ]
+        }
+      ],
+      "oracle_spans": [[54, 262]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:514b451b-814d-45fb-a2ba-8fe6f0bdad60:0",
+      "target": "ability:gollum-rm-choose-parity",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [0, 53],
+        "text": "As Gollum enters, choose odd or even. (Zero is even.)"
+      }
+    },
+    {
+      "source": "face:514b451b-814d-45fb-a2ba-8fe6f0bdad60:0",
+      "target": "ability:gollum-rm-opponent-cast-trigger",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [54, 262],
+        "text": "Whenever an opponent casts a spell with mana value of the chosen quality, choose one that hasn't been chosen —"
+      }
+    },
+    {
+      "source": "event:opponent-casts-spell",
+      "target": "ability:gollum-rm-opponent-cast-trigger",
+      "predicate": "TRIGGERS",
+      "condition": "spell mana value matches chosen parity",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [54, 126],
+        "text": "Whenever an opponent casts a spell with mana value of the chosen quality"
+      }
+    },
+    {
+      "source": "ability:gollum-rm-opponent-cast-trigger",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "optional": true,
+      "condition": "mode 1 chosen",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [167, 197],
+        "text": "Put a +1/+1 counter on Gollum."
+      }
+    },
+    {
+      "source": "ability:gollum-rm-opponent-cast-trigger",
+      "target": "face:514b451b-814d-45fb-a2ba-8fe6f0bdad60:0",
+      "predicate": "ADDS_COUNTER",
+      "condition": "mode 1 chosen",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [167, 197],
+        "text": "Put a +1/+1 counter on Gollum."
+      }
+    },
+    {
+      "source": "ability:gollum-rm-opponent-cast-trigger",
+      "target": "resource:life",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "scope": "each opponent",
+      "condition": "mode 2 chosen",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [200, 247],
+        "text": "Each opponent loses 2 life and you gain 2 life."
+      }
+    },
+    {
+      "source": "ability:gollum-rm-opponent-cast-trigger",
+      "target": "resource:life",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "scope": "you",
+      "condition": "mode 2 chosen",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [200, 247],
+        "text": "Each opponent loses 2 life and you gain 2 life."
+      }
+    },
+    {
+      "source": "ability:gollum-rm-opponent-cast-trigger",
+      "target": "resource:card",
+      "predicate": "PRODUCES",
+      "condition": "mode 3 chosen",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [250, 262],
+        "text": "Draw a card."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

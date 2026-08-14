@@ -1,0 +1,81 @@
+{
+  "face_id": "face:a73d9109-36e0-40ea-ab06-5c5f7eb4ac54:0",
+  "abilities": [
+    {
+      "ability_id": "a73d9109-0-a1",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "evasion",
+          "target": "Bilbo",
+          "note": "Bilbo can't be blocked."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 23]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a73d9109-0-a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "deals_combat_damage_to_player",
+        "source": "Bilbo"
+      },
+      "effects": [
+        {
+          "op": "draw",
+          "quantity": 1
+        },
+        {
+          "op": "discard",
+          "quantity": 1
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[24, 105]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:a73d9109-36e0-40ea-ab06-5c5f7eb4ac54:0",
+      "target": "a73d9109-0-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 23], "text": "Bilbo can't be blocked."}
+    },
+    {
+      "source": "a73d9109-0-a1",
+      "target": "face:a73d9109-36e0-40ea-ab06-5c5f7eb4ac54:0",
+      "predicate": "PREVENTS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 23], "text": "Bilbo can't be blocked.", "note": "prevents Bilbo from being blocked"}
+    },
+    {
+      "source": "face:a73d9109-36e0-40ea-ab06-5c5f7eb4ac54:0",
+      "target": "a73d9109-0-a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [24, 105], "text": "Whenever Bilbo deals combat damage to a player, draw a card, then discard a card."}
+    },
+    {
+      "source": "a73d9109-0-a2",
+      "target": "you",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [72, 83], "text": "draw a card", "note": "you draw a card"}
+    },
+    {
+      "source": "a73d9109-0-a2",
+      "target": "you",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [90, 104], "text": "discard a card", "note": "you discard a card"}
+    }
+  ],
+  "schema_extension_requests": []
+}

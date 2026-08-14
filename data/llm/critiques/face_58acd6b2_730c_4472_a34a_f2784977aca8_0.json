@@ -1,0 +1,38 @@
+{
+  "face_id": "face:58acd6b2-730c-4472-a34a-f2784977aca8:0",
+  "abilities": [
+    {
+      "ability_id": "58acd6b2-kw",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "keyword", "keyword": "Trample", "required": true, "text": "Trample" }
+      ],
+      "oracle_spans": [[0, 7]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "58acd6b2-a1",
+      "kind": "triggered",
+      "trigger": { "event": "Dori enters the battlefield", "text": "When Dori enters" },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "create_token", "token": "Treasure", "quantity": 1, "required": true, "text": "create a Treasure token" }
+      ],
+      "oracle_spans": [[8, 130]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:58acd6b2-730c-4472-a34a-f2784977aca8:0", "target": "keyword:trample", "predicate": "HAS_KEYWORD", "provenance": { "oracle_span": [0, 7], "text": "Trample" } },
+    { "source": "face:58acd6b2-730c-4472-a34a-f2784977aca8:0", "target": "58acd6b2-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [8, 130], "text": "When Dori enters, create a Treasure token." } },
+    { "source": "58acd6b2-a1", "target": "event:etb", "predicate": "TRIGGERS", "provenance": { "oracle_span": [8, 24], "text": "When Dori enters" } },
+    { "source": "58acd6b2-a1", "target": "token:treasure", "predicate": "CREATES_OBJECT", "certainty": "rules_explicit", "provenance": { "oracle_span": [26, 49], "text": "create a Treasure token" } }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,64 @@
+{
+  "face_id": "face:2e728381-6db0-4c66-883d-82d718fef833:1",
+  "abilities": [
+    {
+      "ability_id": "allure-additional-cost-sac",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [
+        {"type": "sacrifice", "detail": "As an additional cost to cast this spell, sacrifice a creature."}
+      ],
+      "conditions": [],
+      "effects": [],
+      "oracle_spans": [[0, 63]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "allure-draw",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "draw",
+          "amount": 2,
+          "detail": "Draw two cards."
+        }
+      ],
+      "oracle_spans": [[64, 79]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:2e728381-6db0-4c66-883d-82d718fef833:1",
+      "target": "ability:allure-additional-cost-sac",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 63], "text": "As an additional cost to cast this spell, sacrifice a creature."}
+    },
+    {
+      "source": "ability:allure-additional-cost-sac",
+      "target": "a creature",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 63], "text": "As an additional cost to cast this spell, sacrifice a creature.", "note": "Sacrifice of a creature is an additional cost to cast the spell."}
+    },
+    {
+      "source": "face:2e728381-6db0-4c66-883d-82d718fef833:1",
+      "target": "ability:allure-draw",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [64, 79], "text": "Draw two cards."}
+    },
+    {
+      "source": "ability:allure-draw",
+      "target": "resource:cards",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [64, 79], "text": "Draw two cards."}
+    }
+  ],
+  "schema_extension_requests": []
+}

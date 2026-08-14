@@ -1,0 +1,137 @@
+{
+  "face_id": "face:89c3c81b-8960-4f79-b2ec-f13560058071:0",
+  "abilities": [
+    {
+      "ability_id": "master-deathtouch",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "Deathtouch"
+        }
+      ],
+      "oracle_spans": [[0, 10]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "master-lifeloss-mill",
+      "kind": "triggered",
+      "trigger": {
+        "event": "a player loses life",
+        "scope": "any player",
+        "detail": "Triggers whenever any player loses life; damage causes loss of life."
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "mill",
+          "target": "that player",
+          "amount": "equal to the amount of life lost",
+          "scales_with": "amount of life that player lost"
+        }
+      ],
+      "oracle_spans": [[11, 104]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "master-dies-draw",
+      "kind": "triggered",
+      "trigger": {
+        "event": "The Master of Lake-town dies",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "draw",
+          "amount": "one per graveyard with seven or more cards in it",
+          "scales_with": "number of graveyards with seven or more cards"
+        }
+      ],
+      "oracle_spans": [[105, 187]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:89c3c81b-8960-4f79-b2ec-f13560058071:0",
+      "target": "keyword:deathtouch",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 10],
+        "text": "Deathtouch"
+      }
+    },
+    {
+      "source": "face:89c3c81b-8960-4f79-b2ec-f13560058071:0",
+      "target": "ability:master-lifeloss-mill",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [11, 104],
+        "text": "Whenever a player loses life, that player mills that many cards."
+      }
+    },
+    {
+      "source": "event:player-loses-life",
+      "target": "ability:master-lifeloss-mill",
+      "predicate": "TRIGGERS",
+      "scope": "any player",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [11, 42],
+        "text": "Whenever a player loses life,"
+      }
+    },
+    {
+      "source": "ability:master-lifeloss-mill",
+      "target": "resource:card",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [11, 74],
+        "text": "Whenever a player loses life, that player mills that many cards.",
+        "note": "Number of cards milled equals the amount of life lost."
+      }
+    },
+    {
+      "source": "face:89c3c81b-8960-4f79-b2ec-f13560058071:0",
+      "target": "ability:master-dies-draw",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [105, 187],
+        "text": "When The Master of Lake-town dies, draw a card for each graveyard with seven or more cards in it."
+      }
+    },
+    {
+      "source": "event:master-dies",
+      "target": "ability:master-dies-draw",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [105, 138],
+        "text": "When The Master of Lake-town dies,"
+      }
+    },
+    {
+      "source": "ability:master-dies-draw",
+      "target": "resource:card",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [139, 187],
+        "text": "draw a card for each graveyard with seven or more cards in it.",
+        "note": "Draws one card per graveyard with 7+ cards; count scales with number of such graveyards."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

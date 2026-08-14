@@ -1,0 +1,70 @@
+{
+  "face_id": "face:dc20b29b-856e-4d45-99cd-5e12cfc2324d:0",
+  "abilities": [
+    {
+      "ability_id": "notary-etb-copies",
+      "kind": "triggered",
+      "trigger": {
+        "event": "The Notary Hobbits enter",
+        "controller": "you"
+      },
+      "conditions": [
+        {"type": "intervening_if", "text": "they're not a token", "note": "prevents token copies from re-triggering"}
+      ],
+      "effects": [
+        {
+          "type": "create_token",
+          "quantity": 2,
+          "token": "copies of The Notary Hobbits",
+          "except": "the tokens aren't legendary"
+        }
+      ],
+      "oracle_spans": [[0, 133]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "notary-mana",
+      "kind": "activated",
+      "costs": [
+        {"type": "tap", "cost": "{T}"}
+      ],
+      "effects": [
+        {
+          "type": "add_mana",
+          "mana": "{C}",
+          "quantity": "one per Halfling you control"
+        }
+      ],
+      "oracle_spans": [[134, 177]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "notary-etb-copies",
+      "target": "token:copy",
+      "predicate": "CREATES_OBJECT",
+      "condition": "The Notary Hobbits are not a token",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [55, 132], "text": "create two tokens that are copies of them, except the tokens aren't legendary"}
+    },
+    {
+      "source": "notary-mana",
+      "target": "resource:mana-colorless",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [139, 176], "text": "Add {C} for each Halfling you control"}
+    },
+    {
+      "source": "notary-mana",
+      "target": "resource:mana-colorless",
+      "predicate": "SCALES_WITH",
+      "condition": "number of Halflings you control",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [139, 176], "text": "Add {C} for each Halfling you control", "note": "colorless mana produced scales with Halfling count"}
+    }
+  ],
+  "schema_extension_requests": []
+}

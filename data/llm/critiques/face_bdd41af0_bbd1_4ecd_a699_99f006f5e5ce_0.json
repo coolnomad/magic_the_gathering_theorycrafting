@@ -1,0 +1,34 @@
+{
+  "face_id": "face:bdd41af0-bbd1-4ecd-a699-99f006f5e5ce:0",
+  "abilities": [
+    {"ability_id": "a1", "kind": "static", "effects": [{"op": "grant_keyword", "keyword": "trample", "required": true}], "oracle_spans": [[0, 7]], "confidence": "high", "unresolved": []},
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "effects": [{"op": "gain_designation", "designation": "enduring story", "condition": "you control three or more artifacts, legendaries, and/or Sagas", "duration": "rest of the game", "keyword": "Storied", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[8, 137]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "static",
+      "conditions": [{"note": "as long as you have an enduring story"}],
+      "effects": [{"op": "grant_ability", "ability": "ward {1}", "scope": "artifacts and creatures you control", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[138, 227]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:bdd41af0-bbd1-4ecd-a699-99f006f5e5ce:0", "target": "keyword:trample", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 7], "text": "Trample"}},
+    {"source": "face:bdd41af0-bbd1-4ecd-a699-99f006f5e5ce:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [8, 137], "text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)"}},
+    {"source": "face:bdd41af0-bbd1-4ecd-a699-99f006f5e5ce:0", "target": "a3", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [138, 227], "text": "As long as you have an enduring story, artifacts and creatures you control have ward {1}."}},
+    {"source": "a2", "target": "rule:storied", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [8, 15], "text": "Storied"}},
+    {"source": "a2", "target": "state:enduring_story", "predicate": "PERSISTS_AS", "condition": "control three or more artifacts, legendaries, and/or Sagas", "certainty": "rules_explicit", "provenance": {"oracle_span": [84, 135], "text": "you have an enduring story for the rest of the game"}},
+    {"source": "a3", "target": "state:enduring_story", "predicate": "REQUIRES", "certainty": "rules_explicit", "provenance": {"oracle_span": [138, 175], "text": "As long as you have an enduring story", "note": "ward-granting effect gated on enduring story designation"}}
+  ],
+  "schema_extension_requests": []
+}

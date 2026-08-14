@@ -1,0 +1,119 @@
+{
+  "face_id": "face:e3491542-569e-48a8-b625-fa7c4aa2792a:0",
+  "abilities": [
+    {
+      "ability_id": "valley-saga-mechanic",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "saga_lifecycle",
+          "note": "enters with a lore counter, add a lore counter after your draw step, sacrifice after chapter IV"
+        }
+      ],
+      "oracle_spans": [[0, 87]],
+      "confidence": "high",
+      "unresolved": [],
+      "references_rule": "saga"
+    },
+    {
+      "ability_id": "valley-chapter-I",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore counter count reaches I",
+        "chapter": "I"
+      },
+      "effects": [
+        {
+          "type": "search_library",
+          "for": "a basic land card",
+          "reveal": true,
+          "destination": "hand",
+          "then": "shuffle"
+        }
+      ],
+      "oracle_spans": [[88, 182]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "valley-chapter-II",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore counter count reaches II",
+        "chapter": "II"
+      },
+      "effects": [
+        {
+          "type": "grant_ability",
+          "granted": "Landfall — Whenever a land you control enters, create a 1/1 green Elf creature token.",
+          "subject": "this Saga",
+          "note": "the granted triggered ability is what creates the Elf token; chapter II itself only grants the ability"
+        }
+      ],
+      "oracle_spans": [[183, 291]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "valley-chapter-III-IV",
+      "kind": "triggered",
+      "trigger": {
+        "event": "lore counter count reaches III, then IV",
+        "chapter": "III, IV"
+      },
+      "effects": [
+        {
+          "type": "pt_boost",
+          "amount": "+1/+0",
+          "subject": "Elves you control",
+          "duration": "until end of turn"
+        },
+        {
+          "type": "grant_keyword",
+          "keyword": "vigilance",
+          "subject": "Elves you control",
+          "duration": "until end of turn"
+        }
+      ],
+      "oracle_spans": [[292, 367]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:e3491542-569e-48a8-b625-fa7c4aa2792a:0",
+      "target": "rule:saga",
+      "predicate": "REFERENCES_RULE",
+      "provenance": {"oracle_span": [0, 87], "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.)", "rule_ref": "CR 714 (Saga cards)"}
+    },
+    {
+      "source": "face:e3491542-569e-48a8-b625-fa7c4aa2792a:0",
+      "target": "counter:lore",
+      "predicate": "HAS_COUNTER_TYPE",
+      "provenance": {"oracle_span": [53, 65], "text": "lore counter"}
+    },
+    {
+      "source": "valley-chapter-I",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "provenance": {"oracle_span": [92, 182], "text": "Search your library for a basic land card, reveal it, put it into your hand, then shuffle."}
+    },
+    {
+      "source": "valley-chapter-II",
+      "target": "face:e3491542-569e-48a8-b625-fa7c4aa2792a:0",
+      "predicate": "MODIFIES",
+      "note": "grants a Landfall token-creation ability to this Saga",
+      "provenance": {"oracle_span": [188, 291], "text": "This Saga gains \"Landfall — Whenever a land you control enters, create a 1/1 green Elf creature token.\""}
+    },
+    {
+      "source": "valley-chapter-II",
+      "target": "token:elf",
+      "predicate": "CREATES_OBJECT",
+      "condition": "only via the granted Landfall ability: whenever a land you control enters after chapter II resolves",
+      "optional": false,
+      "provenance": {"oracle_span": [252, 289], "text": "create a 1/1 green Elf creature token"}
+    }
+  ],
+  "schema_extension_requests": []
+}

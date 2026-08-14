@@ -1,0 +1,29 @@
+{
+  "face_id": "face:09f09d0a-6054-4545-b81e-0295773cc5f0:1",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "search_library", "target": "a legendary creature card", "required": true, "ordering": 1},
+        {"op": "reveal", "target": "the found card", "required": true, "ordering": 2},
+        {"op": "move_to_hand", "target": "the found card", "destination": "your hand", "required": true, "ordering": 3},
+        {"op": "shuffle", "zone": "library", "required": true, "ordering": 4}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 166]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:09f09d0a-6054-4545-b81e-0295773cc5f0:1", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 97], "text": "Search your library for a legendary creature card, reveal it, put it into your hand, then shuffle."}},
+    {"source": "a1", "target": "zone:library", "predicate": "MOVES_FROM", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 49], "text": "Search your library for a legendary creature card"}},
+    {"source": "a1", "target": "zone:hand", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [62, 83], "text": "put it into your hand"}},
+    {"source": "face:09f09d0a-6054-4545-b81e-0295773cc5f0:1", "target": "rule:adventure", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [98, 165], "text": "(Then exile this card. You may cast the artifact later from exile.)"}},
+    {"source": "face:09f09d0a-6054-4545-b81e-0295773cc5f0:1", "target": "zone:exile", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [99, 164], "text": "Then exile this card. You may cast the artifact later from exile.", "note": "Adventure spell exiles on resolution"}}
+  ],
+  "schema_extension_requests": []
+}

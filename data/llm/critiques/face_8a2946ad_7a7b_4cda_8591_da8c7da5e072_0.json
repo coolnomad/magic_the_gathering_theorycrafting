@@ -1,0 +1,93 @@
+{
+  "face_id": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "attacks",
+        "subject": "this creature"
+      },
+      "conditions": [
+        {
+          "type": "control",
+          "requirement": "you control a creature with power 4 or greater"
+        }
+      ],
+      "effects": [
+        {
+          "op": "put_counter",
+          "counter_type": "+1/+1",
+          "quantity": 1,
+          "target": "each creature you control"
+        }
+      ],
+      "controller": "you",
+      "keyword": "Ferocious",
+      "oracle_spans": [
+        [
+          0,
+          146
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          97,
+          145
+        ],
+        "text": "put a +1/+1 counter on each creature you control",
+        "note": "on each creature you control"
+      }
+    },
+    {
+      "source": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0",
+      "target": "counter:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          103,
+          116
+        ],
+        "text": "+1/+1 counter"
+      }
+    },
+    {
+      "source": "face:8a2946ad-7a7b-4cda-8591-da8c7da5e072:0",
+      "target": "keyword:ferocious",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          0,
+          9
+        ],
+        "text": "Ferocious"
+      }
+    },
+    {
+      "source": "keyword:ferocious",
+      "target": "rule:ferocious",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [
+          12,
+          95
+        ],
+        "text": "Whenever this creature attacks while you control a creature with power 4 or greater"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

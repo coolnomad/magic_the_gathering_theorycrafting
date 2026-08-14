@@ -1,0 +1,36 @@
+{
+  "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0",
+  "abilities": [
+    {
+      "ability_id": "lifelink",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "grants_keyword",
+          "keyword": "Lifelink",
+          "note": "Damage dealt by this creature also causes its controller to gain that much life."
+        }
+      ],
+      "oracle_spans": [[0, 8]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0",
+      "target": "kw:lifelink",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 8], "text": "Lifelink"}
+    },
+    {
+      "source": "card:8a0e35ac-6c03-4922-b3b4-e419419fe3d7",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"note": "Card layout is adventure; permanent face pairs with the Adventure face Concerted Care.", "rule_ref": "CR 715 (Adventurer cards)"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,104 @@
+{
+  "face_id": "face:3b38f314-d997-4c2a-b4c9-40dbe780993d:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "keyword",
+          "keyword": "Flash",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "cost_reduction",
+          "amount": "{X}",
+          "x_definition": "total power of creatures you control with flying",
+          "applies_to": "casting this spell",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[6, 105]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "keyword",
+          "keyword": "Flying",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[106, 112]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3b38f314-d997-4c2a-b4c9-40dbe780993d:0",
+      "target": "a1",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 5],
+        "text": "Flash"
+      }
+    },
+    {
+      "source": "face:3b38f314-d997-4c2a-b4c9-40dbe780993d:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [6, 105],
+        "text": "This spell costs {X} less to cast, where X is the total power of creatures you control with flying."
+      }
+    },
+    {
+      "source": "a2",
+      "target": "face:3b38f314-d997-4c2a-b4c9-40dbe780993d:0",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "scope": "reduces generic mana cost to cast this spell",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [6, 40],
+        "text": "This spell costs {X} less to cast,"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "resource:power-of-flyers-you-control",
+      "predicate": "SCALES_WITH",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [41, 104],
+        "text": "where X is the total power of creatures you control with flying"
+      }
+    },
+    {
+      "source": "face:3b38f314-d997-4c2a-b4c9-40dbe780993d:0",
+      "target": "a3",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [106, 112],
+        "text": "Flying"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

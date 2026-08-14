@@ -1,0 +1,29 @@
+{
+  "face_id": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:0",
+  "abilities": [
+    {
+      "ability_id": "flying",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "grant_keyword", "keyword": "flying", "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:0",
+      "target": "keyword:flying",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 6], "text": "Flying"}
+    }
+  ],
+  "schema_extension_requests": []
+}

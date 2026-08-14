@@ -1,0 +1,122 @@
+{
+  "face_id": "face:c996bc53-184d-4dc3-8244-e8d9528516a0:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature becomes the target of a spell or ability an opponent controls",
+        "keyword": "Ward"
+      },
+      "effects": [
+        {
+          "op": "counter_unless_pay",
+          "target": "the targeting spell or ability",
+          "unless": "that player pays {3}",
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 134]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "activated",
+      "costs": [
+        {
+          "type": "mana",
+          "value": "{6}"
+        }
+      ],
+      "effects": [
+        {
+          "op": "shuffle_into_library",
+          "target": "Gandalf (this creature)",
+          "under_control": "owner",
+          "controller": "you",
+          "required": true,
+          "ordering": 1
+        },
+        {
+          "op": "draw",
+          "amount": 3,
+          "controller": "owner",
+          "required": true,
+          "ordering": 2
+        }
+      ],
+      "oracle_spans": [[135, 210]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:c996bc53-184d-4dc3-8244-e8d9528516a0:0",
+      "target": "a1",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 8],
+        "text": "Ward {3}"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "event:opponent-targets-this",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 94],
+        "text": "Whenever this creature becomes the target of a spell or ability an opponent controls,"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "event:opponent-spell-or-ability",
+      "predicate": "PREVENTS",
+      "polarity": "negative",
+      "condition": "unless that player pays {3}",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [95, 133],
+        "text": "counter it unless that player pays {3}."
+      }
+    },
+    {
+      "source": "face:c996bc53-184d-4dc3-8244-e8d9528516a0:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [135, 210],
+        "text": "{6}: Gandalf's owner shuffles him into their library and draws three cards."
+      }
+    },
+    {
+      "source": "a2",
+      "target": "zone:library",
+      "predicate": "MOVES_TO",
+      "certainty": "high",
+      "scope": "shuffle Gandalf into owner's library",
+      "provenance": {
+        "oracle_span": [140, 188],
+        "text": "Gandalf's owner shuffles him into their library"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "resource:card-in-hand",
+      "predicate": "PRODUCES",
+      "certainty": "high",
+      "scope": "owner draws three cards",
+      "provenance": {
+        "oracle_span": [193, 210],
+        "text": "draws three cards."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

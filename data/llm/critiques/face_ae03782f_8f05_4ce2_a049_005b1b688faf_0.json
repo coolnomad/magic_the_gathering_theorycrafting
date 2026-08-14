@@ -1,0 +1,113 @@
+{
+  "face_id": "face:ae03782f-8f05-4ce2-a049-005b1b688faf:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "conditions": [
+        {
+          "type": "control",
+          "requirement": "you control another Dwarf"
+        }
+      ],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keywords": [
+            "lifelink"
+          ],
+          "target": "this creature"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          0,
+          64
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters",
+        "subject": "this creature"
+      },
+      "effects": [
+        {
+          "op": "look_at_top",
+          "quantity": 4
+        },
+        {
+          "op": "reveal_and_take",
+          "filter": "a Dwarf or Equipment card",
+          "destination": "hand",
+          "optional": true
+        },
+        {
+          "op": "move_rest",
+          "destination": "bottom of your library in a random order"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          65,
+          281
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:ae03782f-8f05-4ce2-a049-005b1b688faf:0",
+      "target": "keyword:lifelink",
+      "predicate": "HAS_KEYWORD",
+      "condition": "as long as you control another Dwarf",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          0,
+          64
+        ],
+        "text": "This creature has lifelink as long as you control another Dwarf."
+      }
+    },
+    {
+      "source": "face:ae03782f-8f05-4ce2-a049-005b1b688faf:0",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          92,
+          192
+        ],
+        "text": "look at the top four cards of your library. You may reveal a Dwarf or Equipment card from among them",
+        "note": "you may reveal a Dwarf or Equipment card to take from library"
+      }
+    },
+    {
+      "source": "face:ae03782f-8f05-4ce2-a049-005b1b688faf:0",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          197,
+          219
+        ],
+        "text": "put it into your hand.",
+        "note": "optional; 'it' = the revealed Dwarf or Equipment card"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

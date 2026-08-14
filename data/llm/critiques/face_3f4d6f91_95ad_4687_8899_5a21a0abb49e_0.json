@@ -1,0 +1,128 @@
+{
+  "face_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you activate an ability of a creature",
+        "controller_of_ability_source": "any",
+        "note": "triggers when you activate an ability of any creature (yours or an opponent's)"
+      },
+      "conditions": [
+        {
+          "type": "frequency_limit",
+          "note": "This ability triggers only once each turn"
+        }
+      ],
+      "effects": [
+        {
+          "op": "draw",
+          "amount": 1,
+          "controller": "you",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 59], [60, 102]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "activated",
+      "costs": [
+        {
+          "type": "mana",
+          "value": "{5}{U}{U}"
+        }
+      ],
+      "effects": [
+        {
+          "op": "exile",
+          "target": "up to two other target nonland permanents you control",
+          "controller": "you",
+          "required": true,
+          "ordering": 1
+        },
+        {
+          "op": "return_to_battlefield",
+          "target": "those cards",
+          "under_control": "owner",
+          "timing": "at the beginning of the next end step",
+          "controller": "you",
+          "required": true,
+          "ordering": 2
+        }
+      ],
+      "oracle_spans": [[104, 280]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 59],
+        "text": "Whenever you activate an ability of a creature, draw a card."
+      }
+    },
+    {
+      "source": "event:activate-creature-ability",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "condition": "only once each turn",
+      "provenance": {
+        "oracle_span": [0, 46],
+        "text": "Whenever you activate an ability of a creature,"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "resource:card-in-hand",
+      "predicate": "PRODUCES",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [48, 59],
+        "text": "draw a card."
+      }
+    },
+    {
+      "source": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [104, 280],
+        "text": "{5}{U}{U}: Exile up to two other target nonland permanents you control. Return those cards to the battlefield under their owner's control at the beginning of the next end step."
+      }
+    },
+    {
+      "source": "a2",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [115, 175],
+        "text": "Exile up to two other target nonland permanents you control."
+      }
+    },
+    {
+      "source": "a2",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_TO",
+      "certainty": "high",
+      "timing": "at the beginning of the next end step",
+      "provenance": {
+        "oracle_span": [176, 280],
+        "text": "Return those cards to the battlefield under their owner's control at the beginning of the next end step.",
+        "note": "blink effect; permanents return as new objects at the next end step"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

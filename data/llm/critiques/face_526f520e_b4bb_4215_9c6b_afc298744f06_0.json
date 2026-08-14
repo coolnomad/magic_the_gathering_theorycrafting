@@ -1,0 +1,118 @@
+{
+  "face_id": "face:526f520e-b4bb-4215-9c6b-afc298744f06:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "effects": [
+        {
+          "op": "draw",
+          "quantity": 1,
+          "controller": "you"
+        },
+        {
+          "op": "draw",
+          "quantity": 2,
+          "controller": "you",
+          "replaces": "the base draw of 1",
+          "note": "Conditional replacement: if this spell was cast from a graveyard, draw two cards instead of one."
+        }
+      ],
+      "conditions": [
+        {
+          "applies_to": "the draw-two clause",
+          "condition": "this spell was cast from a graveyard"
+        }
+      ],
+      "oracle_spans": [[0, 77]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "trigger": null,
+      "costs": [
+        {
+          "op": "pay_mana",
+          "amount": "{3}{U}",
+          "note": "flashback cost"
+        }
+      ],
+      "effects": [
+        {
+          "op": "cast_from_graveyard",
+          "note": "You may cast this card from your graveyard for its flashback cost, then exile it."
+        },
+        {
+          "op": "exile_after_resolution",
+          "note": "Then exile it."
+        }
+      ],
+      "oracle_spans": [[78, 177]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:526f520e-b4bb-4215-9c6b-afc298744f06:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 77], "text": "Draw a card. If this spell was cast from a graveyard, draw two cards instead."}
+    },
+    {
+      "source": "a1",
+      "target": "resource:card_in_hand",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 12], "text": "Draw a card."}
+    },
+    {
+      "source": "a1",
+      "target": "a1",
+      "predicate": "SCALES_WITH",
+      "condition": "if this spell was cast from a graveyard, the draw is 2 instead of 1",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [13, 77], "text": "If this spell was cast from a graveyard, draw two cards instead."}
+    },
+    {
+      "source": "face:526f520e-b4bb-4215-9c6b-afc298744f06:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [78, 177], "text": "Flashback {3}{U} (You may cast this card from your graveyard for its flashback cost. Then exile it.)"}
+    },
+    {
+      "source": "a2",
+      "target": "rule:flashback",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [78, 94], "rule_ref": "CR 702.34 (Flashback)", "text": "Flashback {3}{U}"}
+    },
+    {
+      "source": "a2",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_FROM",
+      "condition": "when cast via flashback",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [96, 162], "text": "You may cast this card from your graveyard for its flashback cost."}
+    },
+    {
+      "source": "a2",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "condition": "after resolving from flashback",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [163, 177], "text": "Then exile it."}
+    },
+    {
+      "source": "a2",
+      "target": "a1",
+      "predicate": "ENABLES",
+      "note": "Casting from graveyard via flashback satisfies the 'cast from a graveyard' condition of a1, so the draw becomes two.",
+      "certainty": "high",
+      "provenance": {"oracle_span": [13, 77], "text": "If this spell was cast from a graveyard, draw two cards instead."}
+    }
+  ],
+  "schema_extension_requests": []
+}

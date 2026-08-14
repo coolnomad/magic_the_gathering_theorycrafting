@@ -1,0 +1,147 @@
+{
+  "face_id": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters",
+        "subject": "Bolg"
+      },
+      "costs": [
+        {
+          "type": "sacrifice",
+          "what": "another creature",
+          "optional": true
+        }
+      ],
+      "effects": [
+        {
+          "op": "reflexive_trigger",
+          "note": "when you do (sacrifice), Bolg deals damage equal to that creature's power to another target creature"
+        },
+        {
+          "op": "deal_damage",
+          "amount": "sacrificed creature's power",
+          "source": "Bolg",
+          "target": "another target creature"
+        },
+        {
+          "op": "amass",
+          "type": "Goblins",
+          "quantity": "X",
+          "condition": "if excess damage was dealt this way, X is that excess damage",
+          "note": "put X +1/+1 counters on an Army you control; it's also a Goblin; if no Army, create a 0/0 black Goblin Army token first"
+        }
+      ],
+      "controller": "you",
+      "keyword": "Amass",
+      "optionality": "optional",
+      "oracle_spans": [
+        [
+          0,
+          378
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+      "target": "event:sacrifice",
+      "predicate": "CONSUMES",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          18,
+          52
+        ],
+        "text": "you may sacrifice another creature"
+      }
+    },
+    {
+      "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+      "target": "event:damage",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          67,
+          143
+        ],
+        "text": "Bolg deals damage equal to that creature's power to another target creature.",
+        "note": "'that creature' = the sacrificed creature"
+      }
+    },
+    {
+      "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+      "target": "event:damage",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          78,
+          115
+        ],
+        "text": "damage equal to that creature's power",
+        "note": "damage equals sacrificed creature's power"
+      }
+    },
+    {
+      "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+      "target": "token:goblin-army",
+      "predicate": "CREATES_OBJECT",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          295,
+          377
+        ],
+        "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first.",
+        "note": "amass creates Army token only if you don't already control one"
+      }
+    },
+    {
+      "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          230,
+          274
+        ],
+        "text": "Put X +1/+1 counters on an Army you control.",
+        "note": "amass adds X +1/+1 counters to an Army"
+      }
+    },
+    {
+      "source": "face:88522a0f-5377-4522-97f4-4148bef954af:0",
+      "target": "counter:+1/+1",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          144,
+          228
+        ],
+        "text": "If excess damage was dealt this way, amass Goblins X, where X is that excess damage.",
+        "note": "counters equal excess damage dealt"
+      }
+    }
+  ],
+  "schema_extension_requests": [
+    {
+      "proposed_predicate": "AMASSES",
+      "rationale": "Amass has no dedicated template in shared_context; represented here with CREATES_OBJECT token:goblin-army plus ADDS_COUNTER, but a dedicated predicate could capture the keyword-action semantics of growing/creating an Army in one step.",
+      "oracle_span": [
+        144,
+        378
+      ]
+    }
+  ]
+}

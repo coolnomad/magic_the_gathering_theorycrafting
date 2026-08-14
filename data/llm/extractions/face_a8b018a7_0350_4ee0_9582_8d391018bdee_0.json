@@ -1,0 +1,83 @@
+{
+  "face_id": "face:a8b018a7-0350-4ee0-9582-8d391018bdee:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "Azog enters the battlefield"},
+      "effects": [
+        {"op": "destroy", "target": "up to one other target creature", "optional": true},
+        {"op": "amass", "subtype": "Goblins", "amount": "X", "x_definition": "that creature's power", "controller": "that creature's controller", "note": "The destroyed creature's controller amasses Goblins X."},
+        {"op": "draw", "quantity": 1, "controller": "you", "condition": "if you controlled that creature"}
+      ],
+      "oracle_spans": [[0, 260]],
+      "confidence": "high",
+      "unresolved": [
+        "Ordering/timing: whether the destroyed creature's power for X is measured as last-known information after destruction is per CR rules, not restated on the card; not a card-specific ambiguity but noted."
+      ]
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:a8b018a7-0350-4ee0-9582-8d391018bdee:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 260], "text": "When Azog enters, destroy up to one other target creature. Its controller amasses Goblins X, where X is that creature's power. If you controlled that creature, draw a card."}
+    },
+    {
+      "source": "event:azog_enters",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 16], "text": "When Azog enters,"}
+    },
+    {
+      "source": "a1",
+      "target": "event:creature_destroyed",
+      "predicate": "CAUSES",
+      "optional": true,
+      "scope": "up to one other target creature",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [17, 58], "text": "destroy up to one other target creature."}
+    },
+    {
+      "source": "a1",
+      "target": "token:goblin-army",
+      "predicate": "CREATES_OBJECT",
+      "condition": "that creature's controller controls no Army when amass resolves",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [59, 122], "text": "Its controller amasses Goblins X, where X is that creature's power.", "note": "Amass creates a 0/0 black Goblin Army token if the amassing player controls no Army."}
+    },
+    {
+      "source": "a1",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "scope": "X +1/+1 counters on that player's Army, X = destroyed creature's power",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [59, 122], "text": "Its controller amasses Goblins X, where X is that creature's power."}
+    },
+    {
+      "source": "a1",
+      "target": "a1",
+      "predicate": "SCALES_WITH",
+      "condition": "X = destroyed creature's power",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [92, 122], "text": "where X is that creature's power."}
+    },
+    {
+      "source": "a1",
+      "target": "resource:card_in_hand",
+      "predicate": "PRODUCES",
+      "condition": "if you controlled the destroyed creature",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [123, 162], "text": "If you controlled that creature, draw a card."}
+    }
+  ],
+  "schema_extension_requests": [
+    {
+      "proposed_predicate": "AMASSES",
+      "rationale": "Amass Goblins X is a composite keyword action (conditional Army token creation plus X +1/+1 counters plus Goblin subtype grant) with no single controlled predicate and no shared rule:amass id in shared_context. Modeled via CREATES_OBJECT + ADDS_COUNTER as a workaround.",
+      "oracle_span": [59, 122]
+    }
+  ]
+}

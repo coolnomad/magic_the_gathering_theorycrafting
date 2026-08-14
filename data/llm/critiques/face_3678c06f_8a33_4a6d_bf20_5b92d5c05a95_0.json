@@ -1,0 +1,116 @@
+{
+  "face_id": "face:3678c06f-8a33-4a6d-bf20-5b92d5c05a95:0",
+  "abilities": [
+    {
+      "ability_id": "lonelymtn-mana",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [],
+      "effects": [
+        {"op": "add_mana", "amount": 1, "options": ["R"], "detail": "Add {R} (intrinsic Mountain mana ability)."}
+      ],
+      "oracle_spans": [[0, 15]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "lonelymtn-conditional-tapped",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {"type": "control", "detail": "Enters tapped only if you control no Equipment."}
+      ],
+      "effects": [
+        {"op": "enters_tapped", "target": "this land", "condition": "unless you control an Equipment", "detail": "This land enters the battlefield tapped unless you control an Equipment."}
+      ],
+      "oracle_spans": [[16, 72]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "lonelymtn-make-dwarf",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{4}{R}"},
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Activate only as a sorcery."}
+      ],
+      "effects": [
+        {
+          "op": "create_token",
+          "count": 1,
+          "token": "2/2 red Dwarf creature token",
+          "token_ref": "token:dwarf",
+          "detail": "Create a 2/2 red Dwarf creature token."
+        },
+        {
+          "op": "cost_reduction",
+          "affects": "this activated ability",
+          "amount": "{1} less for each Equipment you control",
+          "scales_with": "number of Equipment you control",
+          "detail": "This ability costs {1} less to activate for each Equipment you control."
+        }
+      ],
+      "oracle_spans": [[73, 224]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3678c06f-8a33-4a6d-bf20-5b92d5c05a95:0",
+      "target": "ability:lonelymtn-mana",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 15], "text": "({T}: Add {R}.)"}
+    },
+    {
+      "source": "ability:lonelymtn-mana",
+      "target": "resource:mana",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [5, 13], "text": "Add {R}."}
+    },
+    {
+      "source": "face:3678c06f-8a33-4a6d-bf20-5b92d5c05a95:0",
+      "target": "ability:lonelymtn-conditional-tapped",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [16, 72], "text": "This land enters tapped unless you control an Equipment."}
+    },
+    {
+      "source": "face:3678c06f-8a33-4a6d-bf20-5b92d5c05a95:0",
+      "target": "ability:lonelymtn-make-dwarf",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [73, 224], "text": "{4}{R}, {T}: Create a 2/2 red Dwarf creature token. This ability costs {1} less to activate for each Equipment you control. Activate only as a sorcery."}
+    },
+    {
+      "source": "ability:lonelymtn-make-dwarf",
+      "target": "token:dwarf",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [86, 124], "text": "Create a 2/2 red Dwarf creature token."}
+    },
+    {
+      "source": "ability:lonelymtn-make-dwarf",
+      "target": "ability:lonelymtn-make-dwarf",
+      "predicate": "MODIFIES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [125, 196], "text": "This ability costs {1} less to activate for each Equipment you control.", "note": "Self-referential activation-cost reduction scaling with the number of Equipment you control."}
+    },
+    {
+      "source": "ability:lonelymtn-make-dwarf",
+      "target": "ability:lonelymtn-make-dwarf",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [125, 196], "text": "This ability costs {1} less to activate for each Equipment you control.", "note": "Cost reduction magnitude equals the number of Equipment you control."}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,126 @@
+{
+  "face_id": "face:c91c7d6b-a502-4b66-9509-3c1eda00e763:0",
+  "abilities": [
+    {
+      "ability_id": "storied",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "storied",
+          "references_rule": "gate:storied",
+          "note": "Once you control three or more artifacts, legendaries, and/or Sagas, you gain the enduring story designation for the rest of the game."
+        }
+      ],
+      "oracle_spans": [[0, 129]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "anthem_while_storied",
+      "kind": "static",
+      "conditions": [
+        {"condition": "you have an enduring story"}
+      ],
+      "effects": [
+        {
+          "effect": "modify_pt",
+          "target": "creatures you control",
+          "power": "+1",
+          "toughness": "+1"
+        }
+      ],
+      "oracle_spans": [[130, 201]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "dwarf_enters_make_token",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "Fíli or another nontoken Dwarf you control"
+      },
+      "effects": [
+        {
+          "effect": "create_token",
+          "token": "token:dwarf",
+          "quantity": 1,
+          "note": "2/2 red Dwarf creature token"
+        }
+      ],
+      "oracle_spans": [[202, 300]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:c91c7d6b-a502-4b66-9509-3c1eda00e763:0",
+      "target": "ability:storied",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 129], "text": "Storied (...)"}
+    },
+    {
+      "source": "ability:storied",
+      "target": "gate:storied",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 7], "text": "Storied", "rule_ref": "HOB release notes / mechanics article: Storied"}
+    },
+    {
+      "source": "ability:storied",
+      "target": "state:enduring_story",
+      "predicate": "PRODUCES",
+      "condition": "control three or more artifacts, legendaries, and/or Sagas",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [9, 127], "text": "If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game"}
+    },
+    {
+      "source": "face:c91c7d6b-a502-4b66-9509-3c1eda00e763:0",
+      "target": "ability:anthem_while_storied",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [130, 201], "text": "As long as you have an enduring story, creatures you control get +1/+1."}
+    },
+    {
+      "source": "state:enduring_story",
+      "target": "ability:anthem_while_storied",
+      "predicate": "ENABLES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [130, 167], "text": "As long as you have an enduring story"}
+    },
+    {
+      "source": "ability:anthem_while_storied",
+      "target": "objectclass:creatures_you_control",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "condition": "you have an enduring story",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [169, 200], "text": "creatures you control get +1/+1"}
+    },
+    {
+      "source": "face:c91c7d6b-a502-4b66-9509-3c1eda00e763:0",
+      "target": "ability:dwarf_enters_make_token",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [202, 300], "text": "Whenever Fíli or another nontoken Dwarf you control enters, create a 2/2 red Dwarf creature token."}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:dwarf_enters_make_token",
+      "predicate": "TRIGGERS",
+      "scope": "Fíli or another nontoken Dwarf you control",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [202, 260], "text": "Whenever Fíli or another nontoken Dwarf you control enters"}
+    },
+    {
+      "source": "ability:dwarf_enters_make_token",
+      "target": "token:dwarf",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [262, 299], "text": "create a 2/2 red Dwarf creature token"}
+    }
+  ],
+  "schema_extension_requests": []
+}

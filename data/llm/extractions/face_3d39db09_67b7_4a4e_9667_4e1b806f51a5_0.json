@@ -1,0 +1,126 @@
+{
+  "face_id": "face:3d39db09-67b7-4a4e-9667-4e1b806f51a5:0",
+  "abilities": [
+    {
+      "ability_id": "3d39db09-a1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "put_counter",
+          "counter_type": "+1/+1",
+          "quantity": 1,
+          "target": "target creature you control"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 46]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "3d39db09-a2",
+      "kind": "spell_effect",
+      "trigger": null,
+      "conditions": [
+        "this spell was cast from a graveyard"
+      ],
+      "effects": [
+        {
+          "op": "put_counter",
+          "counter_type": "+1/+1",
+          "quantity": 1,
+          "target": "each other creature you control"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[47, 138]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "3d39db09-a3",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "op": "keyword_ability",
+          "keyword": "Flashback",
+          "cost": "{4}{W}",
+          "note": "may cast from graveyard for flashback cost, then exile"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[139, 234]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3d39db09-67b7-4a4e-9667-4e1b806f51a5:0",
+      "target": "3d39db09-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 46], "text": "Put a +1/+1 counter on target creature you control."}
+    },
+    {
+      "source": "face:3d39db09-67b7-4a4e-9667-4e1b806f51a5:0",
+      "target": "3d39db09-a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [47, 138], "text": "If this spell was cast from a graveyard, also put a +1/+1 counter on each other creature you control."}
+    },
+    {
+      "source": "face:3d39db09-67b7-4a4e-9667-4e1b806f51a5:0",
+      "target": "3d39db09-a3",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [139, 148], "text": "Flashback"}
+    },
+    {
+      "source": "3d39db09-a1",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 46], "text": "Put a +1/+1 counter on target creature you control."}
+    },
+    {
+      "source": "3d39db09-a1",
+      "target": "target creature you control",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 46], "text": "Put a +1/+1 counter on target creature you control."}
+    },
+    {
+      "source": "3d39db09-a2",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "polarity": "positive",
+      "condition": "this spell was cast from a graveyard",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [47, 138], "text": "If this spell was cast from a graveyard, also put a +1/+1 counter on each other creature you control."}
+    },
+    {
+      "source": "3d39db09-a2",
+      "target": "zone:graveyard",
+      "predicate": "REQUIRES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [50, 82], "text": "If this spell was cast from a graveyard"}
+    },
+    {
+      "source": "3d39db09-a3",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [178, 214], "text": "You may cast this card from your graveyard"}
+    },
+    {
+      "source": "3d39db09-a3",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [216, 232], "text": "Then exile it."}
+    }
+  ],
+  "schema_extension_requests": []
+}

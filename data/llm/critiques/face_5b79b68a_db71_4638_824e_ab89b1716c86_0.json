@@ -1,0 +1,101 @@
+{
+  "face_id": "face:5b79b68a-db71-4638-824e-ab89b1716c86:0",
+  "abilities": [
+    {
+      "ability_id": "vigilance",
+      "kind": "static",
+      "effects": [
+        {"effect": "grants_keyword", "keyword": "Vigilance"}
+      ],
+      "oracle_spans": [[0, 9]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "storied",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "storied",
+          "references_rule": "gate:storied",
+          "note": "Once you control three or more artifacts, legendaries, and/or Sagas, you gain the enduring story designation for the rest of the game."
+        }
+      ],
+      "oracle_spans": [[10, 139]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "attack_tax_while_storied",
+      "kind": "static",
+      "conditions": [
+        {"condition": "you have an enduring story"}
+      ],
+      "effects": [
+        {
+          "effect": "attack_restriction",
+          "note": "Creatures can't attack you unless their controller pays {1} for each of those creatures.",
+          "tax": "{1} per attacking creature"
+        }
+      ],
+      "oracle_spans": [[140, 267]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:5b79b68a-db71-4638-824e-ab89b1716c86:0",
+      "target": "kw:vigilance",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 9], "text": "Vigilance"}
+    },
+    {
+      "source": "face:5b79b68a-db71-4638-824e-ab89b1716c86:0",
+      "target": "ability:storied",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [10, 139], "text": "Storied (...)"}
+    },
+    {
+      "source": "ability:storied",
+      "target": "gate:storied",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [10, 17], "text": "Storied", "rule_ref": "HOB release notes / mechanics article: Storied"}
+    },
+    {
+      "source": "ability:storied",
+      "target": "state:enduring_story",
+      "predicate": "PRODUCES",
+      "condition": "control three or more artifacts, legendaries, and/or Sagas",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [19, 137], "text": "If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game"}
+    },
+    {
+      "source": "face:5b79b68a-db71-4638-824e-ab89b1716c86:0",
+      "target": "ability:attack_tax_while_storied",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [140, 267], "text": "As long as you have an enduring story, creatures can't attack you unless..."}
+    },
+    {
+      "source": "state:enduring_story",
+      "target": "ability:attack_tax_while_storied",
+      "predicate": "ENABLES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [140, 177], "text": "As long as you have an enduring story"}
+    },
+    {
+      "source": "ability:attack_tax_while_storied",
+      "target": "event:attack",
+      "predicate": "MODIFIES",
+      "polarity": "negative",
+      "condition": "you have an enduring story",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [178, 267], "text": "creatures can't attack you unless their controller pays {1} for each of those creatures"}
+    }
+  ],
+  "schema_extension_requests": []
+}

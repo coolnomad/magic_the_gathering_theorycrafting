@@ -1,0 +1,44 @@
+{
+  "face_id": "face:925ce68e-9323-4985-8fef-0d3f36e0d74c:0",
+  "abilities": [
+    {
+      "ability_id": "925ce68e-storied",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        { "text": "you control three or more artifacts, legendaries, and/or Sagas" }
+      ],
+      "effects": [
+        { "op": "gain_designation", "designation": "enduring story", "duration": "rest of the game", "required": true, "text": "you have an enduring story for the rest of the game" }
+      ],
+      "oracle_spans": [[0, 7]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "925ce68e-a2",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        { "text": "unless you have an enduring story" }
+      ],
+      "effects": [
+        { "op": "restrict_untap", "target": "Bombur", "scope": "during your untap step", "condition": "does not apply if you have an enduring story", "required": true, "text": "Bombur doesn't untap during your untap step unless you have an enduring story" }
+      ],
+      "oracle_spans": [[130, 207]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:925ce68e-9323-4985-8fef-0d3f36e0d74c:0", "target": "925ce68e-storied", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 7], "text": "Storied" } },
+    { "source": "face:925ce68e-9323-4985-8fef-0d3f36e0d74c:0", "target": "925ce68e-a2", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [130, 207], "text": "Bombur doesn't untap during your untap step unless you have an enduring story" } },
+    { "source": "925ce68e-storied", "target": "rule:storied", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 7], "text": "Storied" } },
+    { "source": "925ce68e-storied", "target": "state:enduring_story", "predicate": "PERSISTS_AS", "certainty": "rules_explicit", "provenance": { "oracle_span": [8, 128], "text": "you have an enduring story for the rest of the game" } },
+    { "source": "925ce68e-a2", "target": "face:925ce68e-9323-4985-8fef-0d3f36e0d74c:0", "predicate": "PREVENTS", "condition": "you do not have an enduring story", "certainty": "rules_explicit", "provenance": { "oracle_span": [130, 207], "text": "Bombur doesn't untap during your untap step unless you have an enduring story", "note": "self-referential: prevents this creature from untapping during untap step" } },
+    { "source": "state:enduring_story", "target": "925ce68e-a2", "predicate": "MODIFIES", "certainty": "rules_explicit", "condition": "having an enduring story removes the untap restriction", "provenance": { "oracle_span": [174, 207], "text": "unless you have an enduring story" } }
+  ],
+  "schema_extension_requests": []
+}

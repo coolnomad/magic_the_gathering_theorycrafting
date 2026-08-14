@@ -1,0 +1,142 @@
+{
+  "face_id": "face:840de40b-590e-4bf0-8d16-22b0eff61202:0",
+  "abilities": [
+    {
+      "ability_id": "storied",
+      "kind": "static",
+      "trigger": null,
+      "conditions": [
+        {
+          "condition": "control_three_or_more_artifacts_legendaries_and_or_sagas",
+          "detail": "If you control three or more permanents that are artifacts, legendaries, and/or Sagas."
+        }
+      ],
+      "effects": [
+        {
+          "effect": "gain_enduring_story_designation",
+          "duration": "for the rest of the game",
+          "detail": "You gain the enduring story designation, which persists for the rest of the game once obtained (Storied keyword). This is the standard Storied templating.",
+          "controller": "you",
+          "references_mechanic": "Storied"
+        }
+      ],
+      "oracle_spans": [[0, 129]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "enduring_story_free_equip",
+      "kind": "static",
+      "trigger": null,
+      "conditions": [
+        {
+          "condition": "you_have_an_enduring_story",
+          "detail": "This ability applies only as long as you have an enduring story designation."
+        }
+      ],
+      "effects": [
+        {
+          "effect": "cost_reduction_alternative",
+          "detail": "You may pay {0} rather than pay the equip cost of the first equip ability you activate each turn.",
+          "applies_to": "the first equip ability you activate each turn",
+          "frequency": "first such equip ability each turn",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[130, 266]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "dwarf_or_equipment_etb_draw",
+      "kind": "triggered",
+      "trigger": {
+        "event": "another_dwarf_or_equipment_you_control_enters",
+        "detail": "Triggers whenever another Dwarf permanent or Equipment permanent you control enters the battlefield (excludes Kili itself).",
+        "frequency": "only once each turn (subsequent triggers in the same turn do not occur)",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "effect": "draw_card",
+          "quantity": 1,
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[267, 378]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:840de40b-590e-4bf0-8d16-22b0eff61202:0",
+      "target": "gate:storied",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 129],
+        "text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)",
+        "rule_ref": "HOB release notes / mechanics article: Storied"
+      }
+    },
+    {
+      "source": "storied",
+      "target": "state:enduring_story",
+      "predicate": "PERSISTS_AS",
+      "condition": "you control three or more artifacts, legendaries, and/or Sagas",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 129],
+        "text": "you have an enduring story for the rest of the game",
+        "note": "Once the control condition is met, the enduring story designation persists for the rest of the game."
+      }
+    },
+    {
+      "source": "enduring_story_free_equip",
+      "target": "state:enduring_story",
+      "predicate": "REQUIRES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [130, 266],
+        "text": "As long as you have an enduring story",
+        "note": "The alternative {0} equip cost is available only while you have an enduring story."
+      }
+    },
+    {
+      "source": "enduring_story_free_equip",
+      "target": "cost:equip",
+      "predicate": "MODIFIES",
+      "scope": "the first equip ability you activate each turn",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [130, 266],
+        "text": "you may pay {0} rather than pay the equip cost of the first equip ability you activate each turn",
+        "note": "Provides an alternative cost of {0} for the first equip ability activated each turn."
+      }
+    },
+    {
+      "source": "dwarf_or_equipment_etb_draw",
+      "target": "event:dwarf_or_equipment_enters",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [267, 378],
+        "text": "Whenever another Dwarf or Equipment you control enters, draw a card. This ability triggers only once each turn.",
+        "note": "Triggers on another Dwarf or Equipment you control entering; capped at once per turn."
+      }
+    },
+    {
+      "source": "dwarf_or_equipment_etb_draw",
+      "target": "resource:card",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [267, 378],
+        "text": "draw a card",
+        "note": "Draws one card; limited to once per turn regardless of how many qualifying permanents enter."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

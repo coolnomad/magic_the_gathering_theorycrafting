@@ -1,0 +1,62 @@
+{
+  "face_id": "face:88d7bd11-7b1d-426c-8552-01448531c6ad:0",
+  "abilities": [
+    {
+      "ability_id": "gigantic-uncounterable",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "cant_be_countered",
+          "subject": "this spell",
+          "note": "applies only while this card is a spell on the stack"
+        }
+      ],
+      "oracle_spans": [[0, 30]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gigantic-hexproof",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "grant_keyword",
+          "keyword": "hexproof",
+          "subject": "this creature"
+        }
+      ],
+      "oracle_spans": [[31, 39]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gigantic-haste",
+      "kind": "static",
+      "effects": [
+        {
+          "type": "grant_keyword",
+          "keyword": "haste",
+          "subject": "this creature"
+        }
+      ],
+      "oracle_spans": [[41, 46]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:88d7bd11-7b1d-426c-8552-01448531c6ad:0",
+      "target": "keyword:hexproof",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [31, 39], "text": "Hexproof"}
+    },
+    {
+      "source": "face:88d7bd11-7b1d-426c-8552-01448531c6ad:0",
+      "target": "keyword:haste",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [41, 46], "text": "haste"}
+    }
+  ],
+  "schema_extension_requests": []
+}

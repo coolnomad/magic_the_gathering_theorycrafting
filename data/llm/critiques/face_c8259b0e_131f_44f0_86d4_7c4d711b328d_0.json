@@ -1,0 +1,84 @@
+{
+  "face_id": "face:c8259b0e-131f-44f0-86d4-7c4d711b328d:0",
+  "abilities": [
+    {
+      "ability_id": "flying",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "grants_keyword",
+          "keyword": "Flying"
+        }
+      ],
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "etb_gain_and_tutor",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "this creature"
+      },
+      "effects": [
+        {
+          "effect": "gain_life",
+          "amount": 2,
+          "controller": "you",
+          "optional": false
+        },
+        {
+          "effect": "search_library",
+          "for": "a basic land card",
+          "optional": true,
+          "then": ["reveal it", "shuffle", "put that card on top of library"]
+        }
+      ],
+      "oracle_spans": [[7, 151]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:c8259b0e-131f-44f0-86d4-7c4d711b328d:0",
+      "target": "kw:flying",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 6], "text": "Flying"}
+    },
+    {
+      "source": "face:c8259b0e-131f-44f0-86d4-7c4d711b328d:0",
+      "target": "ability:etb_gain_and_tutor",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [7, 151], "text": "When this creature enters, you gain 2 life. You may search your library..."}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:etb_gain_and_tutor",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [7, 36], "text": "When this creature enters"}
+    },
+    {
+      "source": "ability:etb_gain_and_tutor",
+      "target": "resource:life",
+      "predicate": "PRODUCES",
+      "optional": false,
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [34, 49], "text": "you gain 2 life"}
+    },
+    {
+      "source": "ability:etb_gain_and_tutor",
+      "target": "zone:library",
+      "predicate": "MOVES_TO",
+      "optional": true,
+      "scope": "put found basic land on top of library",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [59, 151], "text": "search your library for a basic land card... put that card on top"}
+    }
+  ],
+  "schema_extension_requests": []
+}

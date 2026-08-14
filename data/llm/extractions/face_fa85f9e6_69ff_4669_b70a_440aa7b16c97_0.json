@@ -1,0 +1,40 @@
+{
+  "face_id": "face:fa85f9e6-69ff-4669-b70a-440aa7b16c97:0",
+  "abilities": [
+    {
+      "ability_id": "fa85f9e6-a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "source": "Bilbo Baggins"
+      },
+      "effects": [
+        {
+          "op": "draw",
+          "quantity": 1
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 37]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:fa85f9e6-69ff-4669-b70a-440aa7b16c97:0",
+      "target": "fa85f9e6-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 37], "text": "When Bilbo Baggins enters, draw a card."}
+    },
+    {
+      "source": "fa85f9e6-a1",
+      "target": "you",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [26, 37], "text": "draw a card", "note": "you draw a card on ETB"}
+    }
+  ],
+  "schema_extension_requests": []
+}

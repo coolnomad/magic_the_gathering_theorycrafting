@@ -1,0 +1,62 @@
+{
+  "face_id": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+  "abilities": [
+    {
+      "ability_id": "sac-impulse-draw",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"op": "sacrifice", "target": "another creature or artifact"}
+      ],
+      "conditions": [
+        {"condition": "activate only during your turn"},
+        {"condition": "activate only once each turn"}
+      ],
+      "effects": [
+        {"op": "exile", "target": "top card of your library"},
+        {
+          "op": "grant_permission",
+          "detail": "you may play the exiled card until the end of your next turn"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 177]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+      "target": "obj:sacrificed-permanent",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "note": "cost: sacrifice another creature or artifact",
+      "provenance": {"oracle_span": [0, 39], "text": "Sacrifice another creature or artifact:"}
+    },
+    {
+      "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "note": "top card of library exiled",
+      "provenance": {"oracle_span": [40, 74], "text": "Exile the top card of your library."}
+    },
+    {
+      "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [40, 74], "text": "Exile the top card of your library."}
+    },
+    {
+      "source": "face:fdf7f144-56e4-4f88-b81a-b85473922355:0",
+      "target": "zone:exile",
+      "predicate": "ENABLES",
+      "certainty": "rules_explicit",
+      "note": "may play the exiled card until end of next turn",
+      "provenance": {"oracle_span": [75, 122], "text": "You may play it until the end of your next turn."}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,35 @@
+{
+  "face_id": "face:4a5f76e7-40be-4b06-9935-4a3b2672e1c2:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [{"op": "gain_abilities", "detail": "Thranduil has all activated abilities of all Elf cards in your graveyard", "source_set": "Elf cards in your graveyard", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[0, 73]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "creature_enters", "text": "Whenever another legendary Elf you control enters", "scope": "another legendary Elf you control"},
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "draw", "amount": 2, "required": true, "ordering": 1},
+        {"op": "discard", "amount": 1, "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[74, 161]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:4a5f76e7-40be-4b06-9935-4a3b2672e1c2:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 73], "text": "Thranduil has all activated abilities of all Elf cards in your graveyard."}},
+    {"source": "face:4a5f76e7-40be-4b06-9935-4a3b2672e1c2:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [74, 161], "text": "Whenever another legendary Elf you control enters, draw two cards, then discard a card."}},
+    {"source": "a1", "target": "zone:graveyard", "predicate": "DERIVED_FROM", "certainty": "rules_explicit", "provenance": {"oracle_span": [15, 72], "text": "all activated abilities of all Elf cards in your graveyard", "note": "grants Thranduil the activated abilities of Elf cards in your graveyard"}}
+  ],
+  "schema_extension_requests": []
+}

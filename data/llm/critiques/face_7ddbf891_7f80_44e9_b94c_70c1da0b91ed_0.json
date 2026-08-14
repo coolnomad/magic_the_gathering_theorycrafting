@@ -1,0 +1,28 @@
+{
+  "face_id": "face:7ddbf891-7f80-44e9-b94c-70c1da0b91ed:0",
+  "abilities": [
+    {
+      "ability_id": "7ddbf891-a1",
+      "kind": "triggered",
+      "trigger": { "event": "this artifact is put into a graveyard from the battlefield", "text": "When this artifact is put into a graveyard from the battlefield" },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "reveal", "detail": "top thirteen cards of your library", "required": true, "text": "reveal the top thirteen cards of your library" },
+        { "op": "put_onto_battlefield", "detail": "a random creature card from among them", "from_zone": "library (revealed)", "to_zone": "battlefield", "required": true, "text": "Put a random creature card from among them onto the battlefield" },
+        { "op": "reorder_zone", "detail": "put the rest on the bottom of your library in a random order", "required": true, "text": "Put the rest on the bottom of your library in a random order" }
+      ],
+      "oracle_spans": [[0, 238]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:7ddbf891-7f80-44e9-b94c-70c1da0b91ed:0", "target": "7ddbf891-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 238], "text": "When this artifact is put into a graveyard from the battlefield, ..." } },
+    { "source": "7ddbf891-a1", "target": "event:dies", "predicate": "TRIGGERS", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 63], "text": "When this artifact is put into a graveyard from the battlefield", "note": "leaves-the-battlefield-to-graveyard trigger for this artifact (an artifact does not literally 'die'; models the put-into-graveyard-from-battlefield event)" } },
+    { "source": "7ddbf891-a1", "target": "zone:library", "predicate": "MOVES_FROM", "certainty": "rules_explicit", "provenance": { "oracle_span": [65, 175], "text": "reveal the top thirteen cards of your library. Put a random creature card from among them onto the battlefield" } },
+    { "source": "7ddbf891-a1", "target": "zone:battlefield", "predicate": "MOVES_TO", "certainty": "rules_explicit", "provenance": { "oracle_span": [112, 175], "text": "Put a random creature card from among them onto the battlefield" } },
+    { "source": "7ddbf891-a1", "target": "zone:library", "predicate": "MOVES_TO", "certainty": "rules_explicit", "condition": "the non-selected revealed cards go to the bottom of the library in a random order", "provenance": { "oracle_span": [176, 238], "text": "Put the rest on the bottom of your library in a random order." } }
+  ],
+  "schema_extension_requests": []
+}

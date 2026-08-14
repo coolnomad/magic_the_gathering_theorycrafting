@@ -1,0 +1,65 @@
+{
+  "face_id": "face:9febdfa8-8af2-4aba-b2e6-cb2baad7e02b:0",
+  "abilities": [
+    {
+      "ability_id": "double_strike",
+      "kind": "static",
+      "effects": [
+        {"effect": "grants_keyword", "keyword": "Double strike"}
+      ],
+      "oracle_spans": [[0, 13]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "etb_make_axe",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "this creature"
+      },
+      "effects": [
+        {
+          "effect": "create_token",
+          "token": "token:axe",
+          "quantity": 1,
+          "note": "Colorless Equipment artifact token named Axe with \"Equipped creature gets +1/+0\" and equip {2}."
+        }
+      ],
+      "oracle_spans": [[14, 145]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:9febdfa8-8af2-4aba-b2e6-cb2baad7e02b:0",
+      "target": "kw:double_strike",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 13], "text": "Double strike"}
+    },
+    {
+      "source": "face:9febdfa8-8af2-4aba-b2e6-cb2baad7e02b:0",
+      "target": "ability:etb_make_axe",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [14, 145], "text": "When this creature enters, create a colorless Equipment artifact token named Axe..."}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:etb_make_axe",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [14, 39], "text": "When this creature enters"}
+    },
+    {
+      "source": "ability:etb_make_axe",
+      "target": "token:axe",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [41, 144], "text": "create a colorless Equipment artifact token named Axe with \"Equipped creature gets +1/+0\" and equip {2}"}
+    }
+  ],
+  "schema_extension_requests": []
+}

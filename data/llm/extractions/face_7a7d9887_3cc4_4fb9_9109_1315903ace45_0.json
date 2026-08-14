@@ -1,0 +1,115 @@
+{
+  "face_id": "face:7a7d9887-3cc4-4fb9-9109-1315903ace45:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "conditions": [
+        {
+          "type": "modal",
+          "note": "Choose one of the two modes"
+        }
+      ],
+      "effects": [
+        {
+          "op": "counter_unless_pay",
+          "target": "target spell",
+          "unless": "its controller pays {4}",
+          "controller": "you",
+          "required": true,
+          "mode": 1
+        }
+      ],
+      "oracle_spans": [[0, 11], [14, 66]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "spell_effect",
+      "conditions": [
+        {
+          "type": "modal",
+          "note": "Choose one of the two modes"
+        }
+      ],
+      "effects": [
+        {
+          "op": "draw",
+          "amount": 2,
+          "controller": "you",
+          "required": true,
+          "ordering": 1,
+          "mode": 2
+        },
+        {
+          "op": "discard",
+          "amount": 1,
+          "controller": "you",
+          "required": true,
+          "ordering": 2,
+          "mode": 2
+        }
+      ],
+      "oracle_spans": [[0, 11], [69, 104]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:7a7d9887-3cc4-4fb9-9109-1315903ace45:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [14, 66],
+        "text": "Counter target spell unless its controller pays {4}."
+      }
+    },
+    {
+      "source": "a1",
+      "target": "event:cast-spell",
+      "predicate": "PREVENTS",
+      "polarity": "negative",
+      "condition": "unless its controller pays {4}",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [14, 66],
+        "text": "Counter target spell unless its controller pays {4}."
+      }
+    },
+    {
+      "source": "face:7a7d9887-3cc4-4fb9-9109-1315903ace45:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [69, 104],
+        "text": "Draw two cards, then discard a card."
+      }
+    },
+    {
+      "source": "a2",
+      "target": "resource:card-in-hand",
+      "predicate": "PRODUCES",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [69, 83],
+        "text": "Draw two cards",
+        "note": "net two cards drawn, one discarded"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "resource:card-in-hand",
+      "predicate": "CONSUMES",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [85, 104],
+        "text": "then discard a card."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

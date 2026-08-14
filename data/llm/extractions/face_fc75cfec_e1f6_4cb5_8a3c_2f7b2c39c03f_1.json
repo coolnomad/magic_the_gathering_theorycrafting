@@ -1,0 +1,71 @@
+{
+  "face_id": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:1",
+  "abilities": [
+    {
+      "ability_id": "spew-flame-damage",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "deal_damage", "amount": 5, "target": "target creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 51]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "adventure-exile",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "adventure",
+          "detail": "Then exile this card. You may cast the creature later from exile."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[52, 118]],
+      "confidence": "high",
+      "unresolved": [],
+      "note": "Adventure reminder text; references CR 715"
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:1",
+      "target": "obj:target-creature",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "note": "5 damage",
+      "provenance": {"oracle_span": [0, 51], "text": "Spew Flame deals 5 damage to target creature."}
+    },
+    {
+      "source": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [52, 118], "rule_ref": "CR 715 (Adventurer cards)", "text": "Then exile this card. You may cast the creature later from exile."}
+    },
+    {
+      "source": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "note": "adventure card exiled on resolution",
+      "provenance": {"oracle_span": [58, 78], "text": "exile this card"}
+    },
+    {
+      "source": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:1",
+      "target": "face:fc75cfec-e1f6-4cb5-8a3c-2f7b2c39c03f:0",
+      "predicate": "CAN_LEAD_TO",
+      "certainty": "rules_explicit",
+      "note": "creature face castable from exile after the Adventure resolves",
+      "provenance": {"oracle_span": [79, 118], "text": "You may cast the creature later from exile."}
+    }
+  ],
+  "schema_extension_requests": []
+}

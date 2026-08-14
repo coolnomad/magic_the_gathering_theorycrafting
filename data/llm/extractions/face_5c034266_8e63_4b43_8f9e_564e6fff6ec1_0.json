@@ -1,0 +1,32 @@
+{
+  "face_id": "face:5c034266-8e63-4b43-8f9e-564e6fff6ec1:0",
+  "abilities": [
+    {
+      "ability_id": "pump-reach-firststrike",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "modify_pt", "power": 3, "toughness": 0, "target": "target creature", "duration": "until end of turn"},
+        {"op": "grant_keyword", "keyword": "reach", "target": "target creature", "duration": "until end of turn"},
+        {"op": "grant_keyword", "keyword": "first strike", "target": "target creature", "duration": "until end of turn"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 74]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:5c034266-8e63-4b43-8f9e-564e6fff6ec1:0",
+      "target": "obj:target-creature",
+      "predicate": "MODIFIES",
+      "certainty": "rules_explicit",
+      "note": "+3/+0 and gains reach and first strike until end of turn",
+      "provenance": {"oracle_span": [0, 74], "text": "Target creature gets +3/+0 and gains reach and first strike until end of turn."}
+    }
+  ],
+  "schema_extension_requests": []
+}

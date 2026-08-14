@@ -1,0 +1,88 @@
+{
+  "face_id": "face:bddd7e99-ec74-4ca6-9137-155b85695a95:0",
+  "abilities": [
+    {
+      "ability_id": "vigilance",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {
+          "effect": "keyword_ability",
+          "keyword": "Vigilance",
+          "detail": "This creature doesn't tap when attacking.",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[0, 9]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "etb_recruit",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this_creature_enters",
+        "detail": "Triggers when this creature enters the battlefield.",
+        "controller": "you"
+      },
+      "effects": [
+        {
+          "effect": "recruit",
+          "detail": "Perform the Recruit keyword action: draw a card, then discard a card; if the discarded card was a nonland card, create a 1/1 white Human Soldier creature token.",
+          "controller": "you",
+          "references_mechanic": "Recruit"
+        }
+      ],
+      "oracle_spans": [[10, 163]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:bddd7e99-ec74-4ca6-9137-155b85695a95:0",
+      "target": "kw:vigilance",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 9],
+        "text": "Vigilance"
+      }
+    },
+    {
+      "source": "etb_recruit",
+      "target": "event:creature_enters",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 163],
+        "text": "When this creature enters, recruit."
+      }
+    },
+    {
+      "source": "face:bddd7e99-ec74-4ca6-9137-155b85695a95:0",
+      "target": "rule:recruit",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 163],
+        "text": "recruit. (Draw a card, then discard a card. If you discarded a nonland card, create a 1/1 white Human Soldier creature token.)",
+        "rule_ref": "HOB release notes / mechanics article: Recruit"
+      }
+    },
+    {
+      "source": "etb_recruit",
+      "target": "token:human-soldier",
+      "predicate": "CREATES_OBJECT",
+      "optional": false,
+      "condition": "the discarded card during Recruit was a nonland card",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [10, 163],
+        "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token.",
+        "note": "Token creation conditional on the Recruit discard being nonland."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,49 @@
+{
+  "face_id": "face:0d420e41-43e9-41d6-832c-5a9f410c994e:0",
+  "abilities": [
+    {
+      "ability_id": "0d420e41-storied",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        { "text": "you control three or more artifacts, legendaries, and/or Sagas" }
+      ],
+      "effects": [
+        { "op": "gain_designation", "designation": "enduring story", "duration": "rest of the game", "required": true, "text": "you have an enduring story for the rest of the game" }
+      ],
+      "oracle_spans": [[0, 7]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "0d420e41-a2",
+      "kind": "triggered",
+      "trigger": { "event": "Balin or another Dwarf you control enters the battlefield", "text": "Whenever Balin or another Dwarf you control enters" },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "discard", "controller": "you", "scope": "your hand", "optional": true, "text": "you may discard your hand" },
+        { "op": "draw", "controller": "you", "quantity_expr": "X = number of cards discarded this way", "required": true, "text": "Draw X cards, where X is the number of cards discarded this way" },
+        { "op": "deal_damage", "source": "Balin", "amount_expr": "X", "target": "each opponent", "condition": "you have an enduring story", "required": true, "text": "If you have an enduring story, Balin deals X damage to each opponent" }
+      ],
+      "oracle_spans": [[130, 180], [182, 342]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:0d420e41-43e9-41d6-832c-5a9f410c994e:0", "target": "0d420e41-storied", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [0, 7], "text": "Storied" } },
+    { "source": "face:0d420e41-43e9-41d6-832c-5a9f410c994e:0", "target": "0d420e41-a2", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [130, 342], "text": "Whenever Balin or another Dwarf you control enters..." } },
+    { "source": "0d420e41-storied", "target": "rule:storied", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": { "oracle_span": [0, 7], "text": "Storied" } },
+    { "source": "0d420e41-storied", "target": "state:enduring_story", "predicate": "PERSISTS_AS", "certainty": "rules_explicit", "provenance": { "oracle_span": [8, 128], "text": "you have an enduring story for the rest of the game" } },
+    { "source": "0d420e41-a2", "target": "event:etb", "predicate": "TRIGGERS", "provenance": { "oracle_span": [130, 180], "text": "Whenever Balin or another Dwarf you control enters", "note": "triggers on Balin or another Dwarf you control entering" } },
+    { "source": "0d420e41-a2", "target": "op:discard-hand", "predicate": "CAUSES", "optional": true, "provenance": { "oracle_span": [182, 207], "text": "you may discard your hand" } },
+    { "source": "0d420e41-a2", "target": "op:draw", "predicate": "CAUSES", "provenance": { "oracle_span": [209, 272], "text": "Draw X cards, where X is the number of cards discarded this way" } },
+    { "source": "0d420e41-a2", "target": "op:draw", "predicate": "SCALES_WITH", "condition": "X = number of cards discarded this way (size of hand discarded)", "provenance": { "oracle_span": [209, 272], "text": "where X is the number of cards discarded this way" } },
+    { "source": "0d420e41-a2", "target": "op:deal-damage", "predicate": "CAUSES", "polarity": "negative", "condition": "you have an enduring story", "provenance": { "oracle_span": [274, 342], "text": "If you have an enduring story, Balin deals X damage to each opponent" } },
+    { "source": "0d420e41-a2", "target": "op:deal-damage", "predicate": "SCALES_WITH", "condition": "damage equals X, the number of cards discarded", "provenance": { "oracle_span": [274, 342], "text": "Balin deals X damage to each opponent" } },
+    { "source": "state:enduring_story", "target": "op:deal-damage", "predicate": "ENABLES", "certainty": "rules_explicit", "provenance": { "oracle_span": [274, 303], "text": "If you have an enduring story" } }
+  ],
+  "schema_extension_requests": []
+}

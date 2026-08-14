@@ -1,0 +1,89 @@
+{
+  "face_id": "face:2e728381-6db0-4c66-883d-82d718fef833:0",
+  "abilities": [
+    {
+      "ability_id": "myprecious-static-grant",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "hexproof",
+          "target": "equipped creature"
+        },
+        {
+          "op": "grant_unblockable",
+          "target": "equipped creature",
+          "detail": "Equipped creature can't be blocked."
+        }
+      ],
+      "oracle_spans": [[0, 52]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "myprecious-equip",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{2}"},
+        {"type": "life", "detail": "Pay 2 life"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Equip only as a sorcery."}
+      ],
+      "effects": [
+        {
+          "op": "attach",
+          "target": "target creature you control",
+          "references_mechanic": "Equip",
+          "detail": "Attach this Equipment to target creature you control."
+        }
+      ],
+      "oracle_spans": [[53, 75]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:2e728381-6db0-4c66-883d-82d718fef833:0",
+      "target": "ability:myprecious-static-grant",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 52], "text": "Equipped creature has hexproof and can't be blocked."}
+    },
+    {
+      "source": "ability:myprecious-static-grant",
+      "target": "keyword:hexproof",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "scope": "equipped creature",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 30], "text": "Equipped creature has hexproof", "note": "Grants hexproof to the equipped creature."}
+    },
+    {
+      "source": "ability:myprecious-static-grant",
+      "target": "equipped creature",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [35, 52], "text": "can't be blocked.", "note": "Equipped creature can't be blocked."}
+    },
+    {
+      "source": "face:2e728381-6db0-4c66-883d-82d718fef833:0",
+      "target": "keyword:equip",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [53, 75], "text": "Equip—{2}, Pay 2 life."}
+    },
+    {
+      "source": "face:2e728381-6db0-4c66-883d-82d718fef833:0",
+      "target": "ability:myprecious-equip",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [53, 75], "text": "Equip—{2}, Pay 2 life."}
+    }
+  ],
+  "schema_extension_requests": []
+}

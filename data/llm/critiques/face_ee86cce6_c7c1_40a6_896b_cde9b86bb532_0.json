@@ -1,0 +1,55 @@
+{
+  "face_id": "face:ee86cce6-c7c1-40a6-896b-cde9b86bb532:0",
+  "abilities": [
+    {
+      "ability_id": "rabbit-ferocious-combat",
+      "kind": "triggered",
+      "trigger": {
+        "event": "beginning of combat on your turn",
+        "ability_word": "Ferocious",
+        "controller": "you"
+      },
+      "conditions": [
+        {"type": "intervening_if", "text": "you control a creature with power 4 or greater", "note": "checked when trigger would go on the stack and again on resolution"}
+      ],
+      "effects": [
+        {
+          "type": "add_counter",
+          "counter_type": "+1/+1",
+          "quantity": 1,
+          "target": "this creature"
+        }
+      ],
+      "oracle_spans": [[0, 141]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "rabbit-ferocious-combat",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "optional": false,
+      "condition": "you control a creature with power 4 or greater",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [104, 140], "text": "put a +1/+1 counter on this creature"}
+    },
+    {
+      "source": "counter:+1/+1",
+      "target": "countertype:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [110, 123], "text": "+1/+1 counter"}
+    },
+    {
+      "source": "rabbit-ferocious-combat",
+      "target": "gate:control-creature-power-4-or-greater",
+      "predicate": "REQUIRES",
+      "condition": "you control a creature with power 4 or greater",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [53, 102], "text": "if you control a creature with power 4 or greater", "note": "intervening-if gates the triggered ability"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,141 @@
+{
+  "face_id": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
+  "abilities": [
+    {
+      "ability_id": "a0",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {"op": "saga_rules", "note": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV."}
+      ],
+      "oracle_spans": [[0, 76]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "lore counter reaches I", "chapter": "I"},
+      "effects": [
+        {"op": "reveal_hand", "who": "target opponent"},
+        {"op": "you_choose", "what": "a nonland card from the revealed hand"},
+        {"op": "discard", "who": "that opponent", "what": "the chosen card"}
+      ],
+      "oracle_spans": [[77, 174]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "lore counter reaches II", "chapter": "II"},
+      "effects": [
+        {"op": "amass", "subtype": "Goblins", "amount": 1, "note": "Put a +1/+1 counter on an Army you control, creating a 0/0 black Goblin Army token first if none."}
+      ],
+      "oracle_spans": [[175, 315]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "triggered",
+      "trigger": {"event": "lore counter reaches III or IV", "chapters": ["III", "IV"]},
+      "effects": [
+        {"op": "lose_life", "who": "target opponent", "amount": 1},
+        {"op": "gain_life", "who": "you", "amount": 1}
+      ],
+      "oracle_spans": [[316, 373]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
+      "target": "a0",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 76], "text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV.)"}
+    },
+    {
+      "source": "a0",
+      "target": "rule:saga",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 76], "rule_ref": "CR 714 (Saga cards)", "text": "As this Saga enters and after your draw step, add a lore counter. Sacrifice after IV."}
+    },
+    {
+      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
+      "target": "counter:lore",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [39, 51], "text": "a lore counter"}
+    },
+    {
+      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [77, 174], "text": "I — Target opponent reveals their hand. You choose a nonland card from it. That player discards that card."}
+    },
+    {
+      "source": "a1",
+      "target": "event:opponent_discards",
+      "predicate": "CAUSES",
+      "scope": "a nonland card you choose",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [126, 174], "text": "That player discards that card."}
+    },
+    {
+      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [175, 315], "text": "II — Amass Goblins 1."}
+    },
+    {
+      "source": "a2",
+      "target": "token:goblin-army",
+      "predicate": "CREATES_OBJECT",
+      "condition": "you control no Army when amass resolves",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [180, 195], "text": "Amass Goblins 1.", "note": "Amass creates a 0/0 black Goblin Army token if you control no Army."}
+    },
+    {
+      "source": "a2",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "scope": "one +1/+1 counter on an Army",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [180, 195], "text": "Amass Goblins 1."}
+    },
+    {
+      "source": "face:e01860cd-0aa1-435a-9ef9-ee412bc458cd:0",
+      "target": "a3",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [316, 373], "text": "III, IV — Target opponent loses 1 life and you gain 1 life."}
+    },
+    {
+      "source": "a3",
+      "target": "resource:life",
+      "predicate": "CONSUMES",
+      "polarity": "negative",
+      "scope": "target opponent loses 1 life",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [327, 350], "text": "Target opponent loses 1 life"}
+    },
+    {
+      "source": "a3",
+      "target": "resource:life",
+      "predicate": "PRODUCES",
+      "polarity": "positive",
+      "scope": "you gain 1 life",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [355, 373], "text": "you gain 1 life."}
+    }
+  ],
+  "schema_extension_requests": [
+    {
+      "proposed_predicate": "AMASSES",
+      "rationale": "Amass Goblins N is a composite keyword action (conditional Army token creation plus +1/+1 counters plus Goblin subtype) not captured by any single controlled predicate, with no shared rule:amass id in shared_context. Modeled via CREATES_OBJECT + ADDS_COUNTER as a workaround.",
+      "oracle_span": [180, 195]
+    }
+  ]
+}

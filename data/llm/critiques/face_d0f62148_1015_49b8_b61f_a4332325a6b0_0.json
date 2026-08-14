@@ -1,0 +1,94 @@
+{
+  "face_id": "face:d0f62148-1015-49b8-b61f-a4332325a6b0:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "a land you control enters",
+        "keyword": "Landfall"
+      },
+      "conditions": [
+        {
+          "type": "modal",
+          "note": "Choose one of the two modes on resolution"
+        }
+      ],
+      "effects": [
+        {
+          "op": "tap",
+          "target": "target creature an opponent controls",
+          "controller": "you",
+          "required": true,
+          "mode": 1
+        },
+        {
+          "op": "untap",
+          "target": "target creature you control",
+          "controller": "you",
+          "required": true,
+          "mode": 2
+        }
+      ],
+      "oracle_spans": [[0, 59], [60, 103], [104, 138]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:d0f62148-1015-49b8-b61f-a4332325a6b0:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 59],
+        "text": "Landfall — Whenever a land you control enters, choose one —"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "rule:landfall",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 45],
+        "text": "Landfall — Whenever a land you control enters,"
+      }
+    },
+    {
+      "source": "event:land-enters-you-control",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [11, 45],
+        "text": "Whenever a land you control enters,"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "state:tapped",
+      "predicate": "CAUSES",
+      "certainty": "high",
+      "scope": "mode 1: target creature an opponent controls",
+      "provenance": {
+        "oracle_span": [62, 103],
+        "text": "Tap target creature an opponent controls."
+      }
+    },
+    {
+      "source": "a1",
+      "target": "state:tapped",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "high",
+      "scope": "mode 2: untap target creature you control",
+      "provenance": {
+        "oracle_span": [106, 140],
+        "text": "Untap target creature you control."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

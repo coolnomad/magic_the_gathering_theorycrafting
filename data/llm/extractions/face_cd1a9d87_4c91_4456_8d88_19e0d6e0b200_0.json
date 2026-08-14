@@ -1,0 +1,38 @@
+{
+  "face_id": "face:cd1a9d87-4c91-4456-8d88-19e0d6e0b200:0",
+  "abilities": [
+    {
+      "ability_id": "cd1a9d87-kw",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "keyword", "keyword": "Reach", "required": true, "text": "Reach" }
+      ],
+      "oracle_spans": [[0, 5]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "cd1a9d87-a1",
+      "kind": "triggered",
+      "trigger": { "event": "Gandalf enters the battlefield", "text": "When Gandalf enters" },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        { "op": "deal_damage", "amount": 3, "distribution": "divided as you choose among one, two, or three targets", "required": true, "text": "he deals 3 damage divided as you choose among one, two, or three targets" }
+      ],
+      "oracle_spans": [[6, 100]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    { "source": "face:cd1a9d87-4c91-4456-8d88-19e0d6e0b200:0", "target": "keyword:reach", "predicate": "HAS_KEYWORD", "provenance": { "oracle_span": [0, 5], "text": "Reach" } },
+    { "source": "face:cd1a9d87-4c91-4456-8d88-19e0d6e0b200:0", "target": "cd1a9d87-a1", "predicate": "HAS_ABILITY", "provenance": { "oracle_span": [6, 100], "text": "When Gandalf enters, he deals 3 damage divided as you choose among one, two, or three targets." } },
+    { "source": "cd1a9d87-a1", "target": "event:etb", "predicate": "TRIGGERS", "provenance": { "oracle_span": [6, 25], "text": "When Gandalf enters" } },
+    { "source": "cd1a9d87-a1", "target": "op:deal-damage", "predicate": "CAUSES", "polarity": "negative", "condition": "3 damage divided among one to three targets", "provenance": { "oracle_span": [27, 99], "text": "he deals 3 damage divided as you choose among one, two, or three targets" } }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,88 @@
+{
+  "face_id": "face:3c4da169-1e50-4790-abdc-214e7b8a2ad5:0",
+  "abilities": [
+    {
+      "ability_id": "3c4da169-mode1",
+      "kind": "spell_effect",
+      "trigger": null,
+      "conditions": [
+        "this mode chosen"
+      ],
+      "effects": [
+        {
+          "op": "pump",
+          "target": "creatures you control",
+          "amount": "+2/+1",
+          "duration": "until end of turn"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 56]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "3c4da169-mode2",
+      "kind": "spell_effect",
+      "trigger": null,
+      "conditions": [
+        "this mode chosen"
+      ],
+      "effects": [
+        {
+          "op": "destroy",
+          "target": "target artifact or enchantment"
+        },
+        {
+          "op": "gain_life",
+          "amount": 2,
+          "controller": "you"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[57, 105]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:3c4da169-1e50-4790-abdc-214e7b8a2ad5:0",
+      "target": "3c4da169-mode1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 56], "text": "Choose one —\n• Creatures you control get +2/+1 until end of turn."}
+    },
+    {
+      "source": "face:3c4da169-1e50-4790-abdc-214e7b8a2ad5:0",
+      "target": "3c4da169-mode2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [57, 105], "text": "• Destroy target artifact or enchantment. You gain 2 life."}
+    },
+    {
+      "source": "3c4da169-mode1",
+      "target": "creatures you control",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "timing": "until_end_of_turn",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [14, 56], "text": "Creatures you control get +2/+1 until end of turn."}
+    },
+    {
+      "source": "3c4da169-mode2",
+      "target": "target artifact or enchantment",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [59, 89], "text": "Destroy target artifact or enchantment."}
+    },
+    {
+      "source": "3c4da169-mode2",
+      "target": "you",
+      "predicate": "CAUSES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [90, 105], "text": "You gain 2 life.", "note": "gain 2 life"}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,109 @@
+{
+  "face_id": "face:a91e0154-14a9-4681-8236-04db231592a4:0",
+  "abilities": [
+    {
+      "ability_id": "elvenkings-enters-tapped",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "enters_tapped",
+          "target": "this land",
+          "detail": "This land enters the battlefield tapped."
+        }
+      ],
+      "oracle_spans": [[0, 24]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "elvenkings-mana",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "add_mana",
+          "amount": 1,
+          "options": ["G", "U"],
+          "detail": "Add {G} or {U}."
+        }
+      ],
+      "oracle_spans": [[25, 45]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "elvenkings-sac-counters",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{2}{G}{U}"},
+        {"type": "tap", "detail": "{T}"},
+        {"type": "sacrifice", "detail": "Sacrifice this land"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Activate only as a sorcery."}
+      ],
+      "effects": [
+        {
+          "op": "add_counter",
+          "counter_type": "+1/+1",
+          "amount": 2,
+          "target": "target Elf you control",
+          "detail": "Put two +1/+1 counters on target Elf you control."
+        }
+      ],
+      "oracle_spans": [[46, 160]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:a91e0154-14a9-4681-8236-04db231592a4:0",
+      "target": "ability:elvenkings-enters-tapped",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 24], "text": "This land enters tapped."}
+    },
+    {
+      "source": "face:a91e0154-14a9-4681-8236-04db231592a4:0",
+      "target": "ability:elvenkings-mana",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [25, 45], "text": "{T}: Add {G} or {U}."}
+    },
+    {
+      "source": "ability:elvenkings-mana",
+      "target": "resource:mana",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [30, 45], "text": "Add {G} or {U}."}
+    },
+    {
+      "source": "face:a91e0154-14a9-4681-8236-04db231592a4:0",
+      "target": "ability:elvenkings-sac-counters",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [46, 160], "text": "{2}{G}{U}, {T}, Sacrifice this land: Put two +1/+1 counters on target Elf you control. Activate only as a sorcery."}
+    },
+    {
+      "source": "ability:elvenkings-sac-counters",
+      "target": "face:a91e0154-14a9-4681-8236-04db231592a4:0",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [62, 81], "text": "Sacrifice this land", "note": "Sacrifice of this land is part of the activation cost."}
+    },
+    {
+      "source": "ability:elvenkings-sac-counters",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [83, 132], "text": "Put two +1/+1 counters on target Elf you control.", "note": "Two +1/+1 counters onto target Elf you control."}
+    }
+  ],
+  "schema_extension_requests": []
+}

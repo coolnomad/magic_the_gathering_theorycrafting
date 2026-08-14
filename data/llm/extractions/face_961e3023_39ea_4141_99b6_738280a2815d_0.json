@@ -1,0 +1,76 @@
+{
+  "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0",
+  "abilities": [
+    {
+      "ability_id": "modal-damage-exile",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {"condition": "mode chosen: this mode is one of 'one or both'"}
+      ],
+      "effects": [
+        {"op": "deal_damage", "amount": 3, "target": "target creature"},
+        {
+          "op": "replacement",
+          "detail": "if that creature would die this turn, exile it instead",
+          "replaces": "that creature dying this turn"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 21], [22, 109]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "modal-destroy-artifact-token",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {"condition": "mode chosen: this mode is one of 'one or both'"}
+      ],
+      "effects": [
+        {"op": "destroy", "target": "target artifact token"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 21], [110, 141]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0",
+      "target": "obj:target-creature",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "note": "3 damage",
+      "provenance": {"oracle_span": [24, 71], "text": "Pinecone Strike deals 3 damage to target creature."}
+    },
+    {
+      "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0",
+      "target": "zone:exile",
+      "predicate": "REPLACES",
+      "certainty": "rules_explicit",
+      "note": "death of the damaged creature this turn is replaced by exile",
+      "provenance": {"oracle_span": [72, 109], "text": "If that creature would die this turn, exile it instead."}
+    },
+    {
+      "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [72, 109], "text": "exile it instead"}
+    },
+    {
+      "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0",
+      "target": "obj:target-artifact-token",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "note": "destroy",
+      "provenance": {"oracle_span": [112, 141], "text": "Destroy target artifact token."}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,60 @@
+{
+  "face_id": "face:4c67359d-5590-4eb0-827e-b411967ee238:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "you cast a noncreature spell", "controller_scope": "you"},
+      "effects": [
+        {"op": "draw", "quantity": "X", "x_definition": "the amount of mana spent to cast that spell", "optional": true},
+        {"op": "discard", "quantity": 2, "condition": "if you drew this way (if you do)"}
+      ],
+      "oracle_spans": [[0, 133]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:4c67359d-5590-4eb0-827e-b411967ee238:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 133], "text": "Whenever you cast a noncreature spell, you may draw X cards, where X is the amount of mana spent to cast that spell. If you do, discard two cards."}
+    },
+    {
+      "source": "event:cast_noncreature_spell",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 39], "text": "Whenever you cast a noncreature spell,"}
+    },
+    {
+      "source": "a1",
+      "target": "resource:card_in_hand",
+      "predicate": "PRODUCES",
+      "optional": true,
+      "scope": "X cards where X = mana spent on that spell",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [40, 111], "text": "you may draw X cards, where X is the amount of mana spent to cast that spell."}
+    },
+    {
+      "source": "a1",
+      "target": "a1",
+      "predicate": "SCALES_WITH",
+      "condition": "X = amount of mana spent to cast the triggering noncreature spell",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [62, 111], "text": "where X is the amount of mana spent to cast that spell."}
+    },
+    {
+      "source": "a1",
+      "target": "resource:card_in_hand",
+      "predicate": "CONSUMES",
+      "polarity": "negative",
+      "condition": "if you drew this way",
+      "scope": "discard two cards",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [112, 133], "text": "If you do, discard two cards."}
+    }
+  ],
+  "schema_extension_requests": []
+}

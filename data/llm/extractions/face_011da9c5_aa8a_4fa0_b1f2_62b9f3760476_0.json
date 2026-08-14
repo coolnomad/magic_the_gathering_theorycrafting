@@ -1,0 +1,77 @@
+{
+  "face_id": "face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0",
+  "abilities": [
+    {
+      "ability_id": "token_enters_escalating",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "a token you control"
+      },
+      "conditions": [
+        {
+          "condition": "resolution_count_this_turn",
+          "note": "Effect branches on how many times this ability has resolved this turn."
+        }
+      ],
+      "effects": [
+        {
+          "branch": "first resolution this turn",
+          "effect": "gain_life",
+          "amount": 1,
+          "controller": "you"
+        },
+        {
+          "branch": "second resolution this turn",
+          "effect": "draw",
+          "amount": 1,
+          "controller": "you"
+        },
+        {
+          "branch": "third resolution this turn",
+          "effect": "add_counter",
+          "counter": "counter:+1/+1",
+          "quantity": 1,
+          "target": "each creature you control"
+        }
+      ],
+      "oracle_spans": [[0, 227]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0",
+      "target": "ability:token_enters_escalating",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 227], "text": "Whenever a token you control enters..."}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:token_enters_escalating",
+      "predicate": "TRIGGERS",
+      "scope": "a token you control",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 36], "text": "Whenever a token you control enters"}
+    },
+    {
+      "source": "ability:token_enters_escalating",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "condition": "third resolution this turn",
+      "scope": "each creature you control",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [154, 227], "text": "put a +1/+1 counter on each creature you control"}
+    },
+    {
+      "source": "ability:token_enters_escalating",
+      "target": "counter:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [180, 191], "text": "+1/+1 counter"}
+    }
+  ],
+  "schema_extension_requests": []
+}

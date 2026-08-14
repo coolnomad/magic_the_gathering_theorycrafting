@@ -1,0 +1,98 @@
+{
+  "face_id": "face:169a4a77-12ff-4997-9550-bdcd456aa2f7:0",
+  "abilities": [
+    {
+      "ability_id": "kicker",
+      "kind": "static",
+      "costs": [
+        {"cost": "kicker_mana", "value": "{2}{W}{W}", "optional": true}
+      ],
+      "effects": [
+        {
+          "effect": "kicker",
+          "keyword": "Kicker",
+          "note": "You may pay an additional {2}{W}{W} as you cast this spell."
+        }
+      ],
+      "oracle_spans": [[0, 78]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "bounce_and_delayed_tokens",
+      "kind": "spell_effect",
+      "conditions": [
+        {"condition": "if this spell was kicked", "effect": "target set becomes any number of creatures you own instead of one"}
+      ],
+      "effects": [
+        {
+          "effect": "choose_targets",
+          "default": "target creature you own",
+          "if_kicked": "any number of target creatures you own"
+        },
+        {
+          "effect": "return_to_hand",
+          "target": "each chosen creature",
+          "destination": "your hand"
+        },
+        {
+          "effect": "create_delayed_token",
+          "token": "token:bird-soldier",
+          "timing": "at the beginning of the next upkeep",
+          "quantity": "one per creature returned to your hand this way",
+          "scales_with": "number of creatures returned to hand this way"
+        }
+      ],
+      "oracle_spans": [[79, 379]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:169a4a77-12ff-4997-9550-bdcd456aa2f7:0",
+      "target": "kw:kicker",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 16], "text": "Kicker {2}{W}{W}"}
+    },
+    {
+      "source": "face:169a4a77-12ff-4997-9550-bdcd456aa2f7:0",
+      "target": "ability:bounce_and_delayed_tokens",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [79, 379], "text": "Choose target creature you own... create a 4/4 white Bird Soldier creature token..."}
+    },
+    {
+      "source": "ability:kicker",
+      "target": "ability:bounce_and_delayed_tokens",
+      "predicate": "MODIFIES",
+      "condition": "if this spell was kicked",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [111, 191], "text": "If this spell was kicked, instead choose any number of target creatures you own."}
+    },
+    {
+      "source": "ability:bounce_and_delayed_tokens",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [192, 233], "text": "Return each chosen creature to your hand."}
+    },
+    {
+      "source": "ability:bounce_and_delayed_tokens",
+      "target": "token:bird-soldier",
+      "predicate": "CREATES_OBJECT",
+      "timing": "at the beginning of the next upkeep",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [234, 378], "text": "At the beginning of the next upkeep, create a 4/4 white Bird Soldier creature token with flying for each creature returned to your hand this way."}
+    },
+    {
+      "source": "ability:bounce_and_delayed_tokens",
+      "target": "token:bird-soldier",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [330, 378], "text": "for each creature returned to your hand this way"}
+    }
+  ],
+  "schema_extension_requests": []
+}

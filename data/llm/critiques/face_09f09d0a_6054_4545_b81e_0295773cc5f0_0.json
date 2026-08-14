@@ -1,0 +1,32 @@
+{
+  "face_id": "face:09f09d0a-6054-4545-b81e-0295773cc5f0:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [{"op": "modify_pt", "amount": "+1/+1", "scope": "creatures you control", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[0, 32]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "beginning_of_end_step", "text": "At the beginning of your end step"},
+      "conditions": [],
+      "costs": [],
+      "effects": [{"op": "draw", "amount": 1, "required": true}],
+      "controller": "you",
+      "oracle_spans": [[33, 80]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:09f09d0a-6054-4545-b81e-0295773cc5f0:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 32], "text": "Creatures you control get +1/+1."}},
+    {"source": "face:09f09d0a-6054-4545-b81e-0295773cc5f0:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [33, 80], "text": "At the beginning of your end step, draw a card."}},
+    {"source": "a2", "target": "draw", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": {"oracle_span": [68, 79], "text": "draw a card"}}
+  ],
+  "schema_extension_requests": []
+}

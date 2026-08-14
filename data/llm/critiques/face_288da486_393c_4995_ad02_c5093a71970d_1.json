@@ -1,0 +1,63 @@
+{
+  "face_id": "face:288da486-393c-4995-ad02-c5093a71970d:1",
+  "abilities": [
+    {
+      "ability_id": "extra-land",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "grant_permission", "detail": "you may play an additional land this turn"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 42]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "adventure-exile",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "adventure",
+          "detail": "Then exile this card. You may cast the creature later from exile."
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[43, 110]],
+      "confidence": "high",
+      "unresolved": [],
+      "note": "Adventure reminder text; references CR 715"
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:288da486-393c-4995-ad02-c5093a71970d:1",
+      "target": "rule:adventure",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [43, 110], "rule_ref": "CR 715 (Adventurer cards)", "text": "(Then exile this card. You may cast the creature later from exile.)"}
+    },
+    {
+      "source": "face:288da486-393c-4995-ad02-c5093a71970d:1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "note": "adventure card exiled on resolution",
+      "provenance": {"oracle_span": [49, 64], "text": "exile this card"}
+    },
+    {
+      "source": "face:288da486-393c-4995-ad02-c5093a71970d:1",
+      "target": "face:288da486-393c-4995-ad02-c5093a71970d:0",
+      "predicate": "CAN_LEAD_TO",
+      "certainty": "rules_explicit",
+      "note": "creature face castable from exile after the Adventure resolves",
+      "provenance": {"oracle_span": [66, 109], "text": "You may cast the creature later from exile."}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,54 @@
+{
+  "face_id": "face:edbd3d4e-78a2-4c03-936d-dcb24cf7c87c:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this_creature_dies",
+        "text": "When this creature dies"
+      },
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {
+          "op": "amass",
+          "kind_word": "Goblins",
+          "amount": 4,
+          "detail": "Put four +1/+1 counters on an Army you control (also a Goblin); if you don't control an Army, first create a 0/0 black Goblin Army creature token.",
+          "required": true
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 194]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:edbd3d4e-78a2-4c03-936d-dcb24cf7c87c:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 194], "text": "When this creature dies, amass Goblins 4. (Put four +1/+1 counters on an Army you control...)"}
+    },
+    {
+      "source": "a1",
+      "target": "token:goblin-army",
+      "predicate": "CREATES_OBJECT",
+      "optional": false,
+      "condition": "only if you don't already control an Army",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [111, 193], "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first.", "note": "conditional creation as part of amass"}
+    },
+    {
+      "source": "a1",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [43, 89], "text": "Put four +1/+1 counters on an Army you control.", "note": "amass Goblins 4 puts four +1/+1 counters on the Army"}
+    }
+  ],
+  "schema_extension_requests": []
+}

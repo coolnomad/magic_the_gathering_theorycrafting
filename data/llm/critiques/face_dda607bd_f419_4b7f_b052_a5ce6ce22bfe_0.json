@@ -1,0 +1,88 @@
+{
+  "face_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0",
+  "abilities": [
+    {
+      "ability_id": "stir-additional-cost",
+      "kind": "static",
+      "trigger": null,
+      "costs": [
+        {
+          "type": "additional_cost",
+          "detail": "Sacrifice an artifact or creature, or pay {4}.",
+          "alternatives": [
+            {
+              "type": "sacrifice",
+              "detail": "Sacrifice an artifact or creature"
+            },
+            {
+              "type": "mana",
+              "amount": "{4}"
+            }
+          ]
+        }
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "additional_cost_definition",
+          "detail": "As an additional cost to cast this spell, sacrifice an artifact or creature or pay {4}."
+        }
+      ],
+      "oracle_spans": [[0, 87]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "stir-destroy",
+      "kind": "spell_effect",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "destroy",
+          "target": "target creature"
+        }
+      ],
+      "oracle_spans": [[88, 112]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0",
+      "target": "cost:sacrifice-artifact-or-creature-or-pay-4",
+      "predicate": "HAS_COST",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 87],
+        "text": "As an additional cost to cast this spell, sacrifice an artifact or creature or pay {4}.",
+        "note": "Additional cost with two alternatives: sacrifice an artifact or creature, or pay {4}."
+      }
+    },
+    {
+      "source": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0",
+      "target": "an artifact or creature",
+      "predicate": "CONSUMES",
+      "condition": "if the sacrifice alternative is chosen for the additional cost",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [42, 87],
+        "text": "sacrifice an artifact or creature or pay {4}."
+      }
+    },
+    {
+      "source": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0",
+      "target": "target creature",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [88, 112],
+        "text": "Destroy target creature."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

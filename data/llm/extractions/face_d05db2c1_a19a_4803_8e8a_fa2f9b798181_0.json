@@ -1,0 +1,45 @@
+{
+  "face_id": "face:d05db2c1-a19a-4803-8e8a-fa2f9b798181:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {"op": "grant_keyword", "keywords": ["reach", "vigilance"], "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 16]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "replacement",
+      "effects": [
+        {"op": "replace_draw", "note": "if you would draw a card except the first one you draw in each of your draw steps, draw two cards instead", "quantity_from": 1, "quantity_to": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[17, 121]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "replacement",
+      "effects": [
+        {"op": "replace_token_creation", "note": "if one or more tokens would be created under your control, twice that many are created instead", "multiplier": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[122, 226]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:d05db2c1-a19a-4803-8e8a-fa2f9b798181:0", "target": "keyword:reach", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 5], "text": "Reach"}},
+    {"source": "face:d05db2c1-a19a-4803-8e8a-fa2f9b798181:0", "target": "keyword:vigilance", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [7, 16], "text": "vigilance"}},
+    {"source": "face:d05db2c1-a19a-4803-8e8a-fa2f9b798181:0", "target": "event:draw", "predicate": "REPLACES", "certainty": "rules_explicit", "provenance": {"oracle_span": [17, 121], "text": "If you would draw a card except the first one you draw in each of your draw steps, draw two cards instead."}},
+    {"source": "face:d05db2c1-a19a-4803-8e8a-fa2f9b798181:0", "target": "event:token_creation", "predicate": "REPLACES", "certainty": "rules_explicit", "provenance": {"oracle_span": [122, 226], "text": "If one or more tokens would be created under your control, twice that many of those tokens are created instead."}}
+  ],
+  "schema_extension_requests": []
+}

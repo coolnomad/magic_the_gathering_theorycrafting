@@ -1,0 +1,46 @@
+{
+  "face_id": "face:f75bb13b-41fc-4614-b35e-f456069ce9c6:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "this_equipment_enters", "text": "When this Equipment enters"},
+      "conditions": [],
+      "costs": [],
+      "effects": [{"op": "attach", "target": "target Dwarf you control", "detail": "attach this Equipment to target Dwarf you control", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[0, 66]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "effects": [
+        {"op": "modify_pt", "amount": "+2/+2", "scope": "equipped creature", "required": true},
+        {"op": "grant_ability", "ability": "ward {1}", "scope": "equipped creature", "required": true}
+      ],
+      "oracle_spans": [[67, 245]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "activated",
+      "costs": [{"op": "pay_mana", "amount": "{3}"}],
+      "conditions": [{"note": "sorcery-speed only (equip)"}],
+      "effects": [{"op": "attach", "scope": "target creature you control", "detail": "Equip: attach this Equipment", "required": true}],
+      "oracle_spans": [[246, 326]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:f75bb13b-41fc-4614-b35e-f456069ce9c6:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 66], "text": "When this Equipment enters, attach it to target Dwarf you control."}},
+    {"source": "face:f75bb13b-41fc-4614-b35e-f456069ce9c6:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [67, 245], "text": "Equipped creature gets +2/+2 and has ward {1}."}},
+    {"source": "face:f75bb13b-41fc-4614-b35e-f456069ce9c6:0", "target": "a3", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [246, 326], "text": "Equip {3} ({3}: Attach to target creature you control. Equip only as a sorcery.)"}},
+    {"source": "a1", "target": "target Dwarf you control", "predicate": "ATTACHED_TO", "certainty": "rules_explicit", "provenance": {"oracle_span": [28, 65], "text": "attach it to target Dwarf you control"}},
+    {"source": "a3", "target": "rule:equip", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [246, 255], "text": "Equip {3}"}}
+  ],
+  "schema_extension_requests": []
+}

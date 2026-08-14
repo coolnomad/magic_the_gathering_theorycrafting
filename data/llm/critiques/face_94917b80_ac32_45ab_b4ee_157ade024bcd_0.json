@@ -1,0 +1,96 @@
+{
+  "face_id": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
+  "abilities": [
+    {
+      "ability_id": "trample",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "grant_keyword", "keyword": "trample", "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 7]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "etb-attach-equipment",
+      "kind": "triggered",
+      "trigger": {"event": "thorin_enters"},
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "attach",
+          "what": "any number of target Equipment you control",
+          "to": "target creature you control"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[8, 109]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "reflexive-damage",
+      "kind": "triggered",
+      "trigger": {"event": "one_or_more_equipment_become_attached_to_that_creature_this_way"},
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "deal_damage",
+          "amount": "power of that creature",
+          "target": "up to one target creature"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[110, 255]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
+      "target": "keyword:trample",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 7], "text": "Trample"}
+    },
+    {
+      "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
+      "target": "obj:target-equipment",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "note": "attaches target Equipment to a target creature on ETB",
+      "provenance": {"oracle_span": [8, 109], "text": "When Thorin enters, attach any number of target Equipment you control to target creature you control."}
+    },
+    {
+      "source": "obj:target-equipment",
+      "target": "obj:target-creature",
+      "predicate": "ATTACHED_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [28, 109], "text": "attach any number of target Equipment you control to target creature you control."}
+    },
+    {
+      "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
+      "target": "obj:target-creature",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "note": "reflexive trigger when Equipment becomes attached this way; the equipped creature deals damage equal to its power",
+      "provenance": {"oracle_span": [110, 255], "text": "When one or more Equipment become attached to that creature this way, that creature deals damage equal to its power to up to one target creature."}
+    },
+    {
+      "source": "face:94917b80-ac32-45ab-b4ee-157ade024bcd:0",
+      "target": "obj:up-to-one-target-creature",
+      "predicate": "CAUSES",
+      "certainty": "rules_explicit",
+      "note": "damage equal to the equipped creature's power",
+      "provenance": {"oracle_span": [180, 255], "text": "that creature deals damage equal to its power to up to one target creature."}
+    }
+  ],
+  "schema_extension_requests": []
+}

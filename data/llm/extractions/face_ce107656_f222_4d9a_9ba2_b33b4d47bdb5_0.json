@@ -1,0 +1,27 @@
+{
+  "face_id": "face:ce107656-f222-4d9a-9ba2-b33b4d47bdb5:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "attacks", "subject": "this creature"},
+      "conditions": [{"type": "control", "requirement": "you control a creature with power 4 or greater"}],
+      "effects": [
+        {"op": "modify_pt", "delta": "+1/+0", "target": "this creature", "duration": "until end of turn"},
+        {"op": "grant_keyword", "keywords": ["trample"], "target": "creatures you control", "duration": "until end of turn"}
+      ],
+      "controller": "you",
+      "keyword": "Ferocious",
+      "oracle_spans": [[0, 176]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:ce107656-f222-4d9a-9ba2-b33b4d47bdb5:0", "target": "face:ce107656-f222-4d9a-9ba2-b33b4d47bdb5:0", "predicate": "MODIFIES", "certainty": "rules_explicit", "provenance": {"oracle_span": [113, 137], "text": "this creature gets +1/+0", "note": "self +1/+0 until end of turn"}},
+    {"source": "face:ce107656-f222-4d9a-9ba2-b33b4d47bdb5:0", "target": "keyword:trample", "predicate": "PRODUCES", "certainty": "rules_explicit", "provenance": {"oracle_span": [142, 175], "text": "creatures you control gain trample", "note": "until end of turn"}},
+    {"source": "face:ce107656-f222-4d9a-9ba2-b33b4d47bdb5:0", "target": "keyword:ferocious", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 9], "text": "Ferocious"}},
+    {"source": "keyword:ferocious", "target": "rule:ferocious", "predicate": "REFERENCES_RULE", "certainty": "high", "provenance": {"oracle_span": [12, 82], "text": "Whenever this creature attacks while you control a creature with power 4 or greater"}}
+  ],
+  "schema_extension_requests": []
+}

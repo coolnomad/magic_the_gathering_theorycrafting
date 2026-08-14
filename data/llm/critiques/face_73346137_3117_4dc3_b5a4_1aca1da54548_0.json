@@ -1,0 +1,14 @@
+{
+  "face_id": "face:73346137-3117-4dc3-b5a4-1aca1da54548:0",
+  "abilities": [
+    {"ability_id": "a1", "kind": "static", "effects": [{"op": "grant_keyword", "keyword": "reach", "required": true}], "oracle_spans": [[0, 5]], "confidence": "high", "unresolved": []},
+    {"ability_id": "a2", "kind": "static", "effects": [{"op": "grant_keyword", "keyword": "trample", "required": true}], "oracle_spans": [[7, 14]], "confidence": "high", "unresolved": []},
+    {"ability_id": "a3", "kind": "static", "effects": [{"op": "grant_keyword", "keyword": "haste", "required": true}], "oracle_spans": [[16, 21]], "confidence": "high", "unresolved": []}
+  ],
+  "proposed_edges": [
+    {"source": "face:73346137-3117-4dc3-b5a4-1aca1da54548:0", "target": "keyword:reach", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 5], "text": "Reach"}},
+    {"source": "face:73346137-3117-4dc3-b5a4-1aca1da54548:0", "target": "keyword:trample", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [7, 14], "text": "trample"}},
+    {"source": "face:73346137-3117-4dc3-b5a4-1aca1da54548:0", "target": "keyword:haste", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [16, 21], "text": "haste"}}
+  ],
+  "schema_extension_requests": []
+}

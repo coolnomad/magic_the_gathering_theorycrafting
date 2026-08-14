@@ -1,0 +1,73 @@
+{
+  "face_id": "face:399cd159-7376-421c-b001-c26f1cbadced:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "a land you control enters",
+        "keyword": "Landfall"
+      },
+      "effects": [
+        {
+          "op": "set_base_power_toughness",
+          "target": "this creature",
+          "value": "4/2",
+          "duration": "until end of turn",
+          "optional": true,
+          "controller": "you",
+          "required": false
+        }
+      ],
+      "oracle_spans": [[0, 130]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:399cd159-7376-421c-b001-c26f1cbadced:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 130],
+        "text": "Landfall — Whenever a land you control enters, you may have this creature's base power and toughness become 4/2 until end of turn."
+      }
+    },
+    {
+      "source": "a1",
+      "target": "rule:landfall",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 46],
+        "text": "Landfall — Whenever a land you control enters,"
+      }
+    },
+    {
+      "source": "event:land-enters-you-control",
+      "target": "a1",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [11, 46],
+        "text": "Whenever a land you control enters,"
+      }
+    },
+    {
+      "source": "a1",
+      "target": "face:399cd159-7376-421c-b001-c26f1cbadced:0",
+      "predicate": "MODIFIES",
+      "optional": true,
+      "timing": "until end of turn",
+      "scope": "sets base power/toughness to 4/2",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [47, 130],
+        "text": "you may have this creature's base power and toughness become 4/2 until end of turn."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

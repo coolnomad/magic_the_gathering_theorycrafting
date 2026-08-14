@@ -1,0 +1,87 @@
+{
+  "face_id": "face:34d34f2c-06ff-4acf-8f2f-ff867774b777:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "keyword",
+          "keyword": "Flying",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "conditions": [
+        {
+          "type": "threshold",
+          "note": "seven or more cards in your graveyard"
+        }
+      ],
+      "effects": [
+        {
+          "op": "pt_boost",
+          "target": "this creature",
+          "value": "+1/+1",
+          "condition": "as long as there are seven or more cards in your graveyard",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[7, 103]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:34d34f2c-06ff-4acf-8f2f-ff867774b777:0",
+      "target": "a1",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 6],
+        "text": "Flying"
+      }
+    },
+    {
+      "source": "face:34d34f2c-06ff-4acf-8f2f-ff867774b777:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [7, 103],
+        "text": "Threshold — This creature gets +1/+1 as long as there are seven or more cards in your graveyard."
+      }
+    },
+    {
+      "source": "a2",
+      "target": "face:34d34f2c-06ff-4acf-8f2f-ff867774b777:0",
+      "predicate": "MODIFIES",
+      "condition": "seven or more cards in your graveyard",
+      "scope": "+1/+1 while condition holds",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [19, 43],
+        "text": "This creature gets +1/+1"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "resource:cards-in-graveyard",
+      "predicate": "SCALES_WITH",
+      "condition": "seven or more (binary threshold)",
+      "certainty": "high",
+      "provenance": {
+        "oracle_span": [44, 102],
+        "text": "as long as there are seven or more cards in your graveyard"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

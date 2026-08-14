@@ -1,0 +1,48 @@
+{
+  "face_id": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "conditions": [{"type": "control", "requirement": "you control a Human"}],
+      "effects": [
+        {"op": "grant_cast_permission", "note": "you may cast this spell as though it had flash", "keyword": "flash"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 58]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "effects": [
+        {"op": "modify_pt", "delta": "+1/+1", "target": "other creatures you control"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[59, 95]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "triggered",
+      "trigger": {"event": "enters_or_attacks", "subject": "this creature"},
+      "effects": [
+        {"op": "recruit", "note": "draw a card, then discard a card; if discarded card was nonland, create a 1/1 white Human Soldier token"}
+      ],
+      "controller": "you",
+      "keyword": "Recruit",
+      "oracle_spans": [[96, 260]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0", "target": "keyword:flash", "predicate": "ENABLES", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 58], "text": "You may cast this spell as though it had flash if you control a Human.", "note": "conditional flash casting"}},
+    {"source": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0", "target": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0", "predicate": "MODIFIES", "certainty": "rules_explicit", "provenance": {"oracle_span": [59, 95], "text": "Other creatures you control get +1/+1.", "note": "static anthem for other creatures you control"}},
+    {"source": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0", "target": "rule:recruit", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [96, 143], "text": "Whenever this creature enters or attacks, recruit."}},
+    {"source": "face:5c5bfbb2-0e63-4e43-b441-c4878983288f:0", "target": "token:human-soldier", "predicate": "CREATES_OBJECT", "certainty": "rules_explicit", "provenance": {"oracle_span": [178, 259], "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token.", "note": "conditional token from recruit"}}
+  ],
+  "schema_extension_requests": []
+}

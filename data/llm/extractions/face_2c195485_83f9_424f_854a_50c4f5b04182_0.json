@@ -1,0 +1,38 @@
+{
+  "face_id": "face:2c195485-83f9-424f-854a-50c4f5b04182:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "conditions": [{"note": "as long as you control another Elf"}],
+      "effects": [{"op": "grant_extra_land_play", "amount": 1, "frequency": "each of your turns", "required": true}],
+      "controller": "you",
+      "oracle_spans": [[0, 89]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "land_enters", "text": "Whenever a land you control enters", "scope": "a land you control", "keyword": "Landfall"},
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "add_counter", "counter_type": "+1/+1", "amount": 2, "target": "target creature you control", "required": true, "ordering": 1},
+        {"op": "grant_keyword", "keyword": "vigilance", "target": "that creature", "duration": "until end of turn", "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[90, 230]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:2c195485-83f9-424f-854a-50c4f5b04182:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 89], "text": "As long as you control another Elf, you may play an additional land on each of your turns."}},
+    {"source": "face:2c195485-83f9-424f-854a-50c4f5b04182:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [90, 230], "text": "Landfall — Whenever a land you control enters, put two +1/+1 counters on target creature you control. It gains vigilance until end of turn."}},
+    {"source": "a1", "target": "another Elf you control", "predicate": "REQUIRES", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 33], "text": "As long as you control another Elf", "note": "extra land play gated on controlling another Elf"}},
+    {"source": "a2", "target": "rule:landfall", "predicate": "REFERENCES_RULE", "certainty": "high", "provenance": {"oracle_span": [90, 135], "text": "Landfall — Whenever a land you control enters"}},
+    {"source": "a2", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [137, 189], "text": "put two +1/+1 counters on target creature you control"}}
+  ],
+  "schema_extension_requests": []
+}

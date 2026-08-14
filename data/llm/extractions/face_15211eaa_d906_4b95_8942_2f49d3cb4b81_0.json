@@ -1,0 +1,69 @@
+{
+  "face_id": "face:15211eaa-d906-4b95-8942-2f49d3cb4b81:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {"op": "reduce_cost", "amount": "{1}", "condition": "this spell targets an attacking nontoken creature", "affects": "this spell's own casting cost"}
+      ],
+      "conditions": [
+        {"condition": "this spell targets an attacking nontoken creature"}
+      ],
+      "oracle_spans": [[0, 74]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "spell_effect",
+      "effects": [
+        {"op": "move_to_library", "target": "target creature", "position": "top or bottom of library, chosen by the creature's owner", "controller": "target creature's owner"}
+      ],
+      "oracle_spans": [[75, 152]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:15211eaa-d906-4b95-8942-2f49d3cb4b81:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 74], "text": "This spell costs {1} less to cast if it targets an attacking nontoken creature."}
+    },
+    {
+      "source": "a1",
+      "target": "a2",
+      "predicate": "MODIFIES",
+      "note": "Cost-reduction static ability lowers the mana cost to produce the same spell effect a2 when it targets an attacking nontoken creature.",
+      "condition": "targets an attacking nontoken creature",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 74], "text": "This spell costs {1} less to cast if it targets an attacking nontoken creature."}
+    },
+    {
+      "source": "face:15211eaa-d906-4b95-8942-2f49d3cb4b81:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [75, 152], "text": "Target creature's owner puts it on their choice of the top or bottom of their library."}
+    },
+    {
+      "source": "a2",
+      "target": "zone:library",
+      "predicate": "MOVES_TO",
+      "scope": "target creature, to top or bottom chosen by its owner",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [75, 152], "text": "Target creature's owner puts it on their choice of the top or bottom of their library."}
+    },
+    {
+      "source": "a2",
+      "target": "zone:battlefield",
+      "predicate": "MOVES_FROM",
+      "scope": "target creature",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [75, 152], "text": "Target creature's owner puts it on their choice of the top or bottom of their library."}
+    }
+  ],
+  "schema_extension_requests": []
+}

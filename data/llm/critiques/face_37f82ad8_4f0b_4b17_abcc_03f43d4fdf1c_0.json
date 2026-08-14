@@ -1,0 +1,74 @@
+{
+  "face_id": "face:37f82ad8-4f0b-4b17-abcc-03f43d4fdf1c:0",
+  "abilities": [
+    {
+      "ability_id": "gfbee-flying",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keyword": "Flying"
+        }
+      ],
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gfbee-death-scry",
+      "kind": "triggered",
+      "trigger": {
+        "event": "one or more other creatures die",
+        "detail": "Triggers once for a simultaneous batch of one or more other creatures dying.",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "scry",
+          "amount": 1
+        }
+      ],
+      "oracle_spans": [[7, 133]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:37f82ad8-4f0b-4b17-abcc-03f43d4fdf1c:0",
+      "target": "keyword:flying",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 6],
+        "text": "Flying"
+      }
+    },
+    {
+      "source": "face:37f82ad8-4f0b-4b17-abcc-03f43d4fdf1c:0",
+      "target": "ability:gfbee-death-scry",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [7, 56],
+        "text": "Whenever one or more other creatures die, scry 1."
+      }
+    },
+    {
+      "source": "event:other-creatures-die",
+      "target": "ability:gfbee-death-scry",
+      "predicate": "TRIGGERS",
+      "scope": "one or more other creatures dying simultaneously",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [7, 49],
+        "text": "Whenever one or more other creatures die,"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

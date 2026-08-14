@@ -1,0 +1,36 @@
+{
+  "face_id": "face:cee583b7-7cc3-40ea-a227-b760839ec291:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {"op": "grant_keyword", "keywords": ["first strike"], "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 12]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "enters_or_attacks", "subject": "Dwalin"},
+      "effects": [
+        {"op": "put_counter", "counter_type": "hone", "quantity": 1, "target": "each Equipment you control"}
+      ],
+      "controller": "you",
+      "keyword": "hone",
+      "oracle_spans": [[13, 158]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:cee583b7-7cc3-40ea-a227-b760839ec291:0", "target": "keyword:first-strike", "predicate": "HAS_KEYWORD", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 12], "text": "First strike"}},
+    {"source": "face:cee583b7-7cc3-40ea-a227-b760839ec291:0", "target": "counter:hone", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [13, 90], "text": "Whenever Dwalin enters or attacks, put a hone counter on each Equipment you control.", "note": "hone counter on each Equipment you control"}},
+    {"source": "face:cee583b7-7cc3-40ea-a227-b760839ec291:0", "target": "counter:hone", "predicate": "HAS_COUNTER_TYPE", "certainty": "rules_explicit", "provenance": {"oracle_span": [61, 73], "text": "hone counter"}},
+    {"source": "counter:hone", "target": "rule:hone", "predicate": "REFERENCES_RULE", "certainty": "high", "provenance": {"oracle_span": [92, 157], "text": "Each hone counter on an Equipment grants +1/+0 to equipped creature.", "rule_ref": "CR 122.1j (hone counter)"}}
+  ],
+  "schema_extension_requests": []
+}

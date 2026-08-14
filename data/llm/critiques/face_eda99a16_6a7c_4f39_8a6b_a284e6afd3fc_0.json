@@ -1,0 +1,51 @@
+{
+  "face_id": "face:eda99a16-6a7c-4f39-8a6b-a284e6afd3fc:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "triggered",
+      "trigger": {"event": "this_equipment_enters", "text": "When this Equipment enters"},
+      "conditions": [],
+      "costs": [],
+      "effects": [
+        {"op": "amass", "kind_word": "Goblins", "amount": 1, "detail": "Put a +1/+1 counter on an Army you control (also a Goblin); if you don't control an Army, first create a 0/0 black Goblin Army creature token.", "required": true, "ordering": 1},
+        {"op": "attach", "target": "the amassed Army", "detail": "attach this Equipment to the Army just amassed", "required": true, "ordering": 2}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 261]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "static",
+      "effects": [
+        {"op": "modify_pt", "amount": "+1/+0", "scope": "equipped creature", "required": true},
+        {"op": "grant_keyword", "keyword": "menace", "scope": "equipped creature", "required": true}
+      ],
+      "oracle_spans": [[262, 306]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "activated",
+      "costs": [{"op": "pay_mana", "amount": "{4}"}],
+      "conditions": [{"note": "sorcery-speed only (equip)"}],
+      "effects": [{"op": "attach", "scope": "target creature you control", "detail": "Equip: attach this Equipment", "required": true}],
+      "oracle_spans": [[307, 316]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {"source": "face:eda99a16-6a7c-4f39-8a6b-a284e6afd3fc:0", "target": "a1", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [0, 261], "text": "When this Equipment enters, amass Goblins 1, then attach this Equipment to the amassed Army."}},
+    {"source": "face:eda99a16-6a7c-4f39-8a6b-a284e6afd3fc:0", "target": "a2", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [262, 306], "text": "Equipped creature gets +1/+0 and has menace."}},
+    {"source": "face:eda99a16-6a7c-4f39-8a6b-a284e6afd3fc:0", "target": "a3", "predicate": "HAS_ABILITY", "certainty": "rules_explicit", "provenance": {"oracle_span": [307, 316], "text": "Equip {4}"}},
+    {"source": "a1", "target": "token:goblin-army", "predicate": "CREATES_OBJECT", "optional": false, "condition": "only if you don't already control an Army", "certainty": "rules_explicit", "provenance": {"oracle_span": [178, 260], "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first."}},
+    {"source": "a1", "target": "counter:+1/+1", "predicate": "ADDS_COUNTER", "certainty": "rules_explicit", "provenance": {"oracle_span": [114, 156], "text": "put a +1/+1 counter on an Army you control", "note": "amass Goblins 1"}},
+    {"source": "a1", "target": "token:goblin-army", "predicate": "ATTACHED_TO", "certainty": "high", "provenance": {"oracle_span": [50, 91], "text": "attach this Equipment to the amassed Army", "note": "the amassed Army (the Goblin Army token when one is created this way)"}},
+    {"source": "a3", "target": "rule:equip", "predicate": "REFERENCES_RULE", "certainty": "rules_explicit", "provenance": {"oracle_span": [307, 316], "text": "Equip {4}"}}
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,164 @@
+{
+  "face_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0",
+  "abilities": [
+    {
+      "ability_id": "rampager-attack-sac",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature attacks",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "sacrifice",
+          "target": "another creature",
+          "optional": true,
+          "detail": "You may sacrifice another creature."
+        },
+        {
+          "op": "add_counter",
+          "counter_type": "+1/+1",
+          "target": "this creature",
+          "amount": "equal to the sacrificed creature's power",
+          "condition": "if you sacrifice a creature this way",
+          "scales_with": "sacrificed creature's power"
+        }
+      ],
+      "oracle_spans": [[0, 168]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "rampager-dies-amass",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature dies",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "amass",
+          "subtype": "Goblins",
+          "amount": "X, where X is this creature's power",
+          "detail": "Put X +1/+1 counters on an Army you control (it becomes a Goblin); if you control no Army, first create a 0/0 black Goblin Army creature token.",
+          "references_mechanic": "Amass",
+          "scales_with": "this creature's power"
+        }
+      ],
+      "oracle_spans": [[169, 394]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0",
+      "target": "ability:rampager-attack-sac",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [0, 168],
+        "text": "Whenever this creature attacks, you may sacrifice another creature. If you do, put a number of +1/+1 counters on this creature equal to the sacrificed creature's power."
+      }
+    },
+    {
+      "source": "event:this-creature-attacks",
+      "target": "ability:rampager-attack-sac",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 31],
+        "text": "Whenever this creature attacks,"
+      }
+    },
+    {
+      "source": "ability:rampager-attack-sac",
+      "target": "another creature",
+      "predicate": "CONSUMES",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [32, 67],
+        "text": "you may sacrifice another creature."
+      }
+    },
+    {
+      "source": "ability:rampager-attack-sac",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "condition": "if you sacrifice another creature this way",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [68, 168],
+        "text": "If you do, put a number of +1/+1 counters on this creature equal to the sacrificed creature's power."
+      }
+    },
+    {
+      "source": "ability:rampager-attack-sac",
+      "target": "counter:+1/+1",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [68, 168],
+        "text": "put a number of +1/+1 counters on this creature equal to the sacrificed creature's power.",
+        "note": "Number of counters equals the sacrificed creature's power."
+      }
+    },
+    {
+      "source": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0",
+      "target": "ability:rampager-dies-amass",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [169, 394],
+        "text": "When this creature dies, amass Goblins X, where X is this creature's power."
+      }
+    },
+    {
+      "source": "event:this-creature-dies",
+      "target": "ability:rampager-dies-amass",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [169, 193],
+        "text": "When this creature dies,"
+      }
+    },
+    {
+      "source": "ability:rampager-dies-amass",
+      "target": "keyword:amass",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [194, 244],
+        "text": "amass Goblins X, where X is this creature's power.",
+        "rule_ref": "Amass (keyword action)"
+      }
+    },
+    {
+      "source": "ability:rampager-dies-amass",
+      "target": "counter:+1/+1",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [194, 244],
+        "text": "amass Goblins X, where X is this creature's power.",
+        "note": "X +1/+1 counters equal to this creature's power are put on an Army."
+      }
+    },
+    {
+      "source": "ability:rampager-dies-amass",
+      "target": "token:goblin-army",
+      "predicate": "CREATES_OBJECT",
+      "condition": "if you control no Army",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [311, 393],
+        "text": "If you don't control an Army, create a 0/0 black Goblin Army creature token first."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,94 @@
+{
+  "face_id": "face:cd49aa99-bf84-4edd-aecc-6dae78b73412:0",
+  "abilities": [
+    {
+      "ability_id": "mirkwood-enters-tapped",
+      "kind": "replacement",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "enters_tapped", "target": "this land", "detail": "This land enters the battlefield tapped."}
+      ],
+      "oracle_spans": [[0, 24]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "mirkwood-mana",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "tap", "detail": "{T}"}
+      ],
+      "conditions": [],
+      "effects": [
+        {"op": "add_mana", "amount": 1, "options": ["B", "G"], "detail": "Add {B} or {G}."}
+      ],
+      "oracle_spans": [[25, 45]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "mirkwood-sac-counters",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"type": "mana", "detail": "{2}{B}{G}"},
+        {"type": "tap", "detail": "{T}"},
+        {"type": "sacrifice", "detail": "Sacrifice this land"}
+      ],
+      "conditions": [
+        {"type": "timing", "detail": "Activate only as a sorcery."}
+      ],
+      "effects": [
+        {"op": "add_counter", "counter_type": "+1/+1", "amount": 2, "target": "target Bear, Spider, or Wolf you control", "detail": "Put two +1/+1 counters on target Bear, Spider, or Wolf you control."}
+      ],
+      "oracle_spans": [[46, 178]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:cd49aa99-bf84-4edd-aecc-6dae78b73412:0",
+      "target": "ability:mirkwood-enters-tapped",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 24], "text": "This land enters tapped."}
+    },
+    {
+      "source": "face:cd49aa99-bf84-4edd-aecc-6dae78b73412:0",
+      "target": "ability:mirkwood-mana",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [25, 45], "text": "{T}: Add {B} or {G}."}
+    },
+    {
+      "source": "ability:mirkwood-mana",
+      "target": "resource:mana",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [30, 45], "text": "Add {B} or {G}."}
+    },
+    {
+      "source": "face:cd49aa99-bf84-4edd-aecc-6dae78b73412:0",
+      "target": "ability:mirkwood-sac-counters",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [46, 178], "text": "{2}{B}{G}, {T}, Sacrifice this land: Put two +1/+1 counters on target Bear, Spider, or Wolf you control. Activate only as a sorcery."}
+    },
+    {
+      "source": "ability:mirkwood-sac-counters",
+      "target": "face:cd49aa99-bf84-4edd-aecc-6dae78b73412:0",
+      "predicate": "CONSUMES",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [62, 81], "text": "Sacrifice this land", "note": "Sacrifice of this land is part of the activation cost."}
+    },
+    {
+      "source": "ability:mirkwood-sac-counters",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [83, 150], "text": "Put two +1/+1 counters on target Bear, Spider, or Wolf you control."}
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -451,3 +451,25 @@ Began the build spec's **Phase 3 (LLM semantic extraction)**. Per the user's sta
 **Still to run:** the extractor + critic agent fan-out over all 209 faces (vertical-slice pilot on Recruit/Storied/Adventure first, then the rest), then `ingest`/`reconcile`. No graph assembly yet (Phase 4). No outcomes/quality claims.
 
 Refs: [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-build-spec.md) ("Phase 3"); memory `phase3-llm-via-subagents`; `src/hobkg/phase3.py`
+
+---
+
+## [2026-08-13 23:40] OBSERVATION — Phase 3 executed over all 209 faces (extractor + independent critic)
+
+Ran the two model passes as Claude Code sub-agents (12 extractor batches + a 6-face vertical-slice pilot; then 12 independent critic batches over the pilot + batches), with deterministic `ingest`/`reconcile` between and after.
+
+**Result.** 209/209 Oracle-bearing faces processed. **0 rejections** at ingest; **416 accepted abilities** and **983 accepted edges** (assertions on which extractor and critic agree AND which pass validation); **22 queued** extractor/critic disagreements for human review; 18 soft span-warnings recorded. Accepted ability kinds: triggered 141, static 133, spell_effect 67, activated 59, replacement 16. Top accepted predicates: HAS_ABILITY 229, HAS_KEYWORD 80, MOVES_TO 78, TRIGGERS 68, CAUSES/MODIFIES 61, REFERENCES_RULE 57, PRODUCES 49, ADDS_COUNTER/CREATES_OBJECT 48, SCALES_WITH 40. Report: `reports/phase3_coverage.md`.
+
+**Vertical slice validated first** (spec discipline): pilot on Patient Instructor (Recruit), Mountain-king's Return (Saga+Recruit chapter), Master's Councillors (**second-draw** trigger — the counterpart to Recruit's card-drawn event, invariant #2), Gandalf//Flameshape (Adventure), Káli (Storied) → 30 accepted edges, 0 queued.
+
+**Two control-plane fixes during the run** (both recorded, tests updated, 60 pass):
+1. Relaxed the ability/edge schema to allow spec-named descriptive keys (`controller`, `duration`, `note`); the hard guards remain (required fields, predicate enum, provenance, no-evaluative-language, top-level strictness). This cleared 39 false rejections.
+2. Reclassified Oracle-span **end**-overrun from a hard reject to a recorded soft warning (the `text` quote is the real provenance); span **start** validity stays hard. And keyed ability-agreement on the stable `ability_id` (not the span), since critics legitimately correct spans — a span-only fix must not read as disagreement.
+
+**What the critics caught** (why 22 queued): pervasive Oracle-span drift (em-dash/bullet miscounted as multiple chars) — all fixed; plus genuine corrections routed to the queue: two fabricated `REFERENCES_RULE→rule:adventure` edges whose provenance cited type-line text absent from the face's Oracle body; a few predicate mis-uses (e.g. counter-placement `TRIGGERS` not `REFERENCES_RULE`; graveyard-derivation `DERIVED_FROM`); added optionality (`optional:true` on conditional token creation); and omitted outputs (life gain, library destinations, evasion).
+
+**Schema-extension signals (surfaced, not adopted):** `AMASSES` (7 Amass cards) and `HAS_KEYWORD_TYPECYCLING` (Halflingcycling). Amass is representable with existing predicates (`CREATES_OBJECT token:goblin-army` + `ADDS_COUNTER`), so it does not block — a dedicated Amass template is a candidate schema decision for later (analogous to the Phase 2 mechanic templates). Flagging per spec discipline #10.
+
+**Boundaries.** These are per-face *local* extractions (structured abilities + card-specific proposed edges). NOT done: Phase 4 global assembly/canonicalization (e.g. namespacing bare `ability_id`s per face, merging shared nodes), and Phase 5 pair projection. No outcomes/quality/archetype claims. The 22 queued items and 18 span-warnings remain for a review pass.
+
+Refs: [2026-08-13 22:10] DECISION — Phase 3 architecture; `reports/phase3_coverage.md`; `data/review/llm_{candidates,accepted,queued,rejections,span_warnings}.jsonl`; `data/llm/{extractions,critiques}/`

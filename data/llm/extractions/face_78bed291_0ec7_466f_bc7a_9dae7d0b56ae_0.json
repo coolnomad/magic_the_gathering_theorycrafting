@@ -1,0 +1,51 @@
+{
+  "face_id": "face:78bed291-0ec7-466f-bc7a-9dae7d0b56ae:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "spell_effect",
+      "effects": [
+        {"op": "look", "target": "top four cards of your library", "controller": "you"},
+        {"op": "partition", "into": ["face-down pile", "face-up pile"], "controller": "you"},
+        {"op": "opponent_chooses", "chooser": "an opponent", "choice": "one of the two piles"},
+        {"op": "move_zone", "target": "chosen pile", "to": "your hand"},
+        {"op": "move_zone", "target": "the other pile", "to": "your graveyard"}
+      ],
+      "oracle_spans": [[0, 213]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:78bed291-0ec7-466f-bc7a-9dae7d0b56ae:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 213], "text": "Look at the top four cards of your library and separate them into a face-down pile and a face-up pile. An opponent chooses one of the piles. Put that pile into your hand and the other into your graveyard."}
+    },
+    {
+      "source": "a1",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 100], "text": "Look at the top four cards of your library and separate them into a face-down pile and a face-up pile."}
+    },
+    {
+      "source": "a1",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "scope": "the pile the opponent selects",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [138, 165], "text": "Put that pile into your hand"}
+    },
+    {
+      "source": "a1",
+      "target": "zone:graveyard",
+      "predicate": "MOVES_TO",
+      "scope": "the other pile",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [170, 213], "text": "and the other into your graveyard."}
+    }
+  ],
+  "schema_extension_requests": []
+}

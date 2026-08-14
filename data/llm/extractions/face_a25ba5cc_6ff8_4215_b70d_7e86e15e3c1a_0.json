@@ -1,0 +1,102 @@
+{
+  "face_id": "face:a25ba5cc-6ff8-4215-b70d-7e86e15e3c1a:0",
+  "abilities": [
+    {
+      "ability_id": "storied",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {"condition": "you control three or more artifacts, legendaries, and/or Sagas"}
+      ],
+      "effects": [
+        {
+          "op": "gain_designation",
+          "designation": "enduring story",
+          "duration": "rest of the game"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 105]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "enduring-story-buff",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [
+        {"condition": "you have an enduring story"}
+      ],
+      "effects": [
+        {"op": "modify_pt", "power": 1, "toughness": 0, "target": "Óin"},
+        {"op": "grant_keyword", "keyword": "haste", "target": "Óin"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[106, 166]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "loot-activated",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"op": "pay_mana", "amount": "{1}"},
+        {"op": "tap", "target": "Óin"},
+        {"op": "discard", "amount": 1, "target": "a card"}
+      ],
+      "conditions": [],
+      "effects": [
+        {"op": "draw", "amount": 1}
+      ],
+      "controller": "you",
+      "oracle_spans": [[167, 202]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:a25ba5cc-6ff8-4215-b70d-7e86e15e3c1a:0",
+      "target": "rule:storied",
+      "predicate": "REFERENCES_RULE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 105], "rule_ref": "HOB release notes / mechanics article: Storied", "text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)"}
+    },
+    {
+      "source": "face:a25ba5cc-6ff8-4215-b70d-7e86e15e3c1a:0",
+      "target": "gate:storied",
+      "predicate": "QUALIFIES_FOR",
+      "certainty": "rules_explicit",
+      "condition": "control three or more artifacts, legendaries, and/or Sagas",
+      "provenance": {"oracle_span": [0, 105], "text": "Storied"}
+    },
+    {
+      "source": "face:a25ba5cc-6ff8-4215-b70d-7e86e15e3c1a:0",
+      "target": "state:enduring_story",
+      "predicate": "HAS_STATE",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [55, 96], "text": "you have an enduring story for the rest of the game"}
+    },
+    {
+      "source": "state:enduring_story",
+      "target": "face:a25ba5cc-6ff8-4215-b70d-7e86e15e3c1a:0",
+      "predicate": "MODIFIES",
+      "certainty": "rules_explicit",
+      "condition": "you have an enduring story",
+      "note": "grants +1/+0 and haste",
+      "provenance": {"oracle_span": [106, 166], "text": "As long as you have an enduring story, Óin gets +1/+0 and has haste."}
+    },
+    {
+      "source": "face:a25ba5cc-6ff8-4215-b70d-7e86e15e3c1a:0",
+      "target": "zone:hand",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "note": "discard a card as activation cost",
+      "provenance": {"oracle_span": [167, 202], "text": "{1}, {T}, Discard a card: Draw a card."}
+    }
+  ],
+  "schema_extension_requests": []
+}

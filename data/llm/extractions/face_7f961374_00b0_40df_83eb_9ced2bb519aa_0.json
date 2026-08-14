@@ -1,0 +1,68 @@
+{
+  "face_id": "face:7f961374-00b0-40df-83eb-9ced2bb519aa:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "trigger": null,
+      "effects": [
+        {"op": "grant_keyword", "keyword": "Flying", "affects": "this creature"}
+      ],
+      "oracle_spans": [[0, 6]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {"event": "you draw a card", "controller_scope": "you"},
+      "effects": [
+        {"op": "add_counter", "counter_type": "+1/+1", "quantity": 1, "target": "this creature"}
+      ],
+      "oracle_spans": [[7, 68]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:7f961374-00b0-40df-83eb-9ced2bb519aa:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [0, 6], "text": "Flying"}
+    },
+    {
+      "source": "face:7f961374-00b0-40df-83eb-9ced2bb519aa:0",
+      "target": "kw:flying",
+      "predicate": "HAS_KEYWORD",
+      "provenance": {"oracle_span": [0, 6], "text": "Flying"}
+    },
+    {
+      "source": "face:7f961374-00b0-40df-83eb-9ced2bb519aa:0",
+      "target": "a2",
+      "predicate": "HAS_ABILITY",
+      "provenance": {"oracle_span": [7, 68], "text": "Whenever you draw a card, put a +1/+1 counter on this creature."}
+    },
+    {
+      "source": "event:you_draw_a_card",
+      "target": "a2",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [7, 34], "text": "Whenever you draw a card,"}
+    },
+    {
+      "source": "a2",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [35, 68], "text": "put a +1/+1 counter on this creature."}
+    },
+    {
+      "source": "face:7f961374-00b0-40df-83eb-9ced2bb519aa:0",
+      "target": "counter:+1/+1",
+      "predicate": "HAS_COUNTER_TYPE",
+      "provenance": {"oracle_span": [35, 68], "text": "put a +1/+1 counter on this creature."}
+    }
+  ],
+  "schema_extension_requests": []
+}

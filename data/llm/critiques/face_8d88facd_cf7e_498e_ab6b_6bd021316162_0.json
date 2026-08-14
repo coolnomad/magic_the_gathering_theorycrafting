@@ -1,0 +1,170 @@
+{
+  "face_id": "face:8d88facd-cf7e-498e-ab6b-6bd021316162:0",
+  "abilities": [
+    {
+      "ability_id": "gollum-ab-cant-block",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "restriction",
+          "detail": "Gollum can't block."
+        }
+      ],
+      "oracle_spans": [[0, 19]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gollum-ab-etb",
+      "kind": "triggered",
+      "trigger": {
+        "event": "Gollum enters the battlefield",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "exile",
+          "target": "up to one target card from an opponent's graveyard",
+          "optional_target": true,
+          "from_zone": "opponent's graveyard",
+          "to_zone": "exile"
+        },
+        {
+          "op": "lose_life",
+          "amount": 2,
+          "scope": "each opponent"
+        }
+      ],
+      "oracle_spans": [[20, 125]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "gollum-ab-recur",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {
+          "type": "mana",
+          "amount": "{2}"
+        },
+        {
+          "type": "sacrifice",
+          "detail": "Sacrifice an artifact or creature"
+        }
+      ],
+      "conditions": [
+        {
+          "type": "timing",
+          "detail": "Activate only as a sorcery."
+        },
+        {
+          "type": "zone",
+          "detail": "This ability is activated from your graveyard."
+        }
+      ],
+      "effects": [
+        {
+          "op": "move_card",
+          "target": "this card",
+          "from_zone": "your graveyard",
+          "to_zone": "your hand"
+        }
+      ],
+      "oracle_spans": [[126, 244]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:8d88facd-cf7e-498e-ab6b-6bd021316162:0",
+      "target": "ability:gollum-ab-etb",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [20, 125],
+        "text": "When Gollum enters, exile up to one target card from an opponent's graveyard. Each opponent loses 2 life."
+      }
+    },
+    {
+      "source": "event:gollum-ab-enters",
+      "target": "ability:gollum-ab-etb",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [20, 39],
+        "text": "When Gollum enters,"
+      }
+    },
+    {
+      "source": "ability:gollum-ab-etb",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "optional": true,
+      "scope": "up to one target card from an opponent's graveyard",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [40, 97],
+        "text": "exile up to one target card from an opponent's graveyard."
+      }
+    },
+    {
+      "source": "ability:gollum-ab-etb",
+      "target": "resource:life",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "scope": "each opponent",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [98, 125],
+        "text": "Each opponent loses 2 life."
+      }
+    },
+    {
+      "source": "face:8d88facd-cf7e-498e-ab6b-6bd021316162:0",
+      "target": "ability:gollum-ab-recur",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [126, 244],
+        "text": "{2}, Sacrifice an artifact or creature: Return this card from your graveyard to your hand. Activate only as a sorcery."
+      }
+    },
+    {
+      "source": "ability:gollum-ab-recur",
+      "target": "cost:sacrifice-artifact-or-creature",
+      "predicate": "HAS_COST",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [126, 165],
+        "text": "{2}, Sacrifice an artifact or creature:"
+      }
+    },
+    {
+      "source": "ability:gollum-ab-recur",
+      "target": "face:8d88facd-cf7e-498e-ab6b-6bd021316162:0",
+      "predicate": "MOVES_FROM",
+      "scope": "your graveyard",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [166, 216],
+        "text": "Return this card from your graveyard to your hand."
+      }
+    },
+    {
+      "source": "ability:gollum-ab-recur",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [166, 216],
+        "text": "Return this card from your graveyard to your hand."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

@@ -1,0 +1,83 @@
+{
+  "face_id": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:1",
+  "abilities": [
+    {
+      "ability_id": "flameshape_look_exile_play",
+      "kind": "spell_effect",
+      "trigger": null,
+      "effects": [
+        {
+          "effect": "look_at_cards",
+          "object": "top two cards of your library",
+          "controller": "you"
+        },
+        {
+          "effect": "exile_face_down",
+          "object": "top two cards of your library",
+          "from_zone": "library",
+          "to_zone": "exile",
+          "face_down": true,
+          "controller": "you"
+        },
+        {
+          "effect": "grant_permission_to_play_from_exile",
+          "object": "the two exiled cards",
+          "duration": "for as long as they remain exiled",
+          "condition": "you control a Wizard",
+          "detail": "You may play the exiled cards from exile for as long as they remain exiled, but only while you control a Wizard. This is a permission, not a requirement; playing a card follows its normal timing permissions and costs.",
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [[0, 145]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:1",
+      "target": "zone:library",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 67],
+        "text": "Look at the top two cards of your library and exile them face down."
+      }
+    },
+    {
+      "source": "face:f48f2a9b-4ba5-4984-8180-3950889bba65:1",
+      "target": "zone:exile",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 67],
+        "text": "exile them face down"
+      }
+    },
+    {
+      "source": "flameshape_look_exile_play",
+      "target": "obj:exiled_cards",
+      "predicate": "ENABLES",
+      "optional": true,
+      "condition": "you control a Wizard, and the cards remain in exile",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [68, 145],
+        "text": "For as long as they remain exiled, you may play them if you control a Wizard.",
+        "note": "Grants permission to play the exiled cards from exile, gated on controlling a Wizard and on the cards remaining exiled."
+      }
+    },
+    {
+      "source": "flameshape_look_exile_play",
+      "target": "state:control_a_wizard",
+      "predicate": "REQUIRES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [68, 145],
+        "text": "if you control a Wizard",
+        "note": "Playing the exiled cards requires controlling a Wizard at that time."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

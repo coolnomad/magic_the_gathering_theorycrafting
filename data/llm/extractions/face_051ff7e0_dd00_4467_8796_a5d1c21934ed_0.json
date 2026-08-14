@@ -1,0 +1,69 @@
+{
+  "face_id": "face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0",
+  "abilities": [
+    {
+      "ability_id": "trample",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "grant_keyword", "keyword": "trample", "target": "this creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 7]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "combat-damage-modal",
+      "kind": "triggered",
+      "trigger": {"event": "this_creature_deals_combat_damage_to_a_player"},
+      "costs": [],
+      "conditions": [
+        {"condition": "choose one"}
+      ],
+      "effects": [
+        {
+          "op": "modal",
+          "mode": "one",
+          "options": [
+            {"op": "add_counter", "counter_type": "+1/+1", "amount": 1, "target": "target Wolf you control"},
+            {"op": "create_token", "token": "token:treasure", "amount": 1}
+          ]
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [[8, 264]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0",
+      "target": "keyword:trample",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 7], "text": "Trample"}
+    },
+    {
+      "source": "face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0",
+      "target": "counter:+1/+1",
+      "predicate": "ADDS_COUNTER",
+      "certainty": "rules_explicit",
+      "condition": "combat damage to a player, mode: first option chosen",
+      "note": "+1/+1 counter on target Wolf you control",
+      "provenance": {"oracle_span": [77, 124], "text": "Put a +1/+1 counter on target Wolf you control."}
+    },
+    {
+      "source": "face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "condition": "combat damage to a player, mode: second option chosen",
+      "provenance": {"oracle_span": [127, 151], "text": "Create a Treasure token."}
+    }
+  ],
+  "schema_extension_requests": []
+}

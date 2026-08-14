@@ -1,0 +1,50 @@
+{
+  "face_id": "face:d1dceaa7-d33e-4067-9e1b-8a8978a12933:0",
+  "abilities": [
+    {
+      "ability_id": "d1dceaa7-a1",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this creature enters the battlefield",
+        "text": "When this creature enters"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "discard",
+          "controller": "each opponent",
+          "quantity": 1,
+          "required": true,
+          "text": "each opponent discards a card"
+        }
+      ],
+      "oracle_spans": [[0, 57]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:d1dceaa7-d33e-4067-9e1b-8a8978a12933:0",
+      "target": "d1dceaa7-a1",
+      "predicate": "HAS_ABILITY",
+      "provenance": { "oracle_span": [0, 57], "text": "When this creature enters, each opponent discards a card." }
+    },
+    {
+      "source": "d1dceaa7-a1",
+      "target": "event:etb",
+      "predicate": "TRIGGERS",
+      "provenance": { "oracle_span": [0, 25], "text": "When this creature enters", "note": "enters-the-battlefield trigger for this creature" }
+    },
+    {
+      "source": "d1dceaa7-a1",
+      "target": "op:discard",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "certainty": "rules_explicit",
+      "provenance": { "oracle_span": [27, 56], "text": "each opponent discards a card" }
+    }
+  ],
+  "schema_extension_requests": []
+}

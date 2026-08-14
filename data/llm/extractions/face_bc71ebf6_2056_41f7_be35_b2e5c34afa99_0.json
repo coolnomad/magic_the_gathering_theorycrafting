@@ -1,0 +1,74 @@
+{
+  "face_id": "face:bc71ebf6-2056-41f7-be35-b2e5c34afa99:0",
+  "abilities": [
+    {
+      "ability_id": "face:bc71ebf6-2056-41f7-be35-b2e5c34afa99:0:ab1",
+      "kind": "activated",
+      "costs": [
+        {
+          "type": "tap",
+          "symbol": "{T}"
+        }
+      ],
+      "conditions": [],
+      "effects": [
+        {
+          "action": "add_mana",
+          "mana": "{W}",
+          "amount": 1,
+          "controller": "you"
+        }
+      ],
+      "oracle_spans": [
+        [
+          0,
+          15
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:bc71ebf6-2056-41f7-be35-b2e5c34afa99:0",
+      "target": "face:bc71ebf6-2056-41f7-be35-b2e5c34afa99:0:ab1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          0,
+          15
+        ],
+        "text": "({T}: Add {W}.)"
+      }
+    },
+    {
+      "source": "face:bc71ebf6-2056-41f7-be35-b2e5c34afa99:0:ab1",
+      "target": "cost:tap",
+      "predicate": "HAS_COST",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          1,
+          4
+        ],
+        "text": "{T}"
+      }
+    },
+    {
+      "source": "face:bc71ebf6-2056-41f7-be35-b2e5c34afa99:0:ab1",
+      "target": "resource:mana-white",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          6,
+          14
+        ],
+        "text": "Add {W}."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

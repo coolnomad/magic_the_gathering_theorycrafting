@@ -1,0 +1,137 @@
+{
+  "face_id": "face:28ffddca-a3c4-467d-a2dc-2c5e62393e11:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "grant_keyword",
+          "keywords": [
+            "vigilance"
+          ],
+          "target": "this creature"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          0,
+          9
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters",
+        "subject": "another Elf you control"
+      },
+      "effects": [
+        {
+          "op": "modify_pt",
+          "delta": "+1/+1",
+          "target": "this creature",
+          "duration": "until end of turn"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          10,
+          94
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "activated",
+      "costs": [
+        {
+          "type": "tap",
+          "symbol": "{T}"
+        }
+      ],
+      "effects": [
+        {
+          "op": "add_mana",
+          "quantity": "X",
+          "restriction": "X is this creature's power",
+          "color": "any one color",
+          "spend_restriction": "only to cast Elf spells and activate abilities of Elf sources"
+        }
+      ],
+      "controller": "you",
+      "oracle_spans": [
+        [
+          95,
+          241
+        ]
+      ],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:28ffddca-a3c4-467d-a2dc-2c5e62393e11:0",
+      "target": "keyword:vigilance",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          0,
+          9
+        ],
+        "text": "Vigilance"
+      }
+    },
+    {
+      "source": "face:28ffddca-a3c4-467d-a2dc-2c5e62393e11:0",
+      "target": "face:28ffddca-a3c4-467d-a2dc-2c5e62393e11:0",
+      "predicate": "MODIFIES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          51,
+          93
+        ],
+        "text": "this creature gets +1/+1 until end of turn",
+        "note": "self buff triggered when another Elf you control enters"
+      }
+    },
+    {
+      "source": "face:28ffddca-a3c4-467d-a2dc-2c5e62393e11:0",
+      "target": "resource:mana",
+      "predicate": "PRODUCES",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          100,
+          161
+        ],
+        "text": "Add X mana of any one color, where X is this creature's power"
+      }
+    },
+    {
+      "source": "face:28ffddca-a3c4-467d-a2dc-2c5e62393e11:0",
+      "target": "resource:mana",
+      "predicate": "SCALES_WITH",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [
+          135,
+          161
+        ],
+        "text": "X is this creature's power",
+        "note": "mana amount scales with this creature's power"
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

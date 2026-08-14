@@ -1,0 +1,145 @@
+{
+  "face_id": "face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0",
+  "abilities": [
+    {
+      "ability_id": "sackville-etb-sac",
+      "kind": "triggered",
+      "trigger": {
+        "event": "The Sackville-Bagginses enters the battlefield",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "sacrifice",
+          "target": "another creature or artifact",
+          "optional": true,
+          "detail": "You may sacrifice another creature or artifact."
+        },
+        {
+          "op": "draw",
+          "amount": 1,
+          "target": "you",
+          "condition": "if you sacrifice this way"
+        },
+        {
+          "op": "create_token",
+          "count": 1,
+          "token": "Treasure token",
+          "token_ref": "token:treasure",
+          "condition": "if you sacrifice this way"
+        }
+      ],
+      "oracle_spans": [[0, 135]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "sackville-sac-token-drain",
+      "kind": "triggered",
+      "trigger": {
+        "event": "you sacrifice a token",
+        "controller": "you"
+      },
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {
+          "op": "lose_life",
+          "amount": 1,
+          "target": "target opponent"
+        }
+      ],
+      "oracle_spans": [[136, 197]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0",
+      "target": "ability:sackville-etb-sac",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [0, 135],
+        "text": "When The Sackville-Bagginses enter, you may sacrifice another creature or artifact. If you do, draw a card and create a Treasure token."
+      }
+    },
+    {
+      "source": "event:sackville-enters",
+      "target": "ability:sackville-etb-sac",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 35],
+        "text": "When The Sackville-Bagginses enter,"
+      }
+    },
+    {
+      "source": "ability:sackville-etb-sac",
+      "target": "another creature or artifact",
+      "predicate": "CONSUMES",
+      "optional": true,
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [36, 83],
+        "text": "you may sacrifice another creature or artifact."
+      }
+    },
+    {
+      "source": "ability:sackville-etb-sac",
+      "target": "resource:card",
+      "predicate": "PRODUCES",
+      "condition": "if you sacrifice this way",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [84, 135],
+        "text": "If you do, draw a card and create a Treasure token."
+      }
+    },
+    {
+      "source": "ability:sackville-etb-sac",
+      "target": "token:treasure",
+      "predicate": "CREATES_OBJECT",
+      "condition": "if you sacrifice this way",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [84, 135],
+        "text": "If you do, draw a card and create a Treasure token."
+      }
+    },
+    {
+      "source": "face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0",
+      "target": "ability:sackville-sac-token-drain",
+      "predicate": "HAS_ABILITY",
+      "provenance": {
+        "oracle_span": [136, 197],
+        "text": "Whenever you sacrifice a token, target opponent loses 1 life."
+      }
+    },
+    {
+      "source": "event:sacrifice-token",
+      "target": "ability:sackville-sac-token-drain",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [136, 167],
+        "text": "Whenever you sacrifice a token,"
+      }
+    },
+    {
+      "source": "ability:sackville-sac-token-drain",
+      "target": "resource:life",
+      "predicate": "CAUSES",
+      "polarity": "negative",
+      "scope": "target opponent",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [168, 197],
+        "text": "target opponent loses 1 life."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

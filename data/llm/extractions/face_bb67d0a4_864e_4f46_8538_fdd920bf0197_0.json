@@ -1,0 +1,89 @@
+{
+  "face_id": "face:bb67d0a4-864e-4f46-8538-fdd920bf0197:0",
+  "abilities": [
+    {
+      "ability_id": "etb-loot",
+      "kind": "triggered",
+      "trigger": {"event": "this_equipment_enters"},
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "discard", "amount": 1, "target": "a card", "optional": true},
+        {"op": "draw", "amount": 2, "condition": "you discarded a card this way"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[0, 62]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "equipped-buff",
+      "kind": "static",
+      "trigger": null,
+      "costs": [],
+      "conditions": [],
+      "effects": [
+        {"op": "modify_pt", "power": 2, "toughness": 0, "target": "equipped creature"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[63, 90]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "equip",
+      "kind": "activated",
+      "trigger": null,
+      "costs": [
+        {"op": "pay_mana", "amount": "{3}"}
+      ],
+      "conditions": [
+        {"condition": "sorcery timing"}
+      ],
+      "effects": [
+        {"op": "attach", "target": "target creature you control"}
+      ],
+      "controller": "you",
+      "oracle_spans": [[91, 175]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:bb67d0a4-864e-4f46-8538-fdd920bf0197:0",
+      "target": "zone:hand",
+      "predicate": "MOVES_FROM",
+      "certainty": "rules_explicit",
+      "optional": true,
+      "note": "may discard a card on ETB",
+      "provenance": {"oracle_span": [0, 51], "text": "When this Equipment enters, you may discard a card."}
+    },
+    {
+      "source": "face:bb67d0a4-864e-4f46-8538-fdd920bf0197:0",
+      "target": "zone:hand",
+      "predicate": "MOVES_TO",
+      "certainty": "rules_explicit",
+      "condition": "you discarded a card this way",
+      "note": "draw two cards",
+      "provenance": {"oracle_span": [52, 62], "text": "draw two cards."}
+    },
+    {
+      "source": "face:bb67d0a4-864e-4f46-8538-fdd920bf0197:0",
+      "target": "obj:equipped-creature",
+      "predicate": "MODIFIES",
+      "certainty": "rules_explicit",
+      "note": "+2/+0 while attached",
+      "provenance": {"oracle_span": [63, 90], "text": "Equipped creature gets +2/+0."}
+    },
+    {
+      "source": "face:bb67d0a4-864e-4f46-8538-fdd920bf0197:0",
+      "target": "obj:target-creature",
+      "predicate": "ATTACHED_TO",
+      "certainty": "rules_explicit",
+      "note": "via Equip {3}",
+      "provenance": {"oracle_span": [91, 175], "text": "Equip {3}"}
+    }
+  ],
+  "schema_extension_requests": []
+}

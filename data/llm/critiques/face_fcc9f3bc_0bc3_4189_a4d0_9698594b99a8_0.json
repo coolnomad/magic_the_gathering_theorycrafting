@@ -1,0 +1,137 @@
+{
+  "face_id": "face:fcc9f3bc-0bc3-4189-a4d0-9698594b99a8:0",
+  "abilities": [
+    {
+      "ability_id": "a1",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "enchant",
+          "restriction": "creature",
+          "note": "Enchant ability defines legal attachment target for this Aura",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[0, 16]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a2",
+      "kind": "triggered",
+      "trigger": {
+        "event": "this Aura enters"
+      },
+      "effects": [
+        {
+          "op": "tap",
+          "target": "enchanted creature",
+          "controller": "you",
+          "required": true,
+          "ordering": 1
+        },
+        {
+          "op": "remove_all_counters",
+          "target": "enchanted creature",
+          "controller": "you",
+          "required": true,
+          "ordering": 2
+        }
+      ],
+      "oracle_spans": [[17, 95]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "a3",
+      "kind": "static",
+      "effects": [
+        {
+          "op": "lose_all_abilities",
+          "target": "enchanted creature",
+          "controller": "n/a",
+          "required": true
+        },
+        {
+          "op": "prevent_untap",
+          "target": "enchanted creature",
+          "timing": "during its controller's untap step",
+          "controller": "n/a",
+          "required": true
+        }
+      ],
+      "oracle_spans": [[96, 188]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:fcc9f3bc-0bc3-4189-a4d0-9698594b99a8:0",
+      "target": "a1",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 16],
+        "text": "Enchant creature"
+      }
+    },
+    {
+      "source": "face:fcc9f3bc-0bc3-4189-a4d0-9698594b99a8:0",
+      "target": "obj:enchanted-creature",
+      "predicate": "ATTACHED_TO",
+      "certainty": "rules_explicit",
+      "provenance": {
+        "oracle_span": [0, 16],
+        "text": "Enchant creature"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "obj:enchanted-creature",
+      "predicate": "CAUSES",
+      "certainty": "high",
+      "scope": "tap on ETB",
+      "provenance": {
+        "oracle_span": [40, 62],
+        "text": "tap enchanted creature"
+      }
+    },
+    {
+      "source": "a2",
+      "target": "obj:enchanted-creature",
+      "predicate": "REMOVES_COUNTER",
+      "certainty": "high",
+      "scope": "all counters",
+      "provenance": {
+        "oracle_span": [67, 94],
+        "text": "remove all counters from it"
+      }
+    },
+    {
+      "source": "a3",
+      "target": "obj:enchanted-creature",
+      "predicate": "MODIFIES",
+      "polarity": "negative",
+      "certainty": "high",
+      "scope": "loses all abilities",
+      "provenance": {
+        "oracle_span": [96, 134],
+        "text": "Enchanted creature loses all abilities"
+      }
+    },
+    {
+      "source": "a3",
+      "target": "obj:enchanted-creature",
+      "predicate": "PREVENTS",
+      "polarity": "negative",
+      "certainty": "high",
+      "scope": "does not untap during its controller's untap step",
+      "provenance": {
+        "oracle_span": [139, 188],
+        "text": "doesn't untap during its controller's untap step."
+      }
+    }
+  ],
+  "schema_extension_requests": []
+}

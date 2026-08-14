@@ -1,0 +1,115 @@
+{
+  "face_id": "face:9cc52afb-9788-46f6-9f9b-347513f8a64f:0",
+  "abilities": [
+    {
+      "ability_id": "etb_create_and_attach",
+      "kind": "triggered",
+      "trigger": {
+        "event": "enters_the_battlefield",
+        "subject": "this Equipment"
+      },
+      "effects": [
+        {
+          "effect": "create_token",
+          "token": "token:dwarf",
+          "quantity": 1,
+          "note": "2/2 red Dwarf creature token"
+        },
+        {
+          "effect": "attach",
+          "attach_to": "the created token",
+          "ordering": "after creating the token"
+        }
+      ],
+      "oracle_spans": [[0, 100]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "equipped_bonus",
+      "kind": "static",
+      "effects": [
+        {
+          "effect": "modify_pt",
+          "target": "equipped creature",
+          "power": "+1",
+          "toughness": "+2"
+        }
+      ],
+      "oracle_spans": [[101, 130]],
+      "confidence": "high",
+      "unresolved": []
+    },
+    {
+      "ability_id": "equip",
+      "kind": "activated",
+      "costs": [
+        {"cost": "mana", "value": "{2}"}
+      ],
+      "effects": [
+        {
+          "effect": "attach",
+          "target": "target creature you control",
+          "note": "Equip only as a sorcery.",
+          "keyword": "Equip"
+        }
+      ],
+      "oracle_spans": [[131, 211]],
+      "confidence": "high",
+      "unresolved": []
+    }
+  ],
+  "proposed_edges": [
+    {
+      "source": "face:9cc52afb-9788-46f6-9f9b-347513f8a64f:0",
+      "target": "ability:etb_create_and_attach",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 100], "text": "When this Equipment enters, create a 2/2 red Dwarf creature token, then attach this Equipment to it."}
+    },
+    {
+      "source": "event:enters_the_battlefield",
+      "target": "ability:etb_create_and_attach",
+      "predicate": "TRIGGERS",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [0, 26], "text": "When this Equipment enters"}
+    },
+    {
+      "source": "ability:etb_create_and_attach",
+      "target": "token:dwarf",
+      "predicate": "CREATES_OBJECT",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [28, 65], "text": "create a 2/2 red Dwarf creature token"}
+    },
+    {
+      "source": "face:9cc52afb-9788-46f6-9f9b-347513f8a64f:0",
+      "target": "token:dwarf",
+      "predicate": "ATTACHED_TO",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [72, 99], "text": "attach this Equipment to it"}
+    },
+    {
+      "source": "face:9cc52afb-9788-46f6-9f9b-347513f8a64f:0",
+      "target": "ability:equipped_bonus",
+      "predicate": "HAS_ABILITY",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [101, 130], "text": "Equipped creature gets +1/+2."}
+    },
+    {
+      "source": "ability:equipped_bonus",
+      "target": "objectclass:equipped_creature",
+      "predicate": "MODIFIES",
+      "polarity": "positive",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [101, 130], "text": "Equipped creature gets +1/+2."}
+    },
+    {
+      "source": "face:9cc52afb-9788-46f6-9f9b-347513f8a64f:0",
+      "target": "kw:equip",
+      "predicate": "HAS_KEYWORD",
+      "certainty": "rules_explicit",
+      "provenance": {"oracle_span": [131, 140], "text": "Equip {2}"}
+    }
+  ],
+  "schema_extension_requests": []
+}
