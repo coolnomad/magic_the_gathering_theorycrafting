@@ -124,7 +124,12 @@
         "SCALES_WITH",
         "PERSISTS_AS",
         "REFERENCES_RULE",
-        "DERIVED_FROM"
+        "DERIVED_FROM",
+        "CAN_LEAD_TO",
+        "INSTANTIATES",
+        "QUALIFIES_FOR",
+        "HAS_COUNTER_TYPE",
+        "ATTACHED_TO"
       ],
       "title": "Predicate",
       "type": "string"

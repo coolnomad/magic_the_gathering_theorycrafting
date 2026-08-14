@@ -1,15 +1,13 @@
-"""Recruit template — spec semantic invariant #1: Recruit always yields draw then
-discard; Soldier creation is conditional on a nonland discard."""
+"""Recruit template — invariant #1 (draw then discard; Soldier conditional on nonland
+discard) plus the review fix: a single generic template, invoked per card, with exactly
+ONE create-Soldier edge (not one per Recruit card)."""
 
 from hobkg import rules
 
 
-def _gb_with_recruit():
+def _gb():
     gb = rules.GraphBuilder()
     rules.add_shared_nodes(gb)
-    face = {"id": "face:o:0", "card_id": "card:o", "name": "Tester",
-            "oracle_text": "When this creature enters, recruit."}
-    rules.expand_recruit(gb, face)
     return gb
 
 
@@ -18,32 +16,36 @@ def _edge(gb, pred, src=None, tgt=None):
             and (src is None or e.source == src) and (tgt is None or e.target == tgt)]
 
 
-def test_draw_then_discard_ordering():
-    gb = _gb_with_recruit()
-    draw = "op:face:o:0:recruit:draw"
-    disc = "op:face:o:0:recruit:discard"
-    assert gb.nodes[draw].data["quantity"] == 1
-    assert gb.nodes[disc].data["quantity"] == 1
-    assert _edge(gb, "CAUSES", "op:face:o:0:recruit", draw)
-    after = _edge(gb, "CAUSES", draw, disc)
+def test_generic_draw_then_discard_ordering():
+    gb = _gb()
+    assert gb.nodes["op:recruit:draw"].data["quantity"] == 1
+    assert gb.nodes["op:recruit:discard"].data["quantity"] == 1
+    assert _edge(gb, "CAUSES", "op:recruit", "op:recruit:draw")
+    after = _edge(gb, "CAUSES", "op:recruit:draw", "op:recruit:discard")
     assert after and after[0].timing == "after"
+    assert _edge(gb, "MOVES_TO", "op:recruit:discard", "zone:graveyard")
 
 
-def test_discard_goes_to_graveyard():
-    gb = _gb_with_recruit()
-    assert _edge(gb, "MOVES_TO", "op:face:o:0:recruit:discard", "zone:graveyard")
-
-
-def test_soldier_creation_is_conditional_on_nonland_discard():
-    gb = _gb_with_recruit()
+def test_soldier_created_once_and_conditionally():
+    gb = _gb()
     create = _edge(gb, "CREATES_OBJECT", "gate:recruit-nonland-discard", "token:human-soldier")
-    assert create
+    assert len(create) == 1
     assert create[0].condition_ids == ["cond:recruit-nonland-discard"]
-    assert create[0].quantity == 1
-    assert "cond:recruit-nonland-discard" in gb.conditions
+
+
+def test_per_card_recruit_instantiates_generic_only():
+    # Instantiating Recruit on many cards must NOT add more create-Soldier edges.
+    gb = _gb()
+    for i in range(5):
+        rules.expand_recruit(gb, {"id": f"face:{i}:0", "card_id": f"card:{i}",
+                                  "name": f"C{i}", "oracle_text": "...recruit."})
+    create = _edge(gb, "CREATES_OBJECT", "gate:recruit-nonland-discard", "token:human-soldier")
+    assert len(create) == 1  # still exactly one
+    for i in range(5):
+        assert _edge(gb, "INSTANTIATES", f"op:face:{i}:0:recruit", "op:recruit")
+        assert _edge(gb, "HAS_ABILITY", f"face:{i}:0", f"op:face:{i}:0:recruit")
 
 
 def test_draw_produces_a_draw_event():
-    # substrate for the Recruit->second-draw payoff direction (Phase 5)
-    gb = _gb_with_recruit()
-    assert _edge(gb, "PRODUCES", "op:face:o:0:recruit:draw", "event:card-drawn")
+    gb = _gb()
+    assert _edge(gb, "PRODUCES", "op:recruit:draw", "event:card-drawn")

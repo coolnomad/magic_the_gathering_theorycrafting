@@ -1,6 +1,6 @@
-"""Adventure template — spec invariant #8: Adventure spell and permanent faces remain
-distinct; spell casts from hand, resolves to exile, enables casting the permanent from
-exile, with the normal-from-hand alternative preserved."""
+"""Adventure template — invariant #8 (faces distinct) plus review fixes: exile
+permission bound to the specific card via a per-object state, and casting modeled as
+CAN_LEAD_TO resolution (not guaranteed)."""
 
 from hobkg import rules
 
@@ -14,23 +14,36 @@ def _gb():
     return gb
 
 
+def _has(gb, pred, src, tgt):
+    return any(e.predicate == pred and e.source == src and e.target == tgt for e in gb.edges)
+
+
 def test_faces_distinct():
     gb = _gb()
-    assert "face:o:0" in gb.nodes and "face:o:1" in gb.nodes
     assert gb.nodes["face:o:0"].label != gb.nodes["face:o:1"].label
 
 
-def test_spell_from_hand_resolves_to_exile():
+def test_cast_is_not_guaranteed_resolution():
     gb = _gb()
-    assert any(e.predicate == "MOVES_FROM" and e.source == "op:face:o:1:cast" and e.target == "zone:hand"
-               for e in gb.edges)
-    assert any(e.predicate == "MOVES_TO" and e.source == "op:face:o:1:resolve" and e.target == "zone:exile"
-               for e in gb.edges)
+    assert _has(gb, "MOVES_FROM", "op:face:o:1:cast", "zone:hand")
+    assert _has(gb, "MOVES_TO", "op:face:o:1:cast", "zone:stack")
+    assert _has(gb, "CAN_LEAD_TO", "op:face:o:1:cast", "op:face:o:1:resolve")
+    # casting must NOT be a guaranteed CAUSES of resolution
+    assert not _has(gb, "CAUSES", "op:face:o:1:cast", "op:face:o:1:resolve")
 
 
-def test_exile_enables_permanent_cast_and_hand_alternative():
+def test_exile_permission_bound_to_this_card():
     gb = _gb()
-    assert any(e.predicate == "ENABLES" and e.source == "zone:exile"
-               and e.target == "op:face:o:0:cast-from-exile" for e in gb.edges)
+    st = "state:card:o:adventure-exiled"
+    assert st in gb.nodes and gb.nodes[st].data["object"] == "card:o"
+    # resolution exiles THIS object; the per-object state (not the global exile zone)
+    # enables casting the permanent face.
+    assert _has(gb, "PRODUCES", "op:face:o:1:resolve", st)
+    assert _has(gb, "ENABLES", st, "op:face:o:0:cast-from-exile")
+    assert not _has(gb, "ENABLES", "zone:exile", "op:face:o:0:cast-from-exile")
+
+
+def test_normal_from_hand_alternative_preserved():
+    gb = _gb()
     hand = [e for e in gb.edges if e.source == "op:face:o:0:cast-from-hand" and e.target == "zone:hand"]
     assert hand and hand[0].optional is True

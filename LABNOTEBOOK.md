@@ -376,3 +376,36 @@ Refs: [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-graph-buil
 **Deliverables.** `data/graph/{nodes,edges,gates,conditions}.jsonl`, `schema/*.schema.json` (11), `reports/graph_coverage.md`. Still possibility-only; no outcomes, quality, archetype, or synergy claims.
 
 Refs: [2026-08-13 19:30] DECISION — Phase 2 model/scope; `reports/graph_coverage.md`; `data/graph/`
+
+---
+
+## [2026-08-13 20:55] CORRECTION — Phase 2 rework for object identity (per external review)
+
+The user reviewed the emitted Phase 2 JSON (`docs/hob-kg-phase2-review.md`) and found one repeated architectural defect: **shared concept/type nodes were standing in for object-bound states and event instances**, erasing *which object* a permission/counter/condition belongs to. Left unfixed, constrained pair-traversal in Phase 5 could infer false card-pair paths (e.g. "any route into exile lets Gandalf be cast from exile"; "one nonland-discard gate creates ten Soldiers"; "a lore counter on one Saga enables another Saga's chapter"). All nine points fixed before proceeding; nothing about the base schema was wrong, so this revises the templates, not the model's intent.
+
+**Fixes (revises the [2026-08-13 19:30] template design):**
+1. **General principle** — concepts/types are ontology nodes; every object-bound fact is a per-object `State`/instance node.
+2. **Adventure exile bound to the physical card** — resolution now `PRODUCES state:{card}:adventure-exiled`, and *that* state `ENABLES` the permanent-face cast. The global `zero zone:exile ENABLES` edges (verified 0 on Gandalf, Goblins' Bane // Flameshape).
+3. **Casting ≠ resolution** — `op:cast … CAN_LEAD_TO … resolve` (new predicate), plus `MOVES_TO zone:stack`; no guaranteed `CAUSES`.
+4. **Recruit is one generic template invoked per card** — `op:recruit` holds the single draw→discard→gate→create-Soldier chain (exactly **one** `CREATES_OBJECT` edge); each card's `op:{face}:recruit INSTANTIATES op:recruit` (new predicate). No more 10 parallel Soldier edges.
+5. **Saga lore/chapters bound to the same object** — per-Saga `state:{face}:lore-count` (`HAS_COUNTER_TYPE counter:lore`, new predicate); the Saga's own lore ops `MODIFIES` its own count; its own count `ENABLES` its own chapters. The generic `counter:lore` no longer enables all chapters.
+6. **hone generic once, on the attached creature** — the `+1/+0` `effect:hone-boost` and its `SCALES_WITH counter:hone` are emitted once; each hone card's `add-hone` op `REFERENCES_RULE rule:hone`. Bonus never attached to the source card.
+7. **Storied card-level relation renamed** — card faces/token specs now `QUALIFIES_FOR gate:storied` (capacity), reserving `CONTRIBUTES_TO` for runtime battlefield instances (not modeled in Phase 2). Zero `CONTRIBUTES_TO` edges emitted.
+8. **Tokens fully normalized** — fetched the 12 HOB token card objects from Scryfall (`data/raw/scryfall_hob_tokens.json`, added to `source_manifest.json`, byte-exact) and enriched `tokens.jsonl` with colors, P/T, keywords, Oracle text, produced mana (e.g. Human Soldier = W 1/1; Treasure carries its sac-for-mana; Axe its Equipment text).
+9. **Phase 3 coverage commitment (recorded, not yet code)** — Phase 3 MUST send **every Oracle-bearing face (209)** to the LLM, not only faces that produced a `mechanical_extraction`. Otherwise custom cards like Gandalf/Flameshape (no syntactic hit) would be skipped. This is a hard requirement for the Phase 3 driver.
+
+**New predicates (schema change, per principle #2):** `CAN_LEAD_TO`, `INSTANTIATES`, `QUALIFIES_FOR`, `HAS_COUNTER_TYPE`, `ATTACHED_TO` (reserved).
+
+Refs: [`docs/hob-kg-phase2-review.md`](./docs/hob-kg-phase2-review.md); [2026-08-13 19:30] DECISION/OBSERVATION — Phase 2
+
+---
+
+## [2026-08-13 20:55] OBSERVATION — Phase 2 rework results (HOB)
+
+Rebuilt (`hobkg.cli build`); all outputs re-validate with 0 dangling edges; **48 pytest tests pass** (new tests assert object identity: single Soldier edge across all Recruit cards, per-Saga lore states = 8, `QUALIFIES_FOR` present and `CONTRIBUTES_TO` absent, Adventure exile object-bound, token enrichment).
+
+**Graph.** 289 nodes, 382 edges (down from 411 — duplication removed), 2 gates. New edge predicates present: `INSTANTIATES` 10, `CAN_LEAD_TO` 17, `HAS_COUNTER_TYPE` 8, `QUALIFIES_FOR` 77 (74 faces + 3 tokens: Treasure/Axe/Stone Boulder). Instantiation counts unchanged (Recruit 10 / Storied 9 / hone 2 / Adventure 17 / Saga 8). Live check on *Gandalf, Goblins' Bane // Flameshape*: cast→stack, `CAN_LEAD_TO` resolve, resolve `PRODUCES` the card-specific exiled state, state `ENABLES` the Gandalf-face cast, Gandalf `QUALIFIES_FOR` Storied — and **0** global `zone:exile ENABLES` edges set-wide.
+
+**Sources.** Added a 5th raw source (`scryfall_hob_tokens.json`, 12 objects, SHA-256 in `source_manifest.json`); `data/raw/** -text` keeps it byte-exact.
+
+Refs: [2026-08-13 20:55] CORRECTION — Phase 2 rework; `data/graph/`; `data/normalized/tokens.jsonl`

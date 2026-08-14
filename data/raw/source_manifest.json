@@ -48,6 +48,16 @@
                         "sha256":  "2ED5F1BBB4F8771C84A6F2944A218428C6C5CCBA21110A5D101B9A51A4C062B3",
                         "bytes":  976669,
                         "note":  "Magic Comprehensive Rules, effective 2026-08-07 (HOB-era update). Includes rule 122.1j hone counters and rule 310.8."
+                    },
+                    {
+                        "id":  "scryfall_hob_tokens",
+                        "kind":  "token_card_data",
+                        "url":  "https://api.scryfall.com/cards/{id}",
+                        "retrieved_at_utc":  "2026-08-14T00:54:49Z",
+                        "file":  "scryfall_hob_tokens.json",
+                        "sha256":  "442B1D9AEDD82943F67F56AACDE522BFB9DB5C5D026F485E64800E08D417BFBC",
+                        "bytes":  526448,
+                        "note":  "Full Scryfall objects for the 12 HOB token components referenced by all_parts. Adds color/PT/keywords/oracle_text/produced_mana beyond the all_parts name+type_line."
                     }
                 ]
 }

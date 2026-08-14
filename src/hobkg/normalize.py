@@ -104,6 +104,27 @@ def extract_tokens(raw: dict, card_id: str) -> list[TokenSpec]:
     return out
 
 
+def enrich_tokens(tokens: list[TokenSpec], token_raw_by_id: dict[str, dict]) -> None:
+    """Hydrate token specs in place from fetched Scryfall token objects (colors, P/T,
+    keywords, Oracle text, produced mana) so later phases can reason about token
+    characteristics, not just names/type lines (Phase 2 review #8)."""
+    for t in tokens:
+        raw = next((token_raw_by_id[rid] for rid in t.scryfall_related_ids if rid in token_raw_by_id), None)
+        if raw is None:
+            continue
+        t.colors = raw.get("colors", [])
+        t.power = raw.get("power")
+        t.toughness = raw.get("toughness")
+        t.keywords = raw.get("keywords", [])
+        t.oracle_text = raw.get("oracle_text")
+        t.produced_mana = raw.get("produced_mana", [])
+        t.mana_cost = parse_mana_cost(raw.get("mana_cost"))
+        if raw.get("type_line"):
+            t.type_line_raw = raw["type_line"]
+            t.type_line = parse_type_line(raw["type_line"])
+        t.enriched = True
+
+
 def canonicalize_tokens(token_lists: list[list[TokenSpec]]) -> list[TokenSpec]:
     """Merge duplicate token specs (same id) across all producing cards."""
     merged: dict[str, TokenSpec] = {}

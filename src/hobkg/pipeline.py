@@ -28,7 +28,7 @@ from .models import (
     TokenSpec,
     UnresolvedExtraction,
 )
-from .normalize import canonicalize_tokens, extract_tokens, normalize_card
+from .normalize import canonicalize_tokens, enrich_tokens, extract_tokens, normalize_card
 
 REPO = Path(__file__).resolve().parents[2]
 RAW = REPO / "data" / "raw" / "scryfall_hob.json"
@@ -97,6 +97,10 @@ def run(repo: Path = REPO) -> dict:
             conditions.extend(co)
 
     tokens = canonicalize_tokens(token_lists)
+    tokens_raw_path = repo / "data" / "raw" / "scryfall_hob_tokens.json"
+    if tokens_raw_path.exists():
+        token_raw_by_id = {t["id"]: t for t in json.loads(tokens_raw_path.read_text(encoding="utf-8"))}
+        enrich_tokens(tokens, token_raw_by_id)
 
     nd = repo / "data" / "normalized"
     _write_jsonl(nd / "cards.jsonl", cards)
@@ -158,7 +162,7 @@ def build_templates(repo: Path = REPO) -> dict:
     rules.add_shared_nodes(gb)
 
     counts = {"recruit": 0, "storied_payoff": 0, "hone": 0, "adventure": 0, "saga": 0,
-              "storied_contrib_faces": 0, "storied_contrib_tokens": 0}
+              "storied_qualifier_faces": 0, "storied_qualifier_tokens": 0}
 
     for fid in sorted(by_mech.get("Recruit", set())):
         rules.expand_recruit(gb, faces_by_id[fid]); counts["recruit"] += 1
@@ -188,14 +192,14 @@ def build_templates(repo: Path = REPO) -> dict:
             prov = [Provenance(card_id=f["card_id"], face_id=f["id"],
                                source="rule.template:storied", text=f.get("type_line_raw"),
                                rule_ref=rules.RULE_REFS["storied"])]
-            rules.storied_contributor(gb, f["id"], "CardFace", f.get("name", f["id"]), prov)
-            counts["storied_contrib_faces"] += 1
+            rules.storied_qualifier(gb, f["id"], "CardFace", f.get("name", f["id"]), prov)
+            counts["storied_qualifier_faces"] += 1
     for t in tokens:
         if _storied_qualifies(t.get("type_line")):
             prov = [Provenance(card_id="", source="rule.template:storied",
                                text=t.get("type_line_raw"), rule_ref=rules.RULE_REFS["storied"])]
-            rules.storied_contributor(gb, t["id"], "TokenSpec", t.get("name", t["id"]), prov)
-            counts["storied_contrib_tokens"] += 1
+            rules.storied_qualifier(gb, t["id"], "TokenSpec", t.get("name", t["id"]), prov)
+            counts["storied_qualifier_tokens"] += 1
 
     gd = repo / "data" / "graph"
     _write_jsonl(gd / "nodes.jsonl", list(gb.nodes.values()))

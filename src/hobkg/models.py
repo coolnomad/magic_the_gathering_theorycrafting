@@ -108,6 +108,14 @@ class TokenSpec(_Base):
     name: str
     type_line_raw: Optional[str] = None
     type_line: Optional[ParsedTypeLine] = None
+    colors: list[str] = Field(default_factory=list)
+    power: Optional[str] = None
+    toughness: Optional[str] = None
+    keywords: list[str] = Field(default_factory=list)
+    oracle_text: Optional[str] = None
+    produced_mana: list[str] = Field(default_factory=list)
+    mana_cost: Optional[ManaCost] = None
+    enriched: bool = Field(default=False, description="True if hydrated from the fetched token card object")
     produced_by_card_ids: list[str] = Field(default_factory=list)
     scryfall_related_ids: list[str] = Field(default_factory=list)
     provenance: list[Provenance] = Field(default_factory=list)
@@ -184,6 +192,12 @@ Predicate = Literal[
     "REPLACES", "MOVES_FROM", "MOVES_TO", "CREATES_OBJECT", "ADDS_COUNTER",
     "REMOVES_COUNTER", "SCALES_WITH", "PERSISTS_AS", "REFERENCES_RULE",
     "DERIVED_FROM",
+    # object-identity predicates (added per Phase 2 review):
+    "CAN_LEAD_TO",      # non-guaranteed causation (e.g. cast may be countered)
+    "INSTANTIATES",     # a card-specific operation invokes a generic rule template
+    "QUALIFIES_FOR",    # a card-definition object CAN contribute to a gate (capacity, not runtime)
+    "HAS_COUNTER_TYPE", # an object's counter-count state is of a given counter type
+    "ATTACHED_TO",      # equipment/aura attachment relation
 ]
 
 

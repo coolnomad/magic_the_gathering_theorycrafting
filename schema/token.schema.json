@@ -1,5 +1,103 @@
 {
   "$defs": {
+    "ManaCost": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "title": "Raw",
+          "type": "string"
+        },
+        "symbols": {
+          "items": {
+            "$ref": "#/$defs/ManaSymbol"
+          },
+          "title": "Symbols",
+          "type": "array"
+        },
+        "generic": {
+          "default": 0,
+          "title": "Generic",
+          "type": "integer"
+        },
+        "pips": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "count of colored pip demand by color",
+          "title": "Pips",
+          "type": "object"
+        },
+        "has_variable": {
+          "default": false,
+          "title": "Has Variable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "raw"
+      ],
+      "title": "ManaCost",
+      "type": "object"
+    },
+    "ManaSymbol": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "title": "Raw",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "generic",
+            "colored",
+            "colorless",
+            "variable",
+            "hybrid",
+            "hybrid_mono",
+            "phyrexian",
+            "snow",
+            "tap",
+            "untap",
+            "energy",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "integer amount for generic symbols",
+          "title": "Value"
+        },
+        "colors": {
+          "description": "WUBRG letters this symbol can represent",
+          "items": {
+            "type": "string"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "phyrexian": {
+          "default": false,
+          "title": "Phyrexian",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "raw",
+        "kind"
+      ],
+      "title": "ManaSymbol",
+      "type": "object"
+    },
     "ParsedTypeLine": {
       "additionalProperties": false,
       "properties": {
@@ -150,6 +248,80 @@
         }
       ],
       "default": null
+    },
+    "colors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Colors",
+      "type": "array"
+    },
+    "power": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Power"
+    },
+    "toughness": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Toughness"
+    },
+    "keywords": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Keywords",
+      "type": "array"
+    },
+    "oracle_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Oracle Text"
+    },
+    "produced_mana": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Produced Mana",
+      "type": "array"
+    },
+    "mana_cost": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ManaCost"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "enriched": {
+      "default": false,
+      "description": "True if hydrated from the fetched token card object",
+      "title": "Enriched",
+      "type": "boolean"
     },
     "produced_by_card_ids": {
       "items": {

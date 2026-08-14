@@ -487,3 +487,72 @@ Want me to commit and push?
 
 ### [2026-08-13 20:30] USER
 commit and push it
+
+### [2026-08-13 20:31] ASSISTANT
+Committed and pushed â€” `cd8ee57..d43f49b` on `origin/main` (20 files, working tree clean).
+
+**Phase 2 (mechanic templates) is complete and live.** The typed directed graph now exists: 281 nodes / 411 edges / 2 gates, all five HOB mechanics encoded once and instantiated, 0 dangling edges, 45 tests passing, spec invariants #1/4/5/6/7/8 covered.
+
+Where we are against the spec:
+- âœ… **Phase 0** â€” frozen sources (HOB + FIN)
+- âœ… **Phase 1** â€” deterministic normalization
+- âœ… **Phase 2** â€” mechanic-template library
+
+Per the spec's discipline ("test on Recruit and Storied as vertical slicesâ€¦ *then* process the remaining cards" via LLM), the next step is **Phase 3: LLM semantic extraction** â€” splitting complex Oracle text into structured abilities (trigger/cost/effect/conditions), resolving pronouns, and clearing the 16-item unresolved queue, with the required independent critic second pass and JSON-schema-validated output. That's the first phase that calls a model and will need a model config.
+
+I'll stop here and wait for your go before starting Phase 3.
+
+### [2026-08-13 20:49] USER
+I checked the output jsons, read docs/hob-phase2-review.md. There are some things to fix now before moving on.
+
+### [2026-08-13 21:04] ASSISTANT
+The file is `docs/hob-kg-phase2-review.md` (slightly different name). Reading it.
+
+This is an excellent, precise review â€” the core defect is real: shared concept/type nodes are standing in for object-bound states/events, which would manufacture false card-pair paths in Phase 5. All 9 points are worth fixing now. Let me work through them.
+
+First, the token enrichment (#8) needs real Scryfall token objects. Let me collect the token component IDs and fetch them, frozen like the other sources.
+
+12 token objects to fetch. Pulling their full Scryfall records and freezing them like the other sources.
+
+Got full token properties (Human Soldier 1/1 W, Treasure's sacrifice-for-mana, Axe's Equipment text). Adding this to the source manifest, then reworking the models.
+
+Now extending the models: new predicates for object-bound semantics (`CAN_LEAD_TO`, `INSTANTIATES`, `QUALIFIES_FOR`, `HAS_COUNTER_TYPE`) and richer `TokenSpec` fields.
+
+Now token enrichment in `normalize.py`, hydrating specs from the fetched token objects.
+
+Now the core rework â€” rewriting `rules.py` so shared nodes are true ontology and every object-bound state/event is per-object: generic Recruit/hone templates invoked via `INSTANTIATES`/`REFERENCES_RULE`, per-object Adventure-exile and Saga lore-count states, `CAN_LEAD_TO` for casting, and `QUALIFIES_FOR` at card level.
+
+Now updating the pipeline driver to use the renamed qualifier function and updated counts.
+
+Now updating the Phase 2 tests to the corrected object-identity structure.
+
+All 48 pass. Now the full build + validation, and a spot-check that the review's specific defects are resolved on the live Gandalf/Adventure and a Saga.
+
+Every review fix shows in the graph: `INSTANTIATES` 10, `CAN_LEAD_TO` 17, `HAS_COUNTER_TYPE` 8, `QUALIFIES_FOR` 77, zero `CONTRIBUTES_TO`, no dangling edges. Let me confirm on live Gandalf that exile is now object-bound.
+
+The review is fully satisfied on live data â€” Flameshape casts to the stack, `CAN_LEAD_TO` resolution, which `PRODUCES state:card:f48f2a9bâ€¦:adventure-exiled`, and that **per-object state** (not the global exile zone) enables casting the Gandalf face; zero global `zone:exile ENABLES` edges. Recording the correction in the lab notebook.
+
+Let me verify manifest integrity for the raw sources (including the new tokens file) and review the working tree before wrapping up.
+
+All manifest hashes verify, 48 tests pass. All nine review points are addressed. Summary of what changed:
+
+| # | Review point | Fix |
+|---|---|---|
+| 1 | Concepts vs object-bound states | General principle applied across templates |
+| 2 | Adventure exile â†’ physical card | `resolve PRODUCES state:{card}:adventure-exiled` â†’ that state `ENABLES` the cast; **0** global `zone:exile ENABLES` edges |
+| 3 | Casting â‰  resolution | new `CAN_LEAD_TO` + `MOVES_TO zone:stack` |
+| 4 | Recruit parallel edges | one generic `op:recruit` chain, **1** Soldier edge; cards `INSTANTIATES` it |
+| 5 | Saga lore identity | per-Saga `state:{face}:lore-count` (`HAS_COUNTER_TYPE`); 8 distinct states |
+| 6 | hone duplication/binding | generic boost once, `SCALES_WITH counter:hone`; never on source card |
+| 7 | Storied card-level relation | `QUALIFIES_FOR` (capacity); **0** `CONTRIBUTES_TO` |
+| 8 | Token properties | fetched 12 token objects; enriched colors/PT/keywords/text/mana |
+| 9 | Phase 3 covers all faces | recorded as a hard requirement for the Phase 3 driver |
+
+Graph is now 289 nodes / 382 edges (duplication removed), 0 dangling, all counts intact. New predicates `CAN_LEAD_TO`/`INSTANTIATES`/`QUALIFIES_FOR`/`HAS_COUNTER_TYPE` added as a deliberate schema change. Live Gandalf verification passed.
+
+Two untracked files to include: `data/raw/scryfall_hob_tokens.json` (new frozen source, in the manifest) and `docs/hob-kg-phase2-review.md` (the review that drove this â€” worth keeping in the record).
+
+Want me to commit and push?
+
+### [2026-08-13 21:05] USER
+commit and push it
