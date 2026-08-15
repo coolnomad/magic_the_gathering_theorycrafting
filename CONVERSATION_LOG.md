@@ -1900,3 +1900,91 @@ Phase 5 v2 remains as committed (`98e514c`) and is waiting on your review; nothi
 
 ### [2026-08-15 14:28] USER
 now read hob-kg-phase5-review-pt2.md
+
+### [2026-08-15 14:36] ASSISTANT
+One narrow blocker: `SUPPLIES_RESOURCE` joins producers and consumers without checking *whose* resource it is (controller-gained life â‰  opponent's life loss). Let me inspect the actual resource-flow edges â€” their scope/provenance signal â€” to design a participant/role classifier.
+
+Now I can see the participant/role signal lives in `scope` + provenance text ("target opponent loses", "Pay 2 life", "you gain", "target player draws", "owner draws"). This is exactly enough to classify. Let me implement participant-aware `SUPPLIES_RESOURCE`.
+
+Let me finish threading the participant metadata through assembly, then I'll immediately address the heredoc-approval issue.
+
+Now let me run it and verify the reviewer's exact cases â€” using `python -c` (no heredoc) to also test the approval fix:
+
+Participant-awareness works exactly as required: the 3 false life projections are gone, the 2 valid ones are asserted (controller gain â†’ controller spend), and 1 cross-participant case is retained as `participant_unresolved`. Let me add the regression tests.
+
+All 108 tests pass. Let me record Phase 5 v3 and commit (using `git`, no heredoc for the message â€” via a message file would need a heredoc; instead I'll use multiple `-m` flags).
+
+Now committing with `-m` flags (avoiding the heredoc redirect that triggers approval):
+
+Phase 5 v3 is in (`e0ba533`) â€” and notice the verification and the commit just now used `python -c` and `git commit -m â€¦` and **ran without prompting you**. That's the fix confirmed.
+
+Now addressing your heredoc frustration directly:
+
+The remaining trigger is the **heredoc / redirect operator itself** (`<<'PY'`, and likewise `git commit -F - <<'MSG'`, `>`, `|`). Even though `python` and `git commit` are allow-listed, Claude Code's permission matcher can't safely reason about a command containing a redirect, so it prompts regardless. So there were actually *two* separate causes, and I'd only fixed the first (the `PYTHONPATH=` prefix):
+
+| Shape | Why it prompted | Replacement |
+|---|---|---|
+| `PYTHONPATH=src python - <<'PY'` | env-prefix **and** heredoc | â€” |
+| `python - <<'PY' â€¦ PY` | heredoc `<<` redirect | `python -c "â€¦"` (newlines allowed inside the quotes) |
+| `git commit -F - <<'MSG'` | heredoc `<<` redirect | `git commit -m "â€¦" -m "â€¦"` |
+
+Let me record the heredoc rule so I stop reaching for them:
+
+Recorded. From now on: `python -c "â€¦"` (never `python - <<'PY'`), `git commit -m â€¦ -m â€¦` (never `-F -`/heredoc), and the Write tool instead of `>`. No `cd`, no env prefixes, no redirects â€” all of which I just used successfully this turn without a single prompt.
+
+## And the actual work â€” Phase 5 v3 (participant-aware resource flow), `e0ba533`
+
+The one pt2 blocker is fixed. `SUPPLIES_RESOURCE` now asks *whose* resource is involved:
+
+- `_participant_role(edge)` infers **`resource_for`** (controller / opponent / target_player / object_owner / each_player) and **`resource_role`** (gain / spend / loss / requirement) from each edge's scope + Oracle provenance.
+- A consumer whose role is **`loss`** is dropped (a resource someone *loses* isn't a spendable supply) â†’ the 3 false life projections are gone (Spatulaâ†’Down Down, Supperâ†’Down Down, Down Downâ†’self).
+- Same-participant **gain â†’ spend/requirement** is **asserted** (Spatula & Supper â†’ Desolation Prowler: controller life pays "Pay 2 life" â€” verified `resolved`/`asserted`).
+- Cross-participant joins are **retained but flagged** `participant_unresolved` / `asserted: false`, queued for the Part 2 audit rather than falsely asserted.
+
+**Result:** SUPPLIES_RESOURCE 15 (14 asserted, 1 unresolved), down from 18; other relations unchanged; byte-identical rebuild; **108 tests pass** (+2 exact life regressions from the review).
+
+The reviewer said this was the last narrow correction before Part 1 is ready to freeze ahead of the LLM pair audit. Two items remain explicitly deferred to Part 2: the pairwise LLM audit (which will consume the `participant_unresolved` candidates) and the Storied `COUNTS` alias canonicalization. Holding here for your review.
+
+### [2026-08-15 14:41] USER
+Commit [`e0ba533`](https://github.com/coolnomad/magic_the_gathering_theorycrafting/commit/e0ba5339d13137aba636816010a48ae81fd794be) fixes the participant-resource defect correctly.
+
+Verified:
+
+* All 108 tests pass.
+* The three false life-supply relationships are gone.
+* Controller life gain still supplies Desolation ProwlerΓÇÖs controller life-payment.
+* No `loss` edge survives as a resource consumer.
+* Resource participant and role annotations appear on both path steps and alternatives.
+* Cross-participant relationships are retained as nonasserted audit candidates.
+* The projection remains byte-identical.
+* All real/reverse/derived path checks and mana compatibility checks continue to pass.
+
+The resulting resource projections are sensible:
+
+```text
+SUPPLIES_RESOURCE: 15
+asserted:           14
+participant unresolved: 1
+```
+
+The unresolved relationship is:
+
+```text
+Gandalf, Wandering Wizard
+    object_owner gains cards
+ΓåÆ Confusticate and Bebother
+    controller spends a card
+```
+
+That is correctly withheld from assertion because the permanentΓÇÖs owner is not necessarily GandalfΓÇÖs controller.
+
+I manually inspected all 15 resource projections; the remaining 14 asserted paths are participant-compatible. The full output contains 5,278 metaedges and 5,911 alternative paths.
+
+Two minor bookkeeping fixes remain:
+
+* `reports/pair_projection.md` still labels itself ΓÇ£v2ΓÇ¥ rather than ΓÇ£v3.ΓÇ¥
+* The report should expose `asserted` versus `participant_unresolved` counts, since this distinction is now part of the projection contract.
+
+Those are not semantic blockers. The current regex-based participant inference is adequate for the HOB relations present, but Part 2 should adjudicate the one unresolved path and eventually replace text inference with normalized participant roles for cross-set transfer.
+
+Verdict: Phase 5 Part 1 is mechanically sound and ready to freeze after the small report correction. The Storied class-ID aliases should be canonicalized before Part 2 adds any traversal based on `COUNTS`.

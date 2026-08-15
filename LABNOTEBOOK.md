@@ -697,3 +697,17 @@ Each producer/consumer step now carries `resource_for`/`resource_role`; each SUP
 **Still open (Phase 5 part 2):** the targeted pairwise LLM audit (consumes the `participant_unresolved` and shared-vocabulary-but-no-path candidates); richer grammars (RECOVERS_RESOURCE, AMPLIFIES_EFFECT); and — re-flagged by the reviewer, non-blocking for the current `QUALIFIES_FOR`-based projection — canonicalize the Storied class-id aliases (`obj:artifact`↔`obj:type:artifact`) before any grammar depends on `COUNTS`.
 
 Refs: `docs/hob-kg-phase5-review-pt2.md`; `src/hobkg/project.py`; `tests/test_project.py`; `data/graph_global/card_pair_projection.jsonl`
+
+---
+
+## [2026-08-16 10:15] DECISION — Phase 5 Part 1 FROZEN (mechanical projection accepted)
+
+Reviewer accepted commit `e0ba533`: all 108 tests pass, the 3 false life-supplies are gone, controller life still supplies Desolation Prowler, no `loss` consumer survives, participant/role annotations appear on steps + alternatives, the 1 cross-participant path (Gandalf `object_owner gains cards` → Confusticate & Bebother `controller spends a card`) is correctly withheld as non-asserted, and the projection is byte-identical. **Verdict: Part 1 is mechanically sound and ready to freeze after a small report correction.**
+
+Applied the two bookkeeping fixes: `reports/pair_projection.md` header v2 → **v3**; report + stats now expose **`asserted` (5,277) vs `participant_unresolved` (1)** counts (the distinction is part of the projection contract). 108 tests still pass; byte-identical.
+
+**Phase 5 Part 1 (mechanical card-pair projection) is FROZEN.** Canonical output `data/graph_global/card_pair_projection.jsonl` — 5,278 metaedges over 5,198 ordered pairs (5,911 alternative paths): INFRASTRUCTURE_CASTING 4,593, CONTRIBUTES_TO_GATE 666, SUPPLIES_RESOURCE 15 (14 asserted + 1 unresolved), ENABLES_TRIGGER 4 — rebuilt deterministically by `python -m hobkg.cli project`.
+
+**Next: Phase 5 Part 2 — pairwise LLM audit** (spec §"Pairwise LLM audit"): adjudicate the 1 `participant_unresolved` path; feed likely-missed pairs (shared resource/output vocabulary but no derived path, direct named references, replacement/prevention, copy/self-pairs, ambiguous "this way"/"that card" scope). **Prerequisite the reviewer set: canonicalize the Storied class-id aliases** (`obj:artifact`↔`obj:type:artifact`, `obj:legendary`↔`obj:supertype:legendary`, `obj:saga`↔`obj:subtype:saga`) before any Part 2 grammar traverses `COUNTS`. Also carried: richer grammars (RECOVERS_RESOURCE, AMPLIFIES_EFFECT) and eventually replacing regex participant inference with normalized participant roles for cross-set transfer.
+
+Refs: `docs/hob-kg-phase5-review-pt2.md`; `src/hobkg/project.py`; `reports/pair_projection.md`; `data/graph_global/card_pair_projection.jsonl`

@@ -366,6 +366,8 @@ def project(repo: Path = REPO) -> dict:
         "total_alternative_paths": sum(m["n_alternatives"] for m in metaedges),
         "self_pairs": sum(1 for m in metaedges if m["self_pair"]),
         "by_relation": dict(by_rel),
+        "asserted_metaedges": sum(1 for m in metaedges if m["asserted"]),
+        "participant_unresolved_metaedges": sum(1 for m in metaedges if not m["asserted"]),
         "infrastructure_metaedges": sum(1 for m in metaedges if m["infrastructure_only"]),
         "involves_gate": sum(1 for m in metaedges if m["involves_gate"]),
         "cards": len(g.cards),
@@ -376,10 +378,11 @@ def project(repo: Path = REPO) -> dict:
 
 
 def _report(repo: Path, stats: dict) -> None:
-    L = ["# HOB Phase 5 — Card-Pair Projection (v2, mechanical)", "",
+    L = ["# HOB Phase 5 — Card-Pair Projection (v3, mechanical)", "",
          f"- **cards**: {stats['cards']}  (possible ordered pairs: {stats['possible_ordered_pairs']})",
          f"- **projected metaedges**: {stats['metaedges']} "
          f"(over {stats['distinct_ordered_pairs']} ordered pairs; {stats['total_alternative_paths']} alternative paths)",
+         f"- **asserted / participant-unresolved**: {stats['asserted_metaedges']} / {stats['participant_unresolved_metaedges']}",
          f"- **infrastructure metaedges**: {stats['infrastructure_metaedges']}",
          f"- **metaedges involving a gate**: {stats['involves_gate']}",
          f"- **self-pairs**: {stats['self_pairs']}", "",

@@ -1,7 +1,8 @@
-# HOB Phase 5 — Card-Pair Projection (v2, mechanical)
+# HOB Phase 5 — Card-Pair Projection (v3, mechanical)
 
 - **cards**: 193  (possible ordered pairs: 37249)
 - **projected metaedges**: 5278 (over 5198 ordered pairs; 5911 alternative paths)
+- **asserted / participant-unresolved**: 5277 / 1
 - **infrastructure metaedges**: 4593
 - **metaedges involving a gate**: 666
 - **self-pairs**: 31
