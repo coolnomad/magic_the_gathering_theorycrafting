@@ -179,7 +179,42 @@ def rel_contributes_to_gate(g: Graph):
                 yield ("CONTRIBUTES_TO_GATE", a, b, [_step(e, "forward")] + tail)
 
 
+def _participant_role(edge: dict) -> tuple[str, str]:
+    """Infer (resource_for, resource_role) for a resource PRODUCES/CONSUMES/REQUIRES
+    edge from its scope + Oracle provenance. PRODUCES=gain; REQUIRES=requirement;
+    CONSUMES is a `loss` when someone LOSES the resource (not a spendable supply) or a
+    `spend` when it is paid/discarded/sacrificed. Participant defaults to the
+    controller (the MTG default actor) unless the text names another player/owner."""
+    txt = ((edge.get("scope") or "") + " "
+           + " ".join((p.get("text") or "") for p in edge.get("provenance", []))).lower()
+    if "opponent" in txt:
+        who = "opponent"
+    elif "each player" in txt:
+        who = "each_player"
+    elif "target player" in txt:
+        who = "target_player"
+    elif "owner" in txt:
+        who = "object_owner"
+    else:
+        who = "controller"
+    pred = edge["predicate"]
+    if pred == "PRODUCES":
+        role = "gain"
+    elif pred == "REQUIRES":
+        role = "requirement"
+    elif "lose" in txt or "loses" in txt:
+        role = "loss"
+    else:
+        role = "spend"
+    return who, role
+
+
 def rel_supplies_resource(g: Graph):
+    """A produces a resource that B spends/requires. Participant-aware: a controller's
+    gained life does NOT enable an opponent's life LOSS; a resource that someone merely
+    loses is not a spendable supply. Same-participant gain->spend/requirement is
+    asserted; cross-participant (resolved) is retained as participant_unresolved for the
+    Part 2 audit; a `loss` consumer is dropped as a false supply."""
     producers = defaultdict(list)
     consumers = defaultdict(list)
     for e in g.edges:
@@ -193,10 +228,20 @@ def rel_supplies_resource(g: Graph):
     for concept, prod in producers.items():
         for pe in prod:
             a = _card_of(pe["source"])
+            p_for, p_role = _participant_role(pe)
             for ce in consumers.get(concept, []):
                 b = _card_of(ce["source"])
-                if a and b:
-                    yield ("SUPPLIES_RESOURCE", a, b, [_step(pe, "forward"), _step(ce, "reverse")])
+                c_for, c_role = _participant_role(ce)
+                if not a or not b or c_role == "loss":
+                    continue                          # loss is not a spendable supply -> drop
+                resolved = p_for == c_for
+                ps = _step(pe, "forward"); ps["resource_for"], ps["resource_role"] = p_for, p_role
+                cs = _step(ce, "reverse"); cs["resource_for"], cs["resource_role"] = c_for, c_role
+                extra = {"participant_status": "resolved" if resolved else "participant_unresolved",
+                         "asserted": resolved,
+                         "resource_for_producer": p_for, "resource_role_producer": p_role,
+                         "resource_for_consumer": c_for, "resource_role_consumer": c_role}
+                yield ("SUPPLIES_RESOURCE", a, b, [ps, cs], extra)
 
 
 def rel_enables_trigger(g: Graph):
@@ -245,14 +290,14 @@ def _dedup_prov(provs):
     return sorted(out, key=lambda p: json.dumps(p, sort_keys=True, ensure_ascii=False))
 
 
-def _alt_from_steps(steps: list) -> dict:
+def _alt_from_steps(steps: list, extra: dict) -> dict:
     nodes_seq = [steps[0]["source"]] + [s["target"] for s in steps]
     conds = sorted({c for s in steps for c in (s.get("condition_ids") or [])})
     optional = any(bool(s.get("optional")) for s in steps)
     polarity = "negative" if any(s.get("polarity") == "negative" for s in steps) else "positive"
     creates_for = next((s["creates_for"] for s in steps if s.get("creates_for")), None)
     scopes = [s["scope"] for s in steps if s.get("scope")]
-    return {
+    alt = {
         "signature": [[s["edge_id"], s["direction"]] for s in steps],
         "steps": steps,
         "primitive_path": nodes_seq,
@@ -268,24 +313,33 @@ def _alt_from_steps(steps: list) -> dict:
         "involves_state": any(n.startswith("state:") for n in nodes_seq),
         "provenance": _dedup_prov([p for s in steps for p in s.get("provenance", [])]),
     }
+    alt.update(extra)                                 # participant/role annotations, if any
+    return alt
 
 
 def _assemble(instances) -> list[dict]:
     grouped = defaultdict(list)
-    for (relation, a, b, steps) in instances:
-        grouped[(a, b, relation)].append(_alt_from_steps(steps))
+    for inst in instances:
+        relation, a, b, steps = inst[:4]
+        extra = inst[4] if len(inst) > 4 else {}
+        grouped[(a, b, relation)].append(_alt_from_steps(steps, extra))
     out = []
     for (a, b, relation), alts in grouped.items():
         uniq = {}
         for alt in alts:                              # collapse only IDENTICAL signatures
             uniq.setdefault(json.dumps(alt["signature"], sort_keys=True), alt)
         alts = sorted(uniq.values(), key=lambda x: (x["min_path_length"], x["edge_ids"]))
+        # a metaedge is asserted if at least one alternative is asserted (relations
+        # other than SUPPLIES_RESOURCE assert unconditionally).
+        asserted = any(x.get("asserted", True) for x in alts)
         out.append({
             "source_card": a, "target_card": b, "relation": relation,
             "self_pair": a == b,
             "n_alternatives": len(alts),
             "min_path_length": min(x["min_path_length"] for x in alts),
             "infrastructure_only": relation in _INFRASTRUCTURE,
+            "asserted": asserted,
+            "participant_status": "resolved" if asserted else "participant_unresolved",
             "any_optional": any(x["optional"] for x in alts),
             "involves_gate": any(x["involves_gate"] for x in alts),
             "involves_state": any(x["involves_state"] for x in alts),

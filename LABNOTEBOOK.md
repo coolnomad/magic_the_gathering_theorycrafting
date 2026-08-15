@@ -678,3 +678,22 @@ Reviewer (`docs/hob-kg-phase5-review-pt1.md`) kept Part 1 open: the scaffold was
 **Still open (Phase 5 part 2 + noted):** the targeted pairwise LLM audit; richer grammars (RECOVERS_RESOURCE, AMPLIFIES_EFFECT); and — flagged by the reviewer — canonicalize the Storied class-id mismatch (`gate:storied COUNTS obj:artifact` vs face `obj:type:artifact`) before any grammar depends on `COUNTS` (current CONTRIBUTES_TO_GATE uses `QUALIFIES_FOR`, which covers all 75 qualifying cards, so it does not depend on the mismatch).
 
 Refs: `docs/hob-kg-phase5-review-pt1.md`; `src/hobkg/project.py`; `tests/test_project.py`; `data/graph_global/card_pair_projection.jsonl`; `reports/pair_projection.md`
+
+---
+
+## [2026-08-16 09:00] CORRECTION — Phase 5 v3: participant-aware resource flow
+
+Reviewer (`docs/hob-kg-phase5-review-pt2.md`) confirmed v2 fixed all five prior defects (mana/path machinery now sound) but found one narrow remaining blocker: `SUPPLIES_RESOURCE` joined producers to consumers without asking *whose* resource is affected. E.g. Well-Worn Spatula PRODUCES `resource:life` (controller GAINS life) was projected as supplying Down, Down to Goblin-town's CONSUMES `resource:life` (an opponent LOSES life) — three plainly false projections.
+
+**Fix (participant + role awareness).** `_participant_role(edge)` infers, from each resource edge's scope + Oracle provenance, a `resource_for` (controller / opponent / target_player / object_owner / each_player — default controller, the MTG default actor) and a `resource_role` (PRODUCES→`gain`; REQUIRES→`requirement`; CONSUMES→`loss` when someone *loses* it, else `spend`). `rel_supplies_resource` now:
+- **drops** a consumer whose role is `loss` (a resource someone loses is not a spendable supply) — kills the 3 false life projections (Spatula→Down Down, Supper→Down Down, Down Down→self);
+- **asserts** a same-participant `gain → spend/requirement` join (e.g. Well-Worn Spatula / Supper for Spiders → Desolation Prowler: controller life pays Prowler's "Pay 2 life" cost — `participant_status: resolved`, `asserted: true`);
+- **retains but flags** a cross-participant join as `participant_status: participant_unresolved`, `asserted: false` (queued for the Part 2 audit rather than asserted).
+
+Each producer/consumer step now carries `resource_for`/`resource_role`; each SUPPLIES alternative carries `resource_for_producer/consumer` + `resource_role_producer/consumer`; each metaedge carries `asserted` + `participant_status`.
+
+**Result (v3).** SUPPLIES_RESOURCE 15 (14 asserted, 1 participant_unresolved) — down from 18 (3 false life supplies removed). Totals otherwise unchanged: INFRASTRUCTURE_CASTING 4,593, CONTRIBUTES_TO_GATE 666, ENABLES_TRIGGER 4. Deterministic byte-identical rebuild. **108 tests pass** (+2: the exact life examples — false opponent-loss supplies excluded, valid controller-life-payment supplies asserted; and a general no-loss-consumer / cross-participant-flagged invariant).
+
+**Still open (Phase 5 part 2):** the targeted pairwise LLM audit (consumes the `participant_unresolved` and shared-vocabulary-but-no-path candidates); richer grammars (RECOVERS_RESOURCE, AMPLIFIES_EFFECT); and — re-flagged by the reviewer, non-blocking for the current `QUALIFIES_FOR`-based projection — canonicalize the Storied class-id aliases (`obj:artifact`↔`obj:type:artifact`) before any grammar depends on `COUNTS`.
+
+Refs: `docs/hob-kg-phase5-review-pt2.md`; `src/hobkg/project.py`; `tests/test_project.py`; `data/graph_global/card_pair_projection.jsonl`

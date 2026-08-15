@@ -171,6 +171,38 @@ def test_alternative_paths_kept_as_disjuncts(metaedges):
         assert len(sigs) == len(set(sigs))            # distinct mechanisms, not merged
 
 
+# --- participant-aware resource flow (pt2 defect) ----------------------------
+def _has(metaedges, nodes, relation, src, tgt):
+    s, t = _cid(nodes, src), _cid(nodes, tgt)
+    return next((m for m in metaedges if m["source_card"] == s and m["target_card"] == t
+                 and m["relation"] == relation), None)
+
+
+def test_supplies_resource_is_participant_aware(metaedges, nodes):
+    # controller-gained life must NOT be projected as supplying an opponent's life LOSS
+    assert _has(metaedges, nodes, "SUPPLIES_RESOURCE", "Well-Worn Spatula", "Down, Down to Goblin-town") is None
+    assert _has(metaedges, nodes, "SUPPLIES_RESOURCE", "Supper for Spiders", "Down, Down to Goblin-town") is None
+    assert _has(metaedges, nodes, "SUPPLIES_RESOURCE", "Down, Down to Goblin-town", "Down, Down to Goblin-town") is None
+    # but controller life legitimately pays a controller life-payment cost
+    for a in ("Well-Worn Spatula", "Supper for Spiders"):
+        m = _has(metaedges, nodes, "SUPPLIES_RESOURCE", a, "Desolation Prowler")
+        assert m and m["asserted"] and m["participant_status"] == "resolved"
+        alt = m["alternative_paths"][0]
+        assert alt["resource_role_producer"] == "gain" and alt["resource_role_consumer"] == "spend"
+        assert alt["resource_for_producer"] == alt["resource_for_consumer"] == "controller"
+
+
+def test_supplies_resource_no_loss_consumers(metaedges):
+    for m in metaedges:
+        if m["relation"] != "SUPPLIES_RESOURCE":
+            continue
+        for a in m["alternative_paths"]:
+            assert a.get("resource_role_consumer") != "loss"   # loss is never a supply target
+            # cross-participant supplies are retained but flagged, never asserted
+            if a["resource_for_producer"] != a["resource_for_consumer"]:
+                assert m["participant_status"] == "participant_unresolved" or not m["asserted"]
+
+
 def test_projection_is_byte_identical():
     import hashlib
     def digest():
