@@ -623,3 +623,17 @@ Reviewer (`docs/hob-kg-phase4-review-pt5.md`) confirmed v4 closes the prior defe
 **Carried into Phase 5:** refine coarse `CAUSES`-to-object/resource/state edges into explicit `Effect` nodes; propagate participant/conditional/optional properties through pair projection.
 
 Refs: `docs/hob-kg-phase4-review-pt5.md`; `src/hobkg/assemble.py`; `tests/test_assemble.py`; `docs/phase4-requirements.md` (§ Phase 4 v4.1 closure); `data/graph_global/`; `reports/assembly.md`
+
+---
+
+## [2026-08-16 04:10] DECISION — Phase 4 FROZEN (accepted by reviewer)
+
+Reviewer accepted commit `111c9df`: all 94 tests pass, Bilbo has an opponent-only mana path, the other 21 mana faces have controller paths, no fabricated direct op, every CREATES_OBJECT records `creates_for`, "gift promised" keeps both citations, rebuilds byte-identical, all integrity/completeness gates zero. **Verdict: Phase 4 is ready to freeze.**
+
+Folded in the one nonblocking schema-hardening note before freezing rather than deferring: added `creates_for` to the property-multigraph edge merge key and stable `edge_id` (alongside scope/timing/quantity/optional/polarity), so two otherwise-identical creation edges differing only in recipient can never collapse in a future set. Unit-verified (2 distinct edges/edge_ids for controller vs opponent); no HOB collisions today; 94 tests pass; rebuild remains byte-identical. Commit `90518ba`.
+
+**Phase 4 is frozen.** The canonical global graph is `data/graph_global/{nodes,edges,conditions,assembly_review}.jsonl` (1,772 nodes / 2,728 edges / 145 conditions), rebuilt deterministically by `src/hobkg/assemble.py` (`python -m hobkg.cli assemble`).
+
+**Next: Phase 5 — pair-projection** (per `docs/hob-knowledge-graph-build-spec.md`). Carried-forward design items to honor in Phase 5: (a) refine the coarse `CAUSES`-to-object/resource/state "affects" edges into explicit `Effect` nodes; (b) propagate participant (`creates_for`), conditional (`condition_ids`), and optional/polarity edge properties through projection so e.g. Bilbo is never projected as enabling its own mana.
+
+Refs: `docs/hob-kg-phase4-review-pt5.md`; `src/hobkg/assemble.py` (`creates_for` in edge key); `data/graph_global/`
