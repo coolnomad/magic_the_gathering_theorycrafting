@@ -1,8 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "permissions": {
-    "defaultMode": "acceptEdits",
+    "defaultMode": "bypassPermissions",
     "allow": [
+      "Bash(cd:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
       "Bash(python:*)",
       "Bash(git add:*)",
       "Bash(git status:*)",

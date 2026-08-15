@@ -66,3 +66,44 @@ domain/range validation with zero violations and zero dangling endpoints.
 cards in graveyard" edge) and any `keyword_attribution_ambiguous.jsonl` entries are
 excluded from the accepted primitive graph and must not be silently reintroduced by
 assembly.
+
+---
+
+## Phase 4 v2 acceptance gate (post-v1 review)
+
+The v1 prototype merged the layers but lost conditional/identity structure and left
+a weakened acceptance bound. The gate is now **strict** — the assembler
+(`src/hobkg/assemble.py`) fails unless every metric below is exactly **0**, and
+`tests/test_assemble.py` asserts each:
+
+1. **Zero signature violations.** The seven enumerated Phase-3 typing errors are
+   individually re-typed in `_EDGE_CORRECTIONS` (Food sac → consume Food/produce
+   life; Gollum return → `MOVES_FROM zone:graveyard`; Bolg sac → consume Goblin +
+   `CAUSES event:sacrifice`; two mana ops → `PRODUCES resource:mana`; two
+   attachments → the Equipment *object* is the `ATTACHED_TO` subject). No signature
+   is loosened to fake a pass; `assembly_review.jsonl` must be empty.
+2. **Zero leaked ability aliases.** Both `local` and `ability:local` alias forms map
+   to `ability:{face}:{local}`; any un-namespaced `ability:*` endpoint within a face
+   is namespaced to that face. No node matches `ability:*` unless it begins
+   `ability:face:`. Ability count = 418 LLM + 29 Phase 2 = **447**.
+3. **All edge semantics preserved.** Every accepted edge property (condition, scope,
+   timing, optional, quantity, polarity, certainty, note) survives onto the global
+   edge. Inline free-text conditions become structured records in a self-contained
+   `data/graph_global/conditions.jsonl`; **every `condition_ids` reference resolves**.
+4. **Full ability semantics retained.** Each Ability node's `data` keeps the complete
+   accepted object (trigger/costs/conditions/effects/controller/optionality/
+   unresolved/confidence), not just `kind`/`oracle_spans`.
+5. **Property multigraph with stable ids.** Edges are keyed by the full assertion
+   signature (source, predicate, target, condition_ids, scope, timing, quantity,
+   optional, polarity — polarity/optional normalized to their defaults so an edge
+   asserted explicitly by Phase 2 and silently by the LLM collapse). Parallel edges
+   that differ by a meaningful property coexist; every edge carries an `edge_id`.
+6. **Ability/clause-grouped reification.** A reified Operation is grouped by its
+   originating ability (explicit id, then enclosing/overlapping Oracle span) or, if
+   none, by Oracle clause span — its several consequences are edges out of that one
+   operation. The per-edge `op:{face}:effN` splitting is removed.
+7. **Template dedup for every mechanic.** For all seven templated mechanics
+   (Recruit, Storied, Hone, Adventure, Saga, Amass, Typecycling) the LLM's
+   re-derivation of a template-owned output (soldier/army object, hone counter,
+   `rule:{amass,typecycling}` instantiation) is dropped; the Phase 2 mechanism edge
+   (gate/operation-sourced) is authoritative. LLM-layer duplicate count = **0**.
