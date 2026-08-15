@@ -338,11 +338,14 @@ class Graph:
         cond = tuple(sorted(props.get("condition_ids", []) or []))
         # merge key: normalize the two default-valued properties (polarity -> "positive",
         # optional -> False) so an edge asserted explicitly by Phase 2 and silently by the
-        # LLM collapse; genuine differences (condition/scope/timing/quantity, or an
-        # explicit negative polarity / optional=True) still keep the edges parallel.
+        # LLM collapse; genuine differences (condition/scope/timing/quantity, an explicit
+        # negative polarity / optional=True, or a different recipient `creates_for`) still
+        # keep the edges parallel — two identical creations for different players must not
+        # collapse into one.
         key = (source, predicate, target, cond, props.get("scope"), props.get("timing"),
                str(props.get("quantity")) if props.get("quantity") is not None else None,
-               bool(props.get("optional")), props.get("polarity") or "positive")
+               bool(props.get("optional")), props.get("polarity") or "positive",
+               props.get("creates_for"))
         e = self.edges.get(key)
         if e is None:
             eid = "e" + hashlib.sha1("|".join(str(x) for x in key).encode("utf-8")).hexdigest()[:16]

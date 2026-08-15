@@ -1638,3 +1638,66 @@ The reviewer indicated this was the final pass before accepting Phase 4 and begi
 
 ### [2026-08-15 13:08] USER
 read docs/hob-kg-phase4-review-pt5.md there are a few residual things to fix.
+
+### [2026-08-15 13:33] ASSISTANT
+A focused v4.1 closure â€” five items. Let me inspect Bilbo's Gambit's Treasure-creation edge (the controller/scope info) and the shared "gift promised" condition.
+
+Now I have the full picture. Bilbo's Treasure edge carries `scope: "the promised opponent creates the token"` (participant = opponent), and "gift promised" is shared by two edges. Implementing the v4.1 closure. First, participant-aware mana reachability:
+
+Now annotate CREATES_OBJECT edges with `creates_for` (in `emit` and Phase 2 seed), and accumulate provenance for shared conditions:
+
+Annotate Phase 2 `CREATES_OBJECT` edges with `creates_for` too, for consistency:
+
+Now update `_completeness` to use participant-aware paths, and canonically sort all JSONL outputs in `_finalize`:
+
+Now the canonical sorting in `_finalize`:
+
+Now fix the report header (v3â†’v4.1) and surface the participant metrics:
+
+Let me also make the review file deterministic and run the assembler:
+
+All gates pass, rebuild is byte-identical, and exactly one opponent-only mana face (Bilbo). Let me verify Bilbo's participant path and the shared-condition provenance.
+
+Both verified: Bilbo's path is opponent-only, and "gift promised" retains both citations. Adding the two requested tests:
+
+All 94 tests pass. Let me document v4.1 and commit.
+
+Pushed â€” `111c9df`.
+
+## Phase 4 v4.1 closure â€” all five pt5 items done
+
+| Item | Fix | Verified |
+|---|---|---|
+| **Participant-aware mana** | `_face_mana_paths` returns the players a face reaches mana *for*; every `CREATES_OBJECT` edge carries `creates_for` (from scope) | Bilbo's path = `{opponent}` only, never controller; `opponent_only_mana_faces`=1, `controller_mana_faces`=21 |
+| **Shared-condition provenance** | condition-id reuse now appends every citation | "gift promised" keeps **both** provenances (Treasure-creation + spell-lock) |
+| **Deterministic rebuild** | canonical sort of all JSONL (records, keys, provenance) via `_canonical` | two consecutive rebuilds are **SHA-256 identical** |
+| **Idempotence test** | added | `test_rebuild_is_byte_identical` |
+| **Bilbo opponent test** | added | `test_bilbo_mana_goes_to_opponent_not_controller` asserts `_face_mana_paths == {"opponent"}` |
+| Minor: report said "v3" | header â†’ **v4.1** | â€” |
+
+**Graph unchanged in shape:** 1,772 nodes Â· 2,728 edges Â· 145 conditions; all 19 zero-gates hold; **94 tests pass** (+3).
+
+The reviewer's stated condition was that after these fixes *"Phase 4 is ready to freeze and Phase 5 pair projection can begin."* All five are in. Two things I've carried forward into the Phase 5 backlog (noted in the lab notebook): refining the coarse `CAUSES`-to-object/resource/state edges into explicit `Effect` nodes, and propagating the participant / conditional / optional edge properties through pair projection.
+
+I'll hold here for your go-ahead rather than starting Phase 5 unprompted.
+
+### [2026-08-15 13:39] USER
+Commit [`111c9df`](https://github.com/coolnomad/magic_the_gathering_theorycrafting/commit/111c9dff0402c46087b49798f3cd189006d7b90a) fixes the reported problems correctly.
+
+Verified:
+
+* All 94 tests pass.
+* BilboΓÇÖs Gambit has only an `opponent` mana path.
+* The other 21 mana-producing faces have controller paths.
+* Bilbo has no fabricated direct mana operation.
+* Every `CREATES_OBJECT` edge now records `creates_for`.
+* The shared `"gift promised"` condition retains both Oracle citations.
+* Repeated Phase 4 assembly is byte-identical for nodes, edges, conditions, and assembly review.
+* The report header is correctly updated to v4.1.
+* All existing integrity and completeness gates remain zero.
+
+One nonblocking schema-hardening point: `creates_for` is not currently included in the graph edge merge key or stable edge ID. Consequently, two otherwise identical creation edges differing only in recipient could collapse together in a future set. For the HOB graph there are no such collisions, so the present output is correct. Before transferring the machinery, add `creates_for` to the semantic edge-property tuple alongside scope, timing, optionality, and polarity.
+
+The Phase 3 review files can still be reordered when unrelated reconciliation tests run, but Phase 4ΓÇÖs canonical outputs remain byte-identical. That does not block this freeze.
+
+Verdict: Phase 4 is ready to freeze. The `creates_for` edge-identity addition can be made as a small schema-hardening patch now or included at the start of Phase 5.

@@ -111,7 +111,7 @@ def test_property_multigraph_and_edge_ids(edges):
     for es in parallels:                                            # each pair truly differs
         sigs = {(tuple(sorted(e.get("condition_ids") or [])), e.get("scope"),
                  e.get("timing"), str(e.get("quantity")), bool(e.get("optional")),
-                 e.get("polarity") or "positive") for e in es}
+                 e.get("polarity") or "positive", e.get("creates_for")) for e in es}
         assert len(sigs) == len(es)
 
 
