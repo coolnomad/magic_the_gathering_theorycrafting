@@ -88,10 +88,12 @@ def run(repo: Path = REPO) -> dict:
         token_lists.append(extract_tokens(raw, card.id))
 
         # Scryfall keywords are card-level HINTS; attach each to the face(s) whose
-        # Oracle text supports it (word-boundary match). For MULTIFACE cards, do NOT
-        # fall back to the primary face when unsupported — a card-level keyword cannot
-        # determine face ownership on a multiface card; record an ambiguous attribution
-        # instead. Single-face cards attach to their one face (the card IS the face).
+        # Oracle text supports it (word-boundary match). (Type-line support — e.g. a
+        # mechanic implied only by a subtype — is not yet checked; add it here if a
+        # future set needs it.) For MULTIFACE cards, do NOT fall back to the primary
+        # face when unsupported — a card-level keyword cannot determine face ownership
+        # on a multiface card; record an ambiguous attribution instead. Single-face
+        # cards attach to their one face (the card IS the face).
         for kw in card.keywords_scryfall:
             supporting = [f for f in cfaces if f.oracle_text
                           and re.search(r"\b" + re.escape(kw) + r"\b", f.oracle_text, re.I)]
@@ -103,7 +105,8 @@ def run(repo: Path = REPO) -> dict:
                 keyword_attr_ambiguous.append({
                     "card_id": card.id, "card": card.name, "keyword": kw,
                     "candidate_faces": [f.id for f in cfaces],
-                    "reason": "card-level keyword not supported by any face's Oracle text/type line"})
+                    "reason": "card-level keyword not supported by any face's Oracle text "
+                              "(type-line matching not yet implemented)"})
                 continue
             for f in targets:
                 mechanics.append(MechanicDetection(

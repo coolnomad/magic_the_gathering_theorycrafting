@@ -1056,3 +1056,90 @@ Scope: one deterministic normalization fix + one face's LLM correction + tests �
 
 ### [2026-08-14 18:43] USER
 Proceed with the deterministic face-:1 correction. Do not spawn a sub-agent. Remove primary-face fallback for unsupported multiface keywords; emit unresolved/ambiguous attribution instead. Match the existing LLM-layer convention if necessary, but add a Phase 4 invariant that all Amass assertions canonicalize to card-specific Operation ΓåÆ INSTANTIATES ΓåÆ op:amass, with no face-to-rule instantiation edges remaining. Also, set it up so that i don't have to manually approve each action.
+
+### [2026-08-14 19:35] ASSISTANT
+On it. First I'll set up the permission allowlist so the rest runs unattended, then do the deterministic closure. Let me read the current settings.
+
+I'll add a scoped `permissions.allow` (safe, idempotent commands) plus `acceptEdits` so file edits don't prompt, and run the remaining steps through the Bash tool to match the allowlist. Preserving the logging hooks.
+
+Permissions set (scoped `Bash(...)` allowlist + `acceptEdits`). Now the closure. First inspecting face `:1`'s extraction/critique to do the deterministic edit precisely.
+
+Face `:1` structure is clear (amass ability `clapsnap-amass` at span `[0,15]`, adventure ability, 3 inline amass edges). Convention is face-sourced `INSTANTIATES` (11 of 13). Implementing the attribution fix in `pipeline.py` (word-boundary supporting-face routing; **no primary fallback** for multiface â€” ambiguous record instead).
+
+Now rebuilding Phase 1 + Phase 2 and verifying Amass moved to face `:1` with correct params.
+
+Phase 2 fixed cleanly: `op:â€¦:0:amass` gone, `op:â€¦:1:amass` present with `{army_subtype:"Goblins", n:"2"}` and span `[0,5]`; 14 instantiations all with spans; 0 ambiguous (HOB has none). Now the deterministic LLM edit on face `:1` (both extraction and critique).
+
+Face `:1` fixed (both files agree, 0 validation errors); face `:0` has no amass edges. Rebuilding tasks and running the canonical sequence.
+
+1011 edges, 0 validation errors, 210 faces. Verifying the review's assertions on the accepted graph and Phase 2.
+
+All review assertions pass: **0 inline amass in accepted, 14 `INSTANTIATES rule:amass`, Clap!Snap!:1 has it, Great Ugly:0 doesn't, 14 Phase-2 amass ops all with spans.** Now the regression tests.
+
+72 tests pass (4 new). Creating the Phase 4 requirements doc capturing the deferred invariants (including the Amass canonicalization the user specified).
+
+Now the canonical rebuild (tests mutated outputs), final verification, and report regen.
+
+**FROZEN v3: 210 faces, 418 abilities, 1011 edges, 0 signature violations, 0 inline-amass, 14 `INSTANTIATES` amass, 1 unresolved, 0 dangling.** Recording in the lab notebook.
+
+Refreezing v3 â€” committing and pushing.
+
+Committed and pushed â€” `7ea82ad..4de8457`. And the permission allowlist worked: this whole closure (python, ingest/reconcile/finalize, git add/commit/push) ran **without per-command approval**.
+
+## pt2 review closure â€” done, refrozen v3
+
+**The defect** â€” card-level Scryfall `Amass` was pinned to Great Ugly-Looking Goblin (face `:0`), but "Amass Goblins 2" is on Clap! Snap! (face `:1`) â€” is fixed at the root:
+
+| Fix | Result |
+|---|---|
+| **Multiface attribution** (`pipeline.py`) | Card-level keywords now route to the face whose Oracle text supports them (word-boundary). **No primary-face fallback** for unsupported multiface keywords â€” ambiguous record instead (per your directive). Bonus: correctly re-routed Scry/Mill on 4 other adventure cards. |
+| **Phase 2** | `op:â€¦:1:amass` `{army_subtype:"Goblins", n:"2"}`, span `[0,5]`; bogus `op:â€¦:0:amass` gone; all 14 instantiations have spans |
+| **LLM layer** (deterministic, no sub-agent) | Face `:1`: dropped 3 inline amass edges, added `face:1 INSTANTIATES rule:amass` (matching the 11/13 convention); face `:0` clean |
+| **Tests** | 72 pass (+4): amass on supporting face, the general no-unsupported-multiface-keyword invariant, 14 `op:{face}:amass INSTANTIATES op:amass` w/ spans, **0 inline amass in the LLM layer** |
+
+**Every check from the review passes:** `not has_amass(:0)` âœ“, `has_amass(:1)` âœ“, `amass_params(:1) == {"army_subtype":"Goblins","n":"2"}` âœ“, `count_amass_instantiations() == 14` âœ“, `count_inline_amass_expansions() == 0` âœ“, all amass instantiations have Oracle spans âœ“, plus the general multiface-attribution invariant as a test.
+
+**Two things you asked for, recorded:**
+- **Phase 4 amass canonicalization invariant** â†’ `docs/phase4-requirements.md`: all Amass canonicalizes to `op:{face}:amass INSTANTIATES op:amass`, **no face-to-rule instantiation edges remaining** (alongside the deferred actorâ†’Operation canonicalization, id-namespacing, all-210-faces, and shared-node-merge invariants).
+- **Unattended runs** â†’ scoped `permissions.allow` (python, git, pytest, read-only shell) + `acceptEdits` in `.claude/settings.json`. `git push` is included since you've pushed every unit; deletes and raw source-fetch are deliberately *not* allowlisted.
+
+**Frozen v3:** 210 faces Â· 418 abilities Â· 1011 edges Â· 0 signature violations Â· Amass 14 `INSTANTIATES` / 0 inline Â· 1 unresolved Â· 0 dangling. Ready for Phase 4 whenever you are.
+
+### [2026-08-14 21:59] USER
+Commit `4de8457` passes the targeted audit. The multiface attribution defect is fixed correctly, and Phase 3 v3 can remain frozen.
+
+Verified:
+
+* Clap! Snap! face `:1` now owns the Amass mechanic.
+* Great Ugly-Looking Goblin face `:0` has no Amass operation.
+* Clap! Snap! instantiates Amass with:
+
+  * subtype `Goblins`
+  * (N=2)
+  * a real Oracle span.
+* Phase 2 contains exactly 14 Amass instantiations.
+* The accepted LLM layer contains exactly 14 Amass instantiations.
+* No accepted inline Amass token/counter expansions remain.
+* No Amass operation has a null Oracle span.
+* No ambiguous multiface keyword attributions remain.
+* The Phase 4 requirements explicitly require canonicalization to:
+
+```text
+card-specific Operation
+    ΓöÇΓöÇINSTANTIATESΓöÇΓöÇ> op:amass
+```
+
+* The report is internally consistent:
+
+  * 210/210 face dispositions
+  * 418 abilities
+  * 1,011 accepted edges
+  * 84 valid Event ΓåÆ Ability trigger edges
+  * one unresolved assertion
+  * zero signature violations.
+
+The deterministic attribution logic also corrected Scry and Mill ownership on the relevant Adventure spell faces.
+
+One minor documentation detail: the attribution code currently checks Oracle text, not type-line support, despite one message saying ΓÇ£Oracle text/type line.ΓÇ¥ That does not affect the present HOB corrections; either update that wording or add type-line matching later if a mechanic genuinely requires it.
+
+**Verdict: Phase 3 v3 is accepted. Proceed to Phase 4 global assembly.** The critical Phase 4 gate is that the temporary CardFace/Ability-as-actor convention must disappear: all actor edges must be reified onto explicit operations, every endpoint must have a known type, all predicate signatures must pass, and template/LLM duplicates must collapse without losing provenance.
