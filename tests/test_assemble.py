@@ -266,6 +266,20 @@ def test_bilbo_mana_goes_to_opponent_not_controller(stats, edges):
     assert stats["opponent_only_mana_faces"] == 1
 
 
+def test_creates_for_keeps_recipient_distinct_edges():
+    # two otherwise-identical creation edges differing ONLY in recipient must both
+    # survive as distinct records with distinct stable edge_ids (not collapse).
+    from hobkg import assemble
+    g = assemble.Graph()
+    g.add_edge("op:x", "CREATES_OBJECT", "token:treasure", creates_for="controller")
+    g.add_edge("op:x", "CREATES_OBJECT", "token:treasure", creates_for="opponent")
+    assert len(g.edges) == 2
+    eids = {e["edge_id"] for e in g.edges.values()}
+    assert len(eids) == 2
+    recipients = {e["creates_for"] for e in g.edges.values()}
+    assert recipients == {"controller", "opponent"}
+
+
 def test_shared_condition_keeps_all_provenance():
     conds = [json.loads(l) for l in (GLOBAL / "conditions.jsonl").read_text(encoding="utf-8").splitlines()]
     gift = [c for c in conds if c["human_readable"] == "gift promised"]
