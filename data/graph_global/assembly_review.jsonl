@@ -1,0 +1,7 @@
+{"issue": "predicate_signature", "edge": "obj:objectclass-food-artifact(ObjectClass) -PRODUCES-> op:gain-life(Operation)"}
+{"issue": "predicate_signature", "edge": "op:gollum-ab-recur(Operation) -MOVES_FROM-> face:8d88facd-cf7e-498e-ab6b-6bd021316162:0(CardFace)"}
+{"issue": "predicate_signature", "edge": "op:face:a97d6c5c-1cff-442d-b535-fc8389160b0b:0:a97d6c5c-ch34(Operation) -PRODUCES-> op:add-mana(Operation)"}
+{"issue": "predicate_signature", "edge": "op:face:c9634afc-4a5b-4cf6-b63d-0ff9909dd5a7:0:c9634afc-a2(Operation) -PRODUCES-> op:add-mana(Operation)"}
+{"issue": "predicate_signature", "edge": "ability:face:f75bb13b-41fc-4614-b35e-f456069ce9c6:0:a1(Ability) -ATTACHED_TO-> obj:target-dwarf-you-control(ObjectClass)"}
+{"issue": "predicate_signature", "edge": "ability:face:f8961618-ae68-4d13-84eb-8b5464ce4971:0:f8961618-a1(Ability) -ATTACHED_TO-> obj:target-creature-you-control(ObjectClass)"}
+{"issue": "predicate_signature", "edge": "op:face:fa602f8f-1d80-4f6d-8b8f-d1a1f36037bd:0:eff1(Operation) -CONSUMES-> event:sacrifice(Event)"}

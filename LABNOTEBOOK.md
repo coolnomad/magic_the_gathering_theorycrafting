@@ -531,3 +531,25 @@ A third review (`docs/hob-kog-phase3-review-pt2.md`) found one remaining attribu
 **FROZEN v3.** 210 face records; **418 accepted abilities, 1011 accepted edges**; 0 predicate-signature violations; all 84 TRIGGERS Event→Ability; **Amass 14 `INSTANTIATES`, 0 inline** (Clap! Snap! `:1` correct, Great Ugly `:0` clean); 1 unresolved; 0 `schema_extension_requests`; 0 dangling (Phase 2: 335 nodes / 439 edges). Also set a scoped `permissions.allow` + `acceptEdits` in `.claude/settings.json` so the deterministic pipeline/git/pytest steps run without per-command approval.
 
 Refs: [`docs/hob-kog-phase3-review-pt2.md`](./docs/hob-kog-phase3-review-pt2.md); [`docs/phase4-requirements.md`](./docs/phase4-requirements.md); [2026-08-14 02:30] CORRECTION — Phase 3 v2; `src/hobkg/pipeline.py`; `reports/phase3_coverage.md`
+
+---
+
+## [2026-08-14 20:10] DECISION — Phase 4 global assembly (v1)
+
+Built the spec's **Phase 4 (graph assembly)** in `src/hobkg/assemble.py`: merge the Phase 2 template graph (canonical, typed) + Phase 1 entities + the Phase 3 accepted per-face layer into one global typed multigraph, then validate every edge against full predicate domain/range signatures with no `Unknown` endpoint types (the reviewer's gate).
+
+**Transformations of the Phase 3 card-local layer** (the reviewer's four requirements):
+1. **Ability ids namespaced** — local `a1`/`clapsnap-amass` → `ability:{face}:{id}` (533 Ability nodes); no bare local id leaks as a global node.
+2. **Actor edges reified onto Operation nodes** — an actor-predicate edge with a CardFace/Ability subject gets an explicit Operation (`op:{ability}` linked `Ability CAUSES op`, or `op:{face}:effN` linked `CardFace HAS_ABILITY op`). 447 Operation nodes total; every `MOVES_*`/`CREATES_OBJECT`/`ADDS_COUNTER` edge is Operation/Gate-subject. The structural predicates `HAS_KEYWORD`/`HAS_COST`/`REFERENCES_RULE` are NOT reified (they describe the face/ability).
+3. **Template/LLM duplicates collapsed** — the card-local `face -INSTANTIATES-> rule:amass`/`rule:typecycling` edges are dropped; the canonical Phase 2 `op:{face}:amass INSTANTIATES op:amass` stands (**0 face-to-rule amass edges**; 14 canonical amass instantiations — the `docs/phase4-requirements.md` invariant holds). Edges deduped by `(source, predicate, target)`, provenance merged.
+4. **Free-text endpoints canonicalized** — LLM ids that are natural-language descriptions (`"another creature"`, `"equipped creature"`) become typed `obj:{slug}` ObjectClass nodes (label = original text). **0 `Unknown`-type nodes, 0 dangling edges.**
+
+**Schema decisions (reuse of existing predicates; no new predicate TYPES):** `GLOBAL_SIGNATURES` extends the Phase 3 relational signatures to all predicates, admitting Operation subjects for actor predicates and the card-def target patterns the LLM+templates use (`op CAUSES gate`, `MODIFIES` an ability/cost, `REQUIRES`/`SCALES_WITH` a token/object). `CAUSES` range extended to include `Operation` so the reified `Ability CAUSES op:{ability}` link is valid. `CAUSES`-to-object is documented as a **coarse "affects" relation** to be refined into explicit `Effect` nodes in a later pass.
+
+**Result (v1).** 1,646 nodes (193 Card, 210 CardFace, 533 Ability, 447 Operation, 88 ObjectClass, 72 Event, 43 State, 12 TokenSpec, 10 Rule, 9 Cost, 5 CounterType, 3 Gate, 6 Zone, 14 Resource, 1 Effect); 2,135 edges; **0 dangling, 0 unknown-type, 0 face-to-rule amass**. 78 pytest tests pass (6 new assembly-gate tests). Deliverables: `data/graph_global/{nodes,edges}.jsonl`, `reports/assembly.md`.
+
+**Honest residual — NOT hidden.** 7 edges still fail strict domain/range (genuine Phase-3 mis-typings surfaced by assembly, e.g. `op PRODUCES op:add-mana`, `ability ATTACHED_TO obj`, `op MOVES_FROM face`, `op CONSUMES event:sacrifice`). Rather than loosen signatures to fake a 0, these are flagged in `data/graph_global/assembly_review.jsonl` for a targeted Phase-3 typing fix. The reviewer's "all signatures pass" gate is met for 2,128/2,135 edges; the 7 exceptions are recorded, not swallowed.
+
+**Not yet done (Phase 4 follow-ups):** clear the 7-edge review set (re-type the mis-typed Phase-3 edges); tighten the coarse `CAUSES`-to-object edges into explicit `Effect` nodes; higher-order module views (Phase 6) and pair projection (Phase 5) remain.
+
+Refs: [`docs/phase4-requirements.md`](./docs/phase4-requirements.md); `src/hobkg/assemble.py`; `data/graph_global/`; `reports/assembly.md`

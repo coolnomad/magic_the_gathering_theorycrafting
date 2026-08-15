@@ -48,6 +48,11 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "finalize-faces":
         from . import phase3
         print(json.dumps(phase3.finalize_faces(), indent=2))
+    elif cmd == "assemble":
+        from . import assemble
+        stats = assemble.assemble()
+        stats.pop("_violations", None)
+        print(json.dumps(stats, indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2
