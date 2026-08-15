@@ -59,6 +59,12 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "audit-candidates":
         from . import audit
         print(json.dumps(audit.build_candidates(), indent=2))
+    elif cmd == "audit-batches":
+        from . import audit
+        print(json.dumps(audit.build_batches(), indent=2))
+    elif cmd == "audit-ingest":
+        from . import audit
+        print(json.dumps(audit.ingest(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

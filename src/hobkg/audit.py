@@ -83,11 +83,18 @@ def build_candidates(repo: Path = REPO) -> dict:
             C.add(m["source_card"], m["target_card"], "participant_unresolved",
                   {"relation": m["relation"], "status": m["participant_status"]}, directed=True)
 
-    # 2. named_reference: A's Oracle names a distinctive proper-noun token of card B
+    # 2. named_reference: A's Oracle names a distinctive proper-noun token of card B.
+    # Exclude creature TYPE words (Goblin/Elf/Dwarf/Dragon...) — a tribal mention is not
+    # a reference to a specific card; those are covered by the shared_vocabulary/tribal
+    # signal, not by named_reference.
+    type_words = {(n["data"].get("name") or n["label"]).lower()
+                  for nid, n in d.nodes.items()
+                  if nid.startswith(("obj:type:", "obj:subtype:", "obj:supertype:"))}
     shortnames: dict[str, set] = defaultdict(set)
     for cid, nm in d.name.items():
         tok = re.split(r"[ ,]", nm)[0]
-        if len(tok) >= 4 and tok[:1].isupper() and tok.lower() not in _STOP:
+        if len(tok) >= 4 and tok[:1].isupper() and tok.lower() not in _STOP \
+                and tok.lower() not in type_words:
             shortnames[tok].add(cid)
     for a in d.cards:
         ot = d.oracle[a]
@@ -171,3 +178,93 @@ def build_candidates(repo: Path = REPO) -> dict:
                                       if set(r["buckets"]) <= {"shared_vocabulary", "ambiguous_scope"}),
     }
     return stats
+
+
+_HIGH_SIGNAL = {"named_reference", "participant_unresolved", "replacement_prevention", "copy_effect"}
+
+
+def build_batches(repo: Path = REPO, batch_size: int = 12, high_signal_only: bool = True) -> dict:
+    """Enrich each candidate pair with both cards' Oracle text and write batches for
+    sub-agent adjudication into `data/llm/audit/batch_XXX.jsonl` (deterministic)."""
+    d = _Data(repo)
+    cands = list(_load_dicts(repo / "data/graph_global/audit_candidates.jsonl"))
+    if high_signal_only:
+        cands = [c for c in cands if set(c["buckets"]) & _HIGH_SIGNAL]
+    for c in cands:
+        c["source_oracle"] = d.oracle[c["source_card"]].strip()
+        c["target_oracle"] = d.oracle[c["target_card"]].strip()
+    outdir = repo / "data" / "llm" / "audit"
+    outdir.mkdir(parents=True, exist_ok=True)
+    for f in outdir.glob("batch_*.jsonl"):
+        f.unlink()
+    n = 0
+    for i in range(0, len(cands), batch_size):
+        n += 1
+        with (outdir / f"batch_{n:03d}.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+            for c in cands[i:i + batch_size]:
+                fh.write(json.dumps(c, ensure_ascii=False, sort_keys=True) + "\n")
+    return {"candidates_batched": len(cands), "batches": n, "batch_size": batch_size}
+
+
+def ingest(repo: Path = REPO) -> dict:
+    """Ingest sub-agent verdicts from `data/llm/audit/result_*.jsonl`, validate each
+    RELATION is grounded in the two cards' printed text, and emit `audit_results.jsonl`.
+    A verdict is accepted only if it names a relation, a direction, and a mechanism
+    whose grounding phrases actually occur in the cited cards' Oracle text."""
+    d = _Data(repo)
+    cand_index = {(c["source_card"], c["target_card"]): c
+                  for c in _load_dicts(repo / "data/graph_global/audit_candidates.jsonl")}
+    results, accepted, rejected, no_relation = [], 0, 0, 0
+    rdir = repo / "data" / "llm" / "audit"
+    for rf in sorted(rdir.glob("result_*.jsonl")):
+        for v in _load_dicts(rf):
+            s, t = v.get("source_card"), v.get("target_card")
+            if (s, t) not in cand_index:
+                continue
+            verdict = (v.get("verdict") or "").upper()
+            rec = {"source_card": s, "target_card": t,
+                   "source_name": d.name.get(s, s), "target_name": d.name.get(t, t),
+                   "verdict": verdict, "relation_type": v.get("relation_type"),
+                   "direction": v.get("direction"), "mechanism": v.get("mechanism"),
+                   "grounding": v.get("grounding") or [], "confidence": v.get("confidence"),
+                   "buckets": cand_index[(s, t)]["buckets"], "source_batch": rf.name}
+            if verdict == "RELATION":
+                oracle = (d.oracle[s] + " " + d.oracle[t]).lower()
+                grounded = bool(rec["relation_type"] and rec["direction"] and rec["mechanism"]
+                                and rec["grounding"]
+                                and all(any(w in oracle for w in str(g).lower().split() if len(w) > 3)
+                                        for g in rec["grounding"]))
+                rec["accepted"] = grounded
+                accepted += grounded
+                rejected += (not grounded)
+            else:
+                rec["accepted"] = False
+                no_relation += 1
+            results.append(rec)
+    results.sort(key=lambda r: (r["source_card"], r["target_card"]))
+    with (repo / "data/graph_global/audit_results.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for r in results:
+            fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+    stats = {"verdicts": len(results), "accepted_relations": accepted,
+             "rejected_ungrounded": rejected, "no_relation": no_relation}
+    _audit_report(repo, results, stats)
+    return stats
+
+
+def _audit_report(repo: Path, results: list, stats: dict) -> None:
+    by_type = Counter(r["relation_type"] for r in results if r["accepted"])
+    L = ["# HOB Phase 5 Part 2 — Pairwise LLM Audit (high-signal pass)", "",
+         f"- **verdicts**: {stats['verdicts']}",
+         f"- **accepted relations (grounded)**: {stats['accepted_relations']}",
+         f"- **rejected (ungrounded)**: {stats['rejected_ungrounded']}",
+         f"- **NO_RELATION**: {stats['no_relation']}", "",
+         "## Accepted relations by type", ""]
+    for k, v in sorted(by_type.items(), key=lambda x: -x[1]):
+        L.append(f"- {k}: {v}")
+    L += ["", "## Accepted relations", ""]
+    for r in results:
+        if r["accepted"]:
+            L.append(f"- **{r['source_name']} → {r['target_name']}** "
+                     f"[{r['relation_type']}/{r['confidence']}] — {r['mechanism']}")
+    (repo / "reports" / "pair_audit.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+

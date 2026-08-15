@@ -760,3 +760,24 @@ Began Part 2 (pairwise LLM audit) with the reviewer's go-ahead. Part 2 = a deter
 **Next (Stage B):** batched sub-agents adjudicate the candidates — each returns a primitive-grounded relation path or NO_RELATION; ingest + validate grounding against the frozen graph; emit `audit_results.jsonl`. Starting with the 62 high-signal pairs.
 
 Refs: `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/audit_candidates.jsonl`; spec §"Pairwise LLM audit"
+
+---
+
+## [2026-08-16 15:00] EXPERIMENT — Phase 5 Part 2 Stage B: sub-agent audit (high-signal pass)
+
+Ran the pairwise LLM audit over the high-signal candidates using Claude Code sub-agents as the "LLM" (no API; [[phase3-llm-via-subagents]]).
+
+**Candidate refinement.** Before spawning, found `named_reference` was polluted by tribal tokens (a card mentioning "Goblin" paired with every "Goblin …"-named card, since I took the card-name's first token as a proper name). Fixed: exclude first-tokens that match a known creature type/subtype/supertype label. named_reference 57 → **39**; total candidates 134 → 116; high_signal 62 → **44**. Remaining named-refs are genuine legendary-name / legend-rule references (Smaug↔Smaug, Gollum↔Gollum, Bilbo↔Bilbo, Thranduil↔Thranduil).
+
+**Batched adjudication.** `audit.build_batches` enriched the 44 high-signal candidates with both cards' Oracle text and wrote 4 batches (`data/llm/audit/batch_00N.jsonl`). Spawned 4 general-purpose sub-agents in parallel; each read its batch, adjudicated each directed pair (RELATION grounded in exact printed phrases of BOTH cards, or NO_RELATION — with strict instructions that tribe/keyword/legend-rule overlap is NOT a relation), and wrote `result_00N.jsonl`.
+
+**Ingest + grounding validation.** `audit.ingest` validated each RELATION's grounding phrases actually occur in the cited cards' Oracle text and emitted `data/graph_global/audit_results.jsonl` + `reports/pair_audit.md`. **44 verdicts → 9 accepted grounded relations, 0 rejected-ungrounded, 35 NO_RELATION.** The 9 (all genuine synergies the mechanical grammar can't see):
+- SUPPLIES_RESOURCE: Smaug, Wicked Worm ↔ Smaug the Magnificent (Treasure-mana feedback into each other's triggers); Desolation of Smaug → Smaug the Magnificent + Smaug, the Great Calamity (Dragon-only mana casts the Dragons);
+- ENABLES_TRIGGER: Thranduil, the Elvenking → Thranduil, Sindarin Liege (legendary-Elf ETB fires the draw); The Great Goblin → Great Ugly-Looking Goblin (Amass +1/+1 counters fire the deal-2-damage trigger);
+- AMPLIFIES_EFFECT: Bard, King of Dale → Beorn the Fierce / The Chief Warg / Old Fat Spider (Bard's draw-replacement doubles their "draw" payoffs).
+
+117 tests pass (+3 ingest/grounding + tribal-exclusion). Audit artifacts committed as the provenance record (batches, per-agent results, ingested results, report).
+
+**Deferred (Part 2 follow-up):** the 72 `shared_vocabulary`-only candidates (lower precision) are not yet audited; and merging accepted audit relations into the projection as `audit_derived` metaedges (flagged, non-mechanical provenance) so pair queries see them. Presenting the high-signal pass for review first.
+
+Refs: `src/hobkg/audit.py` (`build_batches`/`ingest`); `data/llm/audit/`; `data/graph_global/audit_results.jsonl`; `reports/pair_audit.md`

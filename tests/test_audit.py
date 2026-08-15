@@ -58,3 +58,44 @@ def test_candidates_deterministic():
         audit.build_candidates()
         return hashlib.sha256(CANDS.read_bytes()).hexdigest()
     assert digest() == digest()
+
+
+def test_named_reference_excludes_tribal_types(cands):
+    # a bare creature-type word (Goblin/Elf/Dwarf/Dragon) must not be a named_reference
+    for c in cands:
+        for ev in c["evidence"].get("named_reference", []):
+            assert ev["token"].lower() not in {"goblin", "elf", "dwarf", "dragon", "human",
+                                               "spider", "wolf", "bird", "bear", "orc"}
+
+
+# --- Stage B: ingest of sub-agent verdicts -----------------------------------
+RESULTS = REPO / "data" / "graph_global" / "audit_results.jsonl"
+
+
+@pytest.fixture(scope="module")
+def ingest_stats():
+    return audit.ingest()
+
+
+def test_ingest_accepts_only_grounded_relations(ingest_stats):
+    if not RESULTS.exists():
+        pytest.skip("no audit verdicts ingested yet")
+    results = [json.loads(l) for l in RESULTS.read_text(encoding="utf-8").splitlines()]
+    assert ingest_stats["verdicts"] == len(results)
+    for r in results:
+        assert r["verdict"] in ("RELATION", "NO_RELATION")
+        if r.get("accepted"):
+            assert r["verdict"] == "RELATION"
+            assert r["relation_type"] and r["mechanism"] and r["grounding"]
+    # accepted count is internally consistent and no ungrounded relation slips through
+    assert ingest_stats["accepted_relations"] == sum(1 for r in results if r["accepted"])
+    assert ingest_stats["rejected_ungrounded"] >= 0
+
+
+def test_audited_pairs_were_real_candidates(cands, ingest_stats):
+    if not RESULTS.exists():
+        pytest.skip("no audit verdicts ingested yet")
+    cand_pairs = {(c["source_card"], c["target_card"]) for c in cands}
+    results = [json.loads(l) for l in RESULTS.read_text(encoding="utf-8").splitlines()]
+    for r in results:
+        assert (r["source_card"], r["target_card"]) in cand_pairs
