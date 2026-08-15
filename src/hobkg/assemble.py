@@ -51,7 +51,7 @@ _ACTOR_SUBJ = {"Operation"}
 GLOBAL_SIGNATURES = {
     # structural
     "HAS_FACE": ({"Card"}, {"CardFace"}),
-    "HAS_ABILITY": ({"CardFace", "ObjectClass"}, {"Ability", "Operation"}),
+    "HAS_ABILITY": ({"CardFace", "ObjectClass", "TokenSpec"}, {"Ability", "Operation"}),
     "HAS_TYPE": ({"CardFace", "ObjectClass", "TokenSpec"}, {"ObjectClass"}),
     "HAS_KEYWORD": ({"CardFace", "Ability", "Operation"}, {"Rule", "Operation", "ObjectClass", "Ability"}),
     "HAS_COST": ({"CardFace", "Ability", "Operation"}, {"Cost"}),
@@ -130,6 +130,21 @@ _ACTOR_PREDICATES = {
 _TEMPLATED_RULES = {"rule:amass", "rule:typecycling"}
 _TEMPLATE_OWNED_OBJECTS = {"token:human-soldier", "token:goblin-army", "obj:army-A"}
 _TEMPLATE_OWNED_COUNTERS = {"counter:hone"}
+_TEMPLATE_OWNED_STATES = {"state:enduring_story"}  # produced by gate:storied
+
+# authoritative Phase 2 edge that owns each dropped duplicate output, so the LLM
+# duplicate's provenance can be merged onto the template path (not discarded).
+# `{face}` is substituted with the LLM edge's face id where the owner is per-face.
+_TEMPLATE_OWNER_EDGE = {
+    ("CREATES_OBJECT", "token:human-soldier"): ("gate:recruit-nonland-discard", "CREATES_OBJECT", "token:human-soldier"),
+    ("CAN_LEAD_TO", "token:human-soldier"): ("gate:recruit-nonland-discard", "CREATES_OBJECT", "token:human-soldier"),
+    ("CREATES_OBJECT", "token:goblin-army"): ("gate:amass-no-army", "CREATES_OBJECT", "obj:army-A"),
+    ("CREATES_OBJECT", "obj:army-A"): ("gate:amass-no-army", "CREATES_OBJECT", "obj:army-A"),
+    ("PRODUCES", "state:enduring_story"): ("gate:storied", "PRODUCES", "state:enduring_story"),
+    ("ADDS_COUNTER", "counter:hone"): ("op:{face}:add-hone", "ADDS_COUNTER", "counter:hone"),
+    ("INSTANTIATES", "rule:amass"): ("op:{face}:amass", "INSTANTIATES", "op:amass"),
+    ("INSTANTIATES", "rule:typecycling"): ("op:{face}:typecycling", "INSTANTIATES", "op:typecycling"),
+}
 
 
 def _is_template_duplicate(pred: str, tgt: str) -> bool:
@@ -138,6 +153,8 @@ def _is_template_duplicate(pred: str, tgt: str) -> bool:
     if pred in ("CREATES_OBJECT", "CAN_LEAD_TO") and tgt in _TEMPLATE_OWNED_OBJECTS:
         return True
     if pred == "ADDS_COUNTER" and tgt in _TEMPLATE_OWNED_COUNTERS:
+        return True
+    if pred == "PRODUCES" and tgt in _TEMPLATE_OWNED_STATES:
         return True
     return False
 
@@ -215,6 +232,58 @@ def _condition_id(face_id: str, human: str) -> str:
     return f"cond:{face_id}:c{hashlib.sha1(human.encode('utf-8')).hexdigest()[:8]}"
 
 
+_MODE_WORD = {"first": 1, "second": 2, "third": 3, "fourth": 4}
+
+
+def _parse_condition(text) -> tuple[dict, str]:
+    """Convert common condition families into machine-evaluable structured
+    expressions. Anything not recognized is returned as an explicitly unresolved,
+    non-executable raw record so pair projection never composes prose. Returns
+    (expression, status) where status is 'structured' or 'raw_unresolved'."""
+    if not isinstance(text, str):
+        return {"raw": text}, "raw_unresolved"
+    t = text.strip().lower()
+    # state active, e.g. "you have an enduring story"
+    if "enduring story" in t:
+        return {"op": "state_active", "state": "enduring_story"}, "structured"
+    # mode selection: "mode 2 chosen" / "mode: second option chosen"
+    m = re.search(r"mode (\d+)", t)
+    if m:
+        return {"op": "mode_selected", "mode": int(m.group(1))}, "structured"
+    m = re.search(r"mode:? (first|second|third|fourth) option", t)
+    if m:
+        return {"op": "mode_selected", "mode": _MODE_WORD[m.group(1)]}, "structured"
+    # event identity with a "this way" binding, e.g. "if you sacrifice ... this way"
+    if "sacrifice" in t and "this way" in t:
+        return {"op": "event_identity", "event": "sacrifice", "binding": "this_way"}, "structured"
+    if "discarded" in t and "this way" in t:
+        ctype = "land" if re.search(r"\bland\b", t) else ("nonland" if "nonland" in t else None)
+        expr = {"op": "event_identity", "event": "discard", "binding": "this_way"}
+        if ctype:
+            expr["card_type"] = ctype
+        return expr, "structured"
+    # variable binding, e.g. "X = number of cards discarded this way"
+    if re.search(r"\bx\b\s*=\s*number of cards discarded", t) or "number of cards discarded" in t:
+        return {"op": "eq", "left": {"variable": "X"},
+                "right": {"count": "cards_discarded_this_way"}}, "structured"
+    # cast from a specific zone
+    if "flashback" in t or "cast from a graveyard" in t or "cast via flashback" in t:
+        return {"op": "cast_from", "zone": "graveyard"}, "structured"
+    # discarded-card type identity (no "this way")
+    if "discard" in t and ("nonland" in t or re.search(r"\bland\b", t)):
+        ctype = "land" if re.search(r"\bland\b", t) and "nonland" not in t else "nonland"
+        return {"op": "card_type_identity", "subject": "discarded_card", "card_type": ctype}, "structured"
+    # explicit mana payment, e.g. "if you pay {1}{G}{U}"
+    m = re.search(r"pay ((?:\{[^}]+\})+)", text)
+    if m:
+        return {"op": "cost_paid", "cost": m.group(1)}, "structured"
+    # numeric threshold "N or more <thing>"
+    m = re.search(r"(\d+)\s+or more\s+(.+)", t)
+    if m:
+        return {"op": "gte", "left": {"count": _slug(m.group(2))}, "right": int(m.group(1))}, "structured"
+    return {"raw": text}, "raw_unresolved"
+
+
 class Graph:
     """Typed property multigraph.  Edges are keyed by the full assertion signature
     (source, predicate, target, condition_ids, scope, timing, quantity, optional,
@@ -257,13 +326,28 @@ class Graph:
                 e["provenance"].extend(provenance)
         return key
 
+    def merge_provenance(self, source, predicate, target, provenance) -> bool:
+        """Append provenance to any existing edge(s) matching (s, p, t), ignoring
+        properties. Used to fold a dropped template duplicate's provenance onto the
+        authoritative Phase 2 template edge. Returns True if a target edge existed."""
+        hit = False
+        for e in self.edges.values():
+            if e["source"] == source and e["predicate"] == predicate and e["target"] == target:
+                e["provenance"].extend(provenance)
+                hit = True
+        return hit
+
 
 def _seed_conditions(repo: Path) -> dict:
-    """Load the Phase 2 structured conditions (both stores) into one dict."""
+    """Load the Phase 2 structured conditions (both stores); tag each with a
+    resolution status ('structured' since they carry expression objects)."""
     store: dict[str, dict] = {}
     for p in (repo / "data" / "graph" / "conditions.jsonl", repo / "data" / "rules" / "conditions.jsonl"):
         if p.exists():
             for c in _load_dicts(p):
+                c = dict(c)
+                c.setdefault("status", "structured")
+                c.setdefault("executable", True)
                 store.setdefault(c["condition_id"], c)
     return store
 
@@ -285,20 +369,25 @@ def assemble(repo: Path = REPO) -> dict:
     # the duplicate metric measures only LLM-layer leakage past the emit-time drop.
     phase2_edge_ids = {e["edge_id"] for e in g.edges.values()}
 
-    # 2. Phase 1 entities
+    # 2. Phase 1 entities — materialize ALL normalized characteristics (issue 1/2):
+    # card metadata, face type-line/mana-cost/P/T/produced-mana + canonical type/cost
+    # edges, and token characteristics + type edges.
     cards = {c["id"]: c for c in _load_dicts(repo / "data" / "normalized" / "cards.jsonl")}
     faces = {f["id"]: f for f in _load_dicts(repo / "data" / "normalized" / "faces.jsonl")}
     for c in cards.values():
-        g.add_node(c["id"], "Card", c["name"])
+        g.add_node(c["id"], "Card", c["name"], data=_card_data(c), provenance=[c.get("provenance")] if c.get("provenance") else None)
     for f in faces.values():
-        g.add_node(f["id"], "CardFace", f["name"])
-        g.add_edge(f["card_id"], "HAS_FACE", f["id"])
+        _materialize_face(g, f)
     for t in _load_dicts(repo / "data" / "normalized" / "tokens.jsonl"):
-        g.add_node(t["id"], "TokenSpec", t["name"])
+        _materialize_token(g, t)
 
     # 3. merge the Phase 3 accepted layer, per face
+    adv_faces = {fid for fid, f in faces.items() if f.get("role") == "adventure"}
     for a in _load_dicts(repo / "data" / "review" / "llm_accepted.jsonl"):
-        _merge_face(g, a, faces, conditions)
+        _merge_face(g, a, faces, conditions, adv_faces)
+
+    # 4. backfill: every normalized mana producer must have a mana operation (issue 1)
+    _backfill_mana_operations(g, faces)
 
     # materialize every referenced endpoint as a typed node (Phase 3 invents concept
     # nodes — event:/state:/obj:/kw:/cost:/resource:/zone: — by id; type by convention).
@@ -310,9 +399,73 @@ def assemble(repo: Path = REPO) -> dict:
     return _finalize(g, repo, conditions, phase2_edge_ids)
 
 
-def _merge_face(g: Graph, a: dict, faces: dict, conditions: dict) -> None:
+# --- normalized-characteristic materialization (blocking issues 1 & 2) --------
+def _card_data(c: dict) -> dict:
+    return {k: c[k] for k in ("layout", "rarity", "color_identity", "colors", "cmc",
+                              "set_code", "collector_number", "oracle_id", "scryfall_id",
+                              "keywords_scryfall", "face_ids") if k in c}
+
+
+def _type_edges(g: Graph, subject: str, type_line: dict) -> None:
+    """CardFace/TokenSpec --HAS_TYPE--> canonical ObjectClass type nodes."""
+    for kind, key in (("type", "types"), ("subtype", "subtypes"), ("supertype", "supertypes")):
+        for name in type_line.get(key, []) or []:
+            nid = f"obj:{kind}:{_slug(name)}"
+            g.add_node(nid, "ObjectClass", name, data={"type_kind": kind, "name": name})
+            g.add_edge(subject, "HAS_TYPE", nid)
+
+
+def _materialize_face(g: Graph, f: dict) -> None:
+    data = {k: f[k] for k in ("role", "type_line", "type_line_raw", "mana_cost", "mana_cost_raw",
+                              "power", "toughness", "produced_mana", "oracle_text") if f.get(k) is not None}
+    g.add_node(f["id"], "CardFace", f["name"], data=data,
+               provenance=[f["provenance"]] if f.get("provenance") else None)
+    g.add_edge(f["card_id"], "HAS_FACE", f["id"])
+    _type_edges(g, f["id"], f.get("type_line") or {})
+    if f.get("mana_cost"):  # structured casting cost
+        cid = f"cost:{f['id']}:cast"
+        g.add_node(cid, "Cost", f.get("mana_cost_raw") or "cast", data={"kind": "casting", "mana_cost": f["mana_cost"]})
+        g.add_edge(f["id"], "HAS_COST", cid)
+
+
+def _materialize_token(g: Graph, t: dict) -> None:
+    data = {k: t[k] for k in ("type_line", "type_line_raw", "colors", "power", "toughness",
+                              "keywords", "oracle_text", "produced_mana", "mana_cost",
+                              "characteristic_key", "produced_by_card_ids", "scryfall_related_ids")
+            if t.get(k) is not None}
+    g.add_node(t["id"], "TokenSpec", t["name"], data=data,
+               provenance=[t["provenance"]] if t.get("provenance") else None)
+    _type_edges(g, t["id"], t.get("type_line") or {})
+    if t.get("produced_mana"):
+        op = f"op:{t['id']}:produce-mana"
+        g.add_node(op, "Operation", f"{t['name']}: produce mana", data={"produced_mana": t["produced_mana"]})
+        g.add_edge(t["id"], "HAS_ABILITY", op)
+        g.add_edge(op, "PRODUCES", "resource:mana")
+
+
+def _backfill_mana_operations(g: Graph, faces: dict) -> None:
+    """Guarantee every normalized mana-producing face has at least one mana
+    operation. Lands/rocks already gain one from the Phase 3 layer; faces that
+    produce mana only implicitly (e.g. via a Treasure token) get a synthetic one."""
+    has_mana = set()
+    for e in g.edges.values():
+        if e["predicate"] == "PRODUCES" and e["target"].startswith("resource:mana"):
+            for fid in faces:
+                if fid in e["source"]:
+                    has_mana.add(fid)
+    for fid, f in faces.items():
+        if f.get("produced_mana") and fid not in has_mana:
+            op = f"op:{fid}:produce-mana"
+            g.add_node(op, "Operation", f"{f['name']}: produce mana",
+                       data={"produced_mana": f["produced_mana"], "note": "normalized produced_mana backfill"})
+            g.add_edge(fid, "HAS_ABILITY", op)
+            g.add_edge(op, "PRODUCES", "resource:mana")
+
+
+def _merge_face(g: Graph, a: dict, faces: dict, conditions: dict, adv_faces: set) -> None:
     face_id = a["face_id"]
     g.add_node(face_id, "CardFace", faces.get(face_id, {}).get("name", face_id))
+    card_uuid = face_id.split(":")[1]
 
     # 3a. namespace ability ids; retain FULL ability semantics in node data.
     # Register both `local` and `ability:local` alias forms (blocking issue 2).
@@ -375,17 +528,37 @@ def _merge_face(g: Graph, a: dict, faces: dict, conditions: dict) -> None:
         return op_for[ck]
 
     def emit(src: str, pred: str, tgt: str, prov: dict, props: dict) -> None:
+        # path-level Adventure dedup (issue 4): the LLM reminder "(Then exile this
+        # card ...)" re-encodes the authoritative object-bound resolution path
+        # `op:{card}:1:resolve PRODUCES state:{card}:adventure-exiled`. Drop the
+        # reminder MOVES_TO exile and fold its provenance onto the template path;
+        # genuine effect-exiles (e.g. "exile them face down") are kept.
+        if (face_id in adv_faces and pred == "MOVES_TO" and tgt == "zone:exile"
+                and "exile this card" in (prov.get("text") or "").lower()):
+            g.merge_provenance(f"op:face:{card_uuid}:1:resolve", "PRODUCES",
+                               f"state:card:{card_uuid}:adventure-exiled", [prov])
+            return
+        # template mechanism duplicates: drop and merge provenance onto the
+        # authoritative Phase 2 template edge (issue 7 / path-level for all mechanics).
         if _is_template_duplicate(pred, tgt):
+            owner = _TEMPLATE_OWNER_EDGE.get((pred, tgt))
+            if owner:
+                os_, op_, ot_ = (x.replace("{face}", face_id) for x in owner)
+                g.merge_provenance(os_, op_, ot_, [prov])
             return
         src, tgt = resolve(src), resolve(tgt)
-        # structured conditions: inline free-text condition -> record + condition_ids
+        # structured conditions: inline free-text condition -> structured expression
+        # (common families) or an explicitly unresolved, non-executable raw record.
         cond_ids = list(props.get("condition_ids") or [])
         raw_cond = props.get("condition")
         if raw_cond:
             human = raw_cond if isinstance(raw_cond, str) else json.dumps(raw_cond, ensure_ascii=False)
             cid = _condition_id(face_id, human)
-            conditions.setdefault(cid, {"condition_id": cid, "expression": {"raw": raw_cond},
-                                        "human_readable": human, "provenance": [prov]})
+            if cid not in conditions:
+                expr, status = _parse_condition(raw_cond)
+                conditions[cid] = {"condition_id": cid, "status": status, "expression": expr,
+                                   "executable": status == "structured",
+                                   "human_readable": human, "provenance": [prov]}
             cond_ids.append(cid)
         eprops = {k: props[k] for k in _EDGE_PROPS if props.get(k) is not None}
         if cond_ids:
@@ -463,6 +636,7 @@ def _finalize(g: Graph, repo: Path, conditions: dict, phase2_edge_ids: set) -> d
     template_dups = sum(1 for e in g.edges.values()
                         if _is_template_duplicate(e["predicate"], e["target"])
                         and e["edge_id"] not in phase2_edge_ids)
+    comp = _completeness(g, repo, conditions)
     stats = {
         "nodes": len(g.nodes), "edges": len(g.edges), "conditions": len(conditions),
         "node_types": dict(ntypes), "edge_predicates": dict(preds),
@@ -476,26 +650,90 @@ def _finalize(g: Graph, repo: Path, conditions: dict, phase2_edge_ids: set) -> d
         "template_duplicate_edges": template_dups,
         "face_to_rule_amass_edges": sum(1 for e in g.edges.values()
                                         if e["predicate"] == "INSTANTIATES" and e["target"] == "rule:amass"),
+        **comp,
     }
     _report(repo, stats, v)
     stats["_violations"] = v
     return stats
 
 
+def _completeness(g: Graph, repo: Path, conditions: dict) -> dict:
+    """Completeness + path-level-duplicate metrics (Phase 4 v3 gate)."""
+    faces = {f["id"]: f for f in _load_dicts(repo / "data" / "normalized" / "faces.jsonl")}
+    tokens = {t["id"]: t for t in _load_dicts(repo / "data" / "normalized" / "tokens.jsonl")}
+    face_nodes = {nid: n for nid, n in g.nodes.items() if n["type"] == "CardFace"}
+    token_nodes = {nid: n for nid, n in g.nodes.items() if n["type"] == "TokenSpec"}
+
+    def out_edges(src, pred):
+        return [e for e in g.edges.values() if e["source"] == src and e["predicate"] == pred]
+
+    faces_missing_type_data = [fid for fid, f in faces.items()
+                               if not face_nodes.get(fid, {}).get("data", {}).get("type_line")]
+    # every normalized declared type/subtype/supertype has a HAS_TYPE edge
+    faces_missing_type_edges = 0
+    for fid, f in faces.items():
+        tl = f.get("type_line") or {}
+        want = len(tl.get("types", [])) + len(tl.get("subtypes", [])) + len(tl.get("supertypes", []))
+        got = len(out_edges(fid, "HAS_TYPE"))
+        if got < want:
+            faces_missing_type_edges += 1
+    faces_missing_cost = [fid for fid, f in faces.items()
+                          if f.get("mana_cost") and not out_edges(fid, "HAS_COST")]
+    mana_faces = {fid for fid, f in faces.items() if f.get("produced_mana")}
+    mana_faces_without_op = [fid for fid in mana_faces
+                             if not any(e["predicate"] == "PRODUCES" and e["target"].startswith("resource:mana")
+                                        and fid in e["source"] for e in g.edges.values())]
+    tokens_missing_data = [tid for tid in tokens
+                           if not token_nodes.get(tid, {}).get("data", {}).get("type_line")]
+
+    raw_conditions = [c for c in conditions.values() if c.get("expression", {}).get("raw") is not None]
+    raw_executable = [c for c in raw_conditions if c.get("executable")]
+    raw_not_unresolved = [c for c in raw_conditions if c.get("status") != "raw_unresolved"]
+
+    adv_faces = {fid for fid, f in faces.items() if f.get("role") == "adventure"}
+    adv_resolution_paths = sum(
+        1 for f in adv_faces
+        for _ in out_edges(f"op:face:{f.split(':')[1]}:1:resolve", "PRODUCES")
+        if _["target"].endswith(":adventure-exiled"))
+    # any surviving LLM reminder self-exile from an adventure face
+    llm_reminder_adv_exile = sum(
+        1 for e in g.edges.values()
+        if e["predicate"] == "MOVES_TO" and e["target"] == "zone:exile"
+        and any(fid.split(":")[1] in e["source"] and ":1:" in e["source"] for fid in adv_faces)
+        and any((p.get("text") or "").lower().find("exile this card") >= 0 for p in e.get("provenance", [])))
+
+    return {
+        "faces_missing_type_data": len(faces_missing_type_data),
+        "faces_missing_type_edges": faces_missing_type_edges,
+        "faces_missing_cost_edge": len(faces_missing_cost),
+        "mana_faces_without_operation": len(mana_faces_without_op),
+        "tokens_missing_characteristics": len(tokens_missing_data),
+        "raw_executable_conditions": len(raw_executable),
+        "raw_conditions_not_marked_unresolved": len(raw_not_unresolved),
+        "structured_conditions": sum(1 for c in conditions.values() if c.get("status") == "structured"),
+        "raw_unresolved_conditions": len(raw_conditions),
+        "adventure_faces": len(adv_faces),
+        "adventure_resolution_state_paths": adv_resolution_paths,
+        "llm_reminder_adventure_exile_paths": llm_reminder_adv_exile,
+    }
+
+
 def _report(repo: Path, stats: dict, v: dict) -> None:
-    L = ["# HOB Phase 4 — Global Assembly (v2)", "",
+    zero = ["signature_violations", "unknown_endpoint_edges", "unknown_type_nodes",
+            "leaked_ability_aliases", "unresolved_condition_refs", "edges_missing_id",
+            "template_duplicate_edges", "face_to_rule_amass_edges", "dangling_edges",
+            "faces_missing_type_data", "faces_missing_type_edges", "faces_missing_cost_edge",
+            "mana_faces_without_operation", "tokens_missing_characteristics",
+            "raw_executable_conditions", "raw_conditions_not_marked_unresolved",
+            "llm_reminder_adventure_exile_paths"]
+    L = ["# HOB Phase 4 — Global Assembly (v3)", "",
          f"- **nodes**: {stats['nodes']}", f"- **edges**: {stats['edges']}",
-         f"- **conditions (self-contained)**: {stats['conditions']}",
-         f"- **dangling edges**: {stats['dangling_edges']}",
-         f"- **signature violations (must be 0)**: {stats['signature_violations']}",
-         f"- **edges with Unknown endpoint type (must be 0)**: {stats['unknown_endpoint_edges']}",
-         f"- **nodes with Unknown type (must be 0)**: {stats['unknown_type_nodes']}",
-         f"- **leaked non-face-namespaced ability nodes (must be 0)**: {stats['leaked_ability_aliases']}",
-         f"- **unresolved condition references (must be 0)**: {stats['unresolved_condition_refs']}",
-         f"- **edges missing edge_id (must be 0)**: {stats['edges_missing_id']}",
-         f"- **template-duplicate edges (must be 0)**: {stats['template_duplicate_edges']}",
-         f"- **face-to-rule amass edges (must be 0)**: {stats['face_to_rule_amass_edges']}", "",
-         "## Node types", ""]
+         f"- **conditions (self-contained)**: {stats['conditions']} "
+         f"({stats['structured_conditions']} structured, {stats['raw_unresolved_conditions']} raw-unresolved)",
+         f"- **adventure faces / resolution paths**: {stats['adventure_faces']} / {stats['adventure_resolution_state_paths']}",
+         "", "## Gate metrics (every one must be 0)", ""]
+    L += [f"- **{k}**: {stats[k]}  {'OK' if stats[k] == 0 else 'FAIL'}" for k in zero]
+    L += ["", "## Node types", ""]
     for k, val in sorted(stats["node_types"].items(), key=lambda x: -x[1]):
         L.append(f"- {k}: {val}")
     L += ["", "## Edge predicates", ""]

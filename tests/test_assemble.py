@@ -148,3 +148,59 @@ def test_template_dedup_all_mechanics(edges):
 def test_all_faces_and_cards_present(stats):
     assert stats["node_types"]["Card"] == 193
     assert stats["node_types"]["CardFace"] == 210
+
+
+# --- v3 completeness gate (blocking issues 1 & 2) ----------------------------
+def test_completeness_gate_all_zero(stats):
+    for k in ("faces_missing_type_data", "faces_missing_type_edges", "faces_missing_cost_edge",
+              "mana_faces_without_operation", "tokens_missing_characteristics"):
+        assert stats[k] == 0, f"{k} = {stats[k]} (must be 0)"
+
+
+def test_faces_retain_normalized_characteristics(nodes):
+    creature = nodes["face:6f83da19-fd89-44ec-88f3-0c3fddfbd1b2:0"]["data"]
+    for field in ("type_line", "mana_cost", "power", "toughness", "produced_mana", "oracle_text", "role"):
+        assert field in creature
+    # canonical type edges exist for a Goblin, an Island (land), etc.
+    assert "obj:subtype:dog" in nodes and nodes["obj:subtype:dog"]["type"] == "ObjectClass"
+
+
+def test_cards_retain_metadata(nodes):
+    card = nodes["card:6f83da19-fd89-44ec-88f3-0c3fddfbd1b2"]["data"]
+    for field in ("layout", "rarity", "color_identity", "cmc", "set_code", "scryfall_id"):
+        assert field in card
+
+
+def test_all_tokens_have_characteristics(nodes, stats):
+    tokens = [n for n in nodes.values() if n["type"] == "TokenSpec"]
+    assert len(tokens) == 12
+    for t in tokens:
+        assert t["data"].get("type_line"), f"token {t['id']} missing type_line"
+    assert stats["tokens_missing_characteristics"] == 0
+
+
+# --- v3 conditions gate (blocking issue 3) -----------------------------------
+def test_conditions_structured_or_marked_unresolved(stats):
+    conds = [json.loads(l) for l in (GLOBAL / "conditions.jsonl").read_text(encoding="utf-8").splitlines()]
+    # no raw condition may be executable, and every raw one is explicitly unresolved
+    assert stats["raw_executable_conditions"] == 0
+    assert stats["raw_conditions_not_marked_unresolved"] == 0
+    for c in conds:
+        if c.get("expression", {}).get("raw") is not None:
+            assert c["status"] == "raw_unresolved" and c.get("executable") is False
+    assert stats["structured_conditions"] > 0        # common families were converted
+
+
+# --- v3 Adventure path-level dedup gate (blocking issue 4) --------------------
+def test_adventure_path_dedup(stats, edges):
+    assert stats["adventure_faces"] == 17
+    assert stats["adventure_resolution_state_paths"] == 17
+    assert stats["llm_reminder_adventure_exile_paths"] == 0
+    # the authoritative resolution path carries the merged reminder provenance
+    resolve = [e for e in edges
+               if e["source"] == "op:face:27e17542-549b-4c05-8091-c10a245c916b:1:resolve"
+               and e["predicate"] == "PRODUCES" and e["target"].endswith(":adventure-exiled")]
+    assert resolve and len(resolve[0]["provenance"]) >= 2
+    # genuine (non-self-exile) adventure effect-exiles are retained
+    assert any(e["predicate"] == "MOVES_TO" and e["target"] == "zone:exile"
+               and "f48f2a9b" in e["source"] and ":1:" in e["source"] for e in edges)

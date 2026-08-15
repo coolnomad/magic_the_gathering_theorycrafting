@@ -107,3 +107,40 @@ a weakened acceptance bound. The gate is now **strict** — the assembler
    re-derivation of a template-owned output (soldier/army object, hone counter,
    `rule:{amass,typecycling}` instantiation) is dropped; the Phase 2 mechanism edge
    (gate/operation-sourced) is authoritative. LLM-layer duplicate count = **0**.
+
+---
+
+## Phase 4 v3 acceptance gate (completeness — post-v2 review)
+
+v2 was a valid *structural* assembly but not yet a complete *mechanistic* one: it
+carried no normalized characteristics, discarded token data, left conditions as
+prose, and only did endpoint (not path) template dedup. v3 adds these gates (all
+**0** unless noted; asserted in `tests/test_assemble.py`):
+
+1. **Normalized characteristics materialized.** Every face node retains
+   `role/type_line/mana_cost/power/toughness/produced_mana/oracle_text`; every card
+   node retains `layout/rarity/color_identity/colors/cmc/set_code/collector_number/
+   oracle_id/scryfall_id/keywords`. Canonical `CardFace --HAS_TYPE--> obj:{type,
+   subtype,supertype}:{slug}` ObjectClass nodes for every declared type
+   (`faces_missing_type_data`, `faces_missing_type_edges` = 0); a structured
+   `CardFace --HAS_COST--> cost:{face}:cast` for every mana-cost face
+   (`faces_missing_cost_edge` = 0); every normalized mana producer has a mana
+   operation `op:… PRODUCES resource:mana` (`mana_faces_without_operation` = 0).
+2. **Token characteristics materialized.** All 12 TokenSpec nodes retain their
+   normalized data and get canonical `HAS_TYPE` edges (+ a mana operation where they
+   produce mana). `tokens_missing_characteristics` = 0.
+3. **Conditions structured or explicitly unresolved.** Common families are converted
+   to machine-evaluable expressions (`state_active`, `mode_selected`,
+   `event_identity`, `eq`, `gte`, `cast_from`, `cost_paid`, `card_type_identity`);
+   anything unparsed is a `raw_unresolved`, `executable:false` record. **No raw
+   condition is executable** (`raw_executable_conditions` = 0) and every raw one is
+   marked unresolved (`raw_conditions_not_marked_unresolved` = 0).
+4. **Path-level Adventure dedup.** All 17 authoritative object-bound Adventure
+   resolution paths (`op:{card}:1:resolve PRODUCES state:{card}:adventure-exiled`)
+   are preserved (`adventure_resolution_state_paths` = 17); the LLM reminder
+   "(Then exile this card …)" `MOVES_TO zone:exile` edges are dropped and their
+   provenance merged onto the template path (`llm_reminder_adventure_exile_paths`
+   = 0). Genuine effect-exiles ("exile them face down", "exile two target creatures")
+   are retained. Storied's `PRODUCES state:enduring_story` is likewise folded onto
+   `gate:storied`; endpoint-owned recruit/amass/hone outputs are merged, not just
+   dropped.

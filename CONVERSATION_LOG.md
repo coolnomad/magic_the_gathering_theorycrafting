@@ -1454,3 +1454,65 @@ Send the agent:
 > Rework Phase 4 before projection. Require zero signature violations; resolve the seven current cases. Canonicalize every local ability alias, including `ability:<local-id>`, so no non-face-namespaced LLM ability nodes survive. Preserve or compile the full ability semantics and every edge condition, scope, timing, optionality, quantity, polarity, and certainty. Replace triple-key edge storage with a property-multigraph assertion key and stable edge IDs. Group reified consequences by originating ability/Oracle clause rather than creating one operation per CardFace edge. Deduplicate all authoritative mechanic templatesΓÇöRecruit, Adventure, Storied, Saga, hone, Amass, and typecyclingΓÇöwithout losing provenance. Emit a self-contained global condition file and require all condition references to resolve. Phase 4 passes only with zero dangling endpoints, zero unknown types, zero signature violations, zero leaked local ability aliases, and zero unintended template duplicates.
 
 The commit establishes the right assembly scaffold, but its current output has lost too much conditional and identity structure to serve as the authoritative mechanistic graph. [Phase 4 commit](https://github.com/coolnomad/magic_the_gathering_theorycrafting/commit/673c6c0). And again do it so that i don't need to approve everything. Last time i had to still approve things like cd ..
+
+### [2026-08-15 03:22] ASSISTANT
+This is a large, well-specified rework (7 blocking issues). Let me build deep understanding of the current code and data structures before rewriting. Reading the assembler and inspecting the accepted-layer data shapes.
+
+Now let me inspect the accepted-layer data shapes and locate the 7 violations precisely.
+
+Now let me read the specific cards behind the trickiest violations (Food, Gollum recur, sacrifice-for-mana, Dragon mana) to model them correctly.
+
+I now have full clarity on all 7 corrections. Let me inspect the Phase 2 layer (conditions, mechanics-per-face, template outputs) to design template dedup and the global conditions file.
+
+All 7 corrections are now precisely modeled, and I understand the template/condition/mechanics layers. Now rewriting the assembler to address all 7 blocking issues. This is a substantial rewrite.
+
+Now let me run the new assembler and check the gate metrics.
+
+Nearly all gates pass (0 signature violations, 0 leaked aliases, 0 unknown types, 0 unresolved conditions). The `template_duplicate_edges: 4` is a metric artifact â€” let me confirm those are Phase 2's *authoritative* template edges (gate-sourced), not LLM duplicates.
+
+Confirmed â€” all 4 are Phase 2's **authoritative** template edges (the gate/operation mechanism owners), not LLM duplicates. The LLM duplicates were correctly dropped at emit time. The metric just needs to exclude Phase 2's own template edges. Let me fix it to measure only LLM-layer leakage.
+
+All nine gate metrics are zero, Ability count is exactly 418+29=447. Now let me verify the corrections landed and grouping works, then rewrite the tests to enforce the strict gate.
+
+Grouping works (Rampager's sacrifice consequences share one operation), full ability semantics retained, amass canonical, edge_ids unique. The gollum check used the wrong (pre-namespace) op id. Let me verify the real gollum edge and inspect the 9 parallel-edge groups to confirm they're legitimately property-distinct (not failed merges).
+
+Gollum is correct (namespaced op). Eight of the nine parallel groups are legitimately distinct (different condition, scope=saga-chapter, or timing). But the four `REFERENCES_RULE rule:saga` pairs differ *only* by polarity (Phase 2 stamps `positive`, the LLM leaves it unset) â€” those are the same assertion and should merge. Let me normalize the polarity/optional defaults in the merge key.
+
+All five remaining parallel groups are genuinely distinct (condition / timing / saga-chapter scope). The graph is clean: **2016 edges, all nine gate metrics zero**. Now rewriting the tests to enforce the strict gate and the new invariants.
+
+All 82 tests pass. Let me update the Phase 4 requirements doc to record the strict v2 gate, then append the lab-notebook entry.
+
+Now the lab-notebook entry (append-only) and commit.
+
+The commit landed (`fbbbfe4`); push is still finishing in the background. Let me confirm it completed.
+
+Pushed and synced (`fbbbfe4`). Approvals are now off for the session (`bypassPermissions`), so this ran unattended.
+
+## Phase 4 v2 â€” strict gate, all seven blocking issues resolved
+
+Reworked `src/hobkg/assemble.py`. The gate is now **strict: every metric is exactly 0**, and the tests assert each (no `<= 10` bound).
+
+| Gate metric | v1 | v2 |
+|---|---|---|
+| signature violations | 7 (flagged) | **0** |
+| leaked non-face-namespaced ability nodes | 86 | **0** |
+| unresolved condition references | n/a (dropped) | **0** |
+| edges missing `edge_id` | 2,135 | **0** |
+| template-duplicate edges (LLM layer) | partial | **0** |
+| dangling / unknown-type / face-to-rule amass | 0 / 0 / 0 | **0 / 0 / 0** |
+
+**Graph:** 1,527 nodes Â· 2,016 edges Â· 147 conditions Â· 82 tests pass.
+
+**What changed, issue by issue:**
+1. **Zero signature violations** â€” the seven enumerated typing errors are individually re-typed in `_EDGE_CORRECTIONS` using your exact models (Foodâ†’consume Food/produce life; Gollumâ†’`MOVES_FROM zone:graveyard`; Bolgâ†’consume Goblin + `CAUSES sacrifice`; two mana opsâ†’`PRODUCES resource:mana`; Dwarven Mattockâ†’the Equipment *face* attaches, Vow to Ereborâ†’a generic Equipment object attaches). **No signature was loosened** â€” `assembly_review.jsonl` is empty.
+2. **No leaked aliases** â€” the map now covers both `local` and `ability:local`, and any un-namespaced `ability:*` endpoint is namespaced to its face. Ability count = 418 + 29 = **447**, exactly as you predicted.
+3. **All edge semantics preserved** â€” condition/scope/timing/optional/quantity/polarity/certainty/note carried onto every edge; inline conditions compiled into a self-contained `conditions.jsonl`; every reference resolves.
+4. **Full ability semantics retained** in each Ability node's `data` (trigger/costs/conditions/effects/controller/optionality/unresolved/confidence).
+5. **Property multigraph** keyed by the full assertion signature, stable `edge_id` per edge; polarity/optional normalized so a Phase-2-explicit + LLM-silent assertion of the same edge collapses (killed 4 spurious `REFERENCES_RULE rule:saga` dupes); 5 genuinely property-distinct parallels remain.
+6. **Reification grouped by ability/clause** â€” verified Rampager's attack-sac consequences (`CONSUMES another-creature` + `ADDS_COUNTER +1/+1` + `SCALES_WITH`) hang off one operation; the `op:{face}:effN` per-edge splitting is gone.
+7. **Template dedup for all seven mechanics** â€” LLM re-derivations of template-owned outputs dropped; Phase 2's gate/operation-sourced edges authoritative.
+
+Per your instruction, I did **not** proceed to pair projection. The one remaining Phase 4 follow-up I'd flag as still-coarse is the documented `CAUSES`-to-object/resource/state "affects" relation â€” refining those into explicit `Effect` nodes is the natural next step before Phase 5. Want me to do that refinement now, or hold for your review of v2 first?
+
+### [2026-08-15 03:40] USER
+read docs/hob-kg-phase4-review-pt3.md
