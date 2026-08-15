@@ -144,3 +144,34 @@ prose, and only did endpoint (not path) template dedup. v3 adds these gates (all
    are retained. Storied's `PRODUCES state:enduring_story` is likewise folded onto
    `gate:storied`; endpoint-owned recruit/amass/hone outputs are merged, not just
    dropped.
+
+---
+
+## Phase 4 v4 acceptance gate (semantic safety — post-v3 review)
+
+v3 was complete but had three semantic defects (pt4). v4 closes them (all **0**):
+
+1. **Mechanistic mana reachability, no false direct edges.** A synthetic direct
+   `op:{face}:produce-mana PRODUCES resource:mana` is created ONLY when the face's
+   Oracle text contains a real mana ability of the card itself
+   (`_has_direct_mana_ability`, which strips token-granted quoted abilities and token
+   reminder parentheticals). The 5 indirect producers (Treasure-makers: Long-Bodied
+   Grey Dog, Bilbo's Gambit, Dori, Misty Mountains Cold, Bejeweled Warg) get NO
+   direct edge (`false_direct_mana_operations` = 0); instead the completeness gate
+   requires a **mechanistic path** — a direct mana op OR a created token that itself
+   produces mana (`mana_faces_without_mana_path` = 0).
+2. **Conditions lossless or unresolved.** `_parse_condition` now full-matches the
+   entire normalized condition (patterns ordered specific → general, with explicit
+   negation families). A structured/executable result is emitted only when the whole
+   condition — including negation and every conjunct — is represented; otherwise the
+   record stays `raw_unresolved`/`executable:false`. Fixes the four pt4 cases:
+   `"you do not have an enduring story"` → `not(state_active)` (not positive);
+   `"combat damage to a player, mode: second option chosen"` → unresolved (conjunct
+   not dropped); `"X = number of cards discarded this way"` → variable binding (beats
+   the general discard rule); `"third resolution this turn"` → `eq(resolutions, 3)`.
+3. **Provenance on every asserted edge.** All materialized primitives (HAS_FACE,
+   HAS_TYPE, HAS_COST, token/synthetic mana) and the reification/namespacing edges
+   carry derivation provenance (`{source, source_id, field?, derivation}`); the few
+   Phase 2 template edges that shipped provenance-less get a `template_expansion`
+   citation. `materialized_edges_without_provenance` = 0 (every edge in the graph
+   has non-empty provenance).

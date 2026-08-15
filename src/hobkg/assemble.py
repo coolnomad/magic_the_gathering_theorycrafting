@@ -224,6 +224,25 @@ def _slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:60] or "x"
 
 
+def _deriv(source_kind: str, source_id: str, field: str) -> dict:
+    """Provenance for a deterministically materialized primitive edge/node."""
+    return {"source": source_kind, "source_id": source_id, "field": field,
+            "derivation": "phase4_materialization"}
+
+
+# a *direct* mana ability of the card itself (basic-land intrinsic "{T}: Add {W}",
+# "{T}: Add X mana", "Add four mana", ...). Token-granted mana abilities live in the
+# quoted reminder of a created token ("...token is an artifact with \"...Add one mana
+# ...\"") and are NOT direct production — those are reached via the token path.
+_MANA_ADD = re.compile(r"add \{|add (?:one|two|three|four|five|six|x|that much|an additional)?\s*mana", re.I)
+
+
+def _has_direct_mana_ability(oracle: str) -> bool:
+    s = re.sub(r'"[^"]*"', "", oracle)                       # strip token granted abilities
+    s = re.sub(r"\([^)]*token[^)]*\)", "", s, flags=re.I)    # strip token reminder parentheticals
+    return bool(_MANA_ADD.search(s))
+
+
 def _overlap(a: tuple, b: tuple) -> int:
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
 
@@ -232,55 +251,63 @@ def _condition_id(face_id: str, human: str) -> str:
     return f"cond:{face_id}:c{hashlib.sha1(human.encode('utf-8')).hexdigest()[:8]}"
 
 
-_MODE_WORD = {"first": 1, "second": 2, "third": 3, "fourth": 4}
+_ORD = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}
+
+# A condition is executable ONLY when a pattern represents the WHOLE condition
+# (every conjunct and any negation). Patterns are full-match, ordered specific ->
+# general; anything else stays raw_unresolved / non-executable. This prevents the
+# partial/inverted parses the pt4 review flagged (negation lost, a conjunct dropped,
+# or a general rule firing before a specific one).
+_COND_PATTERNS: list[tuple[str, "callable"]] = [
+    # --- negated families (must precede their positive form) ---
+    (r"(?:you )?do(?: not|n'?t) have an enduring story",
+     lambda m: {"op": "not", "arg": {"op": "state_active", "state": "enduring_story"}}),
+    # --- variable binding (specific) BEFORE any discard rule ---
+    (r"(?:if )?x ?= ?number of cards discarded(?: this way)?",
+     lambda m: {"op": "eq", "left": {"variable": "X"}, "right": {"count": "cards_discarded_this_way"}}),
+    (r"damage equals x,? the number of cards discarded(?: this way)?",
+     lambda m: {"op": "eq", "left": {"variable": "X"}, "right": {"count": "cards_discarded_this_way"}}),
+    # --- state active ---
+    (r"(?:if )?you have an enduring story",
+     lambda m: {"op": "state_active", "state": "enduring_story"}),
+    # --- Nth resolution this turn ---
+    (r"(?:the )?(first|second|third|fourth|fifth) resolution this turn",
+     lambda m: {"op": "eq", "left": {"state": "ability_resolutions_this_turn"}, "right": _ORD[m.group(1)]}),
+    # --- mode selection (only when the WHOLE condition is the mode choice) ---
+    (r"mode (\d+) chosen", lambda m: {"op": "mode_selected", "mode": int(m.group(1))}),
+    (r"mode:? (first|second|third|fourth) option chosen",
+     lambda m: {"op": "mode_selected", "mode": _ORD[m.group(1)]}),
+    # --- event identity with a "this way" binding ---
+    (r"(?:if )?you (?:may )?sacrifice\b.*\bthis way",
+     lambda m: {"op": "event_identity", "event": "sacrifice", "binding": "this_way"}),
+    (r"(?:if )?a land card was discarded this way",
+     lambda m: {"op": "event_identity", "event": "discard", "binding": "this_way", "card_type": "land"}),
+    # --- cast from a specific zone ---
+    (r"(?:when |after )?(?:cast |resolving )?(?:via |from )?flashback",
+     lambda m: {"op": "cast_from", "zone": "graveyard"}),
+    (r"this spell was cast from a graveyard", lambda m: {"op": "cast_from", "zone": "graveyard"}),
+    # --- explicit mana payment ---
+    (r"(?:if )?you pay ((?:\{[^}]+\})+)",
+     lambda m: {"op": "cost_paid", "cost": m.group(1).upper()}),
+]
+
+
+def _norm_condition(text: str) -> str:
+    return re.sub(r"\s+", " ", text.strip().lower().rstrip("."))
 
 
 def _parse_condition(text) -> tuple[dict, str]:
-    """Convert common condition families into machine-evaluable structured
-    expressions. Anything not recognized is returned as an explicitly unresolved,
-    non-executable raw record so pair projection never composes prose. Returns
-    (expression, status) where status is 'structured' or 'raw_unresolved'."""
+    """Return (expression, status). A structured result is emitted ONLY when a
+    pattern fully matches the entire normalized condition (so nothing — including
+    negation or a second conjunct — is silently dropped). Everything else is an
+    explicitly unresolved, non-executable raw record."""
     if not isinstance(text, str):
         return {"raw": text}, "raw_unresolved"
-    t = text.strip().lower()
-    # state active, e.g. "you have an enduring story"
-    if "enduring story" in t:
-        return {"op": "state_active", "state": "enduring_story"}, "structured"
-    # mode selection: "mode 2 chosen" / "mode: second option chosen"
-    m = re.search(r"mode (\d+)", t)
-    if m:
-        return {"op": "mode_selected", "mode": int(m.group(1))}, "structured"
-    m = re.search(r"mode:? (first|second|third|fourth) option", t)
-    if m:
-        return {"op": "mode_selected", "mode": _MODE_WORD[m.group(1)]}, "structured"
-    # event identity with a "this way" binding, e.g. "if you sacrifice ... this way"
-    if "sacrifice" in t and "this way" in t:
-        return {"op": "event_identity", "event": "sacrifice", "binding": "this_way"}, "structured"
-    if "discarded" in t and "this way" in t:
-        ctype = "land" if re.search(r"\bland\b", t) else ("nonland" if "nonland" in t else None)
-        expr = {"op": "event_identity", "event": "discard", "binding": "this_way"}
-        if ctype:
-            expr["card_type"] = ctype
-        return expr, "structured"
-    # variable binding, e.g. "X = number of cards discarded this way"
-    if re.search(r"\bx\b\s*=\s*number of cards discarded", t) or "number of cards discarded" in t:
-        return {"op": "eq", "left": {"variable": "X"},
-                "right": {"count": "cards_discarded_this_way"}}, "structured"
-    # cast from a specific zone
-    if "flashback" in t or "cast from a graveyard" in t or "cast via flashback" in t:
-        return {"op": "cast_from", "zone": "graveyard"}, "structured"
-    # discarded-card type identity (no "this way")
-    if "discard" in t and ("nonland" in t or re.search(r"\bland\b", t)):
-        ctype = "land" if re.search(r"\bland\b", t) and "nonland" not in t else "nonland"
-        return {"op": "card_type_identity", "subject": "discarded_card", "card_type": ctype}, "structured"
-    # explicit mana payment, e.g. "if you pay {1}{G}{U}"
-    m = re.search(r"pay ((?:\{[^}]+\})+)", text)
-    if m:
-        return {"op": "cost_paid", "cost": m.group(1)}, "structured"
-    # numeric threshold "N or more <thing>"
-    m = re.search(r"(\d+)\s+or more\s+(.+)", t)
-    if m:
-        return {"op": "gte", "left": {"count": _slug(m.group(2))}, "right": int(m.group(1))}, "structured"
+    t = _norm_condition(text)
+    for pat, build in _COND_PATTERNS:
+        m = re.fullmatch(pat, t)
+        if m:
+            return build(m), "structured"
     return {"raw": text}, "raw_unresolved"
 
 
@@ -363,7 +390,11 @@ def assemble(repo: Path = REPO) -> dict:
     for e in _load_dicts(repo / "data" / "graph" / "edges.jsonl"):
         props = {k: e[k] for k in ("scope", "timing", "quantity", "optional", "polarity",
                                    "certainty", "note", "condition_ids") if e.get(k)}
-        g.add_edge(e["source"], e["predicate"], e["target"], e.get("provenance"), **props)
+        # every asserted edge must carry provenance; a few Phase 2 template edges
+        # (e.g. gate:storied COUNTS ...) ship with none — cite the template expansion.
+        prov = e.get("provenance") or [{"source": "phase2_template", "source_id": e["source"],
+                                        "derivation": "template_expansion"}]
+        g.add_edge(e["source"], e["predicate"], e["target"], prov, **props)
     # the Phase 2 template edges ARE the authoritative mechanism outputs (gate creates
     # the soldier/army; op:{face}:add-hone places the hone counter); remember them so
     # the duplicate metric measures only LLM-layer leakage past the emit-time drop.
@@ -406,13 +437,15 @@ def _card_data(c: dict) -> dict:
                               "keywords_scryfall", "face_ids") if k in c}
 
 
-def _type_edges(g: Graph, subject: str, type_line: dict) -> None:
-    """CardFace/TokenSpec --HAS_TYPE--> canonical ObjectClass type nodes."""
+def _type_edges(g: Graph, subject: str, type_line: dict, src_kind: str) -> None:
+    """CardFace/TokenSpec --HAS_TYPE--> canonical ObjectClass type nodes (with
+    deterministic derivation provenance on every edge)."""
+    prov = _deriv(src_kind, subject, "type_line")
     for kind, key in (("type", "types"), ("subtype", "subtypes"), ("supertype", "supertypes")):
         for name in type_line.get(key, []) or []:
             nid = f"obj:{kind}:{_slug(name)}"
-            g.add_node(nid, "ObjectClass", name, data={"type_kind": kind, "name": name})
-            g.add_edge(subject, "HAS_TYPE", nid)
+            g.add_node(nid, "ObjectClass", name, data={"type_kind": kind, "name": name}, provenance=[prov])
+            g.add_edge(subject, "HAS_TYPE", nid, [prov])
 
 
 def _materialize_face(g: Graph, f: dict) -> None:
@@ -420,12 +453,14 @@ def _materialize_face(g: Graph, f: dict) -> None:
                               "power", "toughness", "produced_mana", "oracle_text") if f.get(k) is not None}
     g.add_node(f["id"], "CardFace", f["name"], data=data,
                provenance=[f["provenance"]] if f.get("provenance") else None)
-    g.add_edge(f["card_id"], "HAS_FACE", f["id"])
-    _type_edges(g, f["id"], f.get("type_line") or {})
+    g.add_edge(f["card_id"], "HAS_FACE", f["id"], [_deriv("normalized_face", f["id"], "card_id")])
+    _type_edges(g, f["id"], f.get("type_line") or {}, "normalized_face")
     if f.get("mana_cost"):  # structured casting cost
+        prov = _deriv("normalized_face", f["id"], "mana_cost")
         cid = f"cost:{f['id']}:cast"
-        g.add_node(cid, "Cost", f.get("mana_cost_raw") or "cast", data={"kind": "casting", "mana_cost": f["mana_cost"]})
-        g.add_edge(f["id"], "HAS_COST", cid)
+        g.add_node(cid, "Cost", f.get("mana_cost_raw") or "cast",
+                   data={"kind": "casting", "mana_cost": f["mana_cost"]}, provenance=[prov])
+        g.add_edge(f["id"], "HAS_COST", cid, [prov])
 
 
 def _materialize_token(g: Graph, t: dict) -> None:
@@ -435,31 +470,56 @@ def _materialize_token(g: Graph, t: dict) -> None:
             if t.get(k) is not None}
     g.add_node(t["id"], "TokenSpec", t["name"], data=data,
                provenance=[t["provenance"]] if t.get("provenance") else None)
-    _type_edges(g, t["id"], t.get("type_line") or {})
-    if t.get("produced_mana"):
+    _type_edges(g, t["id"], t.get("type_line") or {}, "normalized_token")
+    if t.get("produced_mana"):  # a token's own mana ability (e.g. Treasure)
+        prov = _deriv("normalized_token", t["id"], "produced_mana")
         op = f"op:{t['id']}:produce-mana"
-        g.add_node(op, "Operation", f"{t['name']}: produce mana", data={"produced_mana": t["produced_mana"]})
-        g.add_edge(t["id"], "HAS_ABILITY", op)
-        g.add_edge(op, "PRODUCES", "resource:mana")
+        g.add_node(op, "Operation", f"{t['name']}: produce mana",
+                   data={"produced_mana": t["produced_mana"]}, provenance=[prov])
+        g.add_edge(t["id"], "HAS_ABILITY", op, [prov])
+        g.add_edge(op, "PRODUCES", "resource:mana", [prov])
+
+
+def _face_has_mana_path(g: Graph, fid: str) -> bool:
+    """A face reaches mana either DIRECTLY (an op it owns produces resource:mana) or
+    INDIRECTLY via a token it creates that itself has a mana operation."""
+    uuid_key = fid.split(":")[1] + ":" + fid.split(":")[2]  # 'uuid:index'
+    direct, tokens = False, set()
+    for e in g.edges.values():
+        if uuid_key in e["source"]:
+            if e["predicate"] == "PRODUCES" and e["target"].startswith("resource:mana"):
+                direct = True
+            if e["predicate"] == "CREATES_OBJECT" and e["target"].startswith("token:"):
+                tokens.add(e["target"])
+    if direct:
+        return True
+    for tok in tokens:  # does a created token produce mana (via its own op:{tok}:… )?
+        if any(e["source"].startswith("op:" + tok) and e["predicate"] == "PRODUCES"
+               and e["target"].startswith("resource:mana") for e in g.edges.values()):
+            return True
+    return False
 
 
 def _backfill_mana_operations(g: Graph, faces: dict) -> None:
-    """Guarantee every normalized mana-producing face has at least one mana
-    operation. Lands/rocks already gain one from the Phase 3 layer; faces that
-    produce mana only implicitly (e.g. via a Treasure token) get a synthetic one."""
-    has_mana = set()
+    """Synthesize a DIRECT mana operation only when the face's Oracle text actually
+    contains a mana ability of the card itself. Faces that produce mana only
+    indirectly (Scryfall `produced_mana` via a Treasure token) get NO false direct
+    edge — they are covered mechanistically through the token's own mana operation."""
+    has_direct = set()
     for e in g.edges.values():
         if e["predicate"] == "PRODUCES" and e["target"].startswith("resource:mana"):
             for fid in faces:
                 if fid in e["source"]:
-                    has_mana.add(fid)
+                    has_direct.add(fid)
     for fid, f in faces.items():
-        if f.get("produced_mana") and fid not in has_mana:
+        if (f.get("produced_mana") and fid not in has_direct
+                and _has_direct_mana_ability(f.get("oracle_text") or "")):
+            prov = _deriv("normalized_face", fid, "produced_mana")
             op = f"op:{fid}:produce-mana"
             g.add_node(op, "Operation", f"{f['name']}: produce mana",
-                       data={"produced_mana": f["produced_mana"], "note": "normalized produced_mana backfill"})
-            g.add_edge(fid, "HAS_ABILITY", op)
-            g.add_edge(op, "PRODUCES", "resource:mana")
+                       data={"produced_mana": f["produced_mana"]}, provenance=[prov])
+            g.add_edge(fid, "HAS_ABILITY", op, [prov])
+            g.add_edge(op, "PRODUCES", "resource:mana", [prov])
 
 
 def _merge_face(g: Graph, a: dict, faces: dict, conditions: dict, adv_faces: set) -> None:
@@ -477,7 +537,8 @@ def _merge_face(g: Graph, a: dict, faces: dict, conditions: dict, adv_faces: set
         local_to_global[local] = gid
         local_to_global[f"ability:{local}"] = gid
         g.add_node(gid, "Ability", local, data=dict(ab))
-        g.add_edge(face_id, "HAS_ABILITY", gid)
+        g.add_edge(face_id, "HAS_ABILITY", gid,
+                   [{"source": "phase3_ability", "source_id": gid, "derivation": "ability_namespacing"}])
         ability_spans.append((gid, [tuple(s) for s in (ab.get("oracle_spans") or [])]))
 
     # reification bookkeeping: one Operation per originating ability/oracle clause.
@@ -514,16 +575,18 @@ def _merge_face(g: Graph, a: dict, faces: dict, conditions: dict, adv_faces: set
         if owner is not None:
             op = "op:" + owner.split("ability:", 1)[1]
             if owner not in op_for:
+                rprov = {"source": "reification", "source_id": owner, "derivation": "actor_reification"}
                 g.add_node(op, "Operation", "effect of " + owner)
-                g.add_edge(owner, "CAUSES", op)
+                g.add_edge(owner, "CAUSES", op, [rprov])
                 op_for[owner] = op
             return op_for[owner]
         # no owning ability -> group by oracle clause span
         ck = f"clause:{prov_span[0]}-{prov_span[1]}" if prov_span else "clause:whole"
         if ck not in op_for:
             op = f"op:{face_id}:{ck}"
+            rprov = {"source": "reification", "source_id": face_id, "derivation": "actor_reification"}
             g.add_node(op, "Operation", "card-level effect")
-            g.add_edge(face_id, "HAS_ABILITY", op)
+            g.add_edge(face_id, "HAS_ABILITY", op, [rprov])
             op_for[ck] = op
         return op_for[ck]
 
@@ -657,6 +720,11 @@ def _finalize(g: Graph, repo: Path, conditions: dict, phase2_edge_ids: set) -> d
     return stats
 
 
+def _materialized_edges_without_provenance(g: Graph) -> int:
+    """Every asserted primitive edge must carry provenance (project principle)."""
+    return sum(1 for e in g.edges.values() if not e.get("provenance"))
+
+
 def _completeness(g: Graph, repo: Path, conditions: dict) -> dict:
     """Completeness + path-level-duplicate metrics (Phase 4 v3 gate)."""
     faces = {f["id"]: f for f in _load_dicts(repo / "data" / "normalized" / "faces.jsonl")}
@@ -679,10 +747,16 @@ def _completeness(g: Graph, repo: Path, conditions: dict) -> dict:
             faces_missing_type_edges += 1
     faces_missing_cost = [fid for fid, f in faces.items()
                           if f.get("mana_cost") and not out_edges(fid, "HAS_COST")]
+    # a mana producer must reach mana MECHANISTICALLY (direct op, or a token it
+    # creates that itself produces mana) — not via a synthesized false direct edge.
     mana_faces = {fid for fid, f in faces.items() if f.get("produced_mana")}
-    mana_faces_without_op = [fid for fid in mana_faces
-                             if not any(e["predicate"] == "PRODUCES" and e["target"].startswith("resource:mana")
-                                        and fid in e["source"] for e in g.edges.values())]
+    mana_faces_without_path = [fid for fid in mana_faces if not _face_has_mana_path(g, fid)]
+    # indirect producers (produced_mana but no direct mana ability) must NOT have a
+    # synthetic direct mana operation fabricated for them.
+    false_direct_mana = [fid for fid, f in faces.items()
+                         if f.get("produced_mana") and not _has_direct_mana_ability(f.get("oracle_text") or "")
+                         and any(e["predicate"] == "PRODUCES" and e["target"].startswith("resource:mana")
+                                 and e["source"] == f"op:{fid}:produce-mana" for e in g.edges.values())]
     tokens_missing_data = [tid for tid in tokens
                            if not token_nodes.get(tid, {}).get("data", {}).get("type_line")]
 
@@ -706,7 +780,9 @@ def _completeness(g: Graph, repo: Path, conditions: dict) -> dict:
         "faces_missing_type_data": len(faces_missing_type_data),
         "faces_missing_type_edges": faces_missing_type_edges,
         "faces_missing_cost_edge": len(faces_missing_cost),
-        "mana_faces_without_operation": len(mana_faces_without_op),
+        "mana_faces_without_mana_path": len(mana_faces_without_path),
+        "false_direct_mana_operations": len(false_direct_mana),
+        "materialized_edges_without_provenance": _materialized_edges_without_provenance(g),
         "tokens_missing_characteristics": len(tokens_missing_data),
         "raw_executable_conditions": len(raw_executable),
         "raw_conditions_not_marked_unresolved": len(raw_not_unresolved),
@@ -723,7 +799,8 @@ def _report(repo: Path, stats: dict, v: dict) -> None:
             "leaked_ability_aliases", "unresolved_condition_refs", "edges_missing_id",
             "template_duplicate_edges", "face_to_rule_amass_edges", "dangling_edges",
             "faces_missing_type_data", "faces_missing_type_edges", "faces_missing_cost_edge",
-            "mana_faces_without_operation", "tokens_missing_characteristics",
+            "mana_faces_without_mana_path", "false_direct_mana_operations",
+            "materialized_edges_without_provenance", "tokens_missing_characteristics",
             "raw_executable_conditions", "raw_conditions_not_marked_unresolved",
             "llm_reminder_adventure_exile_paths"]
     L = ["# HOB Phase 4 — Global Assembly (v3)", "",

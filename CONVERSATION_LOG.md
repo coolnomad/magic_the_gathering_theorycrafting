@@ -1516,3 +1516,71 @@ Per your instruction, I did **not** proceed to pair projection. The one remainin
 
 ### [2026-08-15 03:40] USER
 read docs/hob-kg-phase4-review-pt3.md
+
+### [2026-08-15 11:35] ASSISTANT
+Phase 4 v2 passed the structural gate; the reviewer now wants a completeness pass (v3) with four new blocking issues. Let me inspect the normalized source schemas and the Adventure template structure to design it precisely.
+
+Now let me inspect the Adventure template structure, role distribution, LLM exile ops, and `resolve_node_type`, to design issues 4 and the type/cost/mana materialization.
+
+The Adventure template path is clear: `op:{card}:1:resolve â†’ PRODUCES â†’ state:{card}:adventure-exiled â†’ ENABLES â†’ op:{card}:0:cast-from-exile â†’ MOVES_FROM zone:exile`, one per each of 17 adventure cards. Now let me find the LLM reminder-text exile duplicates on adventure faces.
+
+The adventure duplicates need care â€” some adventure faces (e.g. Flameshape) have a genuine *effect* exile distinct from the adventure self-exile reminder. Let me read the provenance text of each to distinguish the reminder self-exile from real effects.
+
+Clear now: the reminder self-exile edges say **"exile this card"** (12 of them); Gone Fishing ("exile two target creatures") and Flameshape ("exile them face down") are genuine *effect* exiles to keep. That gives a precise, safe rule. Let me pull the condition texts to build the structured-condition parser.
+
+These conditions are highly heterogeneous â€” mechanical parsing of all 99 is unrealistic and unsafe. The reviewer's actual gate is: convert the *common families*, and mark everything else **explicitly unresolved + non-executable** (so `raw_executable_conditions == 0`). Let me quickly audit the other four templated mechanics for path duplicates, then implement v3.
+
+Now I have everything needed. Confirmed: Phase 2 owns `gate:storied PRODUCES state:enduring_story`, so the LLM's `PRODUCES state:enduring_story` is an endpoint-detectable duplicate too. Let me implement v3. First, extend `HAS_ABILITY` domain (tokens can have mana abilities) and the template-owned set.
+
+Now add the structured-condition parser, provenance-merge method, and condition status tagging.
+
+Now the Graph `merge_provenance` method and updated `_seed_conditions` with status tagging:
+
+Now rewrite the `assemble()` body to materialize card/face/token characteristics, pass adventure faces, and backfill mana operations.
+
+Now update `_merge_face` for adventure dedup, template-provenance merge, and condition status:
+
+Now update `_finalize` with the new v3 completeness metrics. Let me read it.
+
+Now add the v3 completeness metrics to `_finalize`. I'll compute them and insert into stats:
+
+Now let me run v3 and check all metrics.
+
+All 17 zero-gates pass; adventure faces = resolution paths = 17. Let me verify specifics (type/cost/token materialization, effect-exiles preserved, provenance merged).
+
+Everything materialized correctly (the error was just my inspection script referencing a Phase 2 seed condition without an `expression` key â€” the assembler uses `.get`). HAS_TYPE went from 1â†’538, HAS_COST 12â†’209, tokens fully populated, effect-exiles preserved, adventure provenance merged. Let me update the report to v3 and add the acceptance tests.
+
+Now add the v3 acceptance tests to the existing test file:
+
+All 88 tests pass. Let me do a final sanity check on the reviewer's example queries (tribal + Island mana), then document and commit.
+
+The graph now answers the reviewer's foundational queries (14 Goblins, 55 legendaries, Islands produce blue mana). Let me document the v3 gate and append the lab notebook.
+
+Pushed â€” `9bc063a` (the LF/CRLF warnings are benign autocrlf normalization). Ran unattended.
+
+## Phase 4 v3 â€” completeness + path-level dedup gate
+
+Review pt3 accepted v2's structural integrity but flagged it as a *structural, not yet mechanistic* assembly. All four new blocking issues are fixed, and the gate now has **17 zero-metrics** (up from 9), all passing.
+
+| v3 completeness metric | before | after |
+|---|---|---|
+| faces missing type data / type edges | 210 / 209 | **0 / 0** |
+| faces missing cost edge | 197 | **0** |
+| mana producers without a mana operation | ~10 | **0** |
+| tokens missing characteristics | 11 | **0** |
+| raw executable conditions | n/a | **0** |
+| LLM reminder Adventure-exile paths | â‰¥8 | **0** |
+| HAS_TYPE / HAS_COST edges | 1 / 12 | **538 / 209** |
+
+**Graph:** 1,777 nodes Â· 2,738 edges Â· 145 conditions (67 structured + 78 explicitly-unresolved) Â· **88 tests pass**.
+
+**Issue by issue:**
+1. **Normalized characteristics materialized** â€” every face node carries `type_line/mana_cost/power/toughness/produced_mana/oracle_text/role`; every card carries `layout/rarity/color_identity/cmc/ids`. Canonical `HAS_TYPE â†’ obj:{type,subtype,supertype}` nodes, structured casting-cost nodes, and a mana operation per producer. Verified the reviewer's queries now resolve: **14 Goblins, 55 Legendaries, Island â†’ `resource:mana-blue`**.
+2. **All 12 tokens** retain full data + type/mana edges (extended `HAS_ABILITY` to admit TokenSpec so a Treasure can own its mana ability).
+3. **Conditions** â€” `_parse_condition` converts common families to machine-evaluable expressions (`state_active`, `mode_selected`, `event_identity`, `eq`, `gte`, `cast_from`, `cost_paid`, `card_type_identity`); the rest are `raw_unresolved`/`executable:false`. No raw condition is executable.
+4. **Path-level Adventure dedup** â€” all 17 authoritative object-bound resolution paths preserved; the 12 LLM "(Then exile this cardâ€¦)" reminder edges dropped with **provenance merged onto the template path**. Distinguished by provenance text so genuine effect-exiles (Flameshape's "exile them face down", Gone Fishing's "exile two target creatures") are **kept**. Generalized the same provenance-merge to Storied's `enduring_story` and the recruit/amass/hone endpoint owners.
+
+Per your standing instruction, I did **not** start pair projection. The one remaining pre-Phase-5 item I'd still flag is refining the coarse `CAUSES`-to-object/resource/state edges into explicit `Effect` nodes. Want me to do that `Effect`-node refinement next, or hold for your review of v3?
+
+### [2026-08-15 11:50] USER
+read docs/hob-kg-phase4-review-pt4.md

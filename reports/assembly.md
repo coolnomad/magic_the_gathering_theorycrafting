@@ -1,8 +1,8 @@
 # HOB Phase 4 — Global Assembly (v3)
 
-- **nodes**: 1777
-- **edges**: 2738
-- **conditions (self-contained)**: 145 (67 structured, 78 raw-unresolved)
+- **nodes**: 1772
+- **edges**: 2728
+- **conditions (self-contained)**: 145 (64 structured, 81 raw-unresolved)
 - **adventure faces / resolution paths**: 17 / 17
 
 ## Gate metrics (every one must be 0)
@@ -19,7 +19,9 @@
 - **faces_missing_type_data**: 0  OK
 - **faces_missing_type_edges**: 0  OK
 - **faces_missing_cost_edge**: 0  OK
-- **mana_faces_without_operation**: 0  OK
+- **mana_faces_without_mana_path**: 0  OK
+- **false_direct_mana_operations**: 0  OK
+- **materialized_edges_without_provenance**: 0  OK
 - **tokens_missing_characteristics**: 0  OK
 - **raw_executable_conditions**: 0  OK
 - **raw_conditions_not_marked_unresolved**: 0  OK
@@ -28,7 +30,7 @@
 ## Node types
 
 - Ability: 447
-- Operation: 407
+- Operation: 402
 - CardFace: 210
 - Cost: 206
 - Card: 193
@@ -46,7 +48,7 @@
 ## Edge predicates
 
 - HAS_TYPE: 538
-- HAS_ABILITY: 499
+- HAS_ABILITY: 494
 - CAUSES: 340
 - HAS_FACE: 210
 - HAS_COST: 209
@@ -57,7 +59,7 @@
 - MODIFIES: 80
 - HAS_KEYWORD: 80
 - QUALIFIES_FOR: 78
-- PRODUCES: 70
+- PRODUCES: 65
 - ENABLES: 60
 - SCALES_WITH: 35
 - ADDS_COUNTER: 34

@@ -153,7 +153,8 @@ def test_all_faces_and_cards_present(stats):
 # --- v3 completeness gate (blocking issues 1 & 2) ----------------------------
 def test_completeness_gate_all_zero(stats):
     for k in ("faces_missing_type_data", "faces_missing_type_edges", "faces_missing_cost_edge",
-              "mana_faces_without_operation", "tokens_missing_characteristics"):
+              "mana_faces_without_mana_path", "false_direct_mana_operations",
+              "materialized_edges_without_provenance", "tokens_missing_characteristics"):
         assert stats[k] == 0, f"{k} = {stats[k]} (must be 0)"
 
 
@@ -204,3 +205,42 @@ def test_adventure_path_dedup(stats, edges):
     # genuine (non-self-exile) adventure effect-exiles are retained
     assert any(e["predicate"] == "MOVES_TO" and e["target"] == "zone:exile"
                and "f48f2a9b" in e["source"] and ":1:" in e["source"] for e in edges)
+
+
+# --- v4 semantic-safety gate (review pt4) ------------------------------------
+def test_condition_parser_lossless_or_unresolved():
+    from hobkg.assemble import _parse_condition
+    # negation must NOT become a positive assertion
+    expr, st = _parse_condition("you do not have an enduring story")
+    assert st == "structured" and expr == {"op": "not", "arg": {"op": "state_active", "state": "enduring_story"}}
+    # a dropped conjunct (combat-damage requirement) => unresolved, not a bare mode
+    _, st = _parse_condition("combat damage to a player, mode: second option chosen")
+    assert st == "raw_unresolved"
+    # specific variable-binding rule beats the general discard rule
+    expr, st = _parse_condition("X = number of cards discarded this way")
+    assert st == "structured" and expr["op"] == "eq" and expr["left"] == {"variable": "X"}
+    # intended conversion that was previously missed
+    expr, st = _parse_condition("third resolution this turn")
+    assert st == "structured" and expr == {"op": "eq",
+                                           "left": {"state": "ability_resolutions_this_turn"}, "right": 3}
+
+
+def test_indirect_mana_has_no_false_direct_edge(stats, edges):
+    assert stats["false_direct_mana_operations"] == 0
+    assert stats["mana_faces_without_mana_path"] == 0
+    # Long-Bodied Grey Dog produces mana only via a Treasure token — no direct op
+    dog = "face:6f83da19-fd89-44ec-88f3-0c3fddfbd1b2:0"
+    assert not any(e["source"] == f"op:{dog}:produce-mana" for e in edges)
+    assert any(e["predicate"] == "CREATES_OBJECT" and e["target"] == "token:treasure"
+               and dog.split(":")[1] in e["source"] for e in edges)
+    assert any(e["source"].startswith("op:token:treasure") and e["target"].startswith("resource:mana")
+               for e in edges)
+
+
+def test_every_materialized_edge_has_provenance(stats, edges):
+    assert stats["materialized_edges_without_provenance"] == 0
+    assert all(e.get("provenance") for e in edges)
+    # a materialized primitive edge cites its deterministic derivation
+    ht = next(e for e in edges if e["predicate"] == "HAS_TYPE"
+              and e["source"].startswith("face:") and e["target"].startswith("obj:type:"))
+    assert any(p.get("derivation") == "phase4_materialization" for p in ht["provenance"])
