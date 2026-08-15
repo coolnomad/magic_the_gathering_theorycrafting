@@ -725,3 +725,18 @@ This is a sanctioned corrective re-freeze of Phase 4 (reviewer-requested). Globa
 **Next: Phase 5 Part 2 — pairwise LLM audit** (now unblocked): adjudicate the 1 `participant_unresolved` supply path; feed likely-missed pairs (shared vocabulary but no path, named references, replacement/prevention, copy/self, ambiguous "this way"/"that card" scope) to sub-agents; the audit prompt must return a primitive-grounded path or NO_RELATION.
 
 Refs: `src/hobkg/assemble.py` (`_canonicalize_count_classes`); `tests/test_assemble.py`; `data/graph_global/`
+
+---
+
+## [2026-08-16 12:10] CORRECTION — storied contributor counts (record accuracy)
+
+Reviewer accepted `eaad69d` and corrected two count descriptions in the record (append-only, so noted here rather than edited above):
+
+- The storied contributors are **77 entities = 74 card faces + 3 token specifications**, not "75 qualifying cards" (the earlier phrasing conflated faces/tokens and miscounted). The stronger, now-tested invariant: the set of entities carrying a counted `HAS_TYPE` **equals** the set with `QUALIFIES_FOR gate:storied` — identical 77-entity sets.
+- The prior canonicalization entry's "21 artifact **faces**" is precisely **18 card faces + 3 token specifications** = 21. Per-class: artifact 21 (18+3), legendary 55 (55+0), saga 8 (8+0).
+
+`tests/test_assemble.py::test_count_gate_classes_canonicalized` strengthened from "each counted class has ≥1 HAS_TYPE" to the exact **set equality** (`contributors == qualifiers`, len 77, 74 faces + 3 tokens). 109 tests pass; graph/projection unchanged.
+
+**Recorded for Phase 5 Part 2 `COUNTS`-based traversal (reviewer's rule):** count **distinct controlled permanents**, not type memberships — a legendary artifact contributes ONE object toward a threshold, not two. Any future gate-threshold grammar must dedupe contributors by permanent, not by (permanent × counted-type).
+
+Refs: `tests/test_assemble.py`; `data/graph_global/`

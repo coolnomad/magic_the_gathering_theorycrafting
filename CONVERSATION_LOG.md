@@ -2040,3 +2040,100 @@ The frozen Part 1 output is internally consistent:
 The only modified files after running the entire test suite are the previously noted Phase 3 review files being reordered by reconciliation tests; the Phase 5 and global-graph outputs remain clean.
 
 Verdict: Phase 5 Part 1 is properly frozen. Proceed to the Storied alias canonicalization, then Phase 5 Part 2ΓÇÖs targeted LLM audit.
+
+### [2026-08-15 18:52] ASSISTANT
+Phase 5 Part 1 accepted. I have the go-ahead: first the Storied alias canonicalization (a reviewer-sanctioned correction to the frozen Phase 4 graph), then Part 2. Let me scope it â€” check exactly which bare `obj:{name}` count-classes exist and whether they're only `COUNTS` targets.
+
+Clean scope: exactly the 3 Storied classes (`obj:artifact`, `obj:legendary`, `obj:saga`) are the only bare `obj:{name}` nodes that are `COUNTS` targets, and each has an existing canonical type node. All other bare `obj:` nodes are free-text object classes I must not touch. Let me add a strictly-scoped canonicalization to the assembler.
+
+Understood â€” the trigger now is **newlines in the command** (a multi-line `python -c "â€¦"`); single-line commands like `python -m hobkg.cli â€¦` don't prompt. I'll switch to single-line commands and scratch script files for anything complex. Let me first finish the canonicalization function, then I'll set up a clean workflow.
+
+Now let me run assemble + project + tests â€” all single-line commands (which don't prompt):
+
+Node count dropped by 3 (orphans removed), edges intact, 0 violations. Let me write a scratch verification script (run single-line to avoid prompts):
+
+Canonicalization works â€” the gate now connects to 21 artifact / 55 legendary / 8 saga faces. Let me add a regression test, re-run project, delete the scratch file, and run the suite.
+
+Projection unchanged (as expected â€” it uses `QUALIFIES_FOR`, not `COUNTS`). Let me run the full suite and verify determinism.
+
+109 tests pass, byte-identical rebuild confirmed. Let me record the canonicalization and commit.
+
+Commit landed (`eaad69d`); push finishing in the background. Now let me address the workflow issue definitively and update the memory â€” the trigger this time was **newlines in the command** (a multi-line `python -c`), not the `python` prefix.
+
+Synced â€” remote `main` is now at `eaad69d` (status shows in sync). Both the Storied canonicalization and the workflow fix are done.
+
+## Two things this turn
+
+**1. The approval issue â€” root cause found (again).** Each time it was a *different* command shape breaking first-token matching:
+- earlier: `cd â€¦` prefix, then `PYTHONPATH=â€¦` prefix, then heredocs
+- this time: **newlines** in a multi-line `python -c "â€¦"` â€” the embedded newline breaks the `Bash(python:*)` match even though it starts with `python`.
+
+Fix going forward (now in memory): every command stays **on one line**; for anything beyond a trivial check I **Write a scratch `.py` and run `python scratch_x.py`** (single line), then delete it. That's exactly what I did for the verification here â€” `python scratch_verify.py` ran, then I `rm`'d it. Single-line `python -m hobkg.cli â€¦`, `python -m pytest`, and `git â€¦ -m "â€¦"` all ran unattended.
+
+**2. Storied count-class canonicalization â€” the Part 2 prerequisite (`eaad69d`).** `assemble._canonicalize_count_classes` remaps the Phase 2 bare count classes onto the canonical Phase 4 type nodes:
+- `gate:storied COUNTS obj:artifact/legendary/saga` â†’ `obj:type:artifact` / `obj:supertype:legendary` / `obj:subtype:saga`
+- the gate now connects to its **21 artifact / 55 legendary / 8 saga** contributor faces via `HAS_TYPE`; the 3 orphan nodes are dropped.
+- **Strictly scoped** to bare `obj:` nodes that are `COUNTS` targets *and* have a canonical type node â€” the ~55 free-text `obj:` object classes are untouched.
+
+Reviewer-sanctioned corrective re-freeze of Phase 4: **1,769 nodes** (âˆ’3 orphans) / 2,728 edges / all gate metrics 0 / byte-identical rebuild (md5-verified). Projection is unchanged (5,278 metaedges; `CONTRIBUTES_TO_GATE` still 666 â€” it uses `QUALIFIES_FOR`, so it never depended on the mismatch; the graph is now consistent for any future `COUNTS` grammar). **109 tests pass** (+1 canonicalization test).
+
+Both prerequisites the reviewer set for Phase 5 Part 2 are now clear (participant-unresolved candidate identified; Storied aliases canonicalized). I'll hold here for your go-ahead before starting **Part 2 â€” the pairwise LLM audit**.
+
+### [2026-08-15 18:53] USER
+<task-notification>
+<task-id>bsj5i5wd1</task-id>
+<tool-use-id>toolu_01SRASqXpbFxtCYi5RJtXJrm</tool-use-id>
+<output-file>C:\Users\dimuc\AppData\Local\Temp\claude\C--GitHub-magic-the-gathering-theorycrafting\619ffa89-e329-4ea4-be6f-bee02122fca6\tasks\bsj5i5wd1.output</output-file>
+<status>completed</status>
+<summary>Background command "Ensure push synced" completed (exit code 0)</summary>
+</task-notification>
+
+### [2026-08-15 18:53] ASSISTANT
+Confirmed â€” that was the redundant second push completing as a no-op (the first background push already synced `main` to `eaad69d`). Nothing further needed.
+
+Status: Storied canonicalization committed and pushed; both Phase 5 Part 2 prerequisites are cleared. Holding for your go-ahead to start **Part 2 â€” the pairwise LLM audit**.
+
+### [2026-08-15 19:04] USER
+Commit [`eaad69d`](https://github.com/coolnomad/magic_the_gathering_theorycrafting/commit/eaad69d496200eb1bff3fce8ab5c8f9073106a96) correctly canonicalizes the Storied count classes.
+
+Verified:
+
+* All 109 tests pass.
+* The three orphan aliases are removed.
+* `gate:storied` now counts the canonical nodes:
+
+```text
+obj:type:artifact
+obj:supertype:legendary
+obj:subtype:saga
+```
+
+* All three canonical classes connect to qualifying entities through `HAS_TYPE`.
+* The rewritten `COUNTS` edges have new stable IDs and retain their provenance.
+* No unrelated free-text `obj:*` classes were rewritten.
+* All Phase 4 integrity gates remain zero.
+* The graph rebuild is byte-identical.
+* Phase 5 Part 1 remains unchanged at 5,278 metaedges.
+
+I also verified the stronger set-level invariant:
+
+```text
+entities with a counted HAS_TYPE
+    ==
+entities with QUALIFIES_FOR gate:storied
+```
+
+Both sets contain exactly 77 entities:
+
+* 74 card faces;
+* 3 qualifying token specifications.
+
+Two small documentation/testing corrections would improve the record:
+
+* The notebookΓÇÖs earlier ΓÇ£75 qualifying cardsΓÇ¥ should be ΓÇ£74 card contributors plus 3 tokens.ΓÇ¥
+* The new paragraph says 21 artifact ΓÇ£faces,ΓÇ¥ but that is actually 18 card faces plus 3 token specifications.
+* The test currently checks that each counted class has at least one `HAS_TYPE` connection. It would be stronger to assert the exact 77-entity set equality above.
+
+These are not implementation blockers. One rule for the future `COUNTS` traversal is important: count distinct controlled permanents, not type memberships. A legendary artifact contributes one object toward the threshold, not two.
+
+Verdict: the Storied prerequisite is satisfied. Phase 5 Part 2 is unblocked.

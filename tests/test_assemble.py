@@ -154,11 +154,16 @@ def test_count_gate_classes_canonicalized(nodes, edges):
     # the Phase 2 bare count classes are unified with the Phase 4 canonical type nodes
     for bare in ("obj:artifact", "obj:legendary", "obj:saga"):
         assert bare not in nodes
-    counts = [e["target"] for e in edges if e["predicate"] == "COUNTS" and e["source"] == "gate:storied"]
-    assert set(counts) == {"obj:type:artifact", "obj:supertype:legendary", "obj:subtype:saga"}
-    # each counted class now connects to the faces that carry it (gate not orphaned)
-    for cls in counts:
-        assert any(e["predicate"] == "HAS_TYPE" and e["target"] == cls for e in edges)
+    counted = {e["target"] for e in edges if e["predicate"] == "COUNTS" and e["source"] == "gate:storied"}
+    assert counted == {"obj:type:artifact", "obj:supertype:legendary", "obj:subtype:saga"}
+    # STRONG invariant: the entities that carry a counted type are EXACTLY the entities
+    # that qualify for the storied gate — 77 = 74 card faces + 3 token specifications.
+    contributors = {e["source"] for e in edges if e["predicate"] == "HAS_TYPE" and e["target"] in counted}
+    qualifiers = {e["source"] for e in edges if e["predicate"] == "QUALIFIES_FOR" and e["target"] == "gate:storied"}
+    assert contributors == qualifiers
+    assert len(contributors) == 77
+    assert sum(1 for x in contributors if nodes[x]["type"] == "CardFace") == 74
+    assert sum(1 for x in contributors if nodes[x]["type"] == "TokenSpec") == 3
 
 
 # --- v3 completeness gate (blocking issues 1 & 2) ----------------------------
