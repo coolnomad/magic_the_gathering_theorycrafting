@@ -740,3 +740,23 @@ Reviewer accepted `eaad69d` and corrected two count descriptions in the record (
 **Recorded for Phase 5 Part 2 `COUNTS`-based traversal (reviewer's rule):** count **distinct controlled permanents**, not type memberships — a legendary artifact contributes ONE object toward a threshold, not two. Any future gate-threshold grammar must dedupe contributors by permanent, not by (permanent × counted-type).
 
 Refs: `tests/test_assemble.py`; `data/graph_global/`
+
+---
+
+## [2026-08-16 13:30] EXPERIMENT — Phase 5 Part 2 Stage A: audit candidate selection
+
+Began Part 2 (pairwise LLM audit) with the reviewer's go-ahead. Part 2 = a deterministic control plane that selects the *bounded* set of likely-missed pairs (Stage A), then sub-agents adjudicate each (Stage B), per the two-plane no-API architecture ([[phase3-llm-via-subagents]]).
+
+`src/hobkg/audit.py::build_candidates` (CLI `python -m hobkg.cli audit-candidates`) emits `data/graph_global/audit_candidates.jsonl` — **134 ordered candidate pairs** (vs 37,249 brute-force), one per signal bucket:
+- `named_reference` 57 — A's Oracle names a distinctive proper-noun token of card B (directed);
+- `shared_vocabulary` 76 — A,B share a moderately-rare (2–8 card) functional concept node (resource/event/counter/token/gate) with no asserted mechanical path (both orientations; lower precision);
+- `ambiguous_scope` 45 — a card carrying "this way"/"that card/creature/permanent" scope (attached as evidence);
+- `replacement_prevention` 3 — A REPLACES/PREVENTS a concept B produces/causes (directed);
+- `participant_unresolved` 1 — the Part 1 non-asserted supply (Gandalf → Confusticate);
+- `copy_effect` 1 — copy interactions (grammar-invisible).
+
+**high_signal = 62** (a bucket other than shared_vocabulary/ambiguous_scope); `shared_vocabulary_only = 72`. Each record carries source/target names, buckets, per-bucket evidence, and any existing mechanical relations. Deterministic byte-identical rebuild; 5 Stage-A tests pass (schema, bounded <500, named-reference directed, the 1 participant_unresolved present, no asserted pair leaks into shared_vocabulary).
+
+**Next (Stage B):** batched sub-agents adjudicate the candidates — each returns a primitive-grounded relation path or NO_RELATION; ingest + validate grounding against the frozen graph; emit `audit_results.jsonl`. Starting with the 62 high-signal pairs.
+
+Refs: `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/audit_candidates.jsonl`; spec §"Pairwise LLM audit"

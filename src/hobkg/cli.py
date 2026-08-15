@@ -56,6 +56,9 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "project":
         from . import project
         print(json.dumps(project.project(), indent=2))
+    elif cmd == "audit-candidates":
+        from . import audit
+        print(json.dumps(audit.build_candidates(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

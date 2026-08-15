@@ -2137,3 +2137,25 @@ Two small documentation/testing corrections would improve the record:
 These are not implementation blockers. One rule for the future `COUNTS` traversal is important: count distinct controlled permanents, not type memberships. A legendary artifact contributes one object toward the threshold, not two.
 
 Verdict: the Storied prerequisite is satisfied. Phase 5 Part 2 is unblocked.
+
+### [2026-08-15 19:06] ASSISTANT
+Accepted â€” three small doc/test corrections, and Part 2 is unblocked. Let me verify the exact entity breakdown, then strengthen the test to the set-equality invariant.
+
+Exactly matches the reviewer: 77 = 74 faces + 3 tokens; artifact = 18 faces + 3 tokens. Let me strengthen the test to the set-equality invariant.
+
+Now the append-only notebook correction with accurate counts and the Part 2 COUNTS rule:
+
+Committed (`c089f90`, 3 files â€” test + notebook + log; graph unchanged). Let me push.
+
+Pushed â€” `c089f90`. All three corrections applied.
+
+- **Test strengthened** from "each counted class has â‰¥1 `HAS_TYPE`" to the exact **set equality**: contributors (`HAS_TYPE` a counted class) `==` qualifiers (`QUALIFIES_FOR gate:storied`) â€” **77 entities = 74 card faces + 3 token specs**, asserted precisely.
+- **Count corrections** recorded in an append-only notebook entry: "75 qualifying cards" â†’ 74 faces + 3 tokens; artifact = 18 faces + 3 tokens = 21 (legendary 55, saga 8).
+- **Part 2 rule recorded**: a future `COUNTS` threshold grammar must count **distinct controlled permanents**, not type memberships â€” a legendary artifact contributes one object, not two.
+
+109 tests pass; graph and Part 1 projection unchanged. (And every command this turn ran single-line, no prompts.)
+
+The Storied prerequisite is fully satisfied and **Phase 5 Part 2 is unblocked**. I'll wait for your go-ahead before starting the pairwise LLM audit â€” which, when you're ready, will: adjudicate the one `participant_unresolved` supply path, and feed likely-missed pairs (shared vocabulary but no derived path, direct named references, replacement/prevention, copy/self-pairs, ambiguous "this way"/"that card" scope) to sub-agents, each required to return either a primitive-grounded path or `NO_RELATION`.
+
+### [2026-08-15 19:06] USER
+proceed to Phase 5 Part 2
