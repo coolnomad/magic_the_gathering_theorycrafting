@@ -2159,3 +2159,69 @@ The Storied prerequisite is fully satisfied and **Phase 5 Part 2 is unblocked**.
 
 ### [2026-08-15 19:06] USER
 proceed to Phase 5 Part 2
+
+### [2026-08-15 19:17] ASSISTANT
+Proceeding to Phase 5 Part 2 â€” the pairwise LLM audit. Per the project constraint (no Anthropic API; sub-agents are the "LLM") and the spec, the architecture is: **(A)** a deterministic control-plane that selects only the *likely-missed* candidate pairs into tight buckets, then **(B)** sub-agents adjudicate each, returning a primitive-grounded path or `NO_RELATION`.
+
+Let me first build Stage A (candidate generation) and size the buckets before spawning any agents. Let me inspect the signals available.
+
+Bucket sizes are clear: high-signal buckets are small (participant_unresolved 1, named-reference 57, replacement/prevention 15 cards, copy 1), while shared-rare-vocab is the large low-precision catch-all (220). This tells me how to bound the sub-agent fan-out. Let me build the deterministic candidate generator (Stage A) as a proper module.
+
+134 candidate pairs â€” very tractable (high-signal 62: named-reference, participant-unresolved, replacement/prevention, copy; plus 72 lower-precision shared-vocabulary). Let me add a determinism/schema test and commit Stage A before spawning any agents.
+
+Stage A tests pass. Let me record it and commit, then move to the sub-agent audit.
+
+Stage A pushed (`7de394e`). Now Stage B â€” the sub-agent audit. The clean design (mirroring Phase 3): write enriched batch packets to files, have each sub-agent read its batch and write verdicts (they have file tools), then deterministically ingest + validate. Let me add `build_batches` and `ingest` to `audit.py`.
+
+Now append `build_batches` and `ingest` to `audit.py`:
+
+62 high-signal candidates in 6 batches. Let me sanity-check a batch file, then spawn the sub-agent adjudicators.
+
+Good catch before spawning agents â€” the `named_reference` bucket is polluted by tribal tokens ("Goblin", "Elf" as the first word of a card name), which are creature *types*, not proper-name references. Let me exclude known type/subtype names so the audit isn't wasted on tribal false positives.
+
+named_reference dropped 57â†’39 (18 tribal false positives removed); high-signal now 44. Let me verify the references are genuine now and rebuild batches.
+
+Now the references are genuine (legendary-name / legend-rule interactions â€” Smaugâ†”Smaug, Gollumâ†”Gollum, Bilboâ†”Bilbo). Weak ones the agents will correctly reject. Let me rebuild batches and spawn the adjudicators.
+
+Now spawning 4 sub-agent adjudicators in parallel â€” each reads its batch, adjudicates each pair grounded in printed card text, and writes verdicts to a result file.
+
+All 4 adjudicators finished â€” ~9 RELATION, ~35 NO_RELATION. The relations found look genuine (Smaug Treasure-mana synergies, Thranduil Elf-ETB trigger, Bard draw-replacement amplification, Desolation Dragon-mana). Let me ingest and validate the grounding.
+
+All 44 verdicts ingested: **9 grounded relations accepted** (0 rejected as ungrounded), 35 NO_RELATION. Let me inspect the accepted relations.
+
+These 9 are genuine synergies the mechanical grammar couldn't see â€” Treasure-mana feedback loops, Elf-ETB triggers, Amass-counter triggers, Dragon-only mana enabling Dragon spells, and Bard's draw-replacement amplifying draw payoffs. Let me wire up the CLI + a report, add ingest tests, and commit.
+
+Now add a report writer to `ingest` and ingest tests:
+
+117 tests pass. Let me record Stage B and commit the audit.
+
+Pushed â€” `75b2097`. **Phase 5 Part 2 (high-signal pass) is done.**
+
+## Phase 5 Part 2 â€” pairwise LLM audit
+
+**Architecture** (two-plane, no API): a deterministic control plane selects only the *likely-missed* pairs; sub-agents adjudicate; deterministic ingest validates grounding.
+
+**Stage A â€” candidate selection** (`audit.build_candidates`): 116 bounded candidates vs the 37,249 brute-force scan, in signal buckets â€” named_reference 39, shared_vocabulary 76, replacement_prevention 3, participant_unresolved 1, copy 1 (I first fixed a tribal false-positive leak so "Goblin"/"Elf" name-words don't count as references).
+
+**Stage B â€” sub-agent audit**: 4 parallel sub-agents (the "LLM") each read a batch of the 44 high-signal candidates enriched with both cards' oracle text, and returned RELATION (grounded in exact printed phrases of both cards) or NO_RELATION â€” with strict instructions that tribe/keyword/legend-rule overlap is *not* a relation. `ingest` validated every RELATION's grounding against the actual card text.
+
+**Result: 44 verdicts â†’ 9 grounded relations, 0 ungrounded, 35 NO_RELATION.** The 9 are real synergies the mechanical grammar structurally can't see:
+
+| Type | Relation |
+|---|---|
+| SUPPLIES_RESOURCE | Smaug, Wicked Worm â†” Smaug the Magnificent (Treasure-mana feedback into each other's triggers) |
+| SUPPLIES_RESOURCE | Desolation of Smaug â†’ Smaug the Magnificent / Smaug, the Great Calamity (Dragon-only mana casts the Dragons) |
+| ENABLES_TRIGGER | Thranduil, the Elvenking â†’ Thranduil, Sindarin Liege (legendary-Elf ETB fires the draw) |
+| ENABLES_TRIGGER | The Great Goblin â†’ Great Ugly-Looking Goblin (Amass +1/+1 counters fire deal-2-damage) |
+| AMPLIFIES_EFFECT | Bard, King of Dale â†’ Beorn the Fierce / The Chief Warg / Old Fat Spider (draw-replacement doubles their draw payoffs) |
+
+117 tests pass (+ ingest/grounding + tribal-exclusion). All audit artifacts (batches, per-agent results, ingested results, `reports/pair_audit.md`) committed as the provenance record.
+
+**Two follow-ups I deferred for your review:**
+1. The **72 `shared_vocabulary`-only** candidates (lower precision) aren't audited yet â€” a second, cheaper sub-agent pass.
+2. **Merging** the 9 accepted relations into `card_pair_projection.jsonl` as `audit_derived` metaedges (flagged, distinct provenance) so pair queries surface them.
+
+Holding here for review before doing either.
+
+### [2026-08-15 19:22] USER
+read hob-kg-phase5-review-pt3.md

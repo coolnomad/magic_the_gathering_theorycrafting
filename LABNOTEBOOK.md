@@ -781,3 +781,27 @@ Ran the pairwise LLM audit over the high-signal candidates using Claude Code sub
 **Deferred (Part 2 follow-up):** the 72 `shared_vocabulary`-only candidates (lower precision) are not yet audited; and merging accepted audit relations into the projection as `audit_derived` metaedges (flagged, non-mechanical provenance) so pair queries see them. Presenting the high-signal pass for review first.
 
 Refs: `src/hobkg/audit.py` (`build_batches`/`ingest`); `data/llm/audit/`; `data/graph_global/audit_results.jsonl`; `reports/pair_audit.md`
+
+---
+
+## [2026-08-16 18:00] CORRECTION — Phase 5 Part 2 Stage B v2: extractor+critic, typed grounded audit
+
+Reviewer (`docs/hob-kg-phase5-review-pt3.md`) kept Stage B as a draft: 9 accepted were really 7 (2 reversed direction, 2 duplicated Part 1), grounding validator too weak, no typed paths, no critic. Reworked the whole audit protocol to the eight required items (item 9, shared-vocabulary-only, deferred):
+
+1. **Exact per-face grounding** — `_valid_spans` requires each grounding phrase be an exact substring of the NAMED face's Oracle text; the char span is recomputed deterministically (agent only copies exact text + names the face). Verified all grounding spans exact.
+2. **Typed, edge-id-bearing paths** — `_build_path` constructs, from the connecting concept, `enabler's real edge → derived relation bridge → beneficiary's real edge` (`path_kind: grounded`), or a single labelled `derived:` bridge when no clean primitive path exists (`semantic`). All real step edge_ids resolve to Phase 4 edges; all derived ids are `derived:`-labelled.
+3. **Deterministic direction normalization** — `_graph_direction` overrides the submitted direction: the enabler is the card whose edge to the concept is a producer/affector and the beneficiary the one that consumes/triggers. This auto-corrected the reviewer's reversed case (Great Ugly-Looking Goblin → The Great Goblin, not the reverse).
+4. **Dedup vs mechanical** — `_is_duplicate` rejects any relation whose type or connecting concept is already represented in Part 1 (incl. mana→INFRASTRUCTURE_CASTING and concept-on-an-existing-path). The 2 Desolation "duplicates" no longer appear.
+5. **Independent critic + reconcile** — extractor pass (6 agents) + INDEPENDENT critic pass (6 agents), both same schema; a relation is accepted only on extractor∩critic agreement. 5 extractor RELATIONs were critic-rejected.
+6. **Copy candidates cross-card** — `copy_effect` now pairs a copier with cards that create copyable permanents (23 pairs). All correctly NO_RELATION here (The Notary Hobbits copies only itself).
+7. **Ambiguous_scope operational** — now generates candidate pairs (an ambiguous card × its rare-concept neighbours), 29 pairs, not annotation-only.
+8. **Separate augmented layer** — accepted relations go to `data/graph_global/card_pair_projection_audit.jsonl` with `origin: llm_audit`, NOT merged into the canonical Part 1 projection.
+
+**Result.** 143 candidates; high-signal 94 audited (extractor+critic, 12 sub-agents). Reconcile: **9 accepted** augmented metaedges (deduped by src/tgt/relation), 5 critic-rejected, 1 duplicate-of-mechanical, 77 NO_RELATION, 0 ungrounded. The 9 (all critic-confirmed, grounded, novel, correctly directed):
+- ENABLES_TRIGGER: Great Ugly-Looking Goblin → The Great Goblin (Amass +1/+1 → deal 2); Gollum, Riddle Master / Reverent Howl / Rage into the Valley / The Sackville-Bagginses → The Master of Lake-town (life-loss → mill); Gandalf, Wandering Wizard → Elrond, Moon-Reader (activate creature ability → draw);
+- AMPLIFIES_EFFECT: Bard, King of Dale → Beorn the Fierce / The Chief Warg / Old Fat Spider (draw-replacement doubles their draws).
+119 tests pass (+ span/typed-path/dedup/critic-reconcile gates). The critic even surfaced NEW relations the v1 pass missed (Gandalf→Elrond; the life-loss→Master-of-Lake-town mill hub).
+
+**Deferred (item 9):** the ~49 `shared_vocabulary`-only candidates remain unaudited (a final cheaper pass). The augmented layer stays separate; not merged into canonical projection pending review.
+
+Refs: `docs/hob-kg-phase5-review-pt3.md`; `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/card_pair_projection_audit.jsonl`; `data/llm/audit/{extract,critic}_*.jsonl`; `reports/pair_audit.md`
