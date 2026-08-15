@@ -1701,3 +1701,31 @@ One nonblocking schema-hardening point: `creates_for` is not currently included 
 The Phase 3 review files can still be reordered when unrelated reconciliation tests run, but Phase 4ΓÇÖs canonical outputs remain byte-identical. That does not block this freeze.
 
 Verdict: Phase 4 is ready to freeze. The `creates_for` edge-identity addition can be made as a small schema-hardening patch now or included at the start of Phase 5.
+
+### [2026-08-15 13:42] ASSISTANT
+Phase 4 is accepted. I'll fold in the `creates_for` edge-identity hardening now so Phase 4 freezes fully clean rather than carrying it forward. It's a one-line key change.
+
+Also include `creates_for` in the property-multigraph test's distinctness signature:
+
+The hardening works â€” recipient-distinct creations no longer collapse, distinct edge_ids. Let me confirm idempotence still holds, then commit.
+
+Pushed â€” `90518ba`, rebuild still byte-identical. Let me record the freeze in the lab notebook and update memory for cross-session continuity.
+
+Done. **Phase 4 is frozen.**
+
+I folded the `creates_for` edge-identity hardening in now (rather than deferring to Phase 5) so the freeze is fully clean:
+
+- Added `creates_for` to the property-multigraph merge key and stable `edge_id`, alongside scope/timing/quantity/optional/polarity â€” two identical creation edges differing only in recipient can no longer collapse.
+- Unit-verified: controller vs opponent creations produce 2 distinct edges / 2 distinct edge_ids.
+- 94 tests pass; rebuild remains byte-identical.
+
+Recorded the freeze in `LABNOTEBOOK.md` and saved a `phase4-frozen` project memory so the state carries across sessions. Commits `90518ba` (hardening) and `29afe63` (freeze record) are pushed.
+
+**Frozen state:** `data/graph_global/{nodes,edges,conditions,assembly_review}.jsonl` â€” 1,772 nodes Â· 2,728 edges Â· 145 conditions â€” rebuilt deterministically by `python -m hobkg.cli assemble`.
+
+**Phase 5 (pair-projection) is next**, with two carried-forward design items to honor: (a) refine the coarse `CAUSES`-to-object/resource/state edges into explicit `Effect` nodes, and (b) propagate the participant / conditional / optional / polarity edge properties through projection (so e.g. Bilbo never projects as enabling its own mana).
+
+I'll wait for your go-ahead before starting Phase 5, per the per-phase review rhythm.
+
+### [2026-08-15 13:43] USER
+i still keep having to approve these bash commands: cd /c/GitHub/magic_the_gathering_theorycrafting - that's the target working directory which I believe you are instantiated in.
