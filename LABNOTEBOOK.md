@@ -637,3 +637,26 @@ Folded in the one nonblocking schema-hardening note before freezing rather than 
 **Next: Phase 5 — pair-projection** (per `docs/hob-knowledge-graph-build-spec.md`). Carried-forward design items to honor in Phase 5: (a) refine the coarse `CAUSES`-to-object/resource/state "affects" edges into explicit `Effect` nodes; (b) propagate participant (`creates_for`), conditional (`condition_ids`), and optional/polarity edge properties through projection so e.g. Bilbo is never projected as enabling its own mana.
 
 Refs: `docs/hob-kg-phase4-review-pt5.md`; `src/hobkg/assemble.py` (`creates_for` in edge key); `data/graph_global/`
+
+---
+
+## [2026-08-16 05:30] EXPERIMENT — Phase 5 v1: mechanical card-pair projection
+
+Began Phase 5 (`docs/hob-knowledge-graph-build-spec.md` §Phase 5) with the reviewer's go-ahead. First closed the pt5 nit by adding an explicit `creates_for` collision regression test (`test_creates_for_keeps_recipient_distinct_edges`), making the "unit-verified" claim literal (commit `0c4f80e`).
+
+**Connectivity analysis first** (to design the path grammar against reality, not assumption): of the concept nodes touched by ≥2 cards, the high-degree ones are mostly *ontology* (`obj:type:creature` 112 cards, `obj:supertype:legendary` 55) — the spec says exclude these as meaningless. The genuine *functional* join points are gates (`gate:storied`, 74 cards), zones, counters, resources (`resource:mana`/`life`, 11 each), and partially-canonicalized events (`event:draw` 4, `event:enters_the_battlefield` 8; but synonymous events are fragmented — `attack`/`attacks`/`this-creature-attacks` — so cross-card trigger joins are sparse: only 4 events are both produced by a card and trigger an ability).
+
+**`src/hobkg/project.py`** derives ordered card-pair metaedges by bounded traversal (NOT the 37,249 brute-force scan), one relation at a time, each joining two cards through a functional concept node:
+- **INFRASTRUCTURE_CASTING** (3,060, `infrastructure_only`) — A produces controller mana; B has a casting cost needing mana (read from the `cost:*:cast` node's `mana_cost` data). Opponent-only mana (Bilbo's Gambit) is excluded, so Bilbo never projects as supplying the controller's mana.
+- **CONTRIBUTES_TO_GATE** (666, involves gate+state) — A `QUALIFIES_FOR gate:storied`; the gate `PRODUCES state:enduring_story` which `ENABLES` B's storied payoff. 74 contributors × 9 beneficiaries.
+- **SUPPLIES_RESOURCE** (18) — A produces a functional resource B consumes/requires.
+- **ENABLES_TRIGGER** (4, all self/reflexive here) — A causes event E; E `TRIGGERS` B's ability.
+- **PREVENTS_OPERATION** (0 surviving after dedup) — A prevents an event/op B produces.
+
+Each metaedge stores the full spec schema: ordered cards, relation, complete primitive path (nodes + predicates + edge_ids), combined_conditions, infrastructure_only, min_path_length, involves_gate/state, self_pair, and a deduped provenance closure. Dedup keeps one record per (source, target, relation) — shortest path, unioned conditions/provenance. **3,748 metaedges across 3,721 ordered pairs (~90% of the 37,249 possible pairs correctly emit nothing).** Output `data/graph_global/card_pair_projection.jsonl` + `reports/pair_projection.md`; deterministic byte-identical rebuild. 103 tests pass (+8 projection gates).
+
+**Finding surfaced (Phase 4 latent, non-blocking):** the Phase 2 count-gate classes use ids `obj:artifact`/`obj:legendary`/`obj:saga` while Phase 4 face types are `obj:type:artifact`/`obj:supertype:legendary`/`obj:subtype:saga` — never unified, so `gate:storied COUNTS obj:artifact` is disconnected from the faces. Projection did NOT need the bridge (the explicit `QUALIFIES_FOR gate:storied` edge links contributors directly), but the `COUNTS` targets remain orphan concept nodes worth reconciling in a Phase 4 touch-up or Phase 6.
+
+**Deferred (Phase 5 part 2):** the targeted pairwise LLM audit (shared-vocabulary-but-no-path, named references, replacement/prevention, copy/self, "this way"/"that card" scope) per spec §"Pairwise LLM audit"; and richer path grammars (RECOVERS_RESOURCE, AMPLIFIES_EFFECT) + refining coarse `CAUSES` into `Effect` nodes. Presenting v1 (mechanical only) for review before the audit.
+
+Refs: `docs/hob-knowledge-graph-build-spec.md` (§Phase 5); `src/hobkg/project.py`; `tests/test_project.py`; `data/graph_global/card_pair_projection.jsonl`; `reports/pair_projection.md`

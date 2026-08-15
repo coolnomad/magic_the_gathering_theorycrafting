@@ -53,6 +53,9 @@ def main(argv: list[str] | None = None) -> int:
         stats = assemble.assemble()
         stats.pop("_violations", None)
         print(json.dumps(stats, indent=2))
+    elif cmd == "project":
+        from . import project
+        print(json.dumps(project.project(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2
