@@ -244,3 +244,41 @@ def test_every_materialized_edge_has_provenance(stats, edges):
     ht = next(e for e in edges if e["predicate"] == "HAS_TYPE"
               and e["source"].startswith("face:") and e["target"].startswith("obj:type:"))
     assert any(p.get("derivation") == "phase4_materialization" for p in ht["provenance"])
+
+
+# --- v4.1 closure (review pt5) -----------------------------------------------
+def test_bilbo_mana_goes_to_opponent_not_controller(stats, edges):
+    from hobkg import assemble
+    from hobkg.pipeline import REPO
+    bilbo = "face:ef71ef07-8a35-41ec-a851-d95e9e3a221b:0"
+    # the Treasure Bilbo makes belongs to the opponent
+    treasure = [e for e in edges if e["source"].startswith(f"op:{bilbo}")
+                and e["predicate"] == "CREATES_OBJECT" and e["target"] == "token:treasure"]
+    assert treasure and all(e.get("creates_for") == "opponent" for e in treasure)
+    # Bilbo has no direct mana operation of its own
+    assert not any(e["source"] == f"op:{bilbo}:produce-mana" for e in edges)
+    # participant-aware reachability: opponent path only, never controller
+    g = assemble.Graph()
+    for e in edges:
+        g.add_edge(e["source"], e["predicate"], e["target"], creates_for=e.get("creates_for"), scope=e.get("scope"))
+    paths = assemble._face_mana_paths(g, bilbo)
+    assert paths == {"opponent"}
+    assert stats["opponent_only_mana_faces"] == 1
+
+
+def test_shared_condition_keeps_all_provenance():
+    conds = [json.loads(l) for l in (GLOBAL / "conditions.jsonl").read_text(encoding="utf-8").splitlines()]
+    gift = [c for c in conds if c["human_readable"] == "gift promised"]
+    assert len(gift) == 1 and len(gift[0]["provenance"]) >= 2   # both citations retained
+
+
+def test_rebuild_is_byte_identical():
+    import hashlib
+    from hobkg import assemble
+    files = ["nodes.jsonl", "edges.jsonl", "conditions.jsonl", "assembly_review.jsonl"]
+
+    def digest():
+        assemble.assemble()
+        return {f: hashlib.sha256((GLOBAL / f).read_bytes()).hexdigest() for f in files}
+
+    assert digest() == digest()

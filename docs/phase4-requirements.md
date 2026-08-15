@@ -175,3 +175,26 @@ v3 was complete but had three semantic defects (pt4). v4 closes them (all **0**)
    Phase 2 template edges that shipped provenance-less get a `template_expansion`
    citation. `materialized_edges_without_provenance` = 0 (every edge in the graph
    has non-empty provenance).
+
+---
+
+## Phase 4 v4.1 closure (participant-awareness + determinism — post-v4 review)
+
+Small closure (pt5) before freezing Phase 4:
+
+1. **Participant-aware mana reachability.** `_face_mana_paths` returns the set of
+   players a face reaches mana for: a direct mana op yields `controller`; a created
+   token that produces mana yields whoever controls that token (from the
+   CREATES_OBJECT edge's `creates_for`, derived from scope). Bilbo's Gambit makes an
+   *opponent's* Treasure, so its path is `{opponent}`, never `controller`
+   (`opponent_only_mana_faces` = 1; Bilbo must not project as enabling its own mana).
+   Every CREATES_OBJECT edge carries a `creates_for: controller|opponent|target_player`
+   annotation for Phase 5.
+2. **Shared-condition provenance accumulated.** A condition id reused by multiple
+   edges (e.g. "gift promised" on both the Treasure creation and the spell-lock) now
+   accumulates every citation instead of keeping only the first.
+3. **Deterministic, byte-identical rebuilds.** All JSONL outputs are canonically
+   sorted (nodes by id; edges by source/predicate/target/edge_id; conditions by
+   condition_id; review sorted) and serialized with `sort_keys` and sorted
+   provenance, so a clean rebuild is byte-for-byte identical.
+4. Report header corrected (was "v3").

@@ -1584,3 +1584,57 @@ Per your standing instruction, I did **not** start pair projection. The one rema
 
 ### [2026-08-15 11:50] USER
 read docs/hob-kg-phase4-review-pt4.md
+
+### [2026-08-15 12:42] ASSISTANT
+Three narrow semantic defects for v4. Let me inspect the 22 mana-producer faces to classify direct vs. indirect (Treasure-token) production and confirm the mechanistic path exists.
+
+My regex is too loose â€” it matches "Add one mana" inside the *Treasure token's* quoted reminder text. Let me see the full oracle of the ambiguous cases and design a detector that excludes token-granted abilities while keeping basic-land intrinsic abilities.
+
+The detector is correct: **5 indirect** Treasure-makers (Long-Bodied Grey Dog, Bilbo's Gambit, Dori, Misty Mountains Cold, Bejeweled Warg), 17 genuine direct producers. All 5 indirect faces create `token:treasure` (which has a mana op), so a mechanistic path exists. Now implementing all three v4 fixes. First, the direct-mana detector and derivation-provenance helpers:
+
+Now rewrite `_parse_condition` to be lossless-or-unresolved with full-match, negation, and specificâ†’general ordering:
+
+Now thread derivation provenance through the materialize functions and fix the mana backfill:
+
+Now update `_completeness` to use the mechanistic mana-path metric:
+
+I referenced a provenance-completeness helper and need to give the reification/namespacing edges provenance too (the principle covers all asserted edges). Let me add the helper and fix those edges.
+
+Now update the report's gate list and run to check all metrics:
+
+Two issues: (1) the token mana-path check used the wrong prefix (`token:treasure` vs `op:token:treasure`), and (2) 4 edges still lack provenance. Let me fix the path check and identify the 4.
+
+Those 4 are pre-existing Phase 2 template edges that shipped with empty provenance. The principle covers them too â€” let me give Phase 2 edges a template-derivation fallback when they lack provenance.
+
+All gates zero. Let me verify the exact pt4 regression cases before writing tests for them.
+
+All four pt4 regression cases are correct, and indirect mana now routes through the token path. Let me update the tests: fix the renamed metric and add explicit regression tests for the exact pt4 failures.
+
+All 91 tests pass. Let me document v4 and commit.
+
+Pushed â€” `4b1fa17`.
+
+## Phase 4 v4 â€” semantic safety
+
+All three pt4 defects closed; **19 zero-gates hold, 91 tests pass** (+3 targeted regression tests for the exact failures the reviewer named).
+
+| Defect | Fix | Gate |
+|---|---|---|
+| **Indirect mana faked as direct** | `_has_direct_mana_ability` (strips token-granted quoted abilities + token reminders, keeps basic-land intrinsics) gates the backfill; completeness now requires a **mechanistic path** (direct op *or* a created token that itself produces mana) | `false_direct_mana_operations`=0, `mana_faces_without_mana_path`=0 |
+| **Partial/inverted conditions marked executable** | `_parse_condition` **full-matches** the whole condition, ordered specificâ†’general, with explicit negation families | `raw_executable_conditions`=0 |
+| **Materialized edges had no provenance** | derivation provenance on every materialized/reified edge + a `template_expansion` citation for 4 provenance-less Phase 2 edges | `materialized_edges_without_provenance`=0 |
+
+**The four flagged condition cases now resolve exactly as required:**
+- `"you do not have an enduring story"` â†’ `not(state_active(enduring_story))` â€” no longer inverted to positive
+- `"combat damage to a player, mode: second option chosen"` â†’ **raw_unresolved** â€” the combat-damage conjunct is no longer silently dropped
+- `"X = number of cards discarded this way"` â†’ variable-binding `eq` â€” the specific rule now precedes the general discard rule
+- `"third resolution this turn"` â†’ `eq(ability_resolutions_this_turn, 3)` â€” newly converted
+
+The 5 Treasure-makers (Long-Bodied Grey Dog, Bilbo's Gambit, Dori, Misty Mountains Cold, Bejeweled Warg) now carry **no false direct mana edge** â€” they reach mana through `token:treasure`'s own operation. Structured conditions tightened 67â†’64 (81 explicitly unresolved); **every edge in the graph now has non-empty provenance**.
+
+**Graph:** 1,772 nodes Â· 2,728 edges Â· 145 conditions.
+
+The reviewer indicated this was the final pass before accepting Phase 4 and beginning Phase 5 (pair projection). The one item explicitly deferred to Phase 5+ is refining the coarse `CAUSES`-to-object/resource/state edges into explicit `Effect` nodes. I'll hold here for your review rather than starting Phase 5 unprompted.
+
+### [2026-08-15 13:08] USER
+read docs/hob-kg-phase4-review-pt5.md there are a few residual things to fix.

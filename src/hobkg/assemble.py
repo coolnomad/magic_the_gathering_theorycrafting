@@ -394,6 +394,8 @@ def assemble(repo: Path = REPO) -> dict:
         # (e.g. gate:storied COUNTS ...) ship with none — cite the template expansion.
         prov = e.get("provenance") or [{"source": "phase2_template", "source_id": e["source"],
                                         "derivation": "template_expansion"}]
+        if e["predicate"] == "CREATES_OBJECT":
+            props["creates_for"] = _participant_from_scope(e.get("scope"))
         g.add_edge(e["source"], e["predicate"], e["target"], prov, **props)
     # the Phase 2 template edges ARE the authoritative mechanism outputs (gate creates
     # the soldier/army; op:{face}:add-hone places the hone counter); remember them so
@@ -480,24 +482,36 @@ def _materialize_token(g: Graph, t: dict) -> None:
         g.add_edge(op, "PRODUCES", "resource:mana", [prov])
 
 
-def _face_has_mana_path(g: Graph, fid: str) -> bool:
-    """A face reaches mana either DIRECTLY (an op it owns produces resource:mana) or
-    INDIRECTLY via a token it creates that itself has a mana operation."""
+def _participant_from_scope(scope) -> str:
+    """Who ends up controlling a created object / effect, from the edge scope."""
+    s = (scope or "").lower()
+    if "opponent" in s:
+        return "opponent"
+    if "each player" in s or "target player" in s:
+        return "target_player"
+    return "controller"
+
+
+def _face_mana_paths(g: Graph, fid: str) -> set:
+    """Participant-relative set of players for whom this face reaches mana. A DIRECT
+    mana op the face owns yields mana to the controller; a token the face creates that
+    itself produces mana yields mana to whoever controls that token (per the
+    CREATES_OBJECT edge's `creates_for`/scope). Bilbo's Gambit makes an *opponent's*
+    Treasure, so its only path is `opponent` — never `controller`."""
     uuid_key = fid.split(":")[1] + ":" + fid.split(":")[2]  # 'uuid:index'
-    direct, tokens = False, set()
+    paths: set = set()
+    tokens: list = []
     for e in g.edges.values():
         if uuid_key in e["source"]:
             if e["predicate"] == "PRODUCES" and e["target"].startswith("resource:mana"):
-                direct = True
+                paths.add("controller")
             if e["predicate"] == "CREATES_OBJECT" and e["target"].startswith("token:"):
-                tokens.add(e["target"])
-    if direct:
-        return True
-    for tok in tokens:  # does a created token produce mana (via its own op:{tok}:… )?
+                tokens.append((e["target"], e.get("creates_for") or _participant_from_scope(e.get("scope"))))
+    for tok, who in tokens:  # does a created token produce mana (via its own op:{tok}:… )?
         if any(e["source"].startswith("op:" + tok) and e["predicate"] == "PRODUCES"
                and e["target"].startswith("resource:mana") for e in g.edges.values()):
-            return True
-    return False
+            paths.add(who)
+    return paths
 
 
 def _backfill_mana_operations(g: Graph, faces: dict) -> None:
@@ -622,10 +636,16 @@ def _merge_face(g: Graph, a: dict, faces: dict, conditions: dict, adv_faces: set
                 conditions[cid] = {"condition_id": cid, "status": status, "expression": expr,
                                    "executable": status == "structured",
                                    "human_readable": human, "provenance": [prov]}
+            elif prov not in conditions[cid]["provenance"]:
+                # a shared condition id (e.g. "gift promised") must keep EVERY citation
+                conditions[cid]["provenance"].append(prov)
             cond_ids.append(cid)
         eprops = {k: props[k] for k in _EDGE_PROPS if props.get(k) is not None}
         if cond_ids:
             eprops["condition_ids"] = cond_ids
+        # participant-relative annotation: who controls the created object
+        if pred == "CREATES_OBJECT":
+            eprops["creates_for"] = _participant_from_scope(props.get("scope"))
         # reify actor edges whose subject is a CardFace or Ability onto an Operation
         s_type = resolve_node_type(src, set())
         if pred in _ACTOR_PREDICATES and s_type in ("CardFace", "Ability"):
@@ -667,30 +687,39 @@ def validate_global(g: Graph, conditions: dict) -> dict:
             "unresolved_condition_refs": unresolved_cond}
 
 
+def _canonical(rec: dict) -> str:
+    """Serialize a record deterministically: provenance sorted, all keys sorted, so a
+    rebuild is byte-identical regardless of insertion order."""
+    rec = dict(rec)
+    if isinstance(rec.get("provenance"), list):
+        rec["provenance"] = sorted(rec["provenance"], key=lambda p: json.dumps(p, sort_keys=True, ensure_ascii=False))
+    return json.dumps(rec, ensure_ascii=False, sort_keys=True)
+
+
 def _finalize(g: Graph, repo: Path, conditions: dict, phase2_edge_ids: set) -> dict:
     v = validate_global(g, conditions)
     out = repo / "data" / "graph_global"
     out.mkdir(parents=True, exist_ok=True)
+    # canonical, sorted output -> deterministic byte-identical rebuilds
     with (out / "nodes.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for n in g.nodes.values():
-            fh.write(json.dumps(n, ensure_ascii=False) + "\n")
+        for n in sorted(g.nodes.values(), key=lambda n: n["id"]):
+            fh.write(_canonical(n) + "\n")
     with (out / "edges.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for e in g.edges.values():
-            fh.write(json.dumps(e, ensure_ascii=False) + "\n")
+        for e in sorted(g.edges.values(), key=lambda e: (e["source"], e["predicate"], e["target"], e["edge_id"])):
+            fh.write(_canonical(e) + "\n")
     with (out / "conditions.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for c in conditions.values():
-            fh.write(json.dumps(c, ensure_ascii=False) + "\n")
+        for c in sorted(conditions.values(), key=lambda c: c["condition_id"]):
+            fh.write(_canonical(c) + "\n")
     # residual review: must be empty for the gate to pass — any remaining signature
     # violation / unknown type / leaked alias / unresolved condition is written here.
+    review = ([{"issue": "predicate_signature", "edge": s} for s in v["signature_violations"]]
+              + [{"issue": "unknown_endpoint", "edge": f"{a} -{b}-> {c}"} for a, b, c in v["unknown_endpoint_types"]]
+              + [{"issue": "leaked_ability_alias", "node": nid} for nid in v["leaked_ability_aliases"]]
+              + [{"issue": "unresolved_condition", "edge_id": eid, "condition_id": cid}
+                 for eid, cid in v["unresolved_condition_refs"]])
     with (out / "assembly_review.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for s in v["signature_violations"]:
-            fh.write(json.dumps({"issue": "predicate_signature", "edge": s}) + "\n")
-        for a, b, c in v["unknown_endpoint_types"]:
-            fh.write(json.dumps({"issue": "unknown_endpoint", "edge": f"{a} -{b}-> {c}"}) + "\n")
-        for nid in v["leaked_ability_aliases"]:
-            fh.write(json.dumps({"issue": "leaked_ability_alias", "node": nid}) + "\n")
-        for eid, cid in v["unresolved_condition_refs"]:
-            fh.write(json.dumps({"issue": "unresolved_condition", "edge_id": eid, "condition_id": cid}) + "\n")
+        for r in sorted(review, key=lambda r: json.dumps(r, sort_keys=True)):
+            fh.write(json.dumps(r, sort_keys=True) + "\n")
 
     ntypes = Counter(n["type"] for n in g.nodes.values())
     preds = Counter(e["predicate"] for e in g.edges.values())
@@ -748,9 +777,13 @@ def _completeness(g: Graph, repo: Path, conditions: dict) -> dict:
     faces_missing_cost = [fid for fid, f in faces.items()
                           if f.get("mana_cost") and not out_edges(fid, "HAS_COST")]
     # a mana producer must reach mana MECHANISTICALLY (direct op, or a token it
-    # creates that itself produces mana) — not via a synthesized false direct edge.
+    # creates that itself produces mana) — not via a synthesized false direct edge —
+    # and the path is participant-aware: an opponent's Treasure is NOT controller mana.
     mana_faces = {fid for fid, f in faces.items() if f.get("produced_mana")}
-    mana_faces_without_path = [fid for fid in mana_faces if not _face_has_mana_path(g, fid)]
+    face_paths = {fid: _face_mana_paths(g, fid) for fid in mana_faces}
+    mana_faces_without_path = [fid for fid, p in face_paths.items() if not p]
+    controller_mana_faces = [fid for fid, p in face_paths.items() if "controller" in p]
+    opponent_only_mana_faces = [fid for fid, p in face_paths.items() if p and "controller" not in p]
     # indirect producers (produced_mana but no direct mana ability) must NOT have a
     # synthetic direct mana operation fabricated for them.
     false_direct_mana = [fid for fid, f in faces.items()
@@ -781,6 +814,8 @@ def _completeness(g: Graph, repo: Path, conditions: dict) -> dict:
         "faces_missing_type_edges": faces_missing_type_edges,
         "faces_missing_cost_edge": len(faces_missing_cost),
         "mana_faces_without_mana_path": len(mana_faces_without_path),
+        "controller_mana_faces": len(controller_mana_faces),
+        "opponent_only_mana_faces": len(opponent_only_mana_faces),
         "false_direct_mana_operations": len(false_direct_mana),
         "materialized_edges_without_provenance": _materialized_edges_without_provenance(g),
         "tokens_missing_characteristics": len(tokens_missing_data),
@@ -803,11 +838,12 @@ def _report(repo: Path, stats: dict, v: dict) -> None:
             "materialized_edges_without_provenance", "tokens_missing_characteristics",
             "raw_executable_conditions", "raw_conditions_not_marked_unresolved",
             "llm_reminder_adventure_exile_paths"]
-    L = ["# HOB Phase 4 — Global Assembly (v3)", "",
+    L = ["# HOB Phase 4 — Global Assembly (v4.1)", "",
          f"- **nodes**: {stats['nodes']}", f"- **edges**: {stats['edges']}",
          f"- **conditions (self-contained)**: {stats['conditions']} "
          f"({stats['structured_conditions']} structured, {stats['raw_unresolved_conditions']} raw-unresolved)",
          f"- **adventure faces / resolution paths**: {stats['adventure_faces']} / {stats['adventure_resolution_state_paths']}",
+         f"- **mana paths (controller / opponent-only)**: {stats['controller_mana_faces']} / {stats['opponent_only_mana_faces']}",
          "", "## Gate metrics (every one must be 0)", ""]
     L += [f"- **{k}**: {stats[k]}  {'OK' if stats[k] == 0 else 'FAIL'}" for k in zero]
     L += ["", "## Node types", ""]

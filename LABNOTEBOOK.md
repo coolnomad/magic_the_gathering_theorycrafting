@@ -606,3 +606,20 @@ Reviewer (`docs/hob-kg-phase4-review-pt4.md`) accepted v3's completeness + Adven
 **Deferred to Phase 5+ (reviewer will accept Phase 4 after this):** the coarse `CAUSES`-to-object/resource/state "affects" edges still await refinement into explicit `Effect` nodes.
 
 Refs: `docs/hob-kg-phase4-review-pt4.md`; `src/hobkg/assemble.py`; `tests/test_assemble.py`; `docs/phase4-requirements.md` (§ Phase 4 v4 acceptance gate); `data/graph_global/`; `reports/assembly.md`
+
+---
+
+## [2026-08-16 03:30] CORRECTION — Phase 4 v4.1 closure (freezes Phase 4)
+
+Reviewer (`docs/hob-kg-phase4-review-pt5.md`) confirmed v4 closes the prior defects and requested a small closure — not a reopening — before freezing Phase 4 and starting Phase 5.
+
+1. **Participant-aware mana reachability.** v4's `_face_has_mana_path` counted Bilbo's Gambit's opponent-controlled Treasure as a mana path for Bilbo — dangerous for Phase 5 (Bilbo must not project as enabling its *own* mana). Replaced with `_face_mana_paths` returning the set of players a face reaches mana for: a direct op → `controller`; a created mana-token → whoever controls it, read from a new `creates_for` annotation on every CREATES_OBJECT edge (derived from scope via `_participant_from_scope`; "the promised opponent creates the token" → `opponent`). Bilbo's path is now `{opponent}` only. New metrics: `controller_mana_faces` = 21, `opponent_only_mana_faces` = 1 (Bilbo).
+2. **Shared-condition provenance accumulated.** The condition-id reuse path only recorded the first citation, so "gift promised" (used by both the Treasure-creation and the spell-lock edge) kept only one provenance depending on iteration order. Now every distinct citation is appended (verified: "gift promised" holds 2 provenances).
+3. **Byte-identical rebuilds.** All JSONL outputs are canonically sorted (nodes by id; edges by source/predicate/target/edge_id; conditions by condition_id; review sorted) and serialized with `sort_keys` + sorted provenance via `_canonical`. Verified: two consecutive rebuilds are SHA-256-identical for nodes/edges/conditions.
+4. Report header corrected v3 → v4.1.
+
+**Result (v4.1).** 1,772 nodes / 2,728 edges / 145 conditions; all 19 zero-gates = 0; controller/opponent mana faces = 21/1; rebuild byte-identical. **94 pytest tests pass** (+3: Bilbo opponent-only mana, shared-condition provenance, rebuild idempotence). Reviewer's stated condition: after these, **Phase 4 is ready to freeze and Phase 5 pair projection can begin.**
+
+**Carried into Phase 5:** refine coarse `CAUSES`-to-object/resource/state edges into explicit `Effect` nodes; propagate participant/conditional/optional properties through pair projection.
+
+Refs: `docs/hob-kg-phase4-review-pt5.md`; `src/hobkg/assemble.py`; `tests/test_assemble.py`; `docs/phase4-requirements.md` (§ Phase 4 v4.1 closure); `data/graph_global/`; `reports/assembly.md`

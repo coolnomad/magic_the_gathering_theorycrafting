@@ -1,9 +1,10 @@
-# HOB Phase 4 — Global Assembly (v3)
+# HOB Phase 4 — Global Assembly (v4.1)
 
 - **nodes**: 1772
 - **edges**: 2728
 - **conditions (self-contained)**: 145 (64 structured, 81 raw-unresolved)
 - **adventure faces / resolution paths**: 17 / 17
+- **mana paths (controller / opponent-only)**: 21 / 1
 
 ## Gate metrics (every one must be 0)
 
