@@ -1,6 +1,6 @@
 # HOB Phase 4 — Global Assembly (v4.1)
 
-- **nodes**: 1772
+- **nodes**: 1769
 - **edges**: 2728
 - **conditions (self-contained)**: 145 (64 structured, 81 raw-unresolved)
 - **adventure faces / resolution paths**: 17 / 17
@@ -35,7 +35,7 @@
 - CardFace: 210
 - Cost: 206
 - Card: 193
-- ObjectClass: 148
+- ObjectClass: 145
 - Event: 72
 - State: 43
 - Resource: 14

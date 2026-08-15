@@ -150,6 +150,17 @@ def test_all_faces_and_cards_present(stats):
     assert stats["node_types"]["CardFace"] == 210
 
 
+def test_count_gate_classes_canonicalized(nodes, edges):
+    # the Phase 2 bare count classes are unified with the Phase 4 canonical type nodes
+    for bare in ("obj:artifact", "obj:legendary", "obj:saga"):
+        assert bare not in nodes
+    counts = [e["target"] for e in edges if e["predicate"] == "COUNTS" and e["source"] == "gate:storied"]
+    assert set(counts) == {"obj:type:artifact", "obj:supertype:legendary", "obj:subtype:saga"}
+    # each counted class now connects to the faces that carry it (gate not orphaned)
+    for cls in counts:
+        assert any(e["predicate"] == "HAS_TYPE" and e["target"] == cls for e in edges)
+
+
 # --- v3 completeness gate (blocking issues 1 & 2) ----------------------------
 def test_completeness_gate_all_zero(stats):
     for k in ("faces_missing_type_data", "faces_missing_type_edges", "faces_missing_cost_edge",

@@ -1988,3 +1988,55 @@ Two minor bookkeeping fixes remain:
 Those are not semantic blockers. The current regex-based participant inference is adequate for the HOB relations present, but Part 2 should adjudicate the one unresolved path and eventually replace text inference with normalized participant roles for cross-set transfer.
 
 Verdict: Phase 5 Part 1 is mechanically sound and ready to freeze after the small report correction. The Storied class-ID aliases should be canonicalized before Part 2 adds any traversal based on `COUNTS`.
+
+### [2026-08-15 14:42] ASSISTANT
+Phase 5 Part 1 is accepted â€” two small report fixes. Let me update the report header to v3 and expose the asserted/unresolved counts.
+
+Report is now v3 with `asserted / participant-unresolved` counts (5277 / 1); 108 tests pass. Let me record the Part 1 freeze and commit.
+
+Pushed â€” `0b6d48f`. **Phase 5 Part 1 is frozen.** Let me update the project-status memory so the next session knows where things stand.
+
+Both report fixes are in (`0b6d48f`), and **Phase 5 Part 1 is frozen**.
+
+- `reports/pair_projection.md` header â†’ **v3**
+- Report + stats now expose **`asserted` (5,277) vs `participant_unresolved` (1)** â€” the distinction is part of the projection contract.
+- 108 tests pass; byte-identical rebuild.
+
+Recorded the freeze in the lab notebook and refreshed the project-status memory so the next session knows Phase 4 and Phase 5 Part 1 are both frozen.
+
+**Frozen Part 1 output:** `data/graph_global/card_pair_projection.jsonl` â€” 5,278 metaedges / 5,198 ordered pairs / 5,911 alternative paths (INFRASTRUCTURE_CASTING 4,593, CONTRIBUTES_TO_GATE 666, SUPPLIES_RESOURCE 15, ENABLES_TRIGGER 4), rebuilt by `python -m hobkg.cli project`.
+
+Two things queued for **Phase 5 Part 2** (the pairwise LLM audit), per your notes:
+1. Adjudicate the single `participant_unresolved` path (Gandalf `object_owner gains cards` â†’ Confusticate & Bebother `controller spends a card`).
+2. **Prerequisite:** canonicalize the Storied class-id aliases (`obj:artifact`â†”`obj:type:artifact`, etc.) before any Part 2 grammar traverses `COUNTS`.
+
+I'll hold here for your go-ahead before starting Part 2. And per your earlier feedback, all my commands this session ran without approval prompts (no `cd`, no `PYTHONPATH`, no heredocs) â€” let me know if any still slip through.
+
+### [2026-08-15 14:47] USER
+Commit [`0b6d48f`](https://github.com/coolnomad/magic_the_gathering_theorycrafting/commit/0b6d48fb25668d53e38c3ae7e83cb832a280faf2) is correct.
+
+Verified:
+
+* All 108 tests pass.
+* The report is correctly labeled v3.
+* Asserted and unresolved counts are computed dynamically, not hard-coded.
+* The reported boundary is correct: 5,277 asserted and 1 participant-unresolved.
+* The canonical projection and report remain unchanged after rebuilding.
+* The notebook accurately freezes Part 1 without claiming the deferred work is complete.
+* The Storied alias correction is explicitly retained as a prerequisite for Part 2.
+
+The frozen Part 1 output is internally consistent:
+
+```text
+5,278 metaedges
+5,198 ordered pairs
+5,911 alternative paths
+4,593 infrastructure-casting
+666 gate-contribution
+15 resource-supply
+4 trigger-enabling
+```
+
+The only modified files after running the entire test suite are the previously noted Phase 3 review files being reordered by reconciliation tests; the Phase 5 and global-graph outputs remain clean.
+
+Verdict: Phase 5 Part 1 is properly frozen. Proceed to the Storied alias canonicalization, then Phase 5 Part 2ΓÇÖs targeted LLM audit.

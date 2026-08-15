@@ -417,6 +417,13 @@ def assemble(repo: Path = REPO) -> dict:
     for t in _load_dicts(repo / "data" / "normalized" / "tokens.jsonl"):
         _materialize_token(g, t)
 
+    # 2b. canonicalize count-gate classes: the Phase 2 gates count bare `obj:{name}`
+    # nodes (obj:artifact / obj:legendary / obj:saga) that were never unified with the
+    # Phase 4 canonical type nodes the faces carry (obj:type:artifact, ...), leaving the
+    # gate disconnected from its contributors. Remap the COUNTS targets onto the
+    # canonical type node so `gate COUNTS obj:type:artifact <- HAS_TYPE <- faces` joins.
+    _canonicalize_count_classes(g)
+
     # 3. merge the Phase 3 accepted layer, per face
     adv_faces = {fid for fid, f in faces.items() if f.get("role") == "adventure"}
     for a in _load_dicts(repo / "data" / "review" / "llm_accepted.jsonl"):
@@ -515,6 +522,39 @@ def _face_mana_paths(g: Graph, fid: str) -> set:
                and e["target"].startswith("resource:mana") for e in g.edges.values()):
             paths.add(who)
     return paths
+
+
+def _canonicalize_count_classes(g: Graph) -> dict:
+    """Remap Phase 2 count-gate class nodes (`obj:artifact`/`obj:legendary`/`obj:saga`)
+    onto the canonical Phase 4 type nodes (`obj:type:artifact`/`obj:supertype:legendary`
+    /`obj:subtype:saga`) so a count gate connects to the faces that carry that type.
+    Scoped strictly to bare `obj:{name}` nodes that are COUNTS targets AND have a
+    canonical type node — free-text object classes are untouched."""
+    remap = {}
+    for e in g.edges.values():
+        t = e["target"]
+        if e["predicate"] == "COUNTS" and t.startswith("obj:") and t.count(":") == 1:
+            name = t.split(":", 1)[1]
+            for cand in (f"obj:type:{name}", f"obj:subtype:{name}", f"obj:supertype:{name}"):
+                if cand in g.nodes:
+                    remap[t] = cand
+                    break
+    if not remap:
+        return remap
+    for key in list(g.edges):                         # rewrite affected edges onto canon
+        e = g.edges[key]
+        if e["target"] in remap:
+            canon = remap[e["target"]]
+            g.nodes[canon]["provenance"].extend(g.nodes.get(e["target"], {}).get("provenance", []))
+            props = {k: v for k, v in e.items()
+                     if k not in ("source", "predicate", "target", "provenance", "edge_id")}
+            del g.edges[key]
+            g.add_edge(e["source"], e["predicate"], canon, e.get("provenance"), **props)
+    referenced = {x for e in g.edges.values() for x in (e["source"], e["target"])}
+    for bare in remap:                                # drop now-orphan bare count nodes
+        if bare in g.nodes and bare not in referenced:
+            del g.nodes[bare]
+    return remap
 
 
 def _backfill_mana_operations(g: Graph, faces: dict) -> None:

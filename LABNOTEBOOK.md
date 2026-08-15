@@ -711,3 +711,17 @@ Applied the two bookkeeping fixes: `reports/pair_projection.md` header v2 → **
 **Next: Phase 5 Part 2 — pairwise LLM audit** (spec §"Pairwise LLM audit"): adjudicate the 1 `participant_unresolved` path; feed likely-missed pairs (shared resource/output vocabulary but no derived path, direct named references, replacement/prevention, copy/self-pairs, ambiguous "this way"/"that card" scope). **Prerequisite the reviewer set: canonicalize the Storied class-id aliases** (`obj:artifact`↔`obj:type:artifact`, `obj:legendary`↔`obj:supertype:legendary`, `obj:saga`↔`obj:subtype:saga`) before any Part 2 grammar traverses `COUNTS`. Also carried: richer grammars (RECOVERS_RESOURCE, AMPLIFIES_EFFECT) and eventually replacing regex participant inference with normalized participant roles for cross-set transfer.
 
 Refs: `docs/hob-kg-phase5-review-pt2.md`; `src/hobkg/project.py`; `reports/pair_projection.md`; `data/graph_global/card_pair_projection.jsonl`
+
+---
+
+## [2026-08-16 11:30] CORRECTION — Storied count-class canonicalization (Part 2 prerequisite)
+
+Reviewer's standing prerequisite before Part 2 adds any `COUNTS`-based traversal: unify the Phase 2 count-gate classes with the Phase 4 canonical type nodes. The Phase 2 storied gate counted bare `obj:artifact`/`obj:legendary`/`obj:saga` nodes that were never unified with the faces' `obj:type:artifact`/`obj:supertype:legendary`/`obj:subtype:saga`, so `gate:storied` was structurally disconnected from its contributors.
+
+`assemble._canonicalize_count_classes(g)` (run after face/token materialization) remaps every `COUNTS` target that is a bare `obj:{name}` node to the existing canonical `obj:{type|subtype|supertype}:{name}` node (merging provenance, dropping the orphan). **Strictly scoped to bare `obj:` nodes that are COUNTS targets AND have a canonical type node** — verified those are exactly the 3 storied classes; the ~55 free-text `obj:` object classes (CONSUMES/MODIFIES/CAUSES targets) are untouched. After: `gate:storied COUNTS {obj:type:artifact, obj:supertype:legendary, obj:subtype:saga}`, connecting to 21 artifact / 55 legendary / 8 saga faces via `HAS_TYPE`; the 3 orphan nodes are gone.
+
+This is a sanctioned corrective re-freeze of Phase 4 (reviewer-requested). Global graph: **1,769 nodes** (was 1,772; −3 orphans) / 2,728 edges / 145 conditions; all gate metrics still 0; byte-identical rebuild (md5-verified). Phase 5 projection numbers are unchanged (5,278 metaedges; CONTRIBUTES_TO_GATE still 666 — it derives contributors from `QUALIFIES_FOR`, not `COUNTS`, so it never depended on the mismatch; the fix makes the graph consistent for any future `COUNTS` grammar). **109 tests pass** (+1: `test_count_gate_classes_canonicalized`).
+
+**Next: Phase 5 Part 2 — pairwise LLM audit** (now unblocked): adjudicate the 1 `participant_unresolved` supply path; feed likely-missed pairs (shared vocabulary but no path, named references, replacement/prevention, copy/self, ambiguous "this way"/"that card" scope) to sub-agents; the audit prompt must return a primitive-grounded path or NO_RELATION.
+
+Refs: `src/hobkg/assemble.py` (`_canonicalize_count_classes`); `tests/test_assemble.py`; `data/graph_global/`
