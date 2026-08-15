@@ -1783,3 +1783,55 @@ opponent   ΓåÆ e43a5d680033d86c2
 One tiny testing discrepancy: the notebook says the controller-versus-opponent collision was ΓÇ£unit-verified,ΓÇ¥ but the committed test only adds `creates_for` to the signature comparison. It does not explicitly construct two otherwise-identical edges and assert that both survive. I manually verified that behavior and the implementation works. Adding that exact regression test would make the claim literal, but it does not justify reopening Phase 4.
 
 Verdict: the freeze is sound. Proceed to Phase 5.
+
+### [2026-08-15 14:01] ASSISTANT
+The freeze is accepted â€” thank you. Before moving to Phase 5, let me make that "unit-verified" claim literal in the committed suite by adding the exact collision regression test the reviewer flagged.
+
+Test gap closed (`0c4f80e`) â€” the collision claim is now literal in the suite. Now let me read the Phase 5 spec to design pair-projection properly.
+
+Test gap closed. Now beginning **Phase 5 (pair-projection)**. The core design question is whether cross-card paths actually exist in the graph â€” i.e., whether concept nodes (events, resources, states, gates, object-classes) are canonicalized so multiple cards share them. Let me map that connectivity before designing the path grammars.
+
+Good â€” there are genuine functional cross-card join points (gates like `storied`, resources, zones, counters, tokens), though many high-degree nodes are pure *ontology* (type/supertype) which the spec says to exclude. Let me check two more things that decide the grammar: whether Events are shared across cards (for trigger joins), and how casting-cost mana requirements are represented.
+
+The graph supports several genuine functional relations (strongest: `CONTRIBUTES_TO_GATE` via storied, `INFRASTRUCTURE_CASTING` via manaâ†’cost, `SUPPLIES_RESOURCE`, sparse `ENABLES_TRIGGER`/`PREVENTS_OPERATION`), while type/supertype sharing must be excluded as ontology-only. Events are only partially canonicalized, so trigger-joins are sparse â€” that's fine, I'll emit what exists. Let me build the deterministic mechanical projector.
+
+Let me remove the dead helper I left in, wire up the CLI, and run it.
+
+Projection runs (3,082 metaedges), but `CONTRIBUTES_TO_GATE` is 0 â€” a real finding: the Phase 2 count-gate classes use ids like `obj:artifact`/`obj:saga`, while my Phase 4 type nodes are `obj:type:artifact`/`obj:subtype:saga`. They never got unified, so the storied gate is disconnected from the faces that feed it. Since Phase 4 is frozen, I'll bridge that by name in the projector. Let me fix it.
+
+`CONTRIBUTES_TO_GATE` exploded to 5,476 because I inverted the storied semantics: `QUALIFIES_FOR gate:storied` marks the **contributor** (a qualifying artifact/legendary/saga, 78 of them), and the **beneficiary** is the card whose ability the gate enables via `state:enduring_story` (9 of them). Let me correct the traversal to the real gate-output path â€” which also removes the need for the type-name bridge.
+
+CONTRIBUTES_TO_GATE is now 666 (74 contributors Ã— 9 beneficiaries) â€” correct. The inspection script had an f-string quoting bug; let me fix it and view samples.
+
+The projection is meaningful and correct: contributorâ†’storied-beneficiary, manaâ†’cast infrastructure, resource supply, and reflexive triggers. ~90% of the 37,249 possible pairs correctly emit nothing. Let me verify determinism and that Bilbo (opponent-only mana) is excluded as a mana supplier, then write tests.
+
+All invariants hold: deterministic byte-identical rebuild, Bilbo excluded as a mana supplier (his mana is opponent-only), zero ontology-only paths, full schema, zero duplicates. Let me write the test suite for the projector.
+
+All 103 tests pass (8 new projection tests). Let me record Phase 5 v1 in the lab notebook and commit.
+
+Pushed â€” `a00f036`. First the tiny nit, then Phase 5 kicked off.
+
+## Phase 5 v1 â€” mechanical card-pair projection
+
+I started by mapping the graph's actual cross-card connectivity, because the whole point of pair-projection is joining cards through *functional* concept nodes â€” and it turned out the high-degree shared nodes are mostly **ontology** (`obj:type:creature`, `obj:supertype:legendary`), which the spec says to exclude. The real join points are gates, resources, counters, zones, and partially-canonicalized events.
+
+`src/hobkg/project.py` derives ordered metaedges by **bounded traversal** (never the 37,249 brute-force scan), one relation at a time:
+
+| Relation | n | Shape |
+|---|---|---|
+| INFRASTRUCTURE_CASTING | 3,060 | A produces controller mana â‹ˆ B's casting cost needs mana (flagged `infrastructure_only`) |
+| CONTRIBUTES_TO_GATE | 666 | A `QUALIFIES_FOR gate:storied` â†’ gate `PRODUCES enduring_story` â†’ `ENABLES` B's payoff |
+| SUPPLIES_RESOURCE | 18 | A produces a functional resource B consumes/requires |
+| ENABLES_TRIGGER | 4 | A causes event E; E `TRIGGERS` B's ability |
+
+**3,748 metaedges over 3,721 ordered pairs â€” ~90% of the 37,249 possible pairs correctly emit nothing.** Each carries the full spec schema (complete primitive path + predicates + edge_ids, combined_conditions, infrastructure flag, min length, gate/state involvement, provenance closure); deduped one-per-(src,tgt,relation); deterministic byte-identical rebuild; **103 tests pass** (+8).
+
+Two things I want to flag honestly:
+
+1. **A latent Phase-4 finding surfaced (non-blocking):** the Phase 2 count-gate classes are `obj:artifact`/`obj:legendary`/`obj:saga` while Phase 4 face types are `obj:type:artifact`/`obj:supertype:legendary`/`obj:subtype:saga` â€” they were never unified, so `gate:storied COUNTS obj:artifact` is disconnected from the faces. Projection didn't *need* the bridge (the explicit `QUALIFIES_FOR` edge links contributors directly), but those `COUNTS` targets are orphan nodes worth reconciling later.
+2. **This is the mechanical half only.** Deferred to Phase 5 part 2 (per spec): the targeted **pairwise LLM audit** for likely-missed relations (shared vocabulary but no path, named references, replacement/prevention, copy/self, ambiguous scope), plus richer grammars (RECOVERS_RESOURCE, AMPLIFIES_EFFECT) and the `Effect`-node refinement.
+
+Presenting v1 for your review before I proceed to the LLM audit sub-phase.
+
+### [2026-08-15 14:06] USER
+review hob-kg-phase5-review-pt1.md to address the missing elements
