@@ -2294,3 +2294,103 @@ Holding here for review of Stage B v2.
 
 ### [2026-08-15 20:00] USER
 read hob-kg-phase5-review-pt4.md
+
+### [2026-08-15 20:15] ASSISTANT
+Sharp, correct review â€” the core defect is `_build_path`'s generic predicate sets joining two cards that merely produce the same output. Only the 3 Bard `AMPLIFIES_EFFECT` paths are faithful; the other 6 must route to a graph-repair queue. Let me implement relation-specific typed-path signatures + repair queue, tuple-level critic agreement, grounding-provenance overlap, output-aware copy candidates, and coverage reporting â€” then audit the remaining 49.
+
+Let me rewrite the path construction and reconcile core:
+
+Let me read the current path-building section to match exactly.
+
+Now rewrite the ingest reconcile loop for tuple agreement, typed-path signatures, grounding-coverage, and the repair queue. Let me read the current loop.
+
+Now update the ingest tail to write the repair queue, coverage stats, and report. Let me read it.
+
+Now re-ingest the existing verdicts with the stricter protocol:
+
+0 accepted but 11 in repair â€” the 3 Bard AMPLIFIES should be grounded. Let me debug why the typed-path signature isn't matching them.
+
+Found it: `_grounding_covers_path` looks for `face_id` in the edge *provenance*, but Phase 4 edge provenance doesn't carry `face_id` â€” the face is implicit in the edge's op node. Let me derive the edge's face from its node id and match grounding on that face + provenance-span overlap.
+
+Now exactly the reviewer's expected outcome: **3 accepted faithful typed paths (the Bard AMPLIFIES), 8 routed to graph-repair**, 5 critic-disagreements, 1 duplicate, coverage 94/143. Let me verify the augmented + repair outputs.
+
+The augmented records don't store names (fine â€” they're graph edges). Let me recheck with a name lookup.
+
+The 3 Bard paths are now faithful (REPLACES â†’ AMPLIFIES â†’ CAUSES, real edge_ids). The repair queue has mirror-duplicate entries (both orientations of the same pair). Let me dedup the repair queue by unordered pair.
+
+Let me redesign the copy-candidate selector to be output-aware (item 6): derive what the copier produces and pair it with cards that care about that, not every token creator.
+
+copy is now output-aware (22, Notary paired only with Halfling/enters-trigger cards). Now let me batch only the *unaudited* candidates (the 49 shared-vocab + any new copy pairs) and run the audit on them. Let me add an `only_unaudited` mode to `build_batches`.
+
+68 unaudited candidates in 5 new batches (007â€“011). Running the extractor pass on them:
+
+Extractors 007â€“011 found more candidates (Wolf-token supply, hone-counter supply, Elf-token anthem, artifact-enters trigger). Now the critic pass on those batches:
+
+All critic passes done (162 total verdicts across the full candidate set). Some old copy-candidate verdicts are now stale (the copy bucket changed), so let me have the ingest count coverage against *current* candidates only, then run it.
+
+Coverage is now complete (142/142). Accepted stays at the **3 faithful Bard typed paths**; everything else credible routes to repair (8) or is rejected by the stricter tuple-agreement critic (11). Let me confirm the accepted set and repair queue, then update tests.
+
+The final state exactly matches the reviewer's model: **3 faithful Bard typed paths accepted**, 8 credible relations (including new discoveries â€” Wolf-token supply, Elf-token anthem) routed to the graph-repair queue, coverage 142/142. Let me update the tests for the new schema.
+
+121 tests pass. Let me record Stage B v3 and commit â€” this addresses all seven review items.
+
+Committed (`82e27ee`); push finishing in the background. All seven pt4 items are addressed.
+
+## Phase 5 Part 2 Stage B v3 â€” faithful typed paths + repair queue + full coverage
+
+| pt4 item | Fix |
+|---|---|
+| Generic joins mistaken for triggers | **Relation-specific signatures** â€” ENABLES_TRIGGER = `Aâ†’event E; E TRIGGERS B`; AMPLIFIES = `A REPLACES/MODIFIES E â† CAUSES/PRODUCES B`; SUPPLIES = `A PRODUCES R â† CONSUMES/REQUIRES B`. A shared-output join is no longer accepted. |
+| Grounding not tied to edges | **`_grounding_covers_path`** â€” each real edge must have a grounding phrase on its own face whose span overlaps the edge's provenance |
+| Semantic shortcuts | **`requires_graph_repair` queue** with the missing-intermediate hint â€” no card-to-card shortcut emitted |
+| Weak critic reconcile | **tuple agreement** â€” critic must return RELATION with the same relation_type + connecting_concept and its own spans must validate |
+| Coverage overstated | explicit **142/142** in stats + report |
+| Copy selector wrong | **output-aware** â€” derive what the copier produces, pair only with cards that care |
+| 49 unaudited | ran the protocol over the remainder (batches 007â€“011) |
+
+**Result (22 sub-agents total):** **3 accepted faithful typed paths** â€” Bard, King of Dale â†’ Beorn the Fierce / The Chief Warg / Old Fat Spider (`AMPLIFIES_EFFECT` via `event:draw`, `REPLACES â†’ CAUSES`, real edge_ids, provenance-tied grounding). **8 routed to the graph-repair queue** (Wolf-token supply, the life-lossâ†’Master-of-Lake-town mill hub, Great Goblin Amass trigger, Gandalf/Elrond, Thranduil Elf-anthem â€” each needs a canonicalized intermediate event). 11 critic-disagreements, 1 duplicate, 114 NO_RELATION. **121 tests pass.**
+
+This matches the reviewer's own assessment exactly: only the 3 Bard relations meet the typed-path standard; the other credible discoveries now drive **primitive-graph repairs** rather than being asserted as shortcuts. The augmented layer stays separate (`origin: llm_audit`) and unmerged.
+
+Two things remain as deliberate next steps (not defects): the **repair queue** is the input to a later graph-repair + reprojection pass (add the missing life-lost / counter-placed / creature-ability-activated events + TRIGGERS edges, then reproject mechanically), and the augmented layer awaits your decision on merging. Holding here for review.
+
+### [2026-08-15 20:23] USER
+<task-notification>
+<task-id>bddxea4fj</task-id>
+<tool-use-id>toolu_013aDiJ6Bvddm6etvLtGpHnb</tool-use-id>
+<output-file>C:\Users\dimuc\AppData\Local\Temp\claude\C--GitHub-magic-the-gathering-theorycrafting\619ffa89-e329-4ea4-be6f-bee02122fca6\tasks\bddxea4fj.output</output-file>
+<status>completed</status>
+<summary>Background command "Commit and push Stage B v3" completed (exit code 0)</summary>
+</task-notification>
+
+### [2026-08-15 20:23] ASSISTANT
+Push confirmed â€” `main` is synced at `82e27ee`. Phase 5 Part 2 Stage B v3 is complete and pushed: 3 faithful typed paths accepted, 8 credible relations in the graph-repair queue, full 142/142 coverage, 121 tests passing. Holding for your review.
+
+### [2026-08-15 21:08] USER
+The newest commit is a major improvement: all 142 candidates are covered, 121 tests pass, and the three accepted Bard relations have faithful typed paths. But I would not freeze the repair queue yet.
+
+The main remaining defect is direction handling. When no typed path exists, the assembler ignores the extractorΓÇÖs `enabler` field and deduplicates using an unordered pair while retaining whichever orientation appears first. That produces incorrect arrows, including:
+
+* Gandalf, Wandering Wizard ΓåÆ Elrond, Moon-Reader
+* Great Ugly-Looking Goblin ΓåÆ The Great Goblin
+* Rage into the Valley ΓåÆ The Master of Lake-town
+* The Sackville-Bagginses ΓåÆ The Master of Lake-town
+
+Several are currently recorded backwards.
+
+There are three other issues:
+
+* Repair concepts are often misleading: `resource:card-in-hand`, `resource:life`, or `counter:+1/+1` should instead lead to missing event nodes such as `creature ability activated`, `life lost`, or `counters placed`.
+* Accepted augmented relations donΓÇÖt aggregate conditions from their path steps. Bard ΓåÆ Beorn, for example, must retain BeornΓÇÖs three-Bears condition.
+* The report mixes verdict counts with deduplicated outputs: 5 accepted verdicts become 3 augmented relations; 11 repair verdicts become 8 queue entries.
+
+IΓÇÖd request a narrow v3.1 before graph repair:
+
+1. Include `enabler` direction in extractorΓÇôcritic agreement.
+2. When direction is not mechanically proven, store an unordered card pair plus `proposed_direction` and `direction_status`.
+3. Rename the LLM concept to `candidate_concept` and specify the required missing node type, usually `Event`.
+4. Union path-step condition IDs into each augmented relation.
+5. Report both verdict-level and deduplicated counts.
+6. Add regression tests for the four directional examples above.
+
+Verdict: the acceptance side is now trustworthy; the repair-queue interface still needs this correction before an automated repair agent consumes it.

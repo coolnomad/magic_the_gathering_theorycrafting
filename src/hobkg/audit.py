@@ -317,12 +317,27 @@ def _sig_supplies(d, a, b, concept):
 
 _SIGNATURES = {"ENABLES_TRIGGER": _sig_enables_trigger, "AMPLIFIES_EFFECT": _sig_amplifies,
                "SUPPLIES_RESOURCE": _sig_supplies}
-_REPAIR_HINT = {
-    "ENABLES_TRIGGER": "add/canonicalize the intermediate event (life-lost / counter-placed / "
-                       "creature-ability-activated) and a TRIGGERS edge to the beneficiary ability",
-    "AMPLIFIES_EFFECT": "canonicalize the shared modified event/resource node",
-    "SUPPLIES_RESOURCE": "canonicalize the shared resource node so producer feeds consumer",
-}
+def _missing_node_type(relation: str) -> str:
+    # what the repair agent must ADD/canonicalize for a faithful path to exist
+    return {"ENABLES_TRIGGER": "Event", "AMPLIFIES_EFFECT": "Event",
+            "SUPPLIES_RESOURCE": "Resource"}.get(relation, "Node")
+
+
+def _missing_node_hint(relation: str, concept: str) -> str:
+    concept = concept or ""
+    if relation == "ENABLES_TRIGGER":
+        if concept.startswith("resource:life"):
+            return "add Event:life-lost + TRIGGERS to the beneficiary ability"
+        if concept.startswith("resource:card"):
+            return "add Event:creature-ability-activated or card-drawn + TRIGGERS"
+        if concept.startswith("counter:"):
+            return "add Event:counter-placed + TRIGGERS to the beneficiary ability"
+        if concept.startswith("token:"):
+            return "add Event:object-entered + TRIGGERS to the beneficiary ability"
+        return "add the intermediate Event + a TRIGGERS edge to the beneficiary ability"
+    if relation == "SUPPLIES_RESOURCE":
+        return f"canonicalize the shared resource ({concept}) so producer feeds consumer"
+    return f"canonicalize the shared node ({concept})"
 
 
 def _typed_path(d: _Data, relation: str, s: str, t: str, concept: str):
@@ -418,10 +433,12 @@ def ingest(repo: Path = REPO) -> dict:
             results.append(rec)
             continue
         # reconcile: the critic must ALSO find a RELATION and AGREE on the normalized tuple
-        # (relation_type + connecting_concept), and its own grounding spans must validate.
+        # (relation_type + connecting_concept + ENABLER DIRECTION), and its own grounding
+        # spans must validate.
         tuple_agree = (cr_verdict == "RELATION"
                        and (cr.get("relation_type") or "").upper() == (relation or "").upper()
                        and (cr.get("connecting_concept") or "") == (concept or "")
+                       and (cr.get("enabler") or "") == (ex.get("enabler") or "")
                        and _valid_spans(d, cr.get("grounding")))
         if not tuple_agree:
             rec["status"] = "critic_disagreement"
@@ -445,13 +462,23 @@ def ingest(repo: Path = REPO) -> dict:
             results.append(rec)
             continue
         if kind != "grounded" or not _grounding_covers_path(d, steps, ex.get("grounding")):
-            # credible but no faithful primitive path -> graph-repair queue, NOT a shortcut
+            # credible but no faithful primitive path -> graph-repair queue, NOT a shortcut.
+            # Direction is NOT mechanically proven here, so store an UNORDERED pair plus the
+            # agreed extractor/critic proposed direction (enabler card) and its status.
+            enabler_card = s if (ex.get("enabler") or "source") == "source" else t
+            benef_card = t if enabler_card == s else s
+            a, b = sorted((s, t))
             rec["status"] = "requires_graph_repair"
-            rec["missing"] = _REPAIR_HINT.get(relation, "canonicalize the intermediate node")
-            repair.append({"source_card": src, "target_card": tgt, "relation": relation,
-                           "connecting_concept": concept, "missing": rec["missing"],
-                           "grounding": ex.get("grounding"), "confidence": ex.get("confidence"),
-                           "source_name": d.name.get(src, src), "target_name": d.name.get(tgt, tgt)})
+            repair.append({
+                "card_a": a, "card_b": b,
+                "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
+                "relation": relation, "candidate_concept": concept,
+                "missing_node_type": _missing_node_type(relation),
+                "missing_node_hint": _missing_node_hint(relation, concept),
+                "proposed_direction": {"enabler": enabler_card, "beneficiary": benef_card},
+                "proposed_enabler_name": d.name.get(enabler_card, enabler_card),
+                "direction_status": "proposed",           # not mechanically proven
+                "grounding": ex.get("grounding"), "confidence": ex.get("confidence")})
             counts["requires_graph_repair"] += 1
             results.append(rec)
             continue
@@ -481,12 +508,12 @@ def ingest(repo: Path = REPO) -> dict:
         for m in accepted:
             fh.write(json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n")
     # dedup the graph-repair queue by UNORDERED pair + relation (mirror candidate
-    # orientations describe the same missing mechanism; direction is provisional until
-    # the intermediate event is canonicalized and the pair is reprojected mechanically).
+    # orientations describe the same missing mechanism; the proposed direction is the
+    # agreed extractor/critic enabler, kept as `proposed` until reprojection proves it).
     rq = {}
     for r in repair:
-        rq.setdefault((frozenset((r["source_card"], r["target_card"])), r["relation"]), r)
-    repair = sorted(rq.values(), key=lambda r: (r["source_card"], r["target_card"], r["relation"]))
+        rq.setdefault((frozenset((r["card_a"], r["card_b"])), r["relation"]), r)
+    repair = sorted(rq.values(), key=lambda r: (r["card_a"], r["card_b"], r["relation"]))
     with (repo / "data/graph_global/audit_repair_queue.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for r in repair:
             fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
@@ -494,42 +521,53 @@ def ingest(repo: Path = REPO) -> dict:
     stats = {"total_candidates": total_candidates, "audited": len(extract),
              "unaudited": total_candidates - len(extract),
              "critic_verdicts": len(critic), **dict(counts),
-             "augmented_metaedges": len(accepted), "repair_queue": len(repair)}
+             # verdict-level vs deduplicated-output counts (kept distinct, not conflated)
+             "accepted_verdicts": counts.get("accepted", 0), "augmented_metaedges": len(accepted),
+             "repair_verdicts": counts.get("requires_graph_repair", 0), "repair_queue": len(repair)}
     _audit_report(repo, results, accepted, repair, stats)
     return stats
 
 
 def _augmented(rec: dict, steps: list) -> dict:
     nodes_seq = [steps[0]["source"]] + [s["target"] for s in steps]
+    # union condition_ids from the real path steps (e.g. Beorn's three-Bears condition on
+    # its draw) with any condition the LLM attached.
+    conds = set(rec.get("conditions") or [])
+    for s in steps:
+        conds.update(s.get("condition_ids") or [])
     return {"source_card": rec["source_card"], "target_card": rec["target_card"],
             "relation": rec["relation_type"], "origin": "llm_audit", "path_kind": rec["path_kind"],
             "steps": steps, "primitive_path": nodes_seq,
             "path_predicates": [s["predicate"] for s in steps],
             "edge_ids": [s["edge_id"] for s in steps],
             "connecting_concept": rec["connecting_concept"],
-            "conditions": rec.get("conditions") or [],
+            "conditions": sorted(conds),
             "grounding": rec.get("grounding") or [], "confidence": rec.get("confidence"),
             "critic_confirmed": True}
 
 
 def _audit_report(repo: Path, results: list, accepted: list, repair: list, stats: dict) -> None:
     L = ["# HOB Phase 5 Part 2 — Pairwise LLM Audit (extractor + critic, typed paths)", "",
-         f"- **coverage**: {stats.get('audited', 0)}/{stats.get('total_candidates', 0)} candidates audited "
-         f"({stats.get('unaudited', 0)} shared-vocabulary candidates unaudited)",
-         f"- **accepted faithful typed paths (origin: llm_audit)**: {stats.get('accepted', 0)}",
-         f"- **routed to graph-repair queue**: {stats.get('requires_graph_repair', 0)}",
+         f"- **coverage**: {stats.get('audited', 0)}/{stats.get('total_candidates', 0)} candidates audited",
+         f"- **accepted**: {stats.get('accepted_verdicts', 0)} verdicts → "
+         f"{stats.get('augmented_metaedges', 0)} augmented relations (deduped)",
+         f"- **graph-repair**: {stats.get('repair_verdicts', 0)} verdicts → "
+         f"{stats.get('repair_queue', 0)} queue entries (deduped, unordered)",
          f"- **critic disagreement**: {stats.get('critic_disagreement', 0)}",
          f"- **duplicate of mechanical**: {stats.get('duplicate', 0)}",
          f"- **ungrounded**: {stats.get('ungrounded', 0)}",
          f"- **NO_RELATION**: {stats.get('no_relation', 0)}", "",
-         "## Accepted faithful typed paths (origin: llm_audit)", ""]
+         "## Accepted faithful typed paths (origin: llm_audit, direction mechanically proven)", ""]
     for m in accepted:
         L.append(f"- **{_nm(results, m['source_card'])} → {_nm(results, m['target_card'])}** "
-                 f"[{m['relation']}] via `{m['connecting_concept']}` — {' → '.join(m['path_predicates'])}")
-    L += ["", "## Graph-repair queue (credible relations lacking a primitive path)", ""]
+                 f"[{m['relation']}] via `{m['connecting_concept']}` — {' → '.join(m['path_predicates'])}"
+                 f"{'  (conditions: ' + ', '.join(m['conditions']) + ')' if m['conditions'] else ''}")
+    L += ["", "## Graph-repair queue (unordered pair; proposed direction; needs a primitive path)", ""]
     for r in repair:
-        L.append(f"- **{r['source_name']} → {r['target_name']}** [{r['relation']}] via "
-                 f"`{r['connecting_concept']}` — needs: {r['missing']}")
+        pe = r["proposed_enabler_name"]
+        L.append(f"- **{r['card_a_name']} — {r['card_b_name']}** [{r['relation']}] "
+                 f"candidate_concept `{r['candidate_concept']}` → add **{r['missing_node_type']}** "
+                 f"({r['missing_node_hint']}); proposed enabler: {pe} [{r['direction_status']}]")
     (repo / "reports" / "pair_audit.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 

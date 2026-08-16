@@ -82,20 +82,60 @@ def test_augmented_layer_is_separate_and_faithful(istats, augmented):
         assert m["path_predicates"][1] == m["relation"]      # middle step is the derived bridge
 
 
-def test_repair_queue_for_unfaithful_relations(istats):
-    # credible relations lacking a primitive path go to a repair queue, NOT a shortcut
-    rq_path = REPO / "data" / "graph_global" / "audit_repair_queue.jsonl"
-    if not rq_path.exists():
+RQ = REPO / "data" / "graph_global" / "audit_repair_queue.jsonl"
+
+
+@pytest.fixture(scope="module")
+def repair(istats):
+    if not RQ.exists():
+        return []
+    return [json.loads(l) for l in RQ.read_text(encoding="utf-8").splitlines()]
+
+
+def test_repair_queue_unordered_with_proposed_direction(istats, repair):
+    if not repair:
         pytest.skip("no repair queue")
-    rq = [json.loads(l) for l in rq_path.read_text(encoding="utf-8").splitlines()]
-    assert len(rq) == istats["repair_queue"]
-    for r in rq:
-        assert r["relation"] and r["connecting_concept"] and r["missing"]
+    assert len(repair) == istats["repair_queue"]
+    for r in repair:
+        assert r["card_a"] < r["card_b"]                     # unordered (sorted) pair
+        assert r["candidate_concept"] and r["missing_node_type"] and r["missing_node_hint"]
+        assert r["direction_status"] == "proposed"           # NOT a mechanically-proven arrow
+        assert r["proposed_direction"]["enabler"] in (r["card_a"], r["card_b"])
+        if r["relation"] == "ENABLES_TRIGGER":
+            assert r["missing_node_type"] == "Event"         # needs an intermediate Event
 
 
-def test_coverage_reported(istats):
-    assert istats["audited"] == istats["total_candidates"]   # full coverage
-    assert istats["unaudited"] == 0
+def test_repair_queue_directions_are_correct(repair):
+    """The four pt4 examples must propose the MECHANISTICALLY-correct enabler."""
+    if not repair:
+        pytest.skip("no repair queue")
+    want = {  # unordered pair (by name)  ->  correct enabler name
+        frozenset({"Gandalf, Wandering Wizard", "Elrond, Moon-Reader"}): "Gandalf, Wandering Wizard",
+        frozenset({"Great Ugly-Looking Goblin // Clap! Snap!", "The Great Goblin"}):
+            "Great Ugly-Looking Goblin // Clap! Snap!",
+        frozenset({"Rage into the Valley", "The Master of Lake-town"}): "Rage into the Valley",
+        frozenset({"The Sackville-Bagginses", "The Master of Lake-town"}): "The Sackville-Bagginses",
+    }
+    by_pair = {frozenset({r["card_a_name"], r["card_b_name"]}): r["proposed_enabler_name"] for r in repair}
+    for pair, enabler in want.items():
+        assert pair in by_pair, f"missing repair pair {pair}"
+        assert by_pair[pair] == enabler, f"{pair}: proposed {by_pair[pair]!r} != {enabler!r}"
+
+
+def test_accepted_conditions_union_path_steps(augmented):
+    # Bard -> Beorn must retain Beorn's three-Bears draw condition (from the path edge)
+    beorn = next((m for m in augmented if "30ca8e92" in m["target_card"]
+                  and "d05db2c1" in m["source_card"]), None)
+    if beorn is None:
+        pytest.skip("Bard->Beorn not accepted")
+    assert beorn["conditions"], "path-step conditions must be unioned into the metaedge"
+
+
+def test_coverage_and_dual_counts_reported(istats):
+    assert istats["audited"] == istats["total_candidates"] and istats["unaudited"] == 0
+    # verdict-level and deduplicated counts are BOTH reported and distinct concepts
+    assert istats["accepted_verdicts"] >= istats["augmented_metaedges"]
+    assert istats["repair_verdicts"] >= istats["repair_queue"]
 
 
 def test_augmented_paths_are_real_or_labelled_derived(augmented):

@@ -825,3 +825,20 @@ Reviewer (`docs/hob-kg-phase5-review-pt4.md`): 6 of 9 accepted lacked faithful t
 **Not merged:** the augmented layer stays separate (`origin: llm_audit`); the repair queue is the input to a later graph-repair + reprojection pass. Phase 5 Part 2 is now coverage-complete and typed-faithful, pending review.
 
 Refs: `docs/hob-kg-phase5-review-pt4.md`; `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/{card_pair_projection_audit,audit_repair_queue}.jsonl`; `data/llm/audit/{extract,critic}_0*.jsonl`; `reports/pair_audit.md`
+
+---
+
+## [2026-08-16 23:30] CORRECTION — Phase 5 Part 2 v3.1: repair-queue interface (direction + concept)
+
+Reviewer (`docs/hob-kg-phase5-review-pt5.md`): acceptance side trustworthy, but the repair-queue interface had wrong arrows (dedup kept whichever orientation appeared first, ignoring the extractor `enabler`), misleading concepts, dropped conditions, and conflated counts. Six narrow fixes:
+
+1. **Enabler in extractor–critic agreement** — `tuple_agree` now also requires `extractor.enabler == critic.enabler` (critic_disagreement 11 → 12).
+2. **Unordered repair pair + proposed direction** — a repair entry stores `card_a`/`card_b` (sorted, unordered), plus `proposed_direction` (the agreed enabler card), `proposed_enabler_name`, and `direction_status: "proposed"` (NOT a mechanically-proven arrow). This fixed the four backwards examples: proposed enablers are now Gandalf (→Elrond), Great Ugly-Looking Goblin (→Great Goblin), Rage into the Valley / The Sackville-Bagginses (→Master of Lake-town) — the mechanistically-active card in each.
+3. **`candidate_concept` + required missing node** — renamed the LLM's concept to `candidate_concept` and added `missing_node_type` (usually **Event** for ENABLES_TRIGGER) + `missing_node_hint` (e.g. `resource:life` → "add Event:life-lost + TRIGGERS"; `counter:+1/+1` → "add Event:counter-placed"), so the repair agent adds the right node instead of treating the resource/counter as the connector.
+4. **Union path-step conditions into accepted relations** — `_augmented` now unions `condition_ids` from the real path edges; Bard → Beorn the Fierce retains "you control three or more Bears", Bard → Old Fat Spider its target-condition.
+5. **Dual counts** — stats/report show verdict-level AND deduplicated: accepted 5 verdicts → 3 augmented relations; repair 10 verdicts → 7 queue entries.
+6. **Regression tests** for the four directional examples (proposed enabler correct), the unordered-pair/proposed-direction schema, the conditions union, and the dual counts.
+
+**Result.** 142/142 audited; 3 accepted faithful typed paths (unchanged, now condition-bearing); 7 repair-queue entries (unordered, correctly-directed proposals, Event/Resource repair targets); 12 critic-disagreements; 114 NO_RELATION. 123 tests pass. The repair-queue interface is now safe for an automated graph-repair + reprojection agent to consume.
+
+Refs: `docs/hob-kg-phase5-review-pt5.md`; `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/audit_repair_queue.jsonl`; `reports/pair_audit.md`
