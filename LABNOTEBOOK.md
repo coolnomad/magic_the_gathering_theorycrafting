@@ -842,3 +842,5 @@ Reviewer (`docs/hob-kg-phase5-review-pt5.md`): acceptance side trustworthy, but 
 **Result.** 142/142 audited; 3 accepted faithful typed paths (unchanged, now condition-bearing); 7 repair-queue entries (unordered, correctly-directed proposals, Event/Resource repair targets); 12 critic-disagreements; 114 NO_RELATION. 123 tests pass. The repair-queue interface is now safe for an automated graph-repair + reprojection agent to consume.
 
 Refs: `docs/hob-kg-phase5-review-pt5.md`; `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/audit_repair_queue.jsonl`; `reports/pair_audit.md`
+
+**[correction to the above ref]** The v3.1 review was provided **inline in chat**, not as a committed file — there is no `docs/hob-kg-phase5-review-pt5.md` (only pt1–pt4 exist on disk). The correct citation for that review is "inline reviewer feedback (post-pt4, repair-queue-interface)".
