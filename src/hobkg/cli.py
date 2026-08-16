@@ -95,6 +95,13 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "reproject-mechanisms":
         from . import complete_mechanisms
         print(json.dumps(complete_mechanisms.reproject(), indent=2))
+    elif cmd == "equip":
+        from . import equip
+        s = equip.materialize(); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject-equip":
+        from . import equip
+        print(json.dumps(equip.reproject(), indent=2))
     elif cmd == "query-card":
         from . import query
         print(query.query_card(argv[1]))

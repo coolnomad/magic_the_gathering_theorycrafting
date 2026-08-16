@@ -88,7 +88,7 @@
 
 ### Hone/Equipment  (`hone_equipment`)
 - anchors: `counter:hone`, `rule:hone`, `rule:equip`, `keyword:equip`
-- members: 13  · contributors: 18  · consumers: 0  · conditions: 0  · feedback cycles: 0
+- members: 13  · contributors: 30  · consumers: 0  · conditions: 0  · feedback cycles: 0
 
 ### Landfall  (`landfall`)
 - anchors: `rule:landfall`, `keyword:landfall`

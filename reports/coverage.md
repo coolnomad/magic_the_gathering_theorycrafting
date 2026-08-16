@@ -3,10 +3,11 @@
 *Coverage is not correctness; edge count is not maximized.*
 
 - cards / faces parsed: **193 / 210**
-- abilities by kind: {'?': 29, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1}
-- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **99** = union **2949** (+1 repair, +58 legend, +3 mechanism nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 99}; provenance gaps: 0
-- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **356** = union **5645**
-- conditions: 145 (81 raw-unresolved); unresolved Oracle records: 16
+- abilities by kind: {'?': 42, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1, 'automatic': 4, 'static_pt_bonus': 8, 'static_grant': 6}
+- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **99** + equip **131** = union **3080** (+1 repair, +58 legend, +3 mechanism, +99 equip nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 99, 'equip': 131}; provenance gaps: 0
+- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **356** + equip **3028** = union **8673**
+- conditions all resolve: **True** (unresolved: none)
+- conditions: 162 (81 raw-unresolved); unresolved Oracle records: 16
 - LLM: 210 faces accepted; audit 5 accepted / 114 no-relation / 10 graph-repair
 - pair relations: **5278** {'CONTRIBUTES_TO_GATE': 666, 'INFRASTRUCTURE_CASTING': 4593, 'ENABLES_TRIGGER': 4, 'SUPPLIES_RESOURCE': 15}
 - pairs with multiple relation types: 80
@@ -16,28 +17,28 @@
 
 ## Edges by predicate
 
-- HAS_ABILITY: 579
+- HAS_ABILITY: 592
 - HAS_TYPE: 538
-- CAUSES: 348
+- CAUSES: 396
+- HAS_COST: 222
 - HAS_FACE: 210
-- HAS_COST: 209
 - ENABLES: 115
-- REFERENCES_RULE: 89
+- REFERENCES_RULE: 101
+- MODIFIES: 95
 - MOVES_TO: 89
 - MOVES_FROM: 84
 - TRIGGERS: 82
-- MODIFIES: 81
 - HAS_KEYWORD: 80
 - QUALIFIES_FOR: 78
 - PRODUCES: 74
 - HAS_STATE: 63
+- REQUIRES: 49
 - SCALES_WITH: 35
 - ADDS_COUNTER: 34
 - CREATES_OBJECT: 27
 - INSTANTIATES: 26
 - CONSUMES: 23
 - CAN_LEAD_TO: 21
-- REQUIRES: 18
 - ATTACHED_TO: 12
 - HAS_COUNTER_TYPE: 11
 - PREVENTS: 9

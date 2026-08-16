@@ -123,13 +123,19 @@ def materialize(repo: Path = REPO) -> dict:
     nodes, edges = {}, []
 
     # ---- A. turn-scoped second-draw gate ------------------------------------------------
+    # the count resets at the start of each controller's turn; the gate fires ONCE, on the
+    # TRANSITION 1 -> 2 (an equality/transition gate, not a persistent ">= 2" that would keep
+    # firing on the 3rd/4th draw). See the pt4 review.
     nodes[STATE_COUNT] = _node(STATE_COUNT, "State", "cards drawn this turn",
-                               {"scope": "controller", "reset": "each_turn", "aggregation": "count",
-                                "tracks": "cards_drawn"}, "turn-scoped draw counter")
+                               {"scope": "controller", "reset": "start_of_controllers_turn",
+                                "aggregation": "count", "tracks": "cards_drawn", "initial": 0},
+                               "turn-scoped draw counter, reset at the start of the controller's turn")
     nodes[GATE_SECOND] = _node(GATE_SECOND, "Gate", "second draw each turn",
-                               {"gate_type": "turn_scoped_count_threshold", "source_state": STATE_COUNT,
-                                "aggregation": "count", "comparison": ">=", "threshold": 2,
-                                "output_events": SECOND_DRAW_EVENTS}, "count reaches 2 -> second-draw event")
+                               {"gate_type": "turn_scoped_transition_threshold", "source_state": STATE_COUNT,
+                                "aggregation": "count", "comparison": "==", "threshold": 2,
+                                "transition": {"previous": 1, "increment": 1, "new": 2},
+                                "emit": "once_on_transition_to_2", "output_events": SECOND_DRAW_EVENTS},
+                               "fires once when the draw count transitions 1 -> 2 (the SECOND draw)")
     draw_ops = sorted({e["source"] for e in g.edges
                        if e["predicate"] in ("PRODUCES", "CAUSES") and e["target"] in DRAW_EVENTS
                        and e["source"].startswith("op:")})
@@ -137,10 +143,21 @@ def materialize(repo: Path = REPO) -> dict:
         edges.append(_edge(op, "PRODUCES", STATE_COUNT, "each draw increments the turn draw count",
                            quantity=1))
     edges.append(_edge(STATE_COUNT, "SATISFIES", GATE_SECOND,
-                       "the count reaching 2 satisfies the second-draw gate", condition_ids=[COND_SECOND]))
+                       "the count transitioning to exactly 2 (the second draw) satisfies the gate",
+                       condition_ids=[COND_SECOND]))
     second_events = [ev for ev in SECOND_DRAW_EVENTS if ev in g.nodes]
     for ev in second_events:
         edges.append(_edge(GATE_SECOND, "PRODUCES", ev, "gate fires the second-draw event"))
+    # the referenced condition MUST resolve (pt4 review): materialize its structured record in
+    # an additive condition layer, unioned by coverage/validation.
+    conditions = [{
+        "condition_id": COND_SECOND, "executable": True,
+        "expression": {"op": "eq", "left": {"state": "cards_drawn_this_turn"}, "right": 2,
+                       "transition": {"previous": 1, "increment": 1}},
+        "human_readable": ("This draw is the controller's second card drawn this turn — the "
+                           "turn-scoped count transitions from 1 to 2 (it does not re-fire on later draws)."),
+        "provenance": [{"source": "mechanism_repair", "derivation": "second-draw gate transition condition"}],
+        "origin": "mechanism_repair"}]
 
     # ---- B. Dwarf/Equipment find (Dáin's Company, Kíli the Resourceful) ------------------
     find_ops = []                                        # (op_id, face_id)
@@ -184,9 +201,18 @@ def materialize(repo: Path = REPO) -> dict:
     with (outdir / "mechanism_edges.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for e in edges:
             fh.write(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n")
+    with (outdir / "mechanism_conditions.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for c in sorted(conditions, key=lambda c: c["condition_id"]):
+            fh.write(json.dumps(c, ensure_ascii=False, sort_keys=True) + "\n")
     from .graph_repair import _validate_repair_layer
     violations = _validate_repair_layer(repo, g.nodes, nodes, edges)
+    # every condition an edge references must resolve against frozen + additive condition layers
+    defined = {c["condition_id"] for c in _load_dicts(repo / "data/graph_global/conditions.jsonl")}
+    defined |= {c["condition_id"] for c in conditions}
+    referenced = {c for e in edges for c in (e.get("condition_ids") or [])}
+    unresolved = sorted(referenced - defined)
     return {"mechanism_nodes": len(nodes), "mechanism_edges": len(edges),
+            "mechanism_conditions": len(conditions), "unresolved_conditions": unresolved,
             "draw_ops_wired": len(draw_ops), "find_ops": len(find_ops),
             "noncreature_faces": len(noncreature_faces), "second_draw_events": len(second_events),
             "cast_events": len(cast_events), "signature_violations": len(violations),

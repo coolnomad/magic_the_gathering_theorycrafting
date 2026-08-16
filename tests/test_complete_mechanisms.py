@@ -59,6 +59,26 @@ def test_second_draw_gate_structure(medges):
     assert "event:draw_second_card_each_turn" in produced        # the event Councillors triggers on
 
 
+def test_second_draw_gate_is_transition_not_persistent(mat):
+    # pt4 defect #2: the gate fires ONCE on the count transition 1->2, not persistently on >=2;
+    # the count resets at the start of the controller's turn.
+    nodes = {n["id"]: n for n in _load_dicts(G / "mechanism_nodes.jsonl")}
+    gate = nodes[cm.GATE_SECOND]["data"]
+    assert gate["comparison"] == "==" and gate["threshold"] == 2
+    assert gate["gate_type"] == "turn_scoped_transition_threshold"
+    assert gate["transition"] == {"previous": 1, "increment": 1, "new": 2}
+    state = nodes[cm.STATE_COUNT]["data"]
+    assert state["reset"] == "start_of_controllers_turn"
+
+
+def test_second_draw_condition_resolves(mat):
+    # pt4 defect #1: cond:draw-is-second-this-turn must have a resolvable condition record
+    conds = {c["condition_id"]: c for c in _load_dicts(G / "mechanism_conditions.jsonl")}
+    assert cm.COND_SECOND in conds
+    assert conds[cm.COND_SECOND]["expression"]["op"] == "eq"
+    assert mat["unresolved_conditions"] == []                    # every referenced condition resolves
+
+
 def test_recruit_enables_councillors_with_second_draw_condition(mrel):
     n2c = _name_to_card()
     mc = n2c["Master's Councillors"]

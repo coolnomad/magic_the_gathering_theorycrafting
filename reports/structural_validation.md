@@ -2,7 +2,7 @@
 
 *NOT an independent human gold set: these are deterministic structural assertions against the same graph. Human reviewers still adjudicate semantics and may override.*
 
-Structural checks: **87/87 pass**.
+Structural checks: **111/111 pass**.
 
 ## adventures — 17/17 pass
 - [pass] Gollum, Silent Slinker // Meager Meal  _(expect: exactly two face nodes)_
@@ -23,7 +23,31 @@ Structural checks: **87/87 pass**.
 - [pass] Bilbo Baggins, Burglar // Take a Glance  _(expect: exactly two face nodes)_
 - [pass] Smaug, the Great Calamity // Spew Flame  _(expect: exactly two face nodes)_
 
-## multi_edge_pairs — 6/6 pass
+## multi_edge_pairs — 30/30 pass
+- [pass] Glamdring, Foe-hammer // Gleam of Death → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE'])_
+- [pass] My Precious // Allure of Power → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] The Black Arrow → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] The Black Arrow → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] My Precious // Allure of Power → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] Well-Worn Spatula → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Well-Worn Spatula → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] Glamdring, Foe-hammer // Gleam of Death → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'SUPPLIES_RESOURCE'])_
+- [pass] Glamdring, Foe-hammer // Gleam of Death → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER'])_
+- [pass] My Precious // Allure of Power → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] The Black Arrow → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Well-Worn Spatula → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] My Precious // Allure of Power → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] The Black Arrow → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] The Black Arrow → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] My Precious // Allure of Power → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] Well-Worn Spatula → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Well-Worn Spatula → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] Glamdring, Foe-hammer // Gleam of Death → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'SUPPLIES_RESOURCE'])_
 - [pass] Smaug, Wicked Worm → Balin, Loremaster  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'INFRASTRUCTURE_CASTING'])_
 - [pass] Dori, Bearer of Friends → Kíli the Resourceful  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'INFRASTRUCTURE_CASTING', 'SUPPLIES_RESOURCE'])_
 - [pass] Nori, Teller of Tales → Kíli the Resourceful  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'SUPPLIES_RESOURCE'])_
@@ -52,7 +76,7 @@ Structural checks: **87/87 pass**.
 - [pass] Gnashing of Teeth → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Smaug, Wicked Worm → Hobbit Hole  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Great Ugly-Looking Goblin // Clap! Snap! → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Glamdring, Foe-hammer // Gleam of Death → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Glamdring, Foe-hammer // Gleam of Death → The Arkenstone // Seek the Heart  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Beorn, Reluctant Host // Till and Tend → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Woodland Weavemaster → Hobbit Hole  _(expect: no relation in any of the 3 projection layers)_
 

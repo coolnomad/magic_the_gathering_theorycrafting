@@ -407,6 +407,43 @@ Represent the spell face as castable from hand. On resolution, it moves to exile
 
 Represent lore counters, chapter triggers, and sacrifice after the final chapter. A Saga is a qualifying Storied permanent only while it remains on the battlefield, but crossing the Storied threshold produces a persistent state.
 
+#### Equip (attachment)
+
+Represent the objective, **directed** capacity: *Equipment E can legally be attached to creature C, and while E is attached to C, E's "equipped creature" effects apply to C.* This is a rules capacity, **not** synergy. Distinguish five things and keep them separate: (1) the capacity to activate Equip; (2) the attachment action; (3) the resulting attachment state; (4) effects conditional on that state; (5) special *automatic* attachment effects (which are not Equip activations). Equipment *entering the battlefield* is a separate mechanism from Equipment *becoming attached*.
+
+Reusable template (bind the target `C` as a variable, not one global "equipped creature" object shared by every Equipment):
+
+```text
+face:E
+  HAS_ABILITY    -> ability:equip:E
+  HAS_COST       -> cost:equip:E          # the printed Equip cost, preserved
+  REFERENCES_RULE -> rule:equip
+
+ability:equip:E  CAUSES -> op:equip:E
+op:equip:E
+  REQUIRES -> obj:creature-you-control    # target: a creature controlled by the activator
+  CAUSES   -> state:attachment:E          # data: {equipment: E, attached_object: <bound C>,
+                                          #        controller_constraint, timing: sorcery}
+
+# continuous "equipped creature" effects resolve through the SAME bound attachment:
+ability:equipped-*:E CAUSES -> op:modify-equipped:E
+op:modify-equipped:E
+  REQUIRES -> state:attachment:E
+  MODIFIES -> obj:bound-creature:E        # data: modification (power/toughness) or granted ability
+```
+
+Alternative Equip modes (e.g. "Equip Wizard {1}" alongside "Equip {3}") are preserved as alternative equip abilities/costs. **Special automatic attachment** (Equipment entering already attached, creating a token and attaching, attaching to an amassed Army, attaching to a target Dwarf on ETB, Hone-then-attach) uses its *printed* operation `printed ability -> attachment operation -> state:attachment:E`, **not** the Equip activation path — it may have different timing, cost, target, and conditions.
+
+Derived Equipment→creature pair relations (projection, resolved against the finite creature population — at most 12 Equipment × the creature cards, no per-pair primitive nodes):
+
+```text
+E -> C : CAN_ATTACH_TO               # cost, sorcery timing, controller + target restriction, attachment-state condition
+E -> C : MODIFIES_WHEN_ATTACHED      # the exact power/toughness modification, conditioned on the attachment state
+E -> C : GRANTS_ABILITY_WHEN_ATTACHED # the exact granted keyword/ability, conditioned on the attachment state
+```
+
+Do **not** emit `C -> E` unless the creature itself modifies, finds, discounts, or attaches Equipment. Every emitted condition ID must resolve (to `conditions.jsonl` or an explicitly unioned additive condition layer).
+
 ### Phase 3: LLM semantic extraction
 
 Use the LLM only where semantic interpretation is necessary. Do not ask the model to compare all 37,249 ordered pairs from raw text independently. First extract each card into structured operations; then derive most pair relations mechanically by output-to-requirement matching. Pairwise LLM review is a backstop for unresolved or ambiguous cases.
@@ -630,6 +667,11 @@ Write tests for at least these claims:
 10. “Other” and “another” exclusions prevent false self-effects.
 11. Legend-rule conflicts are represented as state constraints, not subjective negative synergy.
 12. Self-pair output distinguishes one object affecting itself from one copy affecting another copy.
+13. Master's Councillors' "second card drawn each turn" fires once, on the count transition 1→2, from a turn-scoped draw counter that resets each turn — not a persistent `>= 2` state. Every emitted condition ID resolves.
+14. Equip targets a creature controlled by the activating player, at sorcery timing, preserving the printed Equip cost; resolution attaches that Equipment to the selected creature.
+15. "Equipped creature" resolves to the creature bound in that attachment; the attachment operation and each equipped-creature bonus resolve to the **same** bound creature `C`.
+16. Automatic attachment effects (ETB-attach, create-and-attach, attach-to-Army, Hone-then-attach) are represented by their printed operation, not the Equip activation, and Equipment-entering is distinct from Equipment-becoming-attached.
+17. Equipment→creature relations are directed and attachment-state-conditioned; no unsupported reverse creature→Equipment relation is emitted unless the creature itself acts on the Equipment.
 
 ### Coverage report
 

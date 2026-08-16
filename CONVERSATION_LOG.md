@@ -3515,3 +3515,108 @@ What is satisfied is the main construction pipeline: normalization, templates, L
 So the accurate status is:
 
 **Phase 6 implementation frozen; full-spec acceptance pending one stateful mechanism, two targeted repairs, the query layer, and human semantic review.**
+
+### [2026-08-16 16:14] ASSISTANT
+The user wants me to build the three **engineering** work-streams from their closing summary â€” the stateful mechanism, the two targeted repairs, and the query layer â€” and note that **human semantic review** (the manual gold set) is what remains, since that's the one item only a human can perform. That's the only reading where every "do" item is actually doable by me and every genuinely-required mechanism gets built. I'll proceed on that basis.
+
+Let me set up tracking and investigate the cards + existing machinery.
+
+Now let me investigate the three cards and the existing gate/repair/projection machinery.
+
+Now the mechanics are clear:
+- **Master's Councillors** triggers on "draw your second card each turn" â†’ needs a turn-scoped draw-count gate producing that event; each draw (incl. Recruit's) contributes one.
+- **DÃ¡in's Company** ETB finds a **Dwarf or Equipment** card â†’ Dwarf/Equipment cards supply that population.
+- **Bothersome Noisemaker** triggers on **casting a noncreature spell** â†’ noncreature spells produce that cast event.
+
+Let me examine the current graph representation of these anchors and the repair/projection machinery.
+
+There's real draw-event fragmentation to canonicalize, and `op:recruit:draw -PRODUCES-> event:card-drawn`. I need to see how the repair layer is built and reprojected. Let me read `graph_repair.py` (the template for additive repair + reprojection).
+
+Let me pull a focused data dump for all three mechanisms at once (second-draw triggers + draw ops; the DÃ¡in's Company ability/faces; Noisemaker's amass trigger), and check `project._step`.
+
+Key findings: the second-draw gate should feed **three** payoffs (Bard the Bowman, Lakeshore Apothecary, Master's Councillors â€” all on fragmented events), and both Noisemaker and `f48f2a9b` want a noncreature-cast producer. Let me confirm DÃ¡in's Company's current edges, the `840de40b` card, and how noncreature spells are typed, then read `project._step`.
+
+Populations are sizable (22 Dwarf faces, Equipment via `obj:subtype:equipment`, 85 noncreature-castable faces), and the second-draw mechanism feeds three payoffs. Let me read `project.py`'s step/path helpers and the recruit wiring so my reprojection builds faithful card-to-card paths.
+
+This is a large, faithful modeling effort. Let me gather the last facts I need (recruit wiring, the genuine draw-op set, `f48f2a9b`'s trigger, equipment subtype), then implement.
+
+I now have the complete picture for all three mechanisms. Key wiring confirmed: recruit cards reach a shared `op:recruit:draw â†’ event:card-drawn`; three second-draw payoffs (Bard the Bowman, Lakeshore Apothecary, Councillors) on fragmented events; two Dwarf/Equipment finders (DÃ¡in's Company, KÃ­li); three noncreature-cast payoffs. Let me write the mechanism-completion module.
+
+The B section came out convoluted. Let me rewrite it cleanly.
+
+Let me clean up the report's sample loop and wire the CLI, then run.
+
+Materialization is clean (0 signature violations, 99 edges). Let me verify the three key validated pairs and check the second-draw path resolved for Recruit.
+
+Mechanism A produced 0 â€” bug: `forward_paths_to(STATE_COUNT)` can't reach the state because the `opâ†’state` edge lives in the mechanism layer, not the frozen `inc` index. Fix: target the frozen-reachable draw ops, then append the mechanism steps.
+
+All three mechanisms now project correctly: **Recruit â†’ Master's Councillors** exists with `cond:draw-is-second-this-turn` and no reverse (invariant #2 now satisfied), plus 39 second-draw metaedges across all 3 payoffs, 32 Dwarf/Equipmentâ†’DÃ¡in's Company suppliers, 85 noncreatureâ†’Noisemaker enablers. Now integrate the layer into coverage/modules/pair-index and flip inv#2 from deferred to satisfied. Let me view the current coverage loader.
+
+Now integrate the mechanism layer into coverage.
+
+Now update the coverage report lines and remove #2 from `DEFERRED_INVARIANTS` (it's now modeled).
+
+Now update `pair_index` to include the mechanism layer as a 4th column, and `structural_validation` to read all four layers.
+
+Now add the mechanism layer to `structural_validation_set`'s layer list, and union it into `modules._Graph`.
+
+Now regenerate the full pipeline and check the integration.
+
+Integration is clean (union 2,949 edges, 0 provenance gaps, `gate:second-draw` module present, deferred empty). Now update the tests that this changes. First the coverage tests.
+
+Now flip the modules `inv2` test â€” the relation now exists (satisfied), rather than being deferred.
+
+I introduced a stray unused variable with a typo. Let me remove it.
+
+Now let me write a dedicated test file for the mechanism-completion module and run the suite.
+
+One test needs the mechanism layer added to its edge-id union (modules now include mechanism edges). Fixing.
+
+Tasks 4â€“6 are complete (174 tests pass). Let me mark them and build the query layer (task 7). First I'll check each projection layer's record schema so the query renders paths/provenance uniformly.
+
+I have what I need. Let me write the query layer.
+
+Let me check how `cli.py` parses arguments, then wire the three query commands.
+
+Let me exercise the query commands on the three flagship pairs and a mechanism.
+
+Console encoding (cp1252) can't emit the Unicode arrows/accents. I'll switch query output to ASCII and reconfigure stdout to UTF-8 for accented card names.
+
+The stdout reconfigure should handle the remaining accents/glyphs. Let me test the query commands.
+
+The query layer renders the full grounded path, conditions, direction, and inference origin. Let me verify `query-card` and `query-mechanism`, then add a test.
+
+query layer works across all three commands. Let me add a test, then run the suite.
+
+All 180 pass. Let me mark task 7 done, regenerate deliverables deterministically, and verify the frozen graph is untouched.
+
+Deterministic, frozen graph clean, pair-index complete (37,249 records, mechanism column, nonempty up to 5,504). Now record the science and note the one remaining item (human semantic review). Let me append to the notebook.
+
+Let me refresh the coverage report (Phase 6 writer last) and update HANDOFF + memory to the new status.
+
+Now update HANDOFF.md and the memory to reflect the new full-spec status.
+
+Now a final full-suite run, revert the incidental review-file reorder, regenerate the Phase 6 coverage report (pytest clobbers it), and commit + push.
+
+Done â€” committed and pushed (`a389aba..db8b389`, HEAD `db8b389`), working tree clean.
+
+## Full-spec completion â€” items 1â€“3 built, human review noted
+
+Following the reviewer's re-scope, I built the three engineering streams from their closing summary and noted the fourth (human review) as the only remaining item. **180 tests pass**, deterministic, frozen Phase 4 + Phase 5 projections byte-untouched.
+
+**New `mechanism_repair` layer** (`src/hobkg/complete_mechanisms.py` â†’ additive `mechanism_{nodes,edges}.jsonl`, 3 nodes / 99 edges, **0 signature violations**, all provenance-bearing â†’ 356 reprojected typed paths):
+
+1. **Turn-scoped second-draw gate â†’ invariant #2 SATISFIED.** `state:cards-drawn-this-turn` + `gate:second-draw` (threshold 2). Each draw `PRODUCES` the count; the count `SATISFIES` the gate under `cond:draw-is-second-this-turn`; the gate `PRODUCES` the second-draw events. **Recruit â†’ Master's Councillors now projects** (ENABLES_TRIGGER, second-draw condition, no reverse) â€” modeling principle #5, invariant #2, execution #6 all met. `DEFERRED_INVARIANTS` is now empty.
+2. **Dwarf/Equipment â†’ DÃ¡in's Company** (+ KÃ­li): find-op `REQUIRES obj:subtype:{dwarf,equipment}` â†’ 64 SUPPLIES_RESOURCE relations.
+3. **Noncreature cast â†’ Bothersome Noisemaker** (+ FÃ­li, Gandalf Flameshape): canonical `op:cast-noncreature-spell` produces the cast events; 85 noncreature faces link to it â†’ ENABLES_TRIGGER.
+
+**Query layer** (`src/hobkg/query.py`): `query-card` / `query-pair` / `query-mechanism`. Any pair shows relation, direction, conditions, the full intermediate-node path, provenance, and inference origin across all four layers â€” e.g. `query-pair "Bard's Company" "Master's Councillors"` renders the grounded Recruitâ†’Councillors path with its second-draw condition.
+
+**Integrated everywhere:** coverage (union **2,949 edges / 5,645 relations, 0 provenance gaps**), modules (38, incl. `gate:second-draw`), pair-index (4th `mechanism` column, 37,249 pairs, **5,504 non-empty**), structural validation.
+
+## What remains for full-spec acceptance
+
+**Independent human semantic validation** â€” the one item I can't perform. The spec's manual gold set (Â§Manual gold set) requires a *human* to hand-review a stratified sample (incl. â‰¥20 multi-edge pairs); the automated `structural_validation_set` is honestly labelled as *not* a substitute. The graph, four projection layers, pair index, and query CLI now give you everything needed to do that review â€” the adjudication itself is yours. No other spec gap remains.
+
+### [2026-08-16 16:18] USER
+now read hob-kg-phase6-review-pt4.md. when that's resolved we'll do the human hand-review

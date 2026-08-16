@@ -20,6 +20,7 @@ _LAYERS = [
     ("llm_audit", "card_pair_projection_audit.jsonl", "LLM-inferred (audit, critic-confirmed)"),
     ("graph_repair", "card_pair_projection_repaired.jsonl", "graph-repair (materialized intermediate)"),
     ("mechanism_repair", "card_pair_projection_mechanism.jsonl", "mechanism-repair (stateful / targeted)"),
+    ("equip", "card_pair_projection_equip.jsonl", "equip (Equipment->creature attachment)"),
 ]
 
 
@@ -104,6 +105,17 @@ def query_pair(a: str, b: str, repo: Path = REPO) -> str:
             L.append("  (no mechanistic relation in any projection layer — most ordered pairs are empty)")
         for m in sorted(rels, key=lambda x: (x["_layer"], x["relation"])):
             L.append(f"  - {m['relation']}  [{m['_origin_label']}]")
+            if m.get("equip_cost"):
+                ec = m["equip_cost"]
+                extra = f" + {ec['additional_cost']}" if ec.get("additional_cost") else ""
+                L.append(f"    equip cost: {ec.get('raw') or ec.get('mana_cost')}{extra}"
+                         + (f"  (mode: {m['equip_mode']})" if m.get("equip_mode") else ""))
+            if m.get("modification"):
+                L.append(f"    modification: {m['modification']}")
+            if m.get("granted_ability"):
+                L.append(f"    grants: {m['granted_ability']}")
+            if m.get("attachment_state"):
+                L.append(f"    attachment state: {m['attachment_state']}")
             for nodes, preds, conds, prov in _paths(m):
                 if conds:
                     L.append(f"    conditions: {', '.join(conds)}")

@@ -32,28 +32,37 @@ def test_coverage_core_numbers(cov):
 
 
 def test_coverage_reports_all_layers_and_union(cov):
-    # frozen + repair + legend + mechanism layers reported SEPARATELY and as a deduplicated union
-    # (the completed graph, not just Phase 4).
+    # frozen + repair + legend + mechanism + equip layers reported SEPARATELY and as a
+    # deduplicated union (the completed graph, not just Phase 4).
     assert cov["edges_frozen"] == 2728 and cov["edges_repair"] == 9 and cov["edges_legend"] == 113
-    assert cov["edges_mechanism"] == 99 and cov["nodes_mechanism"] == 3 and cov["nodes_legend"] == 58
+    assert cov["edges_mechanism"] == 99 and cov["edges_equip"] == 131
+    assert cov["nodes_mechanism"] == 3 and cov["nodes_legend"] == 58 and cov["nodes_equip"] == 99
     assert cov["edges_union"] == (cov["edges_frozen"] + cov["edges_repair"] + cov["edges_legend"]
-                                  + cov["edges_mechanism"]) == 2949
+                                  + cov["edges_mechanism"] + cov["edges_equip"]) == 3080
     assert cov["edges_by_origin"].get("graph_repair") == 9
     assert cov["edges_by_origin"].get("legend_rule") == 113   # legend layer in the origin counts
     assert cov["edges_by_origin"].get("mechanism_repair") == 99  # mechanism layer in the origin counts
-    assert cov["edges_without_provenance"] == 0               # incl. every legend + mechanism edge
+    assert cov["edges_by_origin"].get("equip") == 131        # equip layer in the origin counts
+    assert cov["edges_without_provenance"] == 0              # incl. every legend/mechanism/equip edge
     # abilities counted over the UNIFIED node set — the legend SBA ability must be included
     assert cov["abilities_by_kind"].get("state_based_action") == 1
     assert cov["relations_union"] == (cov["relations_mechanical"] + cov["relations_audited"]
-                                      + cov["relations_repaired"] + cov["relations_mechanism"])
+                                      + cov["relations_repaired"] + cov["relations_mechanism"]
+                                      + cov["relations_equip"])
     assert cov["relations_repaired"] == 8 and cov["relations_audited"] == 3
-    assert cov["relations_mechanism"] > 0
+    assert cov["relations_mechanism"] > 0 and cov["relations_equip"] > 0
 
 
 def test_coverage_no_deferred_invariants_all_modeled(cov):
     # the mechanism-repair layer resolved invariant #2 (Recruit -> Master's Councillors second-draw
     # ordering) via a turn-scoped count state/gate, so there are NO deferred invariants left.
     assert cov["deferred_invariants"] == []
+
+
+def test_coverage_all_conditions_resolve(cov):
+    # spec integrity + pt4 defect #1: every condition_id referenced by any edge (union of all
+    # layers) resolves to a condition record (frozen + mechanism + equip condition layers).
+    assert cov["conditions_all_resolve"] is True and cov["conditions_unresolved"] == []
 
 
 def test_pair_index_is_complete_37249():
