@@ -155,3 +155,47 @@ def test_generalized_discovery_ran(mods):
     assert len(discovered) >= 5
     labels = {m["label"] for m in discovered}
     assert {"life-loss trigger", "counter-placement trigger", "activated-ability trigger"} <= labels
+
+
+def test_module_subgraph_includes_provenance_path(mods, edges):
+    # a module edge whose endpoint is an operation must also carry the causal path back to
+    # the printed ability (ability -CAUSES-> op, face -HAS_ABILITY-> ability), not just the anchor edge
+    all_edges = {e["edge_id"]: e for e in edges}
+    rep = GLOBAL / "repair_edges.jsonl"
+    if rep.exists():
+        all_edges.update({json.loads(l)["edge_id"]: json.loads(l) for l in rep.read_text(encoding="utf-8").splitlines()})
+    elf = next(m for m in mods.values() if m["anchors"] == ["obj:subtype:elf"])
+    preds = {all_edges[e]["predicate"] for e in elf["subgraph_edge_ids"]
+             if e in all_edges and "f6771d32" in all_edges[e]["source"] + all_edges[e]["target"]}
+    assert {"HAS_ABILITY", "CAUSES", "MODIFIES"} <= preds   # face -> ability -> op -> anchor
+
+
+# --- remaining semantic invariants (spec) ------------------------------------
+def test_inv2_councillors_second_draw_only_and_not_reverse(edges):
+    # Master's Councillors triggers ONLY on the second-draw event (encodes "only through
+    # the second draw"), and produces no draw that a Recruit card could consume (no reverse).
+    faces = _load_dicts(REPO / "data/normalized/faces.jsonl")
+    mc = next(f["card_id"] for f in faces if f["name"] == "Master's Councillors")
+    u = mc.split(":")[1]
+    trig = {e["source"] for e in edges if e["predicate"] == "TRIGGERS" and u in e["target"]}
+    assert trig and all("second" in t for t in trig)         # only via a second-draw event
+    # Councillors does not PRODUCE a draw/card that would let the relation run in reverse
+    assert not any(u in e["source"] and e["predicate"] == "PRODUCES"
+                   and e["target"] in ("resource:card", "event:draw") for e in edges)
+
+
+def test_inv11_legend_conflicts_not_subjective_synergy(edges):
+    # legend-rule conflicts are NOT (mis)represented as subjective negative-synergy edges;
+    # the predicate vocabulary is entirely mechanistic.
+    preds = {e["predicate"] for e in edges}
+    assert not (preds & {"SYNERGY", "NEGATIVE_SYNERGY", "ANTI_SYNERGY", "ARCHETYPE"})
+    # the graph does model the legendary supertype (the substrate a state-constraint model would use)
+    assert any(e["target"] == "obj:supertype:legendary" for e in edges)
+
+
+def test_inv12_self_pair_object_identity(edges):
+    proj = _load_dicts(GLOBAL / "card_pair_projection.jsonl")
+    self_pairs = [m for m in proj if m["self_pair"]]
+    assert self_pairs and all(m["source_card"] == m["target_card"] for m in self_pairs)
+    # "another/other" object classes let one object affect a DIFFERENT copy, not itself
+    assert any(e["target"].startswith("obj:another") for e in edges)

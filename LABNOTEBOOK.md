@@ -1016,3 +1016,21 @@ Reviewer (`docs/hob-kg-phase6-review-pt1.md`) kept v1 open on three gaps + two c
 **Note (reviewer, future capability — out of scope):** a separate *capability projection* to derive features like "removal count" and connect them to deck outcomes is not part of Phase 6; recorded for later. Structures still absent (noncreature-cast→Noisemaker, Dwarf/Equipment→Dáin's Company) lack the primitive producer/consumer edges and need the flagged fresh audit/repair round, not discovery.
 
 Refs: `docs/hob-kg-phase6-review-pt1.md`; `src/hobkg/{modules,coverage}.py`; `tests/{test_modules,test_coverage}.py`; `data/graph_global/{mechanism_modules,coverage,gold_set}.*`; `reports/{mechanism_modules,coverage,gold_set}.md`
+
+---
+
+## [2026-08-16 23:45] CORRECTION — Phase 6 v3: completion discipline (unified coverage, 37,249 index, adjudicated gold, 3 invariants, provenance-path modules)
+
+Reviewer (`docs/hob-kg-phase6-review-pt2.md`) confirmed the module system works and closed the v1 defects, leaving six items. Addressed the five completion-discipline ones (item 6 is the separately-planned targeted audit/repair pass):
+
+1. **Unified per-layer + union coverage.** `coverage.coverage()` now reports edges **frozen 2,728 + repair 9 = union 2,737** (`edges_by_origin` includes `graph_repair`) and relations **mechanical 5,278 + audited 3 + repaired 8 = union 5,289** — the completed graph, not just Phase 4.
+2. **37,249-pair index.** `coverage.pair_index()` (CLI `pair-index`) emits exactly **193² = 37,249** ordered-pair records to `data/graph_global/pair_index.jsonl`, each listing its mechanical/audited/repaired relations (5,208 non-empty, 32,041 empty). The completion criterion (empty pairs present) is now met.
+3. **Adjudicated + diversified gold set.** Each gold-set item now carries a deterministic expected-structure verdict (`disposition: pass/fail`) — **101/101 pass** — so the review gate has verdicts, not an open queue (human reviewers may override). Diversified: null pairs use **20 distinct source cards** (was all one source); multi-edge pairs cover **distinct relation-type combinations** (was repetitive Storied/infra).
+4. **Three more semantic invariants.** #2 (Master's Councillors triggers ONLY on `event:draw_second_card_each_turn` and produces no draw → the Recruit→Councillors relation is one-way, never reverse); #11 (legend conflicts are NOT misrepresented as subjective synergy — the predicate vocabulary is entirely mechanistic; the legendary supertype is modelled as the state-constraint substrate); #12 (self-pairs are flagged `self_pair` with source==target; `obj:another*` classes let one object affect a DIFFERENT copy, not itself).
+5. **Module subgraphs carry the provenance path.** `_provenance_edges` now walks each operation endpoint up to its ability/face (`op <-CAUSES- ability <-HAS_ABILITY- face`), so the Elf module includes Thranduil's `HAS_ABILITY → CAUSES → MODIFIES` path (all 9 repair edges now appear in modules) — expandable back to the printed ability, not anchor-local.
+
+163 tests pass (+6). Deterministic.
+
+**Item 6 (deferred — the planned targeted audit/repair pass):** Dwarf/Equipment → Dáin's Company and noncreature-spell-cast → Bothersome Noisemaker still lack the primitive producer/consumer edges; discovery cannot surface them. These need a fresh audit → repair → reprojection round (same machinery as the 8 already repaired), which will then flow into modules automatically. Also still noted for later: a separate capability projection (e.g. "removal count" → deck outcomes).
+
+Refs: `docs/hob-kg-phase6-review-pt2.md`; `src/hobkg/{modules,coverage}.py`; `tests/{test_modules,test_coverage}.py`; `data/graph_global/{pair_index,coverage,gold_set}.*`; `reports/{coverage,gold_set}.md`

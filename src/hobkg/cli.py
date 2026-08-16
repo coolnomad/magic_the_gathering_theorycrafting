@@ -81,6 +81,9 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "gold-set":
         from . import coverage
         print(json.dumps(coverage.gold_set(), indent=2))
+    elif cmd == "pair-index":
+        from . import coverage
+        print(json.dumps(coverage.pair_index(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

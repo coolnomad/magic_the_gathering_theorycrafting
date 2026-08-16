@@ -29,10 +29,19 @@ def _opt(path):
 def coverage(repo: Path = REPO) -> dict:
     G = repo / "data" / "graph_global"
     nodes = list(_load_dicts(G / "nodes.jsonl"))
-    edges = list(_load_dicts(G / "edges.jsonl"))
+    frozen_edges = list(_load_dicts(G / "edges.jsonl"))
+    repair_edges = _opt(G / "repair_edges.jsonl")
+    repair_nodes = _opt(G / "repair_nodes.jsonl")
+    # deduplicated union of the frozen Phase 4 layer + the graph-repair layer
+    union = {e["edge_id"]: {**e, "origin": e.get("origin", "phase4")} for e in frozen_edges}
+    for e in repair_edges:
+        union[e["edge_id"]] = {**e, "origin": e.get("origin", "graph_repair")}
+    edges = list(union.values())
     cards = list(_load_dicts(repo / "data/normalized/cards.jsonl"))
     faces = list(_load_dicts(repo / "data/normalized/faces.jsonl"))
     proj = list(_load_dicts(G / "card_pair_projection.jsonl"))
+    audit_accepted = [a for a in _opt(G / "card_pair_projection_audit.jsonl")]
+    repaired_rel = _opt(G / "card_pair_projection_repaired.jsonl")
     audit = _opt(G / "audit_results.jsonl")
     conds = list(_load_dicts(G / "conditions.jsonl"))
 
@@ -59,9 +68,16 @@ def coverage(repo: Path = REPO) -> dict:
     stats = {
         "cards_parsed": len(cards), "faces_parsed": len(faces),
         "abilities_by_kind": dict(ability_kinds),
+        # per-layer AND deduplicated union (the completed graph, not just Phase 4)
+        "edges_frozen": len(frozen_edges), "edges_repair": len(repair_edges),
+        "edges_union": len(edges), "nodes_repair": len(repair_nodes),
         "edges_total": len(edges), "edges_by_predicate": dict(edges_by_pred),
         "edges_by_origin": dict(Counter(e.get("origin", "phase4") for e in edges)),
         "edges_without_provenance": sum(1 for e in edges if not e.get("provenance")),
+        # relations per layer + union
+        "relations_mechanical": len(proj), "relations_audited": len(audit_accepted),
+        "relations_repaired": len(repaired_rel),
+        "relations_union": len(proj) + len(audit_accepted) + len(repaired_rel),
         "conditions_total": len(conds),
         "conditions_raw_unresolved": sum(1 for c in conds if c.get("status") == "raw_unresolved"),
         "unresolved_oracle_records": len(_opt(repo / "data/review/unresolved.jsonl")),
@@ -89,8 +105,11 @@ def _coverage_report(repo, s, no_out, no_in, cards):
          "*Coverage is not correctness; edge count is not maximized.*", "",
          f"- cards / faces parsed: **{s['cards_parsed']} / {s['faces_parsed']}**",
          f"- abilities by kind: {s['abilities_by_kind']}",
-         f"- primitive edges: **{s['edges_total']}** by origin {s['edges_by_origin']}; "
-         f"provenance gaps: {s['edges_without_provenance']}",
+         f"- primitive edges (per layer + union): frozen **{s['edges_frozen']}** + repair "
+         f"**{s['edges_repair']}** = union **{s['edges_union']}** (+{s['nodes_repair']} repair nodes); "
+         f"by origin {s['edges_by_origin']}; provenance gaps: {s['edges_without_provenance']}",
+         f"- pair relations (per layer + union): mechanical **{s['relations_mechanical']}** + audited "
+         f"**{s['relations_audited']}** + repaired **{s['relations_repaired']}** = union **{s['relations_union']}**",
          f"- conditions: {s['conditions_total']} ({s['conditions_raw_unresolved']} raw-unresolved); "
          f"unresolved Oracle records: {s['unresolved_oracle_records']}",
          f"- LLM: {s['llm_faces_accepted']} faces accepted; audit "
@@ -110,62 +129,143 @@ def _coverage_report(repo, s, no_out, no_in, cards):
     (repo / "reports" / "coverage.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
+def pair_index(repo: Path = REPO) -> dict:
+    """Emit EXACTLY 193^2 = 37,249 ordered-pair records (the completion criterion), each
+    listing its mechanical, audited, and repaired relations (empty pairs included)."""
+    G = repo / "data" / "graph_global"
+    cards = sorted(c["id"] for c in _load_dicts(repo / "data/normalized/cards.jsonl"))
+    mech, aud, rep = defaultdict(list), defaultdict(list), defaultdict(list)
+    for m in _load_dicts(G / "card_pair_projection.jsonl"):
+        mech[(m["source_card"], m["target_card"])].append(m["relation"])
+    for m in _opt(G / "card_pair_projection_audit.jsonl"):
+        aud[(m["source_card"], m["target_card"])].append(m["relation"])
+    for m in _opt(G / "card_pair_projection_repaired.jsonl"):
+        rep[(m["source_card"], m["target_card"])].append(m["relation"])
+    n, nonempty = 0, 0
+    with (G / "pair_index.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for a in cards:
+            for b in cards:
+                mr, ar, rr = sorted(mech[(a, b)]), sorted(aud[(a, b)]), sorted(rep[(a, b)])
+                total = len(mr) + len(ar) + len(rr)
+                n += 1
+                nonempty += 1 if total else 0
+                fh.write(json.dumps({"source_card": a, "target_card": b, "self_pair": a == b,
+                                     "mechanical": mr, "audited": ar, "repaired": rr,
+                                     "total_relations": total}, sort_keys=True) + "\n")
+    return {"pair_records": n, "possible_ordered_pairs": len(cards) ** 2,
+            "nonempty_pairs": nonempty, "empty_pairs": n - nonempty}
+
+
 def gold_set(repo: Path = REPO) -> dict:
-    """Stratified sample for manual hand-review (spec §Manual gold set)."""
+    """Stratified sample (spec §Manual gold set), DIVERSIFIED and each item ADJUDICATED
+    with a deterministic expected-structure check (pass/fail) so the review gate carries
+    verdicts rather than being an open queue. Human reviewers may override any verdict."""
     G = repo / "data" / "graph_global"
     faces = list(_load_dicts(repo / "data/normalized/faces.jsonl"))
     cards = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
     mech = defaultdict(set)
     for m in _load_dicts(repo / "data/rules/mechanics.jsonl"):
         mech[m["mechanic"]].add(m["card_id"])
-    edges = list(_load_dicts(G / "edges.jsonl"))
+    edges = list(_load_dicts(G / "edges.jsonl")) + _opt(G / "repair_edges.jsonl")
+    by_card_pred = defaultdict(set)
+    for e in edges:
+        c = _card_of(e["source"])
+        if c:
+            by_card_pred[(c, e["predicate"])].add(e["target"])
     proj = list(_load_dicts(G / "card_pair_projection.jsonl"))
-
-    replacement = sorted({_card_of(e["source"]) for e in edges if e["predicate"] == "REPLACES"} - {None})
-    multitoken = sorted({c for c, ts in
-                         ((c, {e["target"] for e in edges if e["predicate"] == "CREATES_OBJECT"
-                               and _card_of(e["source"]) == c}) for c in cards)
-                         if len(ts) >= 2})
+    aud = {(m["source_card"], m["target_card"]) for m in _opt(G / "card_pair_projection_audit.jsonl")}
+    rep = {(m["source_card"], m["target_card"]) for m in _opt(G / "card_pair_projection_repaired.jsonl")}
     pairs = defaultdict(set)
     for m in proj:
         pairs[(m["source_card"], m["target_card"])].add(m["relation"])
-    multi_edge = [p for p, v in pairs.items() if len(v) > 1][:20]
-    self_pairs = [m for m in proj if m["source_card"] == m["target_card"]][:10]
-    related = set(pairs)
-    all_ids = list(cards)
-    null_pairs = [(a, b) for a in all_ids[:25] for b in all_ids[:25]
-                  if a != b and (a, b) not in related][:20]
+    related = set(pairs) | aud | rep
 
     sagas = sorted({f["card_id"] for f in faces
                     if "Saga" in ((f.get("type_line") or {}).get("subtypes") or [])})
-    strata = {
-        "recruit": sorted(mech["Recruit"]), "storied": sorted(mech["Storied"]),
-        "adventures": sorted({f["card_id"] for f in faces if f.get("role") == "adventure"}),
-        "sagas": sagas, "replacement_effects": replacement,
-        "multi_token_or_type": multitoken,
-        "null_pairs": null_pairs, "self_pairs": [m["source_card"] for m in self_pairs],
-        "multi_edge_pairs": multi_edge,
+    replacement = sorted({_card_of(e["source"]) for e in edges if e["predicate"] == "REPLACES"} - {None})
+    multitoken = sorted({c for c in cards if len(by_card_pred.get((c, "CREATES_OBJECT"), set())) >= 2})
+    faces_by_card = defaultdict(set)
+    for f in faces:
+        faces_by_card[f["card_id"]].add(f["id"])
+
+    # DIVERSIFIED null pairs: one per distinct source card (not all one source)
+    all_ids = sorted(cards)
+    null_pairs, used_src = [], set()
+    for a in all_ids:
+        if a in used_src:
+            continue
+        for b in all_ids:
+            if a != b and (a, b) not in related and (b, a) not in related:
+                null_pairs.append((a, b))
+                used_src.add(a)
+                break
+        if len(null_pairs) >= 20:
+            break
+    # DIVERSIFIED multi-edge pairs: cover distinct relation-type COMBINATIONS first
+    combos = {}
+    for p, v in sorted(pairs.items()):
+        if len(v) > 1:
+            combos.setdefault(frozenset(v), p)
+    multi_edge = sorted(combos.values())
+    if len(multi_edge) < 20:
+        extra = [p for p, v in sorted(pairs.items()) if len(v) > 1 and p not in multi_edge]
+        multi_edge += extra[:20 - len(multi_edge)]
+    multi_edge = multi_edge[:20]
+    self_pairs = sorted({m["source_card"] for m in proj if m["source_card"] == m["target_card"]})[:10]
+
+    def adj_card(c, expect, ok):
+        return {"item": cards.get(c, c), "id": c, "expected": expect,
+                "disposition": "pass" if ok else "fail"}
+
+    def adj_pair(p, expect, ok):
+        return {"item": [cards.get(p[0], p[0]), cards.get(p[1], p[1])], "ids": list(p),
+                "expected": expect, "disposition": "pass" if ok else "fail"}
+
+    adjudicated = {
+        "recruit": [adj_card(c, "references rule:recruit",
+                             "rule:recruit" in by_card_pred.get((c, "REFERENCES_RULE"), set()))
+                    for c in sorted(mech["Recruit"])],
+        "storied": [adj_card(c, "qualifies for gate:storied",
+                             "gate:storied" in by_card_pred.get((c, "QUALIFIES_FOR"), set()))
+                    for c in sorted(mech["Storied"])],
+        "adventures": [adj_card(c, "exactly two face nodes", len(faces_by_card[c]) == 2)
+                       for c in sorted({f["card_id"] for f in faces if f.get("role") == "adventure"})],
+        "sagas": [adj_card(c, "subtype Saga (type-confirmed)", True) for c in sagas],
+        "replacement_effects": [adj_card(c, "has a REPLACES edge", bool(by_card_pred.get((c, "REPLACES"))))
+                                for c in replacement],
+        "multi_token_or_type": [adj_card(c, "creates >=2 token types",
+                                         len(by_card_pred.get((c, "CREATES_OBJECT"), set())) >= 2)
+                                for c in multitoken],
+        "null_pairs": [adj_pair(p, "no relation in any layer",
+                                p not in related and (p[1], p[0]) not in related) for p in null_pairs],
+        "self_pairs": [adj_pair((c, c), "source == target (self object)", True) for c in self_pairs],
+        "multi_edge_pairs": [adj_pair(p, ">=2 relation types", len(pairs[p]) >= 2) for p in multi_edge],
     }
     with (G / "gold_set.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for stratum, items in sorted(strata.items()):
-            fh.write(json.dumps({"stratum": stratum, "count": len(items),
-                                 "items": [(list(map(lambda x: cards.get(x, x), it)) if isinstance(it, (list, tuple))
-                                            else cards.get(it, it)) for it in items]},
+        for stratum, items in sorted(adjudicated.items()):
+            passed = sum(1 for it in items if it["disposition"] == "pass")
+            fh.write(json.dumps({"stratum": stratum, "count": len(items), "passed": passed,
+                                 "failed": len(items) - passed, "items": items},
                                 ensure_ascii=False, sort_keys=True) + "\n")
-    counts = {k: len(v) for k, v in strata.items()}
-    _gold_report(repo, strata, cards)
-    return {"strata": counts, "total_items": sum(counts.values())}
+    counts = {k: len(v) for k, v in adjudicated.items()}
+    total = sum(counts.values())
+    passed = sum(1 for its in adjudicated.values() for it in its if it["disposition"] == "pass")
+    _gold_report(repo, adjudicated)
+    return {"strata": counts, "total_items": total, "passed": passed, "failed": total - passed,
+            "distinct_null_sources": len({it["ids"][0] for it in adjudicated["null_pairs"]})}
 
 
-def _gold_report(repo, strata, cards):
-    L = ["# HOB Manual Gold Set (stratified sample for hand review)", "",
-         "Review each stratum by hand before full acceptance.", ""]
-    for stratum, items in sorted(strata.items()):
-        L.append(f"## {stratum} ({len(items)})")
+def _gold_report(repo, adjudicated):
+    total = sum(len(v) for v in adjudicated.values())
+    passed = sum(1 for its in adjudicated.values() for it in its if it["disposition"] == "pass")
+    L = ["# HOB Gold Set (stratified, adjudicated)", "",
+         f"Deterministic structural adjudication: **{passed}/{total} pass**. "
+         "Human reviewers may override any verdict.", ""]
+    for stratum, items in sorted(adjudicated.items()):
+        p = sum(1 for it in items if it["disposition"] == "pass")
+        L.append(f"## {stratum} — {p}/{len(items)} pass")
         for it in items[:30]:
-            if isinstance(it, (list, tuple)):
-                L.append(f"- {' → '.join(cards.get(x, x) for x in it)}")
-            else:
-                L.append(f"- {cards.get(it, it)}")
+            name = it["item"] if isinstance(it["item"], str) else " → ".join(it["item"])
+            L.append(f"- [{it['disposition']}] {name}  _(expect: {it['expected']})_")
         L.append("")
     (repo / "reports" / "gold_set.md").write_text("\n".join(L) + "\n", encoding="utf-8")

@@ -2984,3 +2984,45 @@ This completes the deterministic build pipeline (Phases 1â€“6). When you're
 
 ### [2026-08-16 09:21] USER
 read hob-kg-phase6-review-pt1.md
+
+### [2026-08-16 09:34] ASSISTANT
+A thorough review â€” Phase 6 v2 needs the repair layer unioned, gate-mediated token coverage, generalized anchor discovery, the remaining invariants, and the coverage + gold-set artifacts. Let me start by unioning the repair layer into the module graph and fixing token member-recovery via upstream traversal.
+
+Now add upstream member-recovery (for gate-mediated tokens like `token:human-soldier`) and fix the token block:
+
+Now the generalized anchor discovery (item 3) â€” discover modules around shared resource/event/state/counter/object anchors that have both a producer and consumer side, labeling recognized patterns:
+
+Good progress â€” soldier module now has 10 members (gate-mediated), and the repaired life-loss/counter/activated-ability trigger structures appear as discovered modules. But Thranduil's `MODIFIES obj:subtype:elf` isn't captured (object-class anchors excluded). Let me add subtype anchors so the tribal/anthem structures surface.
+
+All repaired structures now surface in modules (life-loss/counter/activated-ability triggers, the Elf-subtype anthem module with Thranduil, the Wolf module with Chief Warg's Company). 36 modules. Now let me add the required **coverage report** and **gold-set** artifacts.
+
+Coverage and gold set generate well, but **sagas: 0** â€” `mechanics.jsonl` has no "Saga" mechanic (sagas are identified by subtype). Let me fix the saga stratum.
+
+Now sagas = 8 â€” the gold set matches the spec strata exactly. Let me add the Phase 6 v2 tests (repair-union, token coverage, discovered modules, coverage, gold set, and the remaining testable invariants). First let me confirm the Bard replacement edges for invariant #3.
+
+Both confirmed. Let me add the Phase 6 v2 tests â€” repair-union, token coverage, discovery, invariants #3/#7 â€” plus coverage/gold-set tests.
+
+The module subgraph now legitimately includes repair-layer edges (that's the point of unioning). The test's edge set needs to include them too.
+
+157 tests pass â€” Phase 6 v2 addresses all five review items. Let me record it and commit.
+
+Pushed â€” `17b9492`. **Phase 6 v2** addresses all five review items.
+
+| pt1 gap | Fix |
+|---|---|
+| Repair layer excluded | `_Graph` now **unions frozen + repair** layers (origin-tagged) â€” life-loss/counter/activated-ability triggers, the Wolf module (with Chief Warg's Company), and an `obj:subtype:elf` module carrying Thranduil's repaired anthem all now participate |
+| Incomplete token coverage | A module for **every** created token (11, incl. gate-mediated `token:human-soldier`); members recovered by **upstream traversal** through gates â†’ 10 Recruit cards |
+| No general discovery | **Generalized anchor discovery** over shared resource/event/state/counter/subtype anchors (producer+consumer, â‰¥2 cards) â€” 12 discovered, **36 modules total** |
+| Missing invariants | Added #3 (Bard replaces draw *and* token quantities) and #7 (Treasure is an artifact â†’ qualifying object); noted #2/#11/#12 as not statically representable |
+| No coverage/gold set | `src/hobkg/coverage.py` â†’ `reports/coverage.md`+`coverage.json` and `reports/gold_set.md`+`gold_set.jsonl` (strata match spec: Recruit 10, Storied 9, Adventures 17, **Sagas 8**, â€¦) |
+
+**157 tests pass** (+9). Deterministic.
+
+Two honest notes carried in the lab notebook:
+- Structures like **noncreature-castâ†’Noisemaker** and **Dwarf/Equipmentâ†’DÃ¡in's Company** still don't appear â€” they lack the primitive producer/consumer edges and need the flagged **fresh audit/repair round**, not discovery.
+- A separate **capability projection** (e.g. "removal count" â†’ deck outcomes) is out of Phase 6 scope; recorded for later.
+
+This completes the Phase 6 module framework plus the coverage and gold-set deliverables. Holding for your review â€” and when you're ready, the natural next step is that **fresh audit/repair round** for the Dwarf/Equipment/noncreature-cast gaps (which would then flow through repair â†’ reprojection â†’ new modules).
+
+### [2026-08-16 09:41] USER
+read hob-kg-phase6-review-pt2.md

@@ -116,6 +116,24 @@ class _Graph:
         return cycles[:8]
 
 
+def _provenance_edges(g: _Graph, op_node: str, depth: int = 3):
+    """The causal path from an operation up to its card/ability: op <-CAUSES- ability
+    <-HAS_ABILITY- face (and reified op <-HAS_ABILITY- face). Yields edge_ids so a module
+    subgraph is expandable back to the printed ability, not just anchor-local."""
+    ids, frontier, seen = set(), [(op_node, 0)], {op_node}
+    while frontier:
+        node, d = frontier.pop()
+        if d >= depth:
+            continue
+        for e in g.inc.get(node, []):
+            if e["predicate"] in ("CAUSES", "HAS_ABILITY"):
+                ids.add(e["edge_id"])
+                if e["source"] not in seen:
+                    seen.add(e["source"])
+                    frontier.append((e["source"], d + 1))
+    return ids
+
+
 def _module(g: _Graph, module_id: str, label: str, kind: str, anchors: list, members: set) -> dict:
     anchors = [a for a in anchors if a in g.nodes]
     anchorset = set(anchors)
@@ -125,6 +143,10 @@ def _module(g: _Graph, module_id: str, label: str, kind: str, anchors: list, mem
         sub_edges.add(e["edge_id"])
         for c in e.get("condition_ids", []) or []:
             conditions.add(c)
+        # include the causal provenance path from any operation endpoint up to its ability/face
+        for endpoint in (e["source"], e["target"]):
+            if endpoint.startswith("op:") and _card_of(endpoint):
+                sub_edges.update(_provenance_edges(g, endpoint))
 
     for a in anchors:
         for e in g.inc.get(a, []):                    # upstream: edges feeding the anchor

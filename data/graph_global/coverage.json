@@ -16,13 +16,14 @@
   "conditions_raw_unresolved": 81,
   "conditions_total": 145,
   "edges_by_origin": {
+    "graph_repair": 9,
     "phase4": 2728
   },
   "edges_by_predicate": {
     "ADDS_COUNTER": 34,
     "ATTACHED_TO": 12,
     "CAN_LEAD_TO": 21,
-    "CAUSES": 340,
+    "CAUSES": 347,
     "CONSUMES": 23,
     "COUNTS": 3,
     "CREATES_OBJECT": 27,
@@ -35,7 +36,7 @@
     "HAS_STATE": 8,
     "HAS_TYPE": 538,
     "INSTANTIATES": 26,
-    "MODIFIES": 80,
+    "MODIFIES": 81,
     "MOVES_FROM": 84,
     "MOVES_TO": 88,
     "PERSISTS_AS": 2,
@@ -45,16 +46,20 @@
     "REFERENCES_RULE": 88,
     "REMOVES_COUNTER": 1,
     "REPLACES": 7,
-    "REQUIRES": 13,
+    "REQUIRES": 14,
     "SCALES_WITH": 35,
     "TRIGGERS": 82
   },
-  "edges_total": 2728,
+  "edges_frozen": 2728,
+  "edges_repair": 9,
+  "edges_total": 2737,
+  "edges_union": 2737,
   "edges_without_provenance": 0,
   "faces_parsed": 210,
   "gate_mediated_relations": 666,
   "infrastructure_only_pairs": 4513,
   "llm_faces_accepted": 210,
+  "nodes_repair": 1,
   "pair_relations_by_type": {
     "CONTRIBUTES_TO_GATE": 666,
     "ENABLES_TRIGGER": 4,
@@ -63,5 +68,9 @@
   },
   "pair_relations_total": 5278,
   "pairs_with_multiple_relation_types": 80,
+  "relations_audited": 3,
+  "relations_mechanical": 5278,
+  "relations_repaired": 8,
+  "relations_union": 5289,
   "unresolved_oracle_records": 16
 }
