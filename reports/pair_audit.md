@@ -3,7 +3,7 @@
 - **coverage**: 142/142 candidates audited
 - **accepted**: 5 verdicts → 3 augmented relations (deduped)
 - **graph-repair**: 10 verdicts → 7 queue entries (deduped, unordered)
-- **critic disagreement**: 12
+- **critic disagreement**: 11
 - **duplicate of mechanical**: 1
 - **ungrounded**: 0
 - **NO_RELATION**: 114
@@ -18,8 +18,12 @@
 
 - **Head of the Hunt — Chief Warg's Company** [SUPPLIES_RESOURCE] candidate_concept `token:wolf` → add **Resource** (canonicalize the shared resource (token:wolf) so producer feeds consumer); proposed enabler: Head of the Hunt [proposed]
 - **Great Ugly-Looking Goblin // Clap! Snap! — The Great Goblin** [ENABLES_TRIGGER] candidate_concept `counter:+1/+1` → add **Event** (add Event:counter-placed + TRIGGERS to the beneficiary ability); proposed enabler: Great Ugly-Looking Goblin // Clap! Snap! [proposed]
-- **Elrond, Moon-Reader — Gandalf, Wandering Wizard** [ENABLES_TRIGGER] candidate_concept `resource:card-in-hand` → add **Event** (add Event:creature-ability-activated or card-drawn + TRIGGERS); proposed enabler: Gandalf, Wandering Wizard [proposed]
-- **Gollum, Riddle Master — The Master of Lake-town** [ENABLES_TRIGGER] candidate_concept `resource:card` → add **Event** (add Event:creature-ability-activated or card-drawn + TRIGGERS); proposed enabler: Gollum, Riddle Master [proposed]
+- **Elrond, Moon-Reader — Gandalf, Wandering Wizard** [ENABLES_TRIGGER] candidate_concept `resource:card-in-hand` → add **Event** (add Event:creature-ability-activated + TRIGGERS to the beneficiary ability); proposed enabler: Gandalf, Wandering Wizard [proposed]
+- **Gollum, Riddle Master — The Master of Lake-town** [ENABLES_TRIGGER] candidate_concept `resource:card` → add **Event** (add Event:life-lost + TRIGGERS to the beneficiary ability); proposed enabler: Gollum, Riddle Master [proposed]
 - **Reverent Howl — The Master of Lake-town** [ENABLES_TRIGGER] candidate_concept `resource:life` → add **Event** (add Event:life-lost + TRIGGERS to the beneficiary ability); proposed enabler: Reverent Howl [proposed]
 - **The Master of Lake-town — Rage into the Valley** [ENABLES_TRIGGER] candidate_concept `resource:life` → add **Event** (add Event:life-lost + TRIGGERS to the beneficiary ability); proposed enabler: Rage into the Valley [proposed]
 - **The Master of Lake-town — The Sackville-Bagginses** [ENABLES_TRIGGER] candidate_concept `resource:life` → add **Event** (add Event:life-lost + TRIGGERS to the beneficiary ability); proposed enabler: The Sackville-Bagginses [proposed]
+
+## Manual-adjudication queue (real relation; extractor/critic disagree on direction)
+
+- **Down in the Valley — Thranduil, Sindarin Liege // Silvan Rally** [AMPLIFIES_EFFECT] via `token:elf` — extractor enabler Down in the Valley vs critic enabler Thranduil, Sindarin Liege // Silvan Rally

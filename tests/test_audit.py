@@ -131,6 +131,34 @@ def test_accepted_conditions_union_path_steps(augmented):
     assert beorn["conditions"], "path-step conditions must be unioned into the metaedge"
 
 
+def test_repair_hint_is_grounding_driven(repair):
+    # Gollum's grounding "Each opponent loses 2 life" ⇒ Event:life-lost, NOT the
+    # misleading candidate concept resource:card.
+    if not repair:
+        pytest.skip("no repair queue")
+    gollum = next((r for r in repair if "Gollum" in r["card_a_name"] + r["card_b_name"]), None)
+    if gollum:
+        assert "life-lost" in gollum["missing_node_hint"]
+        assert "card-drawn" not in gollum["missing_node_hint"]
+
+
+def test_direction_conflict_goes_to_adjudication(istats):
+    # a real relation where extractor/critic agree on type+concept but disagree on the
+    # enabler is preserved for manual review, not silently dropped.
+    aq_path = REPO / "data" / "graph_global" / "audit_adjudication_queue.jsonl"
+    if not aq_path.exists():
+        pytest.skip("no adjudication queue")
+    aq = [json.loads(l) for l in aq_path.read_text(encoding="utf-8").splitlines()]
+    assert len(aq) == istats["adjudication_queue"]
+    for r in aq:
+        assert r["card_a"] < r["card_b"]
+        assert r["extractor_enabler"] != r["critic_enabler"]   # genuine direction conflict
+        assert r["relation"] and r["candidate_concept"]
+    # the Thranduil / Down in the Valley Elf-anthem relation must be here, not excluded
+    assert any("Thranduil" in (r["card_a_name"] + r["card_b_name"])
+               and "Down in the Valley" in (r["card_a_name"] + r["card_b_name"]) for r in aq)
+
+
 def test_coverage_and_dual_counts_reported(istats):
     assert istats["audited"] == istats["total_candidates"] and istats["unaudited"] == 0
     # verdict-level and deduplicated counts are BOTH reported and distinct concepts

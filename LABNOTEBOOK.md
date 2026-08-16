@@ -844,3 +844,16 @@ Reviewer (`docs/hob-kg-phase5-review-pt5.md`): acceptance side trustworthy, but 
 Refs: `docs/hob-kg-phase5-review-pt5.md`; `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/audit_repair_queue.jsonl`; `reports/pair_audit.md`
 
 **[correction to the above ref]** The v3.1 review was provided **inline in chat**, not as a committed file — there is no `docs/hob-kg-phase5-review-pt5.md` (only pt1–pt4 exist on disk). The correct citation for that review is "inline reviewer feedback (post-pt4, repair-queue-interface)".
+
+---
+
+## [2026-08-17 00:20] CORRECTION — Phase 5 Part 2 v3.2: two semantic adjudications
+
+Reviewer froze the v3.1 interface and asked for two targeted semantic fixes before graph repair (inline feedback, post-v3.1):
+
+1. **Grounding-driven repair hint.** Gollum → Master had the right direction but a wrong repair hint ("creature-ability-activated or card-drawn"), inferred from the misleading candidate concept `resource:card`. `_missing_node_hint` now infers the missing intermediate from the GROUNDING TEXT: "…loses 2 life" ⇒ `Event:life-lost`. All repair hints corrected accordingly — Gollum / Reverent Howl / Rage / Sackville → **life-lost**; Great Goblin → **counter-placed**; Gandalf → Elrond → **creature-ability-activated** — so a repair agent builds the correct intermediate event.
+2. **Manual-adjudication queue for direction conflicts.** Thranduil → Down in the Valley (Thranduil's Elf anthem amplifies Down-in-the-Valley's Elf token) was a real relation the extractor found, but the extractor's `enabler` label contradicted its own explanation while the critic used the correct enabler (Thranduil). Strict enabler-in-agreement (v3.1) correctly rejected it — but into `critic_disagreement`, permanently. Now the reconcile SPLITS: agreement on relation_type+concept+spans but a DIRECTION conflict routes to `data/graph_global/audit_adjudication_queue.jsonl` (records both proposed enablers + both mechanisms) for human review, not silent exclusion. `critic_disagreement` 12 → 11; `adjudication_queue` = 1 (Thranduil).
+
+**Result.** 142/142 audited; 3 accepted; 7 repair (correct grounding-driven Event/Resource targets); **1 manual-adjudication** (Thranduil Elf-anthem preserved); 11 critic-disagreement; 114 NO_RELATION. 125 tests pass (+ grounding-hint + adjudication-queue regressions). The repair queue's intermediate-event instructions are now correct, and no genuine relation is silently lost — ready for the graph-repair pass.
+
+Refs: inline reviewer feedback (post-v3.1); `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/{audit_repair_queue,audit_adjudication_queue}.jsonl`; `reports/pair_audit.md`

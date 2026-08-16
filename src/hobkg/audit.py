@@ -323,17 +323,29 @@ def _missing_node_type(relation: str) -> str:
             "SUPPLIES_RESOURCE": "Resource"}.get(relation, "Node")
 
 
-def _missing_node_hint(relation: str, concept: str) -> str:
+def _missing_node_hint(relation: str, concept: str, grounding: list) -> str:
+    """The missing intermediate is inferred from the GROUNDING TEXT (what the cards
+    actually print), not from the LLM's possibly-misleading candidate concept — e.g.
+    grounding "Each opponent loses 2 life" ⇒ Event:life-lost even if the candidate
+    concept was resource:card."""
     concept = concept or ""
+    text = " ".join((g.get("text") or "") for g in (grounding or [])).lower()
     if relation == "ENABLES_TRIGGER":
+        if re.search(r"los(e|es|t) \d* ?life|lose life", text):
+            return "add Event:life-lost + TRIGGERS to the beneficiary ability"
+        if "counter" in text:
+            return "add Event:counter-placed + TRIGGERS to the beneficiary ability"
+        if re.search(r"activate.*abilit|abilit.*activat", text):
+            return "add Event:creature-ability-activated + TRIGGERS to the beneficiary ability"
+        if "enters" in text or "enter the battlefield" in text:
+            return "add Event:object-entered + TRIGGERS to the beneficiary ability"
+        if "draw" in text:
+            return "add Event:card-drawn + TRIGGERS to the beneficiary ability"
+        # fall back to the candidate concept only if the grounding is uninformative
         if concept.startswith("resource:life"):
             return "add Event:life-lost + TRIGGERS to the beneficiary ability"
-        if concept.startswith("resource:card"):
-            return "add Event:creature-ability-activated or card-drawn + TRIGGERS"
         if concept.startswith("counter:"):
             return "add Event:counter-placed + TRIGGERS to the beneficiary ability"
-        if concept.startswith("token:"):
-            return "add Event:object-entered + TRIGGERS to the beneficiary ability"
         return "add the intermediate Event + a TRIGGERS edge to the beneficiary ability"
     if relation == "SUPPLIES_RESOURCE":
         return f"canonicalize the shared resource ({concept}) so producer feeds consumer"
@@ -414,7 +426,7 @@ def ingest(repo: Path = REPO) -> dict:
     critic = {(v["source_card"], v["target_card"]): v
               for f in sorted(rdir.glob("critic_*.jsonl")) for v in _load_dicts(f)
               if (v["source_card"], v["target_card"]) in cand_pairs}
-    results, accepted, repair = [], [], []
+    results, accepted, repair, adjudicate = [], [], [], []
     counts = Counter()
     for key, ex in sorted(extract.items()):
         s, t = key
@@ -432,15 +444,29 @@ def ingest(repo: Path = REPO) -> dict:
             counts["no_relation"] += 1
             results.append(rec)
             continue
-        # reconcile: the critic must ALSO find a RELATION and AGREE on the normalized tuple
-        # (relation_type + connecting_concept + ENABLER DIRECTION), and its own grounding
-        # spans must validate.
-        tuple_agree = (cr_verdict == "RELATION"
-                       and (cr.get("relation_type") or "").upper() == (relation or "").upper()
-                       and (cr.get("connecting_concept") or "") == (concept or "")
-                       and (cr.get("enabler") or "") == (ex.get("enabler") or "")
-                       and _valid_spans(d, cr.get("grounding")))
-        if not tuple_agree:
+        # reconcile: the critic must ALSO find a RELATION and AGREE on the relation tuple
+        # (relation_type + connecting_concept), with valid spans...
+        base_agree = (cr_verdict == "RELATION"
+                      and (cr.get("relation_type") or "").upper() == (relation or "").upper()
+                      and (cr.get("connecting_concept") or "") == (concept or "")
+                      and _valid_spans(d, cr.get("grounding")))
+        enabler_agree = (cr.get("enabler") or "") == (ex.get("enabler") or "")
+        if base_agree and not enabler_agree:
+            # relation is real but extractor/critic point the arrow differently -> do NOT
+            # silently drop; queue for MANUAL adjudication (Thranduil → Down in the Valley).
+            rec["status"] = "needs_adjudication"
+            a, b = sorted((s, t))
+            adjudicate.append({
+                "card_a": a, "card_b": b, "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
+                "relation": relation, "candidate_concept": concept,
+                "extractor_enabler": s if (ex.get("enabler") or "") == "source" else t,
+                "critic_enabler": s if (cr.get("enabler") or "") == "source" else t,
+                "extractor_mechanism": ex.get("mechanism"), "critic_mechanism": cr.get("mechanism"),
+                "grounding": ex.get("grounding"), "confidence": ex.get("confidence")})
+            counts["needs_adjudication"] += 1
+            results.append(rec)
+            continue
+        if not base_agree:
             rec["status"] = "critic_disagreement"
             rec["critic_reason"] = cr.get("mechanism") or cr.get("reason")
             counts["critic_disagreement"] += 1
@@ -474,7 +500,7 @@ def ingest(repo: Path = REPO) -> dict:
                 "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
                 "relation": relation, "candidate_concept": concept,
                 "missing_node_type": _missing_node_type(relation),
-                "missing_node_hint": _missing_node_hint(relation, concept),
+                "missing_node_hint": _missing_node_hint(relation, concept, ex.get("grounding")),
                 "proposed_direction": {"enabler": enabler_card, "beneficiary": benef_card},
                 "proposed_enabler_name": d.name.get(enabler_card, enabler_card),
                 "direction_status": "proposed",           # not mechanically proven
@@ -517,14 +543,24 @@ def ingest(repo: Path = REPO) -> dict:
     with (repo / "data/graph_global/audit_repair_queue.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for r in repair:
             fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+    # manual-adjudication queue: real relations where extractor/critic disagree ONLY on
+    # direction — preserved for human review, not silently excluded.
+    aq = {}
+    for r in adjudicate:
+        aq.setdefault((frozenset((r["card_a"], r["card_b"])), r["relation"]), r)
+    adjudicate = sorted(aq.values(), key=lambda r: (r["card_a"], r["card_b"], r["relation"]))
+    with (repo / "data/graph_global/audit_adjudication_queue.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for r in adjudicate:
+            fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
     total_candidates = len(list(_load_dicts(repo / "data/graph_global/audit_candidates.jsonl")))
     stats = {"total_candidates": total_candidates, "audited": len(extract),
              "unaudited": total_candidates - len(extract),
              "critic_verdicts": len(critic), **dict(counts),
              # verdict-level vs deduplicated-output counts (kept distinct, not conflated)
              "accepted_verdicts": counts.get("accepted", 0), "augmented_metaedges": len(accepted),
-             "repair_verdicts": counts.get("requires_graph_repair", 0), "repair_queue": len(repair)}
-    _audit_report(repo, results, accepted, repair, stats)
+             "repair_verdicts": counts.get("requires_graph_repair", 0), "repair_queue": len(repair),
+             "adjudication_queue": len(adjudicate)}
+    _audit_report(repo, results, accepted, repair, adjudicate, stats)
     return stats
 
 
@@ -546,7 +582,7 @@ def _augmented(rec: dict, steps: list) -> dict:
             "critic_confirmed": True}
 
 
-def _audit_report(repo: Path, results: list, accepted: list, repair: list, stats: dict) -> None:
+def _audit_report(repo: Path, results: list, accepted: list, repair: list, adjudicate: list, stats: dict) -> None:
     L = ["# HOB Phase 5 Part 2 — Pairwise LLM Audit (extractor + critic, typed paths)", "",
          f"- **coverage**: {stats.get('audited', 0)}/{stats.get('total_candidates', 0)} candidates audited",
          f"- **accepted**: {stats.get('accepted_verdicts', 0)} verdicts → "
@@ -568,6 +604,11 @@ def _audit_report(repo: Path, results: list, accepted: list, repair: list, stats
         L.append(f"- **{r['card_a_name']} — {r['card_b_name']}** [{r['relation']}] "
                  f"candidate_concept `{r['candidate_concept']}` → add **{r['missing_node_type']}** "
                  f"({r['missing_node_hint']}); proposed enabler: {pe} [{r['direction_status']}]")
+    L += ["", "## Manual-adjudication queue (real relation; extractor/critic disagree on direction)", ""]
+    for r in adjudicate:
+        L.append(f"- **{r['card_a_name']} — {r['card_b_name']}** [{r['relation']}] via "
+                 f"`{r['candidate_concept']}` — extractor enabler {r['card_a_name'] if r['extractor_enabler']==r['card_a'] else r['card_b_name']}"
+                 f" vs critic enabler {r['card_a_name'] if r['critic_enabler']==r['card_a'] else r['card_b_name']}")
     (repo / "reports" / "pair_audit.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 

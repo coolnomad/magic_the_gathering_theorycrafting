@@ -2394,3 +2394,71 @@ IΓÇÖd request a narrow v3.1 before graph repair:
 6. Add regression tests for the four directional examples above.
 
 Verdict: the acceptance side is now trustworthy; the repair-queue interface still needs this correction before an automated repair agent consumes it.
+
+### [2026-08-15 21:30] ASSISTANT
+A precise v3.1 on the repair-queue interface â€” the direction handling is the key fix. Let me implement all six items. First, add `enabler` to the tuple agreement and rework the repair-entry to store an unordered pair + proposed direction.
+
+Now let me apply the v3.1 edits â€” enabler in agreement, unordered repair pair with proposed direction, and the missing-node-type helpers:
+
+Now add the missing-node-type helpers and update the repair dedup + `_augmented` condition union + report:
+
+Let me update the repair dedup (now keyed on `card_a`/`card_b`), the `_augmented` condition union, and the report's dual counts. Let me read that section.
+
+Now the `_augmented` condition union (item 4) and the report's dual counts + repair display (items 5). Let me read the rest of `_augmented` and `_audit_report`.
+
+Now dual counts show (5 accepted verdicts â†’ 3 relations; 10 repair â†’ 7 entries). Let me verify the 4 directional examples now carry the correct proposed direction.
+
+All proposed directions are now correct (Great Ugly-Looking Goblin, Gandalf, Rage, Sackville as enablers â€” fixing the backwards arrows), stored as unordered pairs with `direction_status: proposed` and the missing node type (Event/Resource). Let me verify Bardâ†’Beorn now retains its condition (item 4).
+
+All six v3.1 items work â€” Bardâ†’Beorn retains "three or more Bears". Let me update the repair-queue tests and add the directional regression tests.
+
+The `nodes` fixture isn't in this test file and I don't use it. Let me drop it.
+
+Let me just edit directly instead:
+
+123 tests pass (including the 4 directional regressions, conditions-union, repair schema, and dual counts). Let me record v3.1 and commit.
+
+The commit landed (`66035da`). Let me verify the review-file reference I cited actually exists (the review was pasted inline this time, not read from a file).
+
+`pt5` doesn't exist â€” the review was pasted inline, so my notebook citing `docs/hob-kg-phase5-review-pt5.md` is inaccurate. Per the provenance discipline, let me append a correction (append-only).
+
+Both commits are local (`66035da`, `f92863c`); the background pushes are finishing. Let me confirm they sync.
+
+Synced â€” remote and local `main` are both at `f92863c`. Phase 5 Part 2 v3.1 is complete.
+
+## v3.1 â€” repair-queue interface fixed (all six items)
+
+| pt5 item | Fix |
+|---|---|
+| Direction ignored in agreement | `enabler` now part of extractorâ€“critic **tuple agreement** |
+| Wrong arrows in repair queue | repair entries store an **unordered pair** + `proposed_direction` (agreed enabler) + `direction_status: "proposed"` â€” the four backwards examples now propose the correct enablers (**Gandalf**â†’Elrond, **Great Ugly-Looking Goblin**â†’Great Goblin, **Rage**/**Sackville**â†’Master of Lake-town) |
+| Misleading concepts | renamed to `candidate_concept` + `missing_node_type` (**Event** for triggers) + hint (`resource:life` â†’ "add Event:life-lost + TRIGGERS") |
+| Dropped conditions | `_augmented` **unions path-step conditions** â€” Bard â†’ Beorn retains "three or more Bears" |
+| Conflated counts | report shows **verdict-level and deduped**: accepted 5â†’3, repair 10â†’7 |
+| No regression tests | added the 4 directional tests + schema + conditions + dual-count tests |
+
+**Result:** 142/142 audited; 3 accepted faithful typed paths (now condition-bearing); 7 repair-queue entries (unordered, correctly-directed proposals, Event/Resource repair targets); 123 tests pass. The repair queue is now safe for an automated graph-repair + reprojection agent to consume.
+
+One housekeeping note: I initially cited a `docs/hob-kg-phase5-review-pt5.md` in the notebook, but this review was pasted inline (only pt1â€“pt4 exist as files) â€” I appended a correction (`f92863c`) rather than leave the inaccurate reference.
+
+The acceptance side and the repair-queue interface are both in good shape now. Natural next steps, when you want them: run the **graph-repair pass** (add the proposed Event nodes + TRIGGERS edges the queue names, then reproject those pairs mechanically), and decide whether to surface the `origin: llm_audit` augmented relations in queries. Holding for your review.
+
+### [2026-08-15 21:42] USER
+Commit `f92863c` passes: 123 tests, full 142/142 coverage, and the v3.1 structural fixes are correctly implemented.
+
+Fixed successfully:
+
+* Repair pairs are unordered.
+* Proposed directions now preserve extractorΓÇôcritic agreement.
+* The four previously reversed relations now point correctly.
+* Accepted path conditions propagate into augmented relations.
+* Verdict and deduplicated-output counts are reported separately: 5ΓåÆ3 accepted and 10ΓåÆ7 repairs.
+* Repair concepts are explicitly labeled candidates rather than established graph nodes.
+
+Two semantic cleanup items remain:
+
+1. Gollum ΓåÆ Master has the correct direction, but its repair hint is wrong. The grounding is ΓÇ£Each opponent loses 2 life,ΓÇ¥ so the missing node is unequivocally `Event:life-lost`, not ΓÇ£creature-ability-activated or card-drawn.ΓÇ¥ The hint was inferred from the erroneous candidate concept `resource:card`.
+
+2. Thranduil ΓåÆ Down in the Valley disappeared into `critic_disagreement`. This is a genuine relation: ThranduilΓÇÖs anthem amplifies the Elf token created by Down in the Valley. The extractorΓÇÖs mechanism was correct but its `enabler` label contradicted its own explanation; the critic used the correct enabler. Strict reconciliation appropriately rejected it automatically, but it now needs manual adjudication rather than permanent exclusion.
+
+So the interface correction is good and can be frozen. I would make those two targeted semantic adjudications before executing graph repairΓÇöespecially Gollum, because its current repair instruction would construct the wrong intermediate event.
