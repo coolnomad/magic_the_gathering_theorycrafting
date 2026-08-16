@@ -18,14 +18,17 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 
 from . import project
 from .pipeline import REPO, _load_dicts
 
 _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+_FACE = re.compile(r"face:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:\d+")
 # beneficiary trigger-event keyword per missing-node hint
 _EVENT_KEYWORD = {"life": "life", "counter": "counter", "activate": "activate", "enters": "enter"}
+_NUMWORD = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
 
 
 def _uuid(cid: str) -> str:
@@ -46,18 +49,27 @@ class _G:
         self.nodes = {n["id"]: n for n in _load_dicts(repo / "data/graph_global/nodes.jsonl")}
         self.edges = list(_load_dicts(repo / "data/graph_global/edges.jsonl"))
 
-    def op_by_grounding(self, card_uuid: str, grounding: list) -> str | None:
-        """The op node on this card whose outgoing-edge provenance overlaps the grounding."""
-        spans = [g["oracle_span"] for g in grounding if g.get("card_id") and card_uuid in g["card_id"]
-                 and g.get("oracle_span")]
+    def op_by_grounding(self, card_uuid: str, grounding: list):
+        """The op node whose FACE equals the grounding's face AND whose outgoing-edge
+        provenance overlaps the grounding span. Matching the complete face_id (not just
+        the card UUID) is essential on multiface cards, where the same char offsets exist
+        on both faces. Returns (op_id, face_id) or (None, None)."""
+        by_face = defaultdict(list)
+        for g in grounding:
+            fid = g.get("face_id")
+            if fid and card_uuid in fid and g.get("oracle_span"):
+                by_face[fid].append(g["oracle_span"])
         for e in self.edges:
-            if not e["source"].startswith("op:") or card_uuid not in e["source"]:
+            if not e["source"].startswith("op:"):
+                continue
+            m = _FACE.search(e["source"])
+            if not m or m.group(0) not in by_face:        # op must be on the SAME face
                 continue
             for p in e.get("provenance", []):
                 sp = p.get("oracle_span")
-                if sp and any(_overlap(sp, gs) > 0 for gs in spans):
-                    return e["source"]
-        return None
+                if sp and any(_overlap(sp, gs) > 0 for gs in by_face[m.group(0)]):
+                    return e["source"], m.group(0)
+        return None, None
 
     def op_producing(self, card_uuid: str, predicate: str, target_prefix: str) -> str | None:
         for e in self.edges:
@@ -78,46 +90,77 @@ def repair(repo: Path = REPO) -> dict:
     queue = list(_load_dicts(repo / "data/graph_global/audit_repair_queue.jsonl"))
     new_edges, new_nodes, done, skipped = [], {}, [], []
 
-    def add_edge(source, predicate, target, entry, note):
+    def add_edge(source, predicate, target, entry, note, **props):
         prov = {"source": "graph_repair", "derivation": "audit_repair_queue",
                 "relation": entry["relation"], "candidate_concept": entry["candidate_concept"],
                 "note": note, "grounding": entry.get("grounding", [])}
         new_edges.append({"edge_id": _repair_id(source, predicate, target), "source": source,
                           "predicate": predicate, "target": target, "provenance": [prov],
-                          "origin": "graph_repair"})
+                          "origin": "graph_repair", **props})
+
+    def _face_matches(op_face, card_uuid, grounding):
+        return op_face is not None and any(g.get("face_id") == op_face
+                                           for g in grounding if card_uuid in (g.get("face_id") or ""))
 
     for e in queue:
         en, be = e["proposed_direction"]["enabler"], e["proposed_direction"]["beneficiary"]
         en_u, be_u = _uuid(en), _uuid(be)
         rel, concept = e["relation"], e["candidate_concept"]
+        gnd = e.get("grounding", [])
 
         if rel == "ENABLES_TRIGGER":
             kw = next((v for k, v in _EVENT_KEYWORD.items() if k in e["missing_node_hint"]), None)
             event = g.trigger_event(be_u, kw) if kw else None
-            en_op = g.op_by_grounding(en_u, e.get("grounding", []))
-            if event and en_op:
+            en_op, op_face = g.op_by_grounding(en_u, gnd)
+            # INVARIANT: the repaired operation must be on the SAME face as the enabler grounding.
+            if event and en_op and _face_matches(op_face, en_u, gnd):
                 add_edge(en_op, "CAUSES", event, e,
-                         f"enabler operation produces the {event} that already triggers the beneficiary")
+                         f"enabler operation on {op_face} produces the {event} that already triggers the beneficiary")
                 done.append((en, be, rel, event))
             else:
-                skipped.append({**e, "reason": f"event={event} en_op={en_op}"})
+                skipped.append({**e, "reason": f"event={event} en_op={en_op} face={op_face}"})
 
         elif rel == "SUPPLIES_RESOURCE" and concept.startswith("token:"):
-            # producer already CREATES_OBJECT the token; add the beneficiary's REQUIRES edge
-            be_op = g.op_by_grounding(be_u, e.get("grounding", [])) or f"op:face:{be_u}:0:requires"
-            if not be_op.startswith("op:"):
-                be_op = f"op:face:{be_u}:0:requires"
-            add_edge(be_op, "REQUIRES", concept, e, "beneficiary requires the object the enabler creates")
+            # producer already CREATES_OBJECT the token; add the beneficiary's REQUIRES edge,
+            # PRESERVING the multiplicity threshold ("two or more Wolves" -> quantity 2).
+            be_op, be_face = g.op_by_grounding(be_u, gnd)
+            if not be_op or not _face_matches(be_face, be_u, gnd):
+                skipped.append({**e, "reason": f"no face-matched beneficiary op ({be_op}/{be_face})"})
+                continue
+            btxt = " ".join((x.get("text") or "") for x in gnd if be_u in (x.get("face_id") or "")).lower()
+            m = re.search(r"(one|two|three|four|five|\d+)\s+or more", btxt)
+            qty = (_NUMWORD.get(m.group(1)) or int(m.group(1))) if m else None
+            props = {"quantity": qty} if qty else {}
+            add_edge(be_op, "REQUIRES", concept, e,
+                     "beneficiary requires the object the enabler creates" + (f" (>= {qty})" if qty else ""),
+                     **props)
             done.append((en, be, rel, concept))
 
         elif rel == "AMPLIFIES_EFFECT" and e["missing_node_type"] == "ObjectModifier":
             sub = "obj:subtype:" + concept.split(":")[-1]
+            en_face = next((gg["face_id"] for gg in gnd if en_u in (gg.get("face_id") or "")), None)
+            if not en_face:
+                skipped.append({**e, "reason": "no enabler grounding face"})
+                continue
+            en_op, op_face = g.op_by_grounding(en_u, gnd)
+            if not en_op or not _face_matches(op_face, en_u, gnd):
+                # the static anthem is not modelled as an operation at all (that IS the gap) —
+                # materialize the anthem operation on the enabler's OWN face and link it.
+                en_op = f"op:{en_face}:anthem"
+                new_nodes[en_op] = {"id": en_op, "type": "Operation", "label": "static anthem",
+                                    "data": {"kind": "static_modifier"}, "provenance": [{"source": "graph_repair"}]}
+                add_edge(en_face, "HAS_ABILITY", en_op, e, "materialize the static anthem operation on its face")
+                op_face = en_face
             if sub not in g.nodes:
                 new_nodes[sub] = {"id": sub, "type": "ObjectClass", "label": concept.split(":")[-1],
                                   "data": {"type_kind": "subtype"}, "provenance": [{"source": "graph_repair"}]}
-            en_op = g.op_by_grounding(en_u, e.get("grounding", [])) or f"op:face:{en_u}:0:anthem"
+            # carry the modification (e.g. "get +1/+1") so the higher-order effect is preserved
+            etxt = " ".join((x.get("text") or "") for x in gnd if en_u in (x.get("face_id") or ""))
+            pm = re.search(r"\+(\d+)/\+(\d+)", etxt)
+            props = {"modification": {"power": f"+{pm.group(1)}", "toughness": f"+{pm.group(2)}"}} if pm else {}
             add_edge(en_op, "MODIFIES", sub, e,
-                     "enabler static ability modifies the object subtype the beneficiary creates")
+                     f"enabler static ability on {op_face} modifies subtype '{sub.split(':')[-1]}' objects the beneficiary creates",
+                     **props)
             done.append((en, be, rel, sub))
         else:
             skipped.append({**e, "reason": "no repair handler"})

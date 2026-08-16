@@ -927,3 +927,24 @@ Each metaedge records both `connecting_node` (the ACTUAL intermediate used, e.g.
 **Status.** All 8 queued mechanisms consumed; the LLM-audit-discovered relations are now primitive-grounded typed paths in a separate `graph_repair` layer (kept out of the frozen Part-1 projection and the `llm_audit` augmented layer). Remaining build step: **Phase 6** (higher-order mechanism assembly) — awaiting go-ahead.
 
 Refs: `src/hobkg/graph_repair.py`; `tests/test_graph_repair.py`; `data/graph_global/{repair_edges,repair_nodes,card_pair_projection_repaired}.jsonl`; `reports/graph_repair.md`
+
+---
+
+## [2026-08-17 05:20] CORRECTION — graph-repair face-identity + multiplicity bugs (blocks `6ff4653`)
+
+Reviewer found a blocking multiface provenance bug: `op_by_grounding` matched operations by card UUID + overlapping char offsets WITHOUT requiring the op and the grounding to be on the same FACE. Because the same offsets (e.g. `[0,16]`, `[0,34]`) exist on both faces of a two-faced card, two repairs attached to the WRONG face:
+- **Clap! Snap! Amass → Great Goblin** attached to the front face's `:0:guglob-counter-menace` instead of the Adventure face's `:1:amass`;
+- **Thranduil anthem → Down in the Valley** attached to Silvan Rally's face-`:1` operation instead of the face-`:0` anthem.
+
+Fixes:
+1. **Face-exact matching.** `op_by_grounding` now groups grounding spans by `face_id` and only matches an op whose own `face:{uuid}:{idx}` (parsed from the op node id) equals a grounding face — the complete face_id, not just the UUID. Returns `(op_id, face_id)`.
+2. **Face-identity invariant asserted.** `_face_matches` requires every repaired operation's face to equal the enabler grounding face; a mismatch skips (no wrong-face repair).
+3. **Thranduil anthem materialized correctly.** Face-exact matching revealed the anthem is NOT modelled as any operation (that was the real gap). The repair now MATERIALIZES `op:face:{thranduil}:0:anthem` on Thranduil's own face (+ `HAS_ABILITY`), then `MODIFIES obj:subtype:elf` — no longer hijacking Silvan Rally's mill op.
+4. **Multiplicity preserved.** Chief Warg's Company `REQUIRES token:wolf` now carries `quantity: 2` (parsed "two or more other Wolves"), keeping the higher-order threshold; the Elf ObjectModifier carries `modification: {power:+1, toughness:+1}`.
+5. Also fixed a `defaultdict` import that crashed `graph-repair`.
+
+**Result.** 8/8 repaired (9 repair edges incl. the materialized anthem op + its HAS_ABILITY link; 1 repair node), all 8 reproject faithfully, every step edge resolves, frozen graph byte-identical. Verified: Amass op is `:1:amass`; anthem op is `:0:anthem`; Wolf `REQUIRES q=2`. 137 tests pass (+ multiface-face-exact, face-matches-grounding, wolf-multiplicity, modifier-carries-mod regressions).
+
+**Scope note (reviewer, not a defect):** this repair only touches the 8 previously-queued relations — none in the sealed-deck maindeck. Dwarf/Equipment support and noncreature-cast triggers remain SEPARATE projection gaps (future audit/repair rounds), not addressed here.
+
+Refs: `src/hobkg/graph_repair.py` (`op_by_grounding` face-exact); `tests/test_graph_repair.py`; `data/graph_global/{repair_edges,repair_nodes,card_pair_projection_repaired}.jsonl`

@@ -2684,3 +2684,70 @@ Nothing pending on my side. When you're ready, the two remaining build steps are
 
 ### [2026-08-15 22:23] USER
 proceed with graph-repair and reprojection
+
+### [2026-08-15 22:32] ASSISTANT
+On it. Graph-repair means materializing the 8 queued missing mechanisms into the graph (as a provenance-bearing repair layer), then reprojecting so those pairs become faithful typed paths. First let me inspect the actual graph structure around each repair's endpoints so I wire the canonical event/object nodes to the *real* existing ops and triggered abilities.
+
+Very informative â€” the key discovery is that the beneficiaries **already have canonical trigger events** (`event:player-loses-life`, `event:counters-placed`, `event:activate-creature-ability`). So most repairs just need the *enabler â†’ event* edge added. Let me see the Thranduil/Wolf cases (the probe output was truncated).
+
+I have the complete picture. Most beneficiaries already have the canonical trigger event â€” the repair mainly adds the enablerâ†’event edge. Let me build `graph_repair.py` that materializes the connecting edges as a provenance-bearing repair layer, then reprojects.
+
+All 8 repaired (8 edges, 0 skipped â€” every trigger event and `obj:subtype:elf` already existed). Let me verify the repair edges, then build the reprojection.
+
+All 8 repair edges are correct. Now the reprojection â€” build the faithful typed path for each repaired pair over graph+repair. Let me append `reproject()` to the module.
+
+Let me remove a dead line and add CLI commands:
+
+All 8 reprojected as faithful typed paths, 0 unrepaired, every edge resolves. Let me view the reprojected relations.
+
+All 8 reprojected with correct directions and faithful typed paths (Wolf supply, life-loss/counter/activate triggers, Elf ObjectModifier). Let me add the test suite and confirm the frozen graph is untouched.
+
+133 tests pass, frozen graph confirmed untouched. One refinement: the metaedge's `connecting_concept` shows the LLM's *candidate* concept (`resource:card`) rather than the actual connecting node used (`event:player-loses-life`). Let me record both for clarity.
+
+The report now shows the actual connecting node (`event:player-loses-life`, `obj:subtype:elf`). Let me run the full suite, record the notebook entry, and commit.
+
+Pushed â€” `6ff4653`. Graph repair + reprojection is complete: all 8 queued mechanisms consumed.
+
+## Graph repair + reprojection
+
+The key finding made this clean: the beneficiaries **already carried canonical trigger events** (`event:player-loses-life`, `event:counters-placed`, `event:activate-creature-ability`) and `obj:subtype:elf`/`token:elf HAS_TYPE` already existed â€” so each repair needed just **one connecting edge**, not a fabricated subgraph.
+
+**Repair layer** (`repair_edges.jsonl`, additive â€” frozen Phase 4 graph verified byte-identical, each edge `origin: graph_repair` citing the audit grounding):
+- **5Ã— ENABLES_TRIGGER** â€” enabler op `CAUSES` the beneficiary's existing trigger event (Gollum / Reverent Howl / Rage / Sackville â†’ life-lost â†’ Master mill; Great Ugly-Looking Goblin â†’ counters-placed â†’ Great Goblin; Gandalf â†’ activate-ability â†’ Elrond)
+- **1Ã— SUPPLIES_RESOURCE** â€” Chief Warg's Company `REQUIRES token:wolf` (Head already creates them)
+- **1Ã— AMPLIFIES ObjectModifier** â€” Thranduil's anthem `MODIFIES obj:subtype:elf`
+
+**Reprojection** (`card_pair_projection_repaired.jsonl`): **all 8 now reproject as faithful typed paths** (`origin: graph_repair`), each closing exactly one gap, every step edge resolving to a real Phase 4 or repair edge, directions correct:
+- `enabler-op CAUSES event â†’ event TRIGGERS beneficiary-ability`
+- `Head CREATES_OBJECT token:wolf â† REQUIRES â† Company`
+- `Thranduil MODIFIES obj:subtype:elf â† HAS_TYPE â† token:elf â† CREATES_OBJECT â† Down in the Valley`
+
+Each metaedge records the **actual** `connecting_node` (e.g. `event:player-loses-life`) alongside the LLM's `candidate_concept`. Deterministic; frozen graph untouched; **133 tests pass** (+6 repair gates).
+
+So the LLM-audit-discovered relations are now primitive-grounded typed paths in a separate `graph_repair` layer â€” kept out of both the frozen Part-1 projection and the `llm_audit` augmented layer.
+
+The remaining build step is **Phase 6 â€” higher-order mechanism assembly** (group edges around shared gates, resources, and state transitions). Holding for your go-ahead.
+
+### [2026-08-15 22:49] USER
+Commit `6ff4653` passes all 133 tests, but the repair layer has a blocking multiface provenance bug.
+
+`op_by_grounding()` matches operations using the card UUID and overlapping character offsets, but does not require the operation and grounding to belong to the same face. This creates two incorrect paths:
+
+* **Clap! Snap! Amass ΓåÆ Great Goblin** is attached to the front-face operation `guglob-counter-menace`, not the Adventure faceΓÇÖs `:1:amass` operation.
+* **ThranduilΓÇÖs anthem ΓåÆ Down in the Valley** is attached to Silvan RallyΓÇÖs face-1 milling operation, not ThranduilΓÇÖs face-0 anthem ability.
+
+Both pass because offsets such as `[0,16]` or `[0,34]` overlap text at the same positions on the wrong face.
+
+Required fix:
+
+1. Make `op_by_grounding()` match the complete `face_id`, not merely the card UUID.
+2. Assert that every repaired operationΓÇÖs face equals the enabler grounding face.
+3. Add exact regression tests requiring:
+
+   * Clap! Snap! source operation contains `:1:amass`.
+   * Thranduil source operation is derived from `face:ΓÇª:0:a1`.
+4. Preserve Chief WargΓÇÖs CompanyΓÇÖs multiplicity requirement: it needs **two other Wolves**, not merely one `token:wolf`. The repaired `REQUIRES` edge currently loses that higher-order threshold.
+
+Also, this commit does not yet change the sealed-deck visualization: it repairs the eight previously queued relations, none of which occur in that maindeck. Dwarf/Equipment support and noncreature-cast triggers remain separate projection gaps.
+
+So the repair architecture is sound, but these face-identity and multiplicity issues need correction before freezing the repaired paths.
