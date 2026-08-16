@@ -70,14 +70,32 @@ def augmented(istats):
     return [json.loads(l) for l in AUG.read_text(encoding="utf-8").splitlines()]
 
 
-def test_augmented_layer_is_separate_and_labelled(istats, augmented):
+def test_augmented_layer_is_separate_and_faithful(istats, augmented):
     if not augmented:
         pytest.skip("no audit verdicts ingested")
     assert istats["augmented_metaedges"] == len(augmented)
     for m in augmented:
         assert m["origin"] == "llm_audit"                    # kept OUT of canonical projection
         assert m["relation"] and m["connecting_concept"]
-        assert m["path_kind"] in ("grounded", "semantic")
+        assert m["path_kind"] == "grounded"                  # ONLY faithful typed paths accepted
+        # relation-specific signature: a real enabler edge, a derived bridge, a real edge
+        assert m["path_predicates"][1] == m["relation"]      # middle step is the derived bridge
+
+
+def test_repair_queue_for_unfaithful_relations(istats):
+    # credible relations lacking a primitive path go to a repair queue, NOT a shortcut
+    rq_path = REPO / "data" / "graph_global" / "audit_repair_queue.jsonl"
+    if not rq_path.exists():
+        pytest.skip("no repair queue")
+    rq = [json.loads(l) for l in rq_path.read_text(encoding="utf-8").splitlines()]
+    assert len(rq) == istats["repair_queue"]
+    for r in rq:
+        assert r["relation"] and r["connecting_concept"] and r["missing"]
+
+
+def test_coverage_reported(istats):
+    assert istats["audited"] == istats["total_candidates"]   # full coverage
+    assert istats["unaudited"] == 0
 
 
 def test_augmented_paths_are_real_or_labelled_derived(augmented):
@@ -125,4 +143,4 @@ def test_reconcile_requires_critic_agreement(istats):
     # layer is the deduped subset of accepted verdicts.
     assert istats["augmented_metaedges"] >= 1
     assert istats["augmented_metaedges"] <= istats["accepted"]
-    assert istats["critic_rejected"] >= 0
+    assert istats["critic_disagreement"] >= 0

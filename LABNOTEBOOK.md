@@ -805,3 +805,23 @@ Reviewer (`docs/hob-kg-phase5-review-pt3.md`) kept Stage B as a draft: 9 accepte
 **Deferred (item 9):** the ~49 `shared_vocabulary`-only candidates remain unaudited (a final cheaper pass). The augmented layer stays separate; not merged into canonical projection pending review.
 
 Refs: `docs/hob-kg-phase5-review-pt3.md`; `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/card_pair_projection_audit.jsonl`; `data/llm/audit/{extract,critic}_*.jsonl`; `reports/pair_audit.md`
+
+---
+
+## [2026-08-16 22:00] CORRECTION — Phase 5 Part 2 Stage B v3: faithful typed paths + repair queue + full coverage
+
+Reviewer (`docs/hob-kg-phase5-review-pt4.md`): 6 of 9 accepted lacked faithful typed paths (`_build_path`'s generic predicate sets joined two cards that merely produce the same output into a bogus ENABLES_TRIGGER). Reworked to all seven closure items:
+
+1. **Relation-specific path signatures** (`_SIGNATURES`): ENABLES_TRIGGER = `A→produces event E ; E→TRIGGERS→B ability`; AMPLIFIES_EFFECT = `A→REPLACES/MODIFIES E ←CAUSES/PRODUCES←B`; SUPPLIES_RESOURCE = `A→PRODUCES R ←CONSUMES/REQUIRES←B`. `_typed_path` tries both orientations against the exact signature; a generic shared-output join is NOT accepted.
+2. **Grounding–provenance overlap** (`_grounding_covers_path`): each real path edge must be tied to a grounding phrase on the edge's OWN face whose span overlaps the edge's provenance Oracle span.
+3. **`requires_graph_repair` queue** (`data/graph_global/audit_repair_queue.jsonl`): credible relations lacking a faithful primitive path are queued with the missing-intermediate hint (add/canonicalize the life-lost / counter-placed / creature-ability-activated event + TRIGGERS edge), NOT emitted as a semantic card-to-card shortcut.
+4. **Extractor–critic tuple agreement**: accept only when the independent critic ALSO returns RELATION with the SAME relation_type + connecting_concept AND its own grounding spans validate (not just "both said RELATION").
+5. **Explicit coverage** in stats + report: 142/142 audited (was 94/143).
+6. **Output-aware copy candidates**: derive what the copier produces (its own subtype for self-copy) and pair only with cards that reference that subtype or trigger on creatures/permanents/tokens entering — not every token creator.
+7. **Audited the remaining candidates**: ran the extractor+critic protocol over the 49 shared-vocabulary + new copy/ambiguous candidates (10 more sub-agents, batches 007–011).
+
+**Result.** 142/142 candidates audited (22 sub-agents total across both waves). Reconcile: **3 accepted faithful typed paths** — Bard, King of Dale → Beorn the Fierce / The Chief Warg / Old Fat Spider (AMPLIFIES_EFFECT via `event:draw`: `REPLACES → CAUSES`), all real edge_ids resolve, grounding spans exact & provenance-tied; **8 routed to the graph-repair queue** (Head of the Hunt→Chief Warg's Company Wolf supply; Elrond↔Gandalf, Gollum→Master, Great Goblin, 3× life-loss→Master of Lake-town, Thranduil→Down in the Valley — each needs a canonicalized intermediate event/resource); 11 critic-disagreements, 1 duplicate, 114 NO_RELATION. This matches the reviewer's assessment (only the 3 Bard relations meet the typed-path standard; the rest drive graph repairs). 121 tests pass.
+
+**Not merged:** the augmented layer stays separate (`origin: llm_audit`); the repair queue is the input to a later graph-repair + reprojection pass. Phase 5 Part 2 is now coverage-complete and typed-faithful, pending review.
+
+Refs: `docs/hob-kg-phase5-review-pt4.md`; `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/{card_pair_projection_audit,audit_repair_queue}.jsonl`; `data/llm/audit/{extract,critic}_0*.jsonl`; `reports/pair_audit.md`

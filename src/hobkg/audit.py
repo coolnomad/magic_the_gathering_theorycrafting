@@ -128,18 +128,33 @@ def build_candidates(repo: Path = REPO) -> dict:
                     C.add(a, b, "replacement_prevention", {"predicate": e["predicate"], "concept": e["target"]},
                           directed=True)
 
-    # 4. copy_effect: a copier paired with cards that CREATE a copyable permanent token
-    copiers = [cid for cid in d.cards if re.search(r"\bcopy\b|\bcopies\b", d.oracle[cid], re.I)]
-    token_creators = defaultdict(set)
+    # 4. copy_effect (output-aware): derive WHAT the copier produces, then pair it only
+    # with cards that care about that output — the copied object's subtype (tribal
+    # payoff / count), or triggers on extra creatures/permanents entering.
+    card_subtypes = defaultdict(set)
     for e in d.edges:
-        if e["predicate"] == "CREATES_OBJECT" and e["target"].startswith("token:"):
+        if e["predicate"] == "HAS_TYPE" and e["target"].startswith("obj:subtype:"):
             c = _card_of(e["source"])
             if c:
-                token_creators[c].add(e["target"])
-    for cp in copiers:
-        for b, toks in token_creators.items():
-            if b != cp:
-                C.add(cp, b, "copy_effect", {"copyable_tokens": sorted(toks)}, directed=True)
+                card_subtypes[c].add(e["target"].split(":")[-1])
+    for cp in d.cards:
+        ot = d.oracle[cp]
+        if not re.search(r"\bcopy\b|\bcopies\b", ot, re.I):
+            continue
+        if re.search(r"copies of (them|it)|copy of it", ot, re.I):
+            outputs = card_subtypes.get(cp, set())            # copies itself -> its own subtypes
+        else:
+            outputs = {"creature"}                            # copies a creature/permanent
+        for b in d.cards:
+            if b == cp:
+                continue
+            ob = d.oracle[b].lower()
+            hits = [w for w in outputs if re.search(r"\b" + re.escape(w) + r"\b", ob)]
+            enters = re.search(r"(another |a )?(creature|permanent|token)s?( you control)? enters?"
+                               r"|whenever .*enters the battlefield", ob)
+            if hits or enters:
+                C.add(cp, b, "copy_effect",
+                      {"copy_output": sorted(outputs), "matched": hits or ["enters-trigger"]}, directed=True)
 
     # 5. ambiguous_scope: OPERATIONAL — an ambiguous-referent card paired with cards that
     # share a moderately-rare functional concept (so it independently enters the audit).
@@ -209,17 +224,26 @@ def _packet(d: _Data, c: dict) -> dict:
             "source_subgraph": sub(c["source_card"]), "target_subgraph": sub(c["target_card"])}
 
 
-def build_batches(repo: Path = REPO, batch_size: int = 14, high_signal_only: bool = False) -> dict:
+def build_batches(repo: Path = REPO, batch_size: int = 14, high_signal_only: bool = False,
+                  only_unaudited: bool = False, start_index: int = 0) -> dict:
     d = _Data(repo)
     cands = list(_load_dicts(repo / "data/graph_global/audit_candidates.jsonl"))
     if high_signal_only:
         cands = [c for c in cands if set(c["buckets"]) & _HIGH_SIGNAL]
-    packets = [_packet(d, c) for c in cands]
     outdir = repo / "data" / "llm" / "audit"
     outdir.mkdir(parents=True, exist_ok=True)
-    for f in list(outdir.glob("batch_*.jsonl")) + list(outdir.glob("extract_*.jsonl")) + list(outdir.glob("critic_*.jsonl")):
-        f.unlink()
-    n = 0
+    if only_unaudited:
+        done = {(v["source_card"], v["target_card"])
+                for f in outdir.glob("extract_*.jsonl") for v in _load_dicts(f)}
+        cands = [c for c in cands if (c["source_card"], c["target_card"]) not in done]
+        for f in outdir.glob("batch_*.jsonl"):
+            f.unlink()
+    else:
+        for f in (list(outdir.glob("batch_*.jsonl")) + list(outdir.glob("extract_*.jsonl"))
+                  + list(outdir.glob("critic_*.jsonl"))):
+            f.unlink()
+    packets = [_packet(d, c) for c in cands]
+    n = start_index
     for i in range(0, len(packets), batch_size):
         n += 1
         with (outdir / f"batch_{n:03d}.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
@@ -252,44 +276,99 @@ def _valid_spans(d: _Data, grounding) -> bool:
 
 def _find_edge(d: _Data, card: str, concept: str, preds: set):
     u = card.split(":")[1]
-    best = None
     for e in d.func.get(card, []):
         if e["target"] == concept and e["predicate"] in preds and u in e["source"]:
-            best = e
-            break
-    return best
-
-
-def _build_path(d: _Data, enabler: str, beneficiary: str, concept: str, relation: str):
-    """Typed path: enabler's real edge to the concept (fwd) -> derived relation bridge ->
-    beneficiary's real edge to the concept (rev). Returns (steps, kind) or (None, 'semantic')."""
-    if not concept or concept.startswith("name"):
-        bridge = project._derived(f"derived:{relation}:{enabler}->{beneficiary}", relation,
-                                  enabler, beneficiary, "llm_audit_semantic_link")
-        return [bridge], "semantic"
-    ee = _find_edge(d, enabler, concept, _ENABLE_PREDS)
-    be = _find_edge(d, beneficiary, concept, _BENEFIT_PREDS)
-    if not ee or not be:
-        bridge = project._derived(f"derived:{relation}:{enabler}->{beneficiary}", relation,
-                                  enabler, beneficiary, "llm_audit_semantic_link")
-        return [bridge], "semantic"
-    bridge = project._derived(f"derived:{relation}:{concept}", relation, ee["target"], be["source"],
-                              "llm_audit_grounded_link")
-    return [project._step(ee, "forward"), bridge, project._step(be, "reverse")], "grounded"
-
-
-def _graph_direction(d: _Data, s: str, t: str, concept: str):
-    """If exactly one of the two cards has an ENABLE edge to the concept and the other a
-    BENEFIT edge, return (enabler, beneficiary); else None (fall back to LLM direction)."""
-    if not concept or concept.startswith("name"):
-        return None
-    s_en, s_be = _find_edge(d, s, concept, _ENABLE_PREDS), _find_edge(d, s, concept, _BENEFIT_PREDS)
-    t_en, t_be = _find_edge(d, t, concept, _ENABLE_PREDS), _find_edge(d, t, concept, _BENEFIT_PREDS)
-    if s_en and t_be and not (t_en and s_be):
-        return (s, t)
-    if t_en and s_be and not (s_en and t_be):
-        return (t, s)
+            return e
     return None
+
+
+def _triggers_edge(d: _Data, concept: str, beneficiary: str):
+    u = beneficiary.split(":")[1]
+    for e in d.edges:
+        if e["predicate"] == "TRIGGERS" and e["source"] == concept and u in e["target"]:
+            return e
+    return None
+
+
+# Relation-specific path signatures — ordered real edges of a FAITHFUL primitive path
+# for (enabler A, beneficiary B) over the connecting concept, or None.
+def _sig_enables_trigger(d, a, b, concept):
+    # A → produces/causes event E ; E → TRIGGERS → B's ability
+    if not concept or not concept.startswith("event:"):
+        return None
+    ae = _find_edge(d, a, concept, {"PRODUCES", "CAUSES", "CREATES_OBJECT", "ADDS_COUNTER"})
+    te = _triggers_edge(d, concept, b)
+    return [project._step(ae, "forward"), project._step(te, "forward")] if ae and te else None
+
+
+def _sig_amplifies(d, a, b, concept):
+    # A → REPLACES/MODIFIES E  ←CAUSES/PRODUCES←  B
+    ae = _find_edge(d, a, concept, {"REPLACES", "MODIFIES"})
+    be = _find_edge(d, b, concept, {"CAUSES", "PRODUCES"})
+    return [project._step(ae, "forward"), project._step(be, "reverse")] if ae and be else None
+
+
+def _sig_supplies(d, a, b, concept):
+    # A → PRODUCES R  ←CONSUMES/REQUIRES←  B
+    ae = _find_edge(d, a, concept, {"PRODUCES"})
+    be = _find_edge(d, b, concept, {"CONSUMES", "REQUIRES"})
+    return [project._step(ae, "forward"), project._step(be, "reverse")] if ae and be else None
+
+
+_SIGNATURES = {"ENABLES_TRIGGER": _sig_enables_trigger, "AMPLIFIES_EFFECT": _sig_amplifies,
+               "SUPPLIES_RESOURCE": _sig_supplies}
+_REPAIR_HINT = {
+    "ENABLES_TRIGGER": "add/canonicalize the intermediate event (life-lost / counter-placed / "
+                       "creature-ability-activated) and a TRIGGERS edge to the beneficiary ability",
+    "AMPLIFIES_EFFECT": "canonicalize the shared modified event/resource node",
+    "SUPPLIES_RESOURCE": "canonicalize the shared resource node so producer feeds consumer",
+}
+
+
+def _typed_path(d: _Data, relation: str, s: str, t: str, concept: str):
+    """Try both orientations against the RELATION-SPECIFIC signature. Returns
+    (steps, src, tgt, 'grounded') for a faithful primitive path, else
+    (None, s, t, 'needs_repair'). A generic shared-output join is NOT accepted."""
+    sig = _SIGNATURES.get(relation)
+    if sig and concept:
+        for (a, b) in ((s, t), (t, s)):
+            steps = sig(d, a, b, concept)
+            if steps:
+                anchor = steps[0]["target"]
+                bridge = project._derived(f"derived:{relation}:{concept}", relation, anchor,
+                                          steps[-1]["source"], "llm_audit_typed_link")
+                return [steps[0], bridge, steps[-1]], a, b, "grounded"
+    return None, s, t, "needs_repair"
+
+
+_FACE = re.compile(r"face:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:\d+")
+
+
+def _grounding_covers_path(d: _Data, steps: list, grounding: list) -> bool:
+    """Each real path edge must be tied to a grounding phrase on the SAME face (the face
+    the edge's op belongs to) whose span overlaps the edge's provenance Oracle span — so
+    the grounding corresponds to the primitive edges actually used."""
+    for st in steps:
+        if st.get("derived"):
+            continue
+        faces = {m.group(0) for nid in (st["source"], st["target"]) for m in [_FACE.search(nid)] if m}
+        prov_spans = [p["oracle_span"] for p in st.get("provenance", []) if p.get("oracle_span")]
+        if not faces:
+            continue
+        covered = False
+        for g in grounding:
+            if g.get("face_id") not in faces:
+                continue
+            if not prov_spans:
+                covered = True
+                break
+            gs = g.get("oracle_span") or [0, 0]
+            if any(max(0, min(sp[1], gs[1]) - max(sp[0], gs[0])) > 0 for sp in prov_spans):
+                covered = True
+                break
+        if not covered:
+            return False
+    return True
 
 
 def _is_duplicate(d: _Data, s: str, t: str, concept: str, relation: str) -> bool:
@@ -311,63 +390,72 @@ def _is_duplicate(d: _Data, s: str, t: str, concept: str, relation: str) -> bool
 def ingest(repo: Path = REPO) -> dict:
     d = _Data(repo)
     rdir = repo / "data" / "llm" / "audit"
+    cand_pairs = {(c["source_card"], c["target_card"])
+                  for c in _load_dicts(repo / "data/graph_global/audit_candidates.jsonl")}
+    # only verdicts for CURRENT candidate pairs (ignore stale verdicts from superseded buckets)
     extract = {(v["source_card"], v["target_card"]): v
-               for f in sorted(rdir.glob("extract_*.jsonl")) for v in _load_dicts(f)}
+               for f in sorted(rdir.glob("extract_*.jsonl")) for v in _load_dicts(f)
+               if (v["source_card"], v["target_card"]) in cand_pairs}
     critic = {(v["source_card"], v["target_card"]): v
-              for f in sorted(rdir.glob("critic_*.jsonl")) for v in _load_dicts(f)}
-    results, accepted = [], []
+              for f in sorted(rdir.glob("critic_*.jsonl")) for v in _load_dicts(f)
+              if (v["source_card"], v["target_card"]) in cand_pairs}
+    results, accepted, repair = [], [], []
     counts = Counter()
     for key, ex in sorted(extract.items()):
         s, t = key
         cr = critic.get(key, {})
         verdict = (ex.get("verdict") or "").upper()
         cr_verdict = (cr.get("verdict") or "").upper()
-        agree = cr_verdict == "RELATION"                 # independent critic also finds a relation
+        relation = ex.get("relation_type")
+        concept = ex.get("connecting_concept")
         rec = {"source_card": s, "target_card": t, "source_name": d.name.get(s, s),
                "target_name": d.name.get(t, t), "extractor_verdict": verdict,
-               "critic_verdict": cr_verdict, "critic_agrees": agree,
-               "relation_type": ex.get("relation_type"),
-               "connecting_concept": ex.get("connecting_concept"), "confidence": ex.get("confidence")}
+               "critic_verdict": cr_verdict, "relation_type": relation,
+               "connecting_concept": concept, "confidence": ex.get("confidence")}
         if verdict != "RELATION":
             rec["status"] = "no_relation"
             counts["no_relation"] += 1
             results.append(rec)
             continue
-        # reconcile: require the independent critic to ALSO find a relation
-        if not agree:
-            rec["status"] = "critic_rejected"
+        # reconcile: the critic must ALSO find a RELATION and AGREE on the normalized tuple
+        # (relation_type + connecting_concept), and its own grounding spans must validate.
+        tuple_agree = (cr_verdict == "RELATION"
+                       and (cr.get("relation_type") or "").upper() == (relation or "").upper()
+                       and (cr.get("connecting_concept") or "") == (concept or "")
+                       and _valid_spans(d, cr.get("grounding")))
+        if not tuple_agree:
+            rec["status"] = "critic_disagreement"
             rec["critic_reason"] = cr.get("mechanism") or cr.get("reason")
-            counts["critic_rejected"] += 1
+            counts["critic_disagreement"] += 1
             results.append(rec)
             continue
-        enabler = ex.get("enabler") or "source"
-        relation = ex.get("relation_type")
-        concept = ex.get("connecting_concept")
-        src, tgt = (s, t) if enabler == "source" else (t, s)
-        # DETERMINISTIC direction override: when the graph unambiguously shows one card
-        # produces/affects the concept and the other consumes/triggers on it, the enabler
-        # is the producer — regardless of the submitted direction.
-        det = _graph_direction(d, s, t, concept)
-        if det:
-            src, tgt = det
-            rec["direction_source"] = "graph_normalized"
-        # grounding must be exact per-face spans
         if not _valid_spans(d, ex.get("grounding")):
             rec["status"] = "ungrounded"
             counts["ungrounded"] += 1
             results.append(rec)
             continue
-        # reject anything already represented mechanically
+        # relation-specific FAITHFUL typed path (both orientations); sets direction
+        steps, src, tgt, kind = _typed_path(d, relation, s, t, concept)
+        rec.update({"source_card": src, "target_card": tgt,
+                    "source_name": d.name.get(src, src), "target_name": d.name.get(tgt, tgt),
+                    "grounding": ex.get("grounding"), "conditions": ex.get("conditions") or []})
         if _is_duplicate(d, src, tgt, concept, relation):
             rec["status"] = "duplicate_of_mechanical"
             counts["duplicate"] += 1
             results.append(rec)
             continue
-        steps, kind = _build_path(d, src, tgt, concept, relation)
-        rec.update({"status": "accepted", "source_card": src, "target_card": tgt,
-                    "source_name": d.name.get(src, src), "target_name": d.name.get(tgt, tgt),
-                    "relation_type": relation, "connecting_concept": concept, "path_kind": kind,
-                    "grounding": ex.get("grounding"), "conditions": ex.get("conditions") or []})
+        if kind != "grounded" or not _grounding_covers_path(d, steps, ex.get("grounding")):
+            # credible but no faithful primitive path -> graph-repair queue, NOT a shortcut
+            rec["status"] = "requires_graph_repair"
+            rec["missing"] = _REPAIR_HINT.get(relation, "canonicalize the intermediate node")
+            repair.append({"source_card": src, "target_card": tgt, "relation": relation,
+                           "connecting_concept": concept, "missing": rec["missing"],
+                           "grounding": ex.get("grounding"), "confidence": ex.get("confidence"),
+                           "source_name": d.name.get(src, src), "target_name": d.name.get(tgt, tgt)})
+            counts["requires_graph_repair"] += 1
+            results.append(rec)
+            continue
+        rec.update({"status": "accepted", "relation_type": relation, "path_kind": kind})
         accepted.append(_augmented(rec, steps))
         counts["accepted"] += 1
         results.append(rec)
@@ -392,9 +480,22 @@ def ingest(repo: Path = REPO) -> dict:
     with (repo / "data/graph_global/card_pair_projection_audit.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for m in accepted:
             fh.write(json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n")
-    stats = {"extractor_verdicts": len(extract), "critic_verdicts": len(critic), **dict(counts),
-             "augmented_metaedges": len(accepted)}
-    _audit_report(repo, results, accepted, stats)
+    # dedup the graph-repair queue by UNORDERED pair + relation (mirror candidate
+    # orientations describe the same missing mechanism; direction is provisional until
+    # the intermediate event is canonicalized and the pair is reprojected mechanically).
+    rq = {}
+    for r in repair:
+        rq.setdefault((frozenset((r["source_card"], r["target_card"])), r["relation"]), r)
+    repair = sorted(rq.values(), key=lambda r: (r["source_card"], r["target_card"], r["relation"]))
+    with (repo / "data/graph_global/audit_repair_queue.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for r in repair:
+            fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+    total_candidates = len(list(_load_dicts(repo / "data/graph_global/audit_candidates.jsonl")))
+    stats = {"total_candidates": total_candidates, "audited": len(extract),
+             "unaudited": total_candidates - len(extract),
+             "critic_verdicts": len(critic), **dict(counts),
+             "augmented_metaedges": len(accepted), "repair_queue": len(repair)}
+    _audit_report(repo, results, accepted, repair, stats)
     return stats
 
 
@@ -411,18 +512,24 @@ def _augmented(rec: dict, steps: list) -> dict:
             "critic_confirmed": True}
 
 
-def _audit_report(repo: Path, results: list, accepted: list, stats: dict) -> None:
-    L = ["# HOB Phase 5 Part 2 — Pairwise LLM Audit (extractor + critic)", "",
-         f"- **extractor verdicts**: {stats.get('extractor_verdicts', 0)}",
-         f"- **accepted (critic-confirmed, grounded, novel)**: {stats.get('accepted', 0)}",
-         f"- **critic-rejected**: {stats.get('critic_rejected', 0)}",
+def _audit_report(repo: Path, results: list, accepted: list, repair: list, stats: dict) -> None:
+    L = ["# HOB Phase 5 Part 2 — Pairwise LLM Audit (extractor + critic, typed paths)", "",
+         f"- **coverage**: {stats.get('audited', 0)}/{stats.get('total_candidates', 0)} candidates audited "
+         f"({stats.get('unaudited', 0)} shared-vocabulary candidates unaudited)",
+         f"- **accepted faithful typed paths (origin: llm_audit)**: {stats.get('accepted', 0)}",
+         f"- **routed to graph-repair queue**: {stats.get('requires_graph_repair', 0)}",
+         f"- **critic disagreement**: {stats.get('critic_disagreement', 0)}",
          f"- **duplicate of mechanical**: {stats.get('duplicate', 0)}",
          f"- **ungrounded**: {stats.get('ungrounded', 0)}",
          f"- **NO_RELATION**: {stats.get('no_relation', 0)}", "",
-         "## Accepted augmented relations (origin: llm_audit)", ""]
+         "## Accepted faithful typed paths (origin: llm_audit)", ""]
     for m in accepted:
         L.append(f"- **{_nm(results, m['source_card'])} → {_nm(results, m['target_card'])}** "
-                 f"[{m['relation']}/{m['path_kind']}] via `{m['connecting_concept']}`")
+                 f"[{m['relation']}] via `{m['connecting_concept']}` — {' → '.join(m['path_predicates'])}")
+    L += ["", "## Graph-repair queue (credible relations lacking a primitive path)", ""]
+    for r in repair:
+        L.append(f"- **{r['source_name']} → {r['target_name']}** [{r['relation']}] via "
+                 f"`{r['connecting_concept']}` — needs: {r['missing']}")
     (repo / "reports" / "pair_audit.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 

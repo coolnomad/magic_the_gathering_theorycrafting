@@ -2225,3 +2225,72 @@ Holding here for review before doing either.
 
 ### [2026-08-15 19:22] USER
 read hob-kg-phase5-review-pt3.md
+
+### [2026-08-15 19:38] ASSISTANT
+A thorough review â€” Stage B needs a proper rework (7 novel not 9, with 2 reversed + 2 duplicates, plus protocol gaps). The nine required next-pass items are substantial. Let me implement Stage B v2 properly: stronger candidate buckets, per-face span grounding, typed paths, direction normalization, dedup vs Part 1, an extractorâ†’criticâ†’reconcile loop, and a separate `origin: llm_audit` augmented layer.
+
+Let me first inspect what per-card primitive/subgraph info I can give agents so grounding can cite edge IDs and connecting concepts.
+
+The connecting concept is derivable (Bard `REPLACES event:draw` â‹ˆ Beorn `CAUSES event:draw`), so the control plane can build a typed, edge-ID'd path once the agent identifies the relation + concept + direction. That's the key to giving audit relations Part-1 rigor. Let me implement Stage B v2. First the candidate-bucket fixes and subgraph enrichment.
+
+Now the full Stage B v2 rewrite of `audit.py` â€” candidate fixes, subgraph enrichment, and a reconcile-based ingest with span validation, direction normalization, dedup, and typed-path construction:
+
+Let me clean up a leftover in `_packet` (unused broken helper):
+
+143 candidates (buckets now operational: copy 23, ambiguous 29). The reviewer's protocol (extractor + critic + reconcile) over all 143 is a large fan-out, so let me add deterministic direction-normalization to the ingest (override the LLM's direction from the graph where the producer/consumer split is unambiguous), then run the audit on the high-signal 94 first. Let me add that normalization.
+
+Now build high-signal batches and verify the pipeline compiles:
+
+6 high-signal batches. I'll run the extractor and critic as two independent passes with the same schema, reconciling by agreement (the Phase 3 model). Let me adjust ingest to treat the critic as an independent same-schema verdict.
+
+Let me verify a batch packet has the fields agents need, then spawn the extractor and critic passes.
+
+The packet has exactly what agents need (shared concepts, per-card subgraph with edge_ids, per-face oracle). One adjustment: requiring hand-computed char offsets from an LLM is error-prone, so I'll validate grounding as **exact substring equality against the named face** (the reviewer's core requirement) and compute the span deterministically.
+
+Now spawning the 6 **extractor** sub-agents in parallel (each writes `extract_00N.jsonl`):
+
+Extractors done: 17 RELATION candidates flagged across the 94. Now the independent **critic** pass (re-judges the same batches skeptically; reconcile keeps only agreements):
+
+Both passes complete â€” and the critic surfaced *new* relations the first draft missed (Gandalfâ†’Elrond activate-ability draw; life-loss cardsâ†’Master of Lake-town mill) while correctly rejecting the legend-rule and duplicate ones. Now the deterministic reconcile (extractor âˆ© critic, span-validated, direction-normalized, dedup'd, typed):
+
+The projection metaedges keep `primitive_path` inside `alternative_paths` now. Let me fix `_is_duplicate`.
+
+Reconcile: **11 accepted** (extractor âˆ© critic agreement, grounded, novel), 5 caught by the critic, 1 duplicate rejected, 77 NO_RELATION. Let me inspect the accepted augmented relations.
+
+Strong results â€” and Great Ugly-Looking Goblin â†’ The Great Goblin now has the **correct direction** (graph-normalized), fixing the reviewer's reversal. But I see duplicate augmented records (Reverent Howl â†’ Master appears twice, from both candidate orientations). Let me dedup the augmented layer by (source, target, relation).
+
+9 accepted after dedup. Let me verify the final set: grounding spans validate, grounded paths carry real edge_ids, and direction is correct.
+
+The augmented layer is fully validated: 9 relations, all `origin: llm_audit`, grounded paths carry resolvable Phase-4 edge_ids + a labeled derived bridge, semantic ones a single labeled bridge, **every grounding span is an exact substring on the named face**, and direction is graph-normalized (Great Goblin fixed). Let me update the tests to the new schema.
+
+The `accepted` counter is pre-dedup (11) vs deduped augmented (9). Let me fix that test assertion.
+
+119 tests pass. Let me record Stage B v2 (addressing all the review items) and commit.
+
+Pushed â€” `e7a2b15`. Stage B reworked to address 8 of the 9 review items (the 9th, shared-vocabulary-only, deferred as the reviewer sequenced it).
+
+## Phase 5 Part 2 Stage B v2 â€” extractor + critic, typed & grounded
+
+| Review defect | Fix |
+|---|---|
+| Reversed directions | **`_graph_direction`** normalizes from the graph (enabler = producer of the concept) â€” auto-fixed Great Ugly-Looking Goblin â†’ The Great Goblin |
+| Duplicated Part 1 | **`_is_duplicate`** rejects any relation whose type/concept is already mechanical (the 2 Desolation dupes gone) |
+| Weak grounding | **exact substring on the named face**, span recomputed deterministically â€” verified exact for all |
+| No primitive paths | **typed paths**: `enabler edge â†’ derived bridge â†’ beneficiary edge` (`grounded`) or a labeled `derived:` bridge (`semantic`); all real edge_ids resolve |
+| No critic | **independent extractor + critic** (12 sub-agents); accept only on agreement â€” 5 extractor RELATIONs were critic-rejected |
+| copy self-pair only | **cross-card** (copier Ã— copyable-permanent creators) |
+| ambiguous_scope annotation-only | now **generates candidate pairs** |
+| merged into projection | separate **`card_pair_projection_audit.jsonl`, `origin: llm_audit`** â€” not in the canonical projection |
+
+**Result:** 94 high-signal candidates â†’ **9 accepted** augmented relations (critic-confirmed, grounded, novel, correctly directed), 5 critic-rejected, 1 duplicate, 77 NO_RELATION, 0 ungrounded. 119 tests pass.
+
+Notably the **critic surfaced new relations the v1 pass missed** â€” Gandalf, Wandering Wizard â†’ Elrond, Moon-Reader (activate-creature-ability â†’ draw), and a life-loss â†’ **The Master of Lake-town** mill hub (Gollum Riddle Master / Reverent Howl / Rage into the Valley / Sackville-Bagginses). Plus the confirmed Bard draw-amplification trio and the Smaug/Great-Goblin triggers.
+
+Two things still open, per the review's sequencing:
+1. **Item 9** â€” the ~49 `shared_vocabulary`-only candidates aren't audited yet (a final cheaper pass).
+2. The augmented layer stays **separate and unmerged** pending your review.
+
+Holding here for review of Stage B v2.
+
+### [2026-08-15 20:00] USER
+read hob-kg-phase5-review-pt4.md
