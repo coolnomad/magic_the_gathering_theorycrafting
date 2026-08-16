@@ -27,17 +27,22 @@ for the full build-phase status.
 - **ALL named build phases (0–6) are FROZEN** (Phase 6 accepted at `9cac50a`), and the reviewer's
   **full-spec** re-scope is now built too (the stateful second-draw gate, two targeted repairs, and
   the query layer). Only **independent human semantic validation** remains for full-spec acceptance.
-- **180 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
-  conditions}.jsonl`) and Phase 5 projections are byte-stable; the graph-repair, legend, and
-  mechanism layers are purely additive.
-- Card-pair layer = **4 separate tiers**: `card_pair_projection.jsonl` (5,278 mechanical),
+- **199 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
+  conditions}.jsonl`) and Phase 5 projections are byte-stable; the graph-repair, legend, mechanism,
+  and equip layers are purely additive.
+- Card-pair layer = **5 separate tiers**: `card_pair_projection.jsonl` (5,278 mechanical),
   `_audit.jsonl` (3 llm_audit), `_repaired.jsonl` (8 graph_repair), `_mechanism.jsonl`
-  (356 mechanism_repair — second-draw / Dwarf-Equipment / noncreature-cast).
-- Additive layers: legend-rule SBA `legend_{nodes,edges}.jsonl` (58/113, CR 704.5j); mechanism
-  `mechanism_{nodes,edges}.jsonl` (3/99: `state:cards-drawn-this-turn`, `gate:second-draw`,
-  `op:cast-noncreature-spell`). Unified `coverage.json` = **2,949 edges / 5,645 relations, 0
-  provenance gaps**; `mechanism_modules.jsonl` (38 modules); `pair_index.jsonl` (37,249 pairs,
-  5,504 non-empty); `structural_validation_set.jsonl`. `coverage.DEFERRED_INVARIANTS` is now empty.
+  (356 mechanism_repair — second-draw / Dwarf-Equipment / noncreature-cast), `_equip.jsonl`
+  (3,028 equip — Equipment→creature CAN_ATTACH_TO / MODIFIES_WHEN_ATTACHED / GRANTS_ABILITY_WHEN_ATTACHED).
+- Additive graph layers: legend-rule SBA `legend_{nodes,edges}.jsonl` (58/113, CR 704.5j);
+  mechanism `mechanism_{nodes,edges,conditions}.jsonl` (3/99: `state:cards-drawn-this-turn`,
+  `gate:second-draw` [transition gate, fires once on the 1→2 draw, `cond:draw-is-second-this-turn`],
+  `op:cast-noncreature-spell`); equip `equip_{nodes,edges,conditions}.jsonl` (99/131/16: per-Equipment
+  `ability:equip:E`→`op:equip:E`→`state:attachment:E`, bound-creature effects, ETB auto-attach kept
+  distinct). Unified `coverage.json` = **3,080 edges / 8,673 relations, 0 provenance gaps,
+  conditions_all_resolve=true**; `mechanism_modules.jsonl` (38 modules); `pair_index.jsonl`
+  (37,249 pairs, 6,603 non-empty); `structural_validation_set.jsonl`. `DEFERRED_INVARIANTS` empty;
+  spec invariants #1–#17 modeled (pt4 added Equip + second-draw-transition invariants #13–#17).
 - **Query CLI** (`src/hobkg/query.py`): `query-card` / `query-pair` / `query-mechanism` — any pair
   shows relation, direction, conditions, intermediate nodes, provenance, and inference origin.
 
