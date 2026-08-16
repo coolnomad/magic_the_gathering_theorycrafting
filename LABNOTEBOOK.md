@@ -961,3 +961,20 @@ Reviewer (inline, post-`291c356`): the Thranduil repair created `CardFace -HAS_A
 **Result.** 8/8 repaired (9 repair edges, 1 node), all reproject faithfully, **repair-layer signature_violations = 0**, frozen graph byte-identical. 139 tests pass (+ ability-CAUSES-op convention, repair-layer-signatures). The repaired paths are now schema-clean and validated.
 
 Refs: `src/hobkg/graph_repair.py` (`ability_by_grounding`, `_validate_repair_layer`); `tests/test_graph_repair.py`; `data/graph_global/repair_edges.jsonl`
+
+---
+
+## [2026-08-16 12:00] DECISION — graph-repair + reprojection layer FROZEN
+
+Reviewer accepted commit `6fd3975`: Thranduil follows `CardFace -HAS_ABILITY-> Ability -CAUSES-> Operation -MODIFIES-> obj:subtype:elf` (the invalid `CardFace -HAS_ABILITY-> Operation` edge gone); the correct existing ability is selected by face-specific Oracle spans; repair nodes/edges are validated against the same predicate-signature table as the frozen global graph; 9 repair edges / 1 repair node / 0 skipped / 0 signature violations; 139 tests pass. **Verdict: the repaired graph layer is internally schema-consistent and can be frozen.**
+
+**Graph-repair + reprojection is FROZEN.** Deliverables (all additive; frozen Phase 4 graph byte-identical):
+- `data/graph_global/repair_edges.jsonl` (9) + `repair_nodes.jsonl` (1) — `origin: graph_repair`, provenance citing the audit grounding, face-exact, signature-valid.
+- `data/graph_global/card_pair_projection_repaired.jsonl` (8) — the 8 audit-discovered relations now reprojected as faithful typed paths (`origin: graph_repair`), directions correct, multiplicity/modifier magnitudes preserved (Wolf `quantity 2`, Elf `+1/+1`).
+Rebuilt deterministically by `python -m hobkg.cli graph-repair` then `reproject`.
+
+**Card-pair layer now has three tiers:** (1) `card_pair_projection.jsonl` — 5,278 mechanical (Part 1, frozen); (2) `card_pair_projection_audit.jsonl` — 3 accepted `llm_audit` typed paths (Part 2, frozen); (3) `card_pair_projection_repaired.jsonl` — 8 `graph_repair` typed paths (frozen here). All kept separate.
+
+**Remaining build work (both need a go-ahead):** (a) **Phase 6** — higher-order mechanism assembly (spec §Phase 6): group edges around shared gates/resources/state transitions into higher-order structures. (b) A **fresh audit/repair round** for the reviewer-flagged separate projection gaps: Dwarf/Equipment support and noncreature-cast triggers (not in the 8 repaired; relevant to the sealed-deck maindeck).
+
+Refs: `data/graph_global/{repair_edges,repair_nodes,card_pair_projection_repaired}.jsonl`; `src/hobkg/graph_repair.py`; `reports/graph_repair.md`

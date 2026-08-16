@@ -2834,3 +2834,81 @@ ability:face:ΓÇª:0:a1
 rather than attaching the operation directly with `HAS_ABILITY`. Add the repair layer to predicate-signature validation so this class of violation cannot pass separately from the frozen graph.
 
 Everything else in this fix looks correct. This is a narrow structural correction, not another semantic rework.
+
+### [2026-08-15 23:08] ASSISTANT
+A clean schema fix â€” the repair should route `Ability â”€â”€CAUSESâ”€â”€> Operation` (using the existing anthem ability), not `CardFace â”€â”€HAS_ABILITYâ”€â”€> Operation`, and the repair layer should pass predicate-signature validation. Let me find the existing anthem ability node.
+
+The anthem ability already exists: `ability:face:f6771d32:0:a1` (static, spans `[0,34]`). So the fix is to route `ability a1 CAUSES op:anthem` instead of `face HAS_ABILITY op`. Let me add an ability finder and rework the AMPLIFIES branch, plus add repair-layer signature validation.
+
+Now add repair-layer signature validation. Let me add it and wire it into `repair()`:
+
+The Thranduil repair now uses the conventional `Ability a1 CAUSES op:anthem` + `op:anthem MODIFIES obj:subtype:elf`, and **repair-layer signature_violations = 0**. Let me add tests for both.
+
+139 tests pass. Let me record the fix and commit.
+
+Committed (`6fd3975`); push finishing in the background. The schema fix is in.
+
+## Schema correction
+
+**1. Conventional abilityâ†’operation wiring.** The Thranduil anthem now uses the established schema instead of `CardFace â”€HAS_ABILITYâ†’ Operation`:
+
+```
+ability:face:â€¦:0:a1  â”€â”€CAUSESâ”€â”€>  op:face:â€¦:0:anthem  â”€â”€MODIFIESâ”€â”€>  obj:subtype:elf
+```
+
+`ability_by_grounding` finds the **existing** static anthem ability (`â€¦:0:a1`, spans `[0,34]`) by oracle-span overlap and hangs the materialized operation off it â€” no more direct `HAS_ABILITY â†’ Operation`.
+
+**2. Repair-layer signature validation.** `_validate_repair_layer` now checks every repair edge against the **same `assemble.GLOBAL_SIGNATURES` table as the frozen graph** (typing both repair and real nodes), so this class of violation can't pass separately just because the repair lives in its own file. **`signature_violations: 0`.**
+
+**Result:** 8/8 repaired (9 repair edges, 1 node), all reproject faithfully, repair layer signature-clean, frozen graph byte-identical. **139 tests pass** (+ ability-CAUSES-op convention and repair-layer-signatures regressions).
+
+The graph-repair + reprojection layer is now face-correct, multiplicity-preserving, and schema-validated. When you're ready, the remaining directions are **Phase 6 (higher-order mechanism assembly)** or a **fresh audit/repair round** for the Dwarf/Equipment/noncreature-cast projection gaps you flagged. Holding for your call.
+
+### [2026-08-16 08:47] USER
+<task-notification>
+<task-id>bxyk9p7cp</task-id>
+<tool-use-id>toolu_01NZLniJB4P37emyrSS3NAhT</tool-use-id>
+<output-file>C:\Users\dimuc\AppData\Local\Temp\claude\C--GitHub-magic-the-gathering-theorycrafting\619ffa89-e329-4ea4-be6f-bee02122fca6\tasks\bxyk9p7cp.output</output-file>
+<status>completed</status>
+<summary>Background command "Commit and push schema fix" completed (exit code 0)</summary>
+</task-notification>
+
+### [2026-08-16 08:47] ASSISTANT
+Push completed. Confirming sync:
+
+Synced â€” `main` is at `6fd3975`. The graph-repair + reprojection work is complete and schema-clean:
+
+- All 8 queued relations repaired and reprojected as faithful typed paths
+- Face-exact operation matching (Clap! Snap! `:1:amass`, Thranduil `:0:anthem`)
+- Multiplicity/modifier magnitudes preserved (Wolf `quantity: 2`, Elf `+1/+1`)
+- Conventional `Ability â”€CAUSESâ†’ Operation` wiring
+- Repair layer validated against the frozen graph's predicate signatures (0 violations)
+- Frozen Phase 4 graph untouched (byte-identical); 139 tests pass
+
+Nothing pending on my side. Two directions remain whenever you want them:
+1. **Phase 6** â€” higher-order mechanism assembly (grouping edges around shared gates, resources, and state transitions).
+2. **A fresh audit/repair round** targeting the Dwarf/Equipment support and noncreature-cast trigger projection gaps you flagged.
+
+Just let me know which to take up.
+
+### [2026-08-16 08:54] USER
+Yes. Commit `6fd3975` directly addresses the schema issue.
+
+Verified:
+
+* Thranduil now follows:
+
+```text
+CardFace ΓåÆ HAS_ABILITY ΓåÆ existing Ability
+existing Ability ΓåÆ CAUSES ΓåÆ anthem Operation
+anthem Operation ΓåÆ MODIFIES ΓåÆ Elf object class
+```
+
+* The invalid `CardFace ΓåÆ HAS_ABILITY ΓåÆ Operation` repair edge is gone.
+* The correct existing ability is selected using face-specific Oracle spans.
+* Repair nodes and edges are now validated against the same predicate-signature table as the frozen global graph.
+* All eight repairs succeed.
+* Regenerated result: 9 repair edges, 1 repair node, 0 skipped, and 0 signature violations.
+* All 139 tests pass.
+
+This resolves the issue I flagged. The repaired graph layer is now internally schema-consistent and can be frozen.
