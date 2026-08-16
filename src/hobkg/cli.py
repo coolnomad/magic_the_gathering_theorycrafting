@@ -17,6 +17,10 @@ from . import pipeline
 def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
     cmd = argv[0] if argv else "normalize"
+    try:                                                  # card names carry accents (Dáin, Fíli)
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
 
     if cmd == "normalize":
         stats = pipeline.run()
@@ -84,6 +88,22 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "pair-index":
         from . import coverage
         print(json.dumps(coverage.pair_index(), indent=2))
+    elif cmd == "complete-mechanisms":
+        from . import complete_mechanisms
+        s = complete_mechanisms.materialize(); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject-mechanisms":
+        from . import complete_mechanisms
+        print(json.dumps(complete_mechanisms.reproject(), indent=2))
+    elif cmd == "query-card":
+        from . import query
+        print(query.query_card(argv[1]))
+    elif cmd == "query-pair":
+        from . import query
+        print(query.query_pair(argv[1], argv[2]))
+    elif cmd == "query-mechanism":
+        from . import query
+        print(query.query_mechanism(argv[1]))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

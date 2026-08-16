@@ -40,9 +40,9 @@ def test_named_modules_present(mods):
 
 
 def test_every_module_is_a_grounded_subgraph(mods, edges):
-    # subgraph edges resolve to the UNION of frozen + repair + legend layers (Phase 6 v3.1)
+    # subgraph edges resolve to the UNION of frozen + repair + legend + mechanism layers
     edge_ids = {e["edge_id"] for e in edges}
-    for layer in ("repair_edges.jsonl", "legend_edges.jsonl"):
+    for layer in ("repair_edges.jsonl", "legend_edges.jsonl", "mechanism_edges.jsonl"):
         p = GLOBAL / layer
         if p.exists():
             edge_ids |= {json.loads(l)["edge_id"] for l in p.read_text(encoding="utf-8").splitlines()}
@@ -172,18 +172,17 @@ def test_module_subgraph_includes_provenance_path(mods, edges):
 
 
 # --- remaining semantic invariants (spec) ------------------------------------
-def test_inv2_second_draw_ordering_deferred_unmodeled(edges):
-    # #2 is a DEFERRED / UNMODELED representational gap, NOT a completed invariant (pt3 review):
-    # modeling Recruit -> Master's Councillors needs a turn-scoped cards-drawn-this-turn count
-    # state/gate that does not exist yet. This test pins the HONEST current handling — the graph
-    # refuses to invent a Recruit<->Councillors edge — and the gap is recorded in
-    # coverage.DEFERRED_INVARIANTS (see test_coverage_labels_invariant2_deferred). Councillors
-    # triggers ONLY on the second-draw event, which (correctly) has no modeled producer.
+def test_inv2_recruit_enables_councillors_only_via_second_draw(edges):
+    # SUBSTANTIVE #2 (now SATISFIED via the mechanism-repair layer): a turn-scoped
+    # `state:cards-drawn-this-turn` + `gate:second-draw` produce the second-draw event, so
+    # Recruit -> Master's Councillors projects — but ONLY through the second-draw condition
+    # (modeling principle #5), and Councillors does not affect Recruit (no reverse). No deferral
+    # remains.
     from collections import defaultdict
-
-    # the deferral is recorded honestly, not presented as satisfied
+    from hobkg import complete_mechanisms as cm
     from hobkg.coverage import DEFERRED_INVARIANTS
-    assert any(d["id"] == 2 and d["status"] == "deferred_unmodeled" for d in DEFERRED_INVARIANTS)
+
+    assert DEFERRED_INVARIANTS == []                      # #2 is no longer deferred
 
     faces = list(_load_dicts(REPO / "data/normalized/faces.jsonl"))
     mc = next(f["card_id"] for f in faces if f["name"] == "Master's Councillors")
@@ -194,27 +193,34 @@ def test_inv2_second_draw_ordering_deferred_unmodeled(edges):
     recruit = mech["Recruit"]
     assert recruit, "HOB has Recruit cards"
 
-    # (1) Councillors triggers ONLY on a second-draw event
+    # the union graph (frozen + mechanism layer) — the second-draw event now HAS a producer
+    mech_edges = list(_load_dicts(GLOBAL / "mechanism_edges.jsonl"))
     trig = {e["source"] for e in edges if e["predicate"] == "TRIGGERS" and u in e["target"]}
-    assert trig and all("second" in t for t in trig)
-    # (2) that second-draw event has NO modeled producer/cause (the ordering condition is unmodeled,
-    #     so the graph does not invent a Recruit-draw -> second-draw production edge)
-    for ev in trig:
-        assert not any(e["target"] == ev for e in edges), f"{ev} must have no incoming producer"
-    # (3) Councillors produces no draw/card -> no reverse enabling is even possible
-    assert not any(u in e["source"] and e["predicate"] in ("PRODUCES", "SUPPLIES", "CREATES_OBJECT")
-                   and e["target"] in ("resource:card", "event:draw") for e in edges)
-    # (4) across ALL THREE projection layers there is NO metaedge either way between any Recruit
-    #     card and Councillors (the graph asserts no unsupported synergy in either direction)
+    assert trig and all("second" in t for t in trig)      # Councillors triggers on the second-draw event
+    for ev in trig:                                       # the gate now produces that event
+        assert any(e["predicate"] == "PRODUCES" and e["source"] == cm.GATE_SECOND and e["target"] == ev
+                   for e in mech_edges), f"{ev} must now have the gate as producer"
+    # the turn-scoped count feeds the gate under the second-draw condition (principle #5)
+    assert any(e["source"] == cm.STATE_COUNT and e["predicate"] == "SATISFIES" and e["target"] == cm.GATE_SECOND
+               and cm.COND_SECOND in (e.get("condition_ids") or []) for e in mech_edges)
+
+    # the mechanism projection: >=1 Recruit -> Councillors relation, ALWAYS second-draw-conditioned,
+    # and NEVER the reverse (Councillors does not affect Recruit)
+    mrel = list(_load_dicts(GLOBAL / "card_pair_projection_mechanism.jsonl"))
+    r2c = [m for m in mrel if m["target_card"] == mc and m["source_card"] in recruit]
+    assert r2c, "Recruit -> Councillors must now project"
+    for m in r2c:
+        assert m["relation"] == "ENABLES_TRIGGER"
+        assert cm.COND_SECOND in (m.get("condition_ids") or [])   # only via the second-draw condition
+    # no reverse in ANY of the four projection layers
     for layer in ("card_pair_projection.jsonl", "card_pair_projection_audit.jsonl",
-                  "card_pair_projection_repaired.jsonl"):
+                  "card_pair_projection_repaired.jsonl", "card_pair_projection_mechanism.jsonl"):
         p = GLOBAL / layer
         if not p.exists():
             continue
         for m in _load_dicts(p):
-            s, t = m["source_card"], m["target_card"]
-            assert not (t == mc and s in recruit), f"unexpected Recruit->Councillors edge in {layer}"
-            assert not (s == mc and t in recruit), f"unexpected Councillors->Recruit edge in {layer}"
+            assert not (m["source_card"] == mc and m["target_card"] in recruit), \
+                f"unexpected Councillors->Recruit edge in {layer}"
 
 
 def test_inv11_legend_rule_materialized_as_sba_transition(edges, mods):

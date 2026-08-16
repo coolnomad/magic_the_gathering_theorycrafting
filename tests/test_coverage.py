@@ -32,28 +32,28 @@ def test_coverage_core_numbers(cov):
 
 
 def test_coverage_reports_all_layers_and_union(cov):
-    # frozen + repair + legend layers reported SEPARATELY and as a deduplicated union
-    # (the completed graph, not just Phase 4). The legend layer (Phase 6 v3.2 SBA transition)
-    # must be counted — the pt3 review flagged its omission.
+    # frozen + repair + legend + mechanism layers reported SEPARATELY and as a deduplicated union
+    # (the completed graph, not just Phase 4).
     assert cov["edges_frozen"] == 2728 and cov["edges_repair"] == 9 and cov["edges_legend"] == 113
-    assert cov["nodes_legend"] == 58
-    assert cov["edges_union"] == cov["edges_frozen"] + cov["edges_repair"] + cov["edges_legend"] == 2850
+    assert cov["edges_mechanism"] == 99 and cov["nodes_mechanism"] == 3 and cov["nodes_legend"] == 58
+    assert cov["edges_union"] == (cov["edges_frozen"] + cov["edges_repair"] + cov["edges_legend"]
+                                  + cov["edges_mechanism"]) == 2949
     assert cov["edges_by_origin"].get("graph_repair") == 9
     assert cov["edges_by_origin"].get("legend_rule") == 113   # legend layer in the origin counts
-    assert cov["edges_without_provenance"] == 0               # incl. every legend edge
+    assert cov["edges_by_origin"].get("mechanism_repair") == 99  # mechanism layer in the origin counts
+    assert cov["edges_without_provenance"] == 0               # incl. every legend + mechanism edge
     # abilities counted over the UNIFIED node set — the legend SBA ability must be included
     assert cov["abilities_by_kind"].get("state_based_action") == 1
     assert cov["relations_union"] == (cov["relations_mechanical"] + cov["relations_audited"]
-                                      + cov["relations_repaired"])
+                                      + cov["relations_repaired"] + cov["relations_mechanism"])
     assert cov["relations_repaired"] == 8 and cov["relations_audited"] == 3
+    assert cov["relations_mechanism"] > 0
 
 
-def test_coverage_labels_invariant2_deferred(cov):
-    # the pt3 review: invariant #2 (Recruit<->Councillors second-draw ordering) is an unresolved
-    # representational gap, not a completed invariant — it must be LABELED deferred/unmodeled.
-    deferred = {d["id"]: d for d in cov["deferred_invariants"]}
-    assert 2 in deferred and deferred[2]["status"] == "deferred_unmodeled"
-    assert "second" in deferred[2]["reason"].lower() and "cards-drawn" in deferred[2]["reason"].lower()
+def test_coverage_no_deferred_invariants_all_modeled(cov):
+    # the mechanism-repair layer resolved invariant #2 (Recruit -> Master's Councillors second-draw
+    # ordering) via a turn-scoped count state/gate, so there are NO deferred invariants left.
+    assert cov["deferred_invariants"] == []
 
 
 def test_pair_index_is_complete_37249():

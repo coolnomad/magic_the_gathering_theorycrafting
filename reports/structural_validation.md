@@ -2,7 +2,7 @@
 
 *NOT an independent human gold set: these are deterministic structural assertions against the same graph. Human reviewers still adjudicate semantics and may override.*
 
-Structural checks: **83/83 pass**.
+Structural checks: **87/87 pass**.
 
 ## adventures — 17/17 pass
 - [pass] Gollum, Silent Slinker // Meager Meal  _(expect: exactly two face nodes)_
@@ -23,9 +23,13 @@ Structural checks: **83/83 pass**.
 - [pass] Bilbo Baggins, Burglar // Take a Glance  _(expect: exactly two face nodes)_
 - [pass] Smaug, the Great Calamity // Spew Flame  _(expect: exactly two face nodes)_
 
-## multi_edge_pairs — 2/2 pass
+## multi_edge_pairs — 6/6 pass
 - [pass] Smaug, Wicked Worm → Balin, Loremaster  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'INFRASTRUCTURE_CASTING'])_
-- [pass] The Sackville-Bagginses → The Master of Lake-town  _(expect: relation combination ['ENABLES_TRIGGER', 'INFRASTRUCTURE_CASTING'])_
+- [pass] Dori, Bearer of Friends → Kíli the Resourceful  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'INFRASTRUCTURE_CASTING', 'SUPPLIES_RESOURCE'])_
+- [pass] Nori, Teller of Tales → Kíli the Resourceful  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'SUPPLIES_RESOURCE'])_
+- [pass] Giant's Boulder → Uncover the Moon-Letters  _(expect: relation combination ['ENABLES_TRIGGER', 'INFRASTRUCTURE_CASTING'])_
+- [pass] Plunder the Trollshaws → Uncover the Moon-Letters  _(expect: relation combination ['ENABLES_TRIGGER', 'SUPPLIES_RESOURCE'])_
+- [pass] Dori, Bearer of Friends → Dáin's Company  _(expect: relation combination ['INFRASTRUCTURE_CASTING', 'SUPPLIES_RESOURCE'])_
 
 ## multi_token_or_type — 1/1 pass
 - [pass] The Misty Mountains Cold  _(expect: creates >=2 token types)_

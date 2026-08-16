@@ -16,17 +16,11 @@
   "cards_parsed": 193,
   "conditions_raw_unresolved": 81,
   "conditions_total": 145,
-  "deferred_invariants": [
-    {
-      "id": 2,
-      "name": "Recruit -> Master's Councillors second-draw ordering",
-      "reason": "Councillors triggers only on 'the second card drawn each turn' — a per-turn ORDERING condition. Modeling it needs a turn-scoped cards-drawn-this-turn count state/gate (draw -> increment count -> count reaches 2 -> second-draw event -> Councillors), where Recruit contributes one draw without being sufficient alone. Until that turn-scoped counter exists, the graph correctly asserts NO Recruit<->Councillors edge in either direction across all three projection layers.",
-      "status": "deferred_unmodeled"
-    }
-  ],
+  "deferred_invariants": [],
   "edges_by_origin": {
     "graph_repair": 9,
     "legend_rule": 113,
+    "mechanism_repair": 99,
     "phase4": 2728
   },
   "edges_by_predicate": {
@@ -38,7 +32,7 @@
     "COUNTS": 3,
     "CREATES_OBJECT": 27,
     "ENABLES": 115,
-    "HAS_ABILITY": 494,
+    "HAS_ABILITY": 579,
     "HAS_COST": 209,
     "HAS_COUNTER_TYPE": 11,
     "HAS_FACE": 210,
@@ -51,26 +45,29 @@
     "MOVES_TO": 89,
     "PERSISTS_AS": 2,
     "PREVENTS": 9,
-    "PRODUCES": 65,
+    "PRODUCES": 74,
     "QUALIFIES_FOR": 78,
     "REFERENCES_RULE": 89,
     "REMOVES_COUNTER": 1,
     "REPLACES": 7,
-    "REQUIRES": 14,
+    "REQUIRES": 18,
+    "SATISFIES": 1,
     "SCALES_WITH": 35,
     "TRIGGERS": 82
   },
   "edges_frozen": 2728,
   "edges_legend": 113,
+  "edges_mechanism": 99,
   "edges_repair": 9,
-  "edges_total": 2850,
-  "edges_union": 2850,
+  "edges_total": 2949,
+  "edges_union": 2949,
   "edges_without_provenance": 0,
   "faces_parsed": 210,
   "gate_mediated_relations": 666,
   "infrastructure_only_pairs": 4513,
   "llm_faces_accepted": 210,
   "nodes_legend": 58,
+  "nodes_mechanism": 3,
   "nodes_repair": 1,
   "pair_relations_by_type": {
     "CONTRIBUTES_TO_GATE": 666,
@@ -82,7 +79,8 @@
   "pairs_with_multiple_relation_types": 80,
   "relations_audited": 3,
   "relations_mechanical": 5278,
+  "relations_mechanism": 356,
   "relations_repaired": 8,
-  "relations_union": 5289,
+  "relations_union": 5645,
   "unresolved_oracle_records": 16
 }

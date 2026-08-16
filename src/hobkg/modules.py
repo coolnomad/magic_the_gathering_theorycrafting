@@ -134,14 +134,15 @@ class _Graph:
         # union the frozen Phase 4 graph with the (additive) graph-repair layer, keeping
         # each node/edge's origin so repaired structures participate in modules too.
         self.nodes = {n["id"]: n for n in _load_dicts(repo / "data/graph_global/nodes.jsonl")}
-        for layer in ("repair_nodes.jsonl", "legend_nodes.jsonl"):
+        for layer in ("repair_nodes.jsonl", "legend_nodes.jsonl", "mechanism_nodes.jsonl"):
             for n in _load_optional(repo / "data/graph_global" / layer):
                 self.nodes.setdefault(n["id"], n)
         self.edges = []
         for e in _load_dicts(repo / "data/graph_global/edges.jsonl"):
             e.setdefault("origin", "phase4")
             self.edges.append(e)
-        for layer, origin in (("repair_edges.jsonl", "graph_repair"), ("legend_edges.jsonl", "legend_rule")):
+        for layer, origin in (("repair_edges.jsonl", "graph_repair"), ("legend_edges.jsonl", "legend_rule"),
+                              ("mechanism_edges.jsonl", "mechanism_repair")):
             for e in _load_optional(repo / "data/graph_global" / layer):
                 e.setdefault("origin", origin)
                 self.edges.append(e)

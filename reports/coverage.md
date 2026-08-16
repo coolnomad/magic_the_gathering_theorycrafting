@@ -4,8 +4,8 @@
 
 - cards / faces parsed: **193 / 210**
 - abilities by kind: {'?': 29, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1}
-- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** = union **2850** (+1 repair nodes, +58 legend nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113}; provenance gaps: 0
-- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** = union **5289**
+- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **99** = union **2949** (+1 repair, +58 legend, +3 mechanism nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 99}; provenance gaps: 0
+- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **356** = union **5645**
 - conditions: 145 (81 raw-unresolved); unresolved Oracle records: 16
 - LLM: 210 faces accepted; audit 5 accepted / 114 no-relation / 10 graph-repair
 - pair relations: **5278** {'CONTRIBUTES_TO_GATE': 666, 'INFRASTRUCTURE_CASTING': 4593, 'ENABLES_TRIGGER': 4, 'SUPPLIES_RESOURCE': 15}
@@ -16,8 +16,8 @@
 
 ## Edges by predicate
 
+- HAS_ABILITY: 579
 - HAS_TYPE: 538
-- HAS_ABILITY: 494
 - CAUSES: 348
 - HAS_FACE: 210
 - HAS_COST: 209
@@ -29,7 +29,7 @@
 - MODIFIES: 81
 - HAS_KEYWORD: 80
 - QUALIFIES_FOR: 78
-- PRODUCES: 65
+- PRODUCES: 74
 - HAS_STATE: 63
 - SCALES_WITH: 35
 - ADDS_COUNTER: 34
@@ -37,7 +37,7 @@
 - INSTANTIATES: 26
 - CONSUMES: 23
 - CAN_LEAD_TO: 21
-- REQUIRES: 14
+- REQUIRES: 18
 - ATTACHED_TO: 12
 - HAS_COUNTER_TYPE: 11
 - PREVENTS: 9
@@ -45,12 +45,13 @@
 - COUNTS: 3
 - PERSISTS_AS: 2
 - REMOVES_COUNTER: 1
+- SATISFIES: 1
 
 ## Deferred / unmodeled semantic invariants
 
 *Recorded as honest representational gaps — the graph asserts no edge rather than inventing an unsupported one.*
 
-- **#2 Recruit -> Master's Councillors second-draw ordering** — _deferred_unmodeled_: Councillors triggers only on 'the second card drawn each turn' — a per-turn ORDERING condition. Modeling it needs a turn-scoped cards-drawn-this-turn count state/gate (draw -> increment count -> count reaches 2 -> second-draw event -> Councillors), where Recruit contributes one draw without being sufficient alone. Until that turn-scoped counter exists, the graph correctly asserts NO Recruit<->Councillors edge in either direction across all three projection layers.
+- _none_ — every spec semantic invariant is now modeled (invariant #2, the Recruit → Master's Councillors second-draw ordering, is resolved in the mechanism-repair layer via `state:cards-drawn-this-turn` + `gate:second-draw`).
 
 ## Cards with no non-infrastructure outgoing relation (sample)
 

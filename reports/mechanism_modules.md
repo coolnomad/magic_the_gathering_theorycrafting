@@ -1,8 +1,8 @@
 # HOB Phase 6 — Higher-Order Mechanism Modules
 
-- **modules**: 37
+- **modules**: 38
 - **modules with feedback cycles**: 1
-- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 5, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 3, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'state_constraint': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
+- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 5, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 4, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'state_constraint': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
 
 ## Modules
 
@@ -74,6 +74,10 @@
 - anchors: `gate:recruit-nonland-discard`
 - members: 0  · contributors: 1  · consumers: 1  · conditions: 1  · feedback cycles: 0
 
+### gate:second-draw  (`gate`)
+- anchors: `gate:second-draw`
+- members: 0  · contributors: 1  · consumers: 3  · conditions: 1  · feedback cycles: 0
+
 ### gate:storied  (`gate`)
 - anchors: `gate:storied`
 - members: 74  · contributors: 81  · consumers: 17  · conditions: 1  · feedback cycles: 0
@@ -104,7 +108,7 @@
 
 ### second-draw triggers  (`trigger`)
 - anchors: `event:card-drawn`, `event:draw`, `event:draw-second-card`, `event:draw-second-card-each-turn`, `event:draw_second_card_each_turn`, `event:player_draws_card`, `event:you_draw_a_card`
-- members: 9  · contributors: 5  · consumers: 5  · conditions: 2  · feedback cycles: 0
+- members: 9  · contributors: 8  · consumers: 5  · conditions: 2  · feedback cycles: 0
 
 ### Storied  (`storied`)
 - anchors: `gate:storied`, `state:enduring_story`, `rule:storied`
