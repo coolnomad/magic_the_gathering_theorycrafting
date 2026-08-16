@@ -2640,3 +2640,47 @@ Commit `3f14fb6` is clean and ready to proceed.
 * Regeneration reproduces the committed counts and Thranduil record correctly.
 
 I donΓÇÖt see another blocking defect in this stage. Phase 5 Part 2 can be frozen, and the graph-repair process can consume the eight queued mechanisms.
+
+### [2026-08-15 22:11] ASSISTANT
+Phase 5 Part 2 is accepted. Let me record the freeze in the lab notebook and update the project-status memory (no code changes â€” this is a milestone marker).
+
+Committed (`f33fd9f`); push finishing. **Phase 5 Part 2 is frozen â€” Phase 5 is complete.**
+
+## Phase 5 â€” done and frozen
+
+| Sub-phase | Output | Status |
+|---|---|---|
+| Part 1 (mechanical projection) | `card_pair_projection.jsonl` â€” 5,278 metaedges | frozen `0b6d48f` |
+| Part 2 (pairwise LLM audit) | audit + repair + adjudication queues | frozen `3f14fb6` |
+
+**Part 2 deliverables** (all deterministic, provenance-bearing, kept separate from the canonical projection):
+- **3 accepted faithful typed paths** (`card_pair_projection_audit.jsonl`, `origin: llm_audit`) â€” Bard's draw-replacement amplifying Beorn / Chief Warg / Old Fat Spider.
+- **8 graph-repair entries** â€” unordered pairs, correctly-typed missing mechanisms (Event / ObjectModifier / Resource), proposed/adjudicated directions, grounding.
+- **1 resolved adjudication** â€” Thranduil â†’ Down in the Valley, span-validated.
+
+142/142 candidates audited via extractor+critic reconcile, 127 tests pass. Recorded the freeze in the lab notebook and updated the project-status memory.
+
+**What's left in the build** (both need your go-ahead, per the per-phase rhythm):
+1. **Graph-repair + reprojection** â€” consume the 8 queued mechanisms (materialize the intermediate Event nodes + TRIGGERS edges, the Wolf-count resource canonicalization, and the Thranduil ObjectModifier), then reproject those pairs mechanically so they become faithful typed paths.
+2. **Phase 6** â€” higher-order mechanism assembly (spec Â§Phase 6): discover higher-order structures by grouping edges around shared gates, resources, and state transitions.
+
+I'll hold here for your direction on which to take up next.
+
+### [2026-08-15 22:23] USER
+<task-notification>
+<task-id>bz25gy19o</task-id>
+<tool-use-id>toolu_01WaF7CLgSmYpE5RHyXYzcL3</tool-use-id>
+<output-file>C:\Users\dimuc\AppData\Local\Temp\claude\C--GitHub-magic-the-gathering-theorycrafting\619ffa89-e329-4ea4-be6f-bee02122fca6\tasks\bz25gy19o.output</output-file>
+<status>completed</status>
+<summary>Background command "Commit Phase 5 Part 2 freeze record" completed (exit code 0)</summary>
+</task-notification>
+
+### [2026-08-15 22:23] ASSISTANT
+The freeze-record push completed. Verifying sync:
+
+Synced â€” `main` is at `f33fd9f`. **Phase 5 is complete and frozen** (Part 1 projection + Part 2 audit), with the graph-repair queue (8 mechanisms), the accepted augmented layer (3 faithful typed paths), and the resolved adjudication all committed and provenance-bearing.
+
+Nothing pending on my side. When you're ready, the two remaining build steps are **graph-repair + reprojection** (consume the 8 queued mechanisms, then reproject) and **Phase 6** (higher-order mechanism assembly). Just point me at whichever you'd like next.
+
+### [2026-08-15 22:23] USER
+proceed with graph-repair and reprojection

@@ -904,3 +904,26 @@ Rebuilt deterministically by `python -m hobkg.cli audit-candidates` / `audit-ing
 **Next (not started — awaiting go-ahead): graph-repair + reprojection.** Consume the 8 repair-queue mechanisms — materialize the intermediate Event nodes + TRIGGERS edges (life-lost, counter-placed, creature-ability-activated), the Wolf-count resource canonicalization, and the Thranduil ObjectModifier (static MODIFIES over Elf objects) — then reproject those pairs mechanically so they become faithful typed paths. Then Phase 6 (higher-order mechanism assembly, spec §Phase 6). Per the per-phase review rhythm, do NOT start graph repair without the user's go-ahead.
 
 Refs: `data/graph_global/{card_pair_projection,card_pair_projection_audit,audit_repair_queue,audit_adjudication_queue}.jsonl`; `src/hobkg/{project,audit}.py`; `reports/pair_audit.md`
+
+---
+
+## [2026-08-17 04:00] EXPERIMENT — graph repair + reprojection (consumes the 8-entry repair queue)
+
+With the user's go-ahead, executed the graph-repair pass on `audit_repair_queue.jsonl`. `src/hobkg/graph_repair.py` (`python -m hobkg.cli graph-repair` then `reproject`).
+
+**Key finding:** the beneficiaries already carried the canonical trigger events (`event:player-loses-life TRIGGERS master-lifeloss-mill`, `event:counters-placed TRIGGERS great-goblin`, `event:activate-creature-ability TRIGGERS elrond`) and `obj:subtype:elf`/`token:elf HAS_TYPE` already existed — so each repair usually just needed ONE connecting edge, not a fabricated subgraph.
+
+**Repair layer (additive; frozen Phase 4 graph untouched).** `data/graph_global/repair_edges.jsonl` — 8 edges, each `origin: graph_repair` with provenance citing the audit grounding, `edge_id` distinct from the frozen graph (verified nodes/edges byte-identical before/after):
+- 5× ENABLES_TRIGGER: enabler operation `CAUSES` the beneficiary's existing trigger event — Gollum / Reverent Howl / Rage into the Valley / The Sackville-Bagginses → `event:player-loses-life` (Master of Lake-town mill); Great Ugly-Looking Goblin → `event:counters-placed` (The Great Goblin); Gandalf → `event:activate-creature-ability` (Elrond).
+- 1× SUPPLIES_RESOURCE: Chief Warg's Company `REQUIRES token:wolf` (Head of the Hunt already `CREATES_OBJECT token:wolf`).
+- 1× AMPLIFIES_EFFECT (ObjectModifier): Thranduil's anthem operation `MODIFIES obj:subtype:elf` (Down in the Valley creates `token:elf`, which `HAS_TYPE obj:subtype:elf`).
+
+**Reprojection.** `card_pair_projection_repaired.jsonl` — **all 8 pairs now reproject as faithful typed paths** (`origin: graph_repair`, `path_kind: grounded`), each closing exactly one gap with a repair edge, all step edge_ids resolving to a real Phase 4 edge or a repair edge, directions correct (source = enabler):
+- ENABLES_TRIGGER: `enabler-op CAUSES event → event TRIGGERS beneficiary-ability`;
+- SUPPLIES_RESOURCE: `Head CREATES_OBJECT token:wolf ← REQUIRES ← Company`;
+- AMPLIFIES_EFFECT: `Thranduil MODIFIES obj:subtype:elf ← HAS_TYPE ← token:elf ← CREATES_OBJECT ← Down in the Valley`.
+Each metaedge records both `connecting_node` (the ACTUAL intermediate used, e.g. `event:player-loses-life`) and `candidate_concept` (the LLM's possibly-misleading concept, e.g. `resource:card`). Deterministic byte-identical rebuild; 133 tests pass (+6 graph-repair gates: all-repaired, separate-provenance-bearing layer, faithful/continuous paths, specific Gollum + Thranduil shapes, frozen-graph-unchanged, byte-identical).
+
+**Status.** All 8 queued mechanisms consumed; the LLM-audit-discovered relations are now primitive-grounded typed paths in a separate `graph_repair` layer (kept out of the frozen Part-1 projection and the `llm_audit` augmented layer). Remaining build step: **Phase 6** (higher-order mechanism assembly) — awaiting go-ahead.
+
+Refs: `src/hobkg/graph_repair.py`; `tests/test_graph_repair.py`; `data/graph_global/{repair_edges,repair_nodes,card_pair_projection_repaired}.jsonl`; `reports/graph_repair.md`

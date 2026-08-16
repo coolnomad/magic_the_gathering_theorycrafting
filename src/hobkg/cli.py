@@ -65,6 +65,13 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "audit-ingest":
         from . import audit
         print(json.dumps(audit.ingest(), indent=2))
+    elif cmd == "graph-repair":
+        from . import graph_repair
+        s = graph_repair.repair(); s.pop("_skipped", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject":
+        from . import graph_repair
+        print(json.dumps(graph_repair.reproject(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2
