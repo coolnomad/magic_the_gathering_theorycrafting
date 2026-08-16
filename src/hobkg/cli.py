@@ -67,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(audit.ingest(), indent=2))
     elif cmd == "graph-repair":
         from . import graph_repair
-        s = graph_repair.repair(); s.pop("_skipped", None)
+        s = graph_repair.repair(); s.pop("_skipped", None); s.pop("_violations", None)
         print(json.dumps(s, indent=2))
     elif cmd == "reproject":
         from . import graph_repair

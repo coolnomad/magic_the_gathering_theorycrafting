@@ -78,6 +78,17 @@ class _G:
                 return e["source"]
         return None
 
+    def ability_by_grounding(self, face_id: str, spans: list) -> str | None:
+        """The Ability node on this face whose declared oracle_spans overlap the grounding
+        (so the materialized operation hangs off the RIGHT existing ability)."""
+        for nid, n in self.nodes.items():
+            if n["type"] != "Ability" or not nid.startswith(f"ability:{face_id}:"):
+                continue
+            for a in n.get("data", {}).get("oracle_spans") or []:
+                if any(_overlap(a, sp) > 0 for sp in spans):
+                    return nid
+        return None
+
     def trigger_event(self, benef_uuid: str, keyword: str):
         for e in self.edges:
             if e["predicate"] == "TRIGGERS" and benef_uuid in e["target"] and keyword in e["source"]:
@@ -145,11 +156,17 @@ def repair(repo: Path = REPO) -> dict:
             en_op, op_face = g.op_by_grounding(en_u, gnd)
             if not en_op or not _face_matches(op_face, en_u, gnd):
                 # the static anthem is not modelled as an operation at all (that IS the gap) —
-                # materialize the anthem operation on the enabler's OWN face and link it.
+                # materialize the anthem operation and hang it off the EXISTING static ability
+                # via the conventional `Ability -CAUSES-> Operation` (NOT CardFace -HAS_ABILITY-> Op).
+                spans = [gg["oracle_span"] for gg in gnd if gg.get("face_id") == en_face and gg.get("oracle_span")]
+                ability = g.ability_by_grounding(en_face, spans)
                 en_op = f"op:{en_face}:anthem"
                 new_nodes[en_op] = {"id": en_op, "type": "Operation", "label": "static anthem",
                                     "data": {"kind": "static_modifier"}, "provenance": [{"source": "graph_repair"}]}
-                add_edge(en_face, "HAS_ABILITY", en_op, e, "materialize the static anthem operation on its face")
+                if ability:
+                    add_edge(ability, "CAUSES", en_op, e, "materialize the static anthem operation caused by its ability")
+                else:
+                    add_edge(en_face, "HAS_ABILITY", en_op, e, "materialize the static anthem operation on its face")
                 op_face = en_face
             if sub not in g.nodes:
                 new_nodes[sub] = {"id": sub, "type": "ObjectClass", "label": concept.split(":")[-1],
@@ -177,9 +194,30 @@ def repair(repo: Path = REPO) -> dict:
     with (outdir / "repair_nodes.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for n in sorted(new_nodes.values(), key=lambda n: n["id"]):
             fh.write(json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n")
+    violations = _validate_repair_layer(repo, g.nodes, new_nodes, new_edges)
     return {"queue": len(queue), "repaired": len(done), "skipped": len(skipped),
             "repair_edges": len(new_edges), "repair_nodes": len(new_nodes),
-            "_skipped": skipped}
+            "signature_violations": len(violations), "_violations": violations, "_skipped": skipped}
+
+
+def _validate_repair_layer(repo: Path, real_nodes: dict, repair_nodes: dict, repair_edges: list) -> list:
+    """Every repair edge must satisfy the Phase 4 predicate domain/range signatures, using
+    the same table as the frozen graph — so the repair layer can't slip a schema violation
+    past validation just because it lives in a separate file."""
+    from .assemble import GLOBAL_SIGNATURES
+    from .phase3 import resolve_node_type
+    types = {nid: n["type"] for nid, n in {**real_nodes, **repair_nodes}.items()}
+
+    def ntype(nid):
+        return types.get(nid) or resolve_node_type(nid, set())
+
+    out = []
+    for e in repair_edges:
+        sig = GLOBAL_SIGNATURES.get(e["predicate"])
+        s, t = ntype(e["source"]), ntype(e["target"])
+        if sig and sig[0] is not None and (s not in sig[0] or t not in sig[1]):
+            out.append(f"{e['source']}({s}) -{e['predicate']}-> {e['target']}({t})")
+    return out
 
 
 # --------------------------------------------------------------------------- #

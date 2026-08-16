@@ -948,3 +948,16 @@ Fixes:
 **Scope note (reviewer, not a defect):** this repair only touches the 8 previously-queued relations — none in the sealed-deck maindeck. Dwarf/Equipment support and noncreature-cast triggers remain SEPARATE projection gaps (future audit/repair rounds), not addressed here.
 
 Refs: `src/hobkg/graph_repair.py` (`op_by_grounding` face-exact); `tests/test_graph_repair.py`; `data/graph_global/{repair_edges,repair_nodes,card_pair_projection_repaired}.jsonl`
+
+---
+
+## [2026-08-17 06:00] CORRECTION — graph-repair Thranduil ability schema + repair-layer signature validation
+
+Reviewer (inline, post-`291c356`): the Thranduil repair created `CardFace -HAS_ABILITY-> Operation`, violating the established convention `CardFace -HAS_ABILITY-> Ability` / `Ability -CAUSES-> Operation`. The anthem ability already exists as `ability:face:f6771d32:0:a1` (static, oracle_spans [[0,34]]). Fix:
+
+1. **Conventional ability→op wiring.** Added `_G.ability_by_grounding(face, spans)` — finds the existing Ability on the face whose declared `oracle_spans` overlap the grounding. The materialized anthem op now hangs off it via `ability:face:…:0:a1 -CAUSES-> op:face:…:0:anthem`, then `op:…:0:anthem -MODIFIES-> obj:subtype:elf` — no `CardFace -HAS_ABILITY-> Operation`.
+2. **Repair-layer predicate-signature validation.** `_validate_repair_layer` checks every repair edge against the SAME `assemble.GLOBAL_SIGNATURES` table as the frozen graph (typing repair + real nodes), so a schema violation can't slip past just because the repair lives in a separate file. `signature_violations: 0`.
+
+**Result.** 8/8 repaired (9 repair edges, 1 node), all reproject faithfully, **repair-layer signature_violations = 0**, frozen graph byte-identical. 139 tests pass (+ ability-CAUSES-op convention, repair-layer-signatures). The repaired paths are now schema-clean and validated.
+
+Refs: `src/hobkg/graph_repair.py` (`ability_by_grounding`, `_validate_repair_layer`); `tests/test_graph_repair.py`; `data/graph_global/repair_edges.jsonl`

@@ -117,6 +117,20 @@ def test_object_modifier_carries_modification(repair_edges):
     assert mod["modification"] == {"power": "+1", "toughness": "+1"}
 
 
+def test_anthem_uses_ability_causes_operation_convention(repair_edges):
+    # the materialized anthem op must hang off an ABILITY via CAUSES, not CardFace HAS_ABILITY Op
+    anthem = "op:face:f6771d32-395e-4832-b33d-cbc12dff1516:0:anthem"
+    causes = [e for e in repair_edges if e["predicate"] == "CAUSES" and e["target"] == anthem]
+    assert causes and causes[0]["source"].startswith("ability:face:f6771d32")
+    assert not any(e["predicate"] == "HAS_ABILITY" and e["target"] == anthem for e in repair_edges)
+
+
+def test_repair_layer_passes_predicate_signatures(repaired):
+    # the repair layer is validated against the SAME Phase 4 signature table as the frozen graph
+    rs, _ = repaired
+    assert rs["signature_violations"] == 0
+
+
 def test_frozen_graph_unchanged(repaired):
     # repair/reproject must NOT rewrite the frozen Phase 4 nodes/edges
     def digest(name):

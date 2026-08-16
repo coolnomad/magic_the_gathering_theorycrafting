@@ -2751,3 +2751,86 @@ Required fix:
 Also, this commit does not yet change the sealed-deck visualization: it repairs the eight previously queued relations, none of which occur in that maindeck. Dwarf/Equipment support and noncreature-cast triggers remain separate projection gaps.
 
 So the repair architecture is sound, but these face-identity and multiplicity issues need correction before freezing the repaired paths.
+
+### [2026-08-15 22:56] ASSISTANT
+A real face-identity bug â€” `op_by_grounding` matches by UUID + offset overlap but ignores *which face*, so on multiface cards it attaches to the wrong face's operation (Clap! Snap!'s front face instead of its `:1:amass`; Silvan Rally's mill instead of Thranduil's `:0` anthem). Let me make it face-exact and preserve the Wolf multiplicity threshold.
+
+Now update the callsites in `repair()` for the tuple return, add the face assertion, and preserve the Wolf multiplicity:
+
+Still wrong â€” Great Ugly on `:0:guglob-counter-menace` and Thranduil on `:1:a1`. The grounding's `face_id` itself must be pointing at the wrong face. Let me inspect the actual grounding face_ids vs. the face oracle text.
+
+The first command's JSON error means `graph-repair` **crashed** (traceback to stdout), so those edges were stale from the pre-fix run. The grounding face_ids are actually correct (Clap!Snap `:1`, Thranduil `:0`). Let me see the crash.
+
+`defaultdict` isn't imported. Let me fix that.
+
+Now 7 repaired, 1 skipped. Let me see the skip reason and verify the face-exact attachments.
+
+Now Great Ugly is correctly on `:1:amass` and Wolf carries `q=2`. Thranduil is skipped because the reviewer was right â€” **the anthem isn't modeled as an operation at all** (that was the missing mechanism). So the repair must *materialize* the anthem operation on face `:0`, not attach to an existing op. Let me handle that.
+
+Now the reproject and re-run â€” Thranduil should materialize the anthem op and reproject:
+
+All 8 repaired (9 edges incl. the materialized anthem op, 1 new node), all reproject faithfully. Let me verify the face-exact attachments and the Thranduil ObjectModifier.
+
+All fixes verified: Great Ugly on `:1:amass`, Thranduil on materialized `:0:anthem` with `+1/+1` modification preserved, Wolf `REQUIRES` carries `quantity=2`. Let me add the regression tests.
+
+137 tests pass. Let me record the correction and commit.
+
+Pushed â€” `291c356`. The blocking face-identity and multiplicity bugs are fixed.
+
+## Face-identity + multiplicity fixes
+
+| Bug | Fix | Verified |
+|---|---|---|
+| `op_by_grounding` matched by UUID + offset, ignoring face | Now **face-exact** â€” parses `face:{uuid}:{idx}` from the op node and requires it to equal a grounding face | Clap! Snap! Amass â†’ `:1:amass` (not front-face `:0`) |
+| Thranduil hijacked Silvan Rally's `:1` op | Face-exact matching revealed the anthem **isn't modeled as an op at all** (the real gap) â€” the repair now **materializes** `op:face:â€¦:0:anthem` + `HAS_ABILITY` on Thranduil's own face | Thranduil `MODIFIES` from `:0:anthem` |
+| Wolf multiplicity lost | `REQUIRES token:wolf` now carries **`quantity: 2`** (parsed "two or more other Wolves") | q=2 |
+| Modifier magnitude lost | Elf `MODIFIES` carries **`modification: {power:+1, toughness:+1}`** | âœ“ |
+
+Plus a `defaultdict` import that had crashed the command, and a face-identity **invariant** (`_face_matches`) that skips any wrong-face repair rather than emit it.
+
+**Result:** 8/8 repaired (9 repair edges incl. the materialized anthem op + its `HAS_ABILITY` link; 1 new node), all reproject faithfully, frozen graph byte-identical. **137 tests pass** (+4 regressions: multiface-face-exact, face-matches-grounding, wolf-multiplicity, modifier-carries-magnitude).
+
+I noted your scope point in the lab notebook: this pass only repairs the 8 previously-queued relations (none in the sealed-deck maindeck); **Dwarf/Equipment support and noncreature-cast triggers remain separate projection gaps** for a future audit/repair round, not addressed here.
+
+The repaired paths are now face-correct and multiplicity-preserving, ready to freeze. When you're ready, the remaining build step is **Phase 6 â€” higher-order mechanism assembly** (or, if you'd prefer, a fresh audit/repair round targeting those Dwarf/Equipment/noncreature-cast gaps). Holding for your direction.
+
+### [2026-08-15 23:03] USER
+Commit `291c356` fixes the requested problems:
+
+* 137 tests pass.
+* Clap! Snap! now correctly uses `face:ΓÇª:1:amass`.
+* Thranduil now correctly uses face 0.
+* Chief WargΓÇÖs Company retains `quantity: 2`.
+* ThranduilΓÇÖs modifier retains `+1/+1`.
+* All eight queued relations still reproject successfully.
+
+One schema-level defect remains in the Thranduil repair. It creates:
+
+```text
+CardFace ΓöÇΓöÇHAS_ABILITYΓöÇΓöÇ> Operation
+```
+
+But the established signature is:
+
+```text
+CardFace ΓöÇΓöÇHAS_ABILITYΓöÇΓöÇ> Ability
+Ability ΓöÇΓöÇCAUSESΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ> Operation
+```
+
+The existing Thranduil ability node already exists as:
+
+```text
+ability:face:ΓÇª:0:a1
+```
+
+The repair should therefore add:
+
+```text
+ability:face:ΓÇª:0:a1
+  ΓöÇΓöÇCAUSESΓöÇΓöÇ> op:face:ΓÇª:0:anthem
+  ΓöÇΓöÇMODIFIESΓöÇΓöÇ> obj:subtype:elf
+```
+
+rather than attaching the operation directly with `HAS_ABILITY`. Add the repair layer to predicate-signature validation so this class of violation cannot pass separately from the frozen graph.
+
+Everything else in this fix looks correct. This is a narrow structural correction, not another semantic rework.
