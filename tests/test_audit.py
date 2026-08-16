@@ -99,7 +99,7 @@ def test_repair_queue_unordered_with_proposed_direction(istats, repair):
     for r in repair:
         assert r["card_a"] < r["card_b"]                     # unordered (sorted) pair
         assert r["candidate_concept"] and r["missing_node_type"] and r["missing_node_hint"]
-        assert r["direction_status"] == "proposed"           # NOT a mechanically-proven arrow
+        assert r["direction_status"] in ("proposed", "adjudicated")   # never "mechanically proven"
         assert r["proposed_direction"]["enabler"] in (r["card_a"], r["card_b"])
         if r["relation"] == "ENABLES_TRIGGER":
             assert r["missing_node_type"] == "Event"         # needs an intermediate Event
@@ -149,11 +149,20 @@ def test_direction_conflict_goes_to_adjudication(istats):
     if not aq_path.exists():
         pytest.skip("no adjudication queue")
     aq = [json.loads(l) for l in aq_path.read_text(encoding="utf-8").splitlines()]
+    faces = {f["id"]: (f.get("oracle_text") or "")
+             for f in _load_dicts(REPO / "data/normalized/faces.jsonl")}
     assert len(aq) == istats["adjudication_queue"]
     for r in aq:
         assert r["card_a"] < r["card_b"]
         assert r["extractor_enabler"] != r["critic_enabler"]   # genuine direction conflict
         assert r["relation"] and r["candidate_concept"]
+        # BOTH extractor and critic grounding are stored and span-validated per face
+        for side in ("extractor_grounding", "critic_grounding"):
+            assert r[side]
+            for g in r[side]:
+                s, e = g["oracle_span"]
+                assert faces[g["face_id"]][s:e] == g["text"]   # exact face-specific span
+                assert g["card_id"]
     # the Thranduil / Down in the Valley Elf-anthem relation must be here, not excluded
     assert any("Thranduil" in (r["card_a_name"] + r["card_b_name"])
                and "Down in the Valley" in (r["card_a_name"] + r["card_b_name"]) for r in aq)

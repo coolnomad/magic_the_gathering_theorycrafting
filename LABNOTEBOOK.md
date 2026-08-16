@@ -857,3 +857,20 @@ Reviewer froze the v3.1 interface and asked for two targeted semantic fixes befo
 **Result.** 142/142 audited; 3 accepted; 7 repair (correct grounding-driven Event/Resource targets); **1 manual-adjudication** (Thranduil Elf-anthem preserved); 11 critic-disagreement; 114 NO_RELATION. 125 tests pass (+ grounding-hint + adjudication-queue regressions). The repair queue's intermediate-event instructions are now correct, and no genuine relation is silently lost — ready for the graph-repair pass.
 
 Refs: inline reviewer feedback (post-v3.1); `src/hobkg/audit.py`; `tests/test_audit.py`; `data/graph_global/{audit_repair_queue,audit_adjudication_queue}.jsonl`; `reports/pair_audit.md`
+
+---
+
+## [2026-08-17 01:15] CORRECTION — Phase 5 Part 2 v3.2.1: adjudication provenance + Thranduil decision
+
+Reviewer flagged a provenance defect (inline, post-v3.2): direction-conflict cases entered the adjudication queue BEFORE extractor grounding was validated, so the Thranduil record lacked computed `oracle_span`/`card_id`, and only extractor grounding was stored. Four fixes + the reviewer's adjudication decision:
+
+1. **Validate both groundings up front.** `ingest` now calls `_valid_spans` on extractor AND critic grounding before branching, so whichever queue a case enters carries normalized spans (`oracle_span` + `card_id` computed per phrase).
+2. **Store both groundings separately** in the adjudication record: `extractor_grounding` and `critic_grounding`, each span-validated (verified exact: "Other Elves you control get +1/+1." on Thranduil, "create a 1/1 green Elf creature token" on Down in the Valley).
+3. **Report `manual adjudication` count** in the summary.
+4. **Regression test**: every adjudication grounding (both sides) has an exact face-specific span + `card_id`.
+
+**Reviewer's adjudication decision applied.** `_ADJUDICATION_DECISIONS` records the human ruling for the Thranduil / Down in the Valley conflict: **enabler = Thranduil, Sindarin Liege** (its Elf anthem amplifies the Elf token Down in the Valley creates), disposition = `needs_graph_repair` (the primitive graph has no typed representation for one card modifying the characteristics of Elf objects produced by another). The reconcile now resolves that case: the adjudication record carries a `resolution`, and a correctly-directed entry (Thranduil enabler, `direction_status: "adjudicated"`) is emitted into the repair queue. Refactored the repair-entry builder into `_repair_entry` (shared by the normal and adjudicated branches).
+
+**Result.** 142/142 audited; 3 accepted; **8 repair** (7 proposed + Thranduil adjudicated); 1 adjudication (resolved, both groundings span-validated); 11 critic-disagreement; 114 NO_RELATION. 125 tests pass. Both downstream queues are now fully provenance-bearing and correctly directed — ready for the graph-repair pass.
+
+Refs: inline reviewer feedback (post-v3.2); `src/hobkg/audit.py` (`_ADJUDICATION_DECISIONS`, `_repair_entry`); `tests/test_audit.py`; `data/graph_global/{audit_repair_queue,audit_adjudication_queue}.jsonl`

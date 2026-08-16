@@ -352,6 +352,38 @@ def _missing_node_hint(relation: str, concept: str, grounding: list) -> str:
     return f"canonicalize the shared node ({concept})"
 
 
+# Manual adjudications of direction-conflict cases (reviewer decisions). Keyed by
+# (unordered card-id pair, relation) -> the resolved enabler + disposition.
+_ADJUDICATION_DECISIONS = {
+    (frozenset({"card:e3491542-569e-48a8-b625-fa7c4aa2792a",   # Down in the Valley
+                "card:f6771d32-395e-4832-b33d-cbc12dff1516"}),  # Thranduil, Sindarin Liege
+     "AMPLIFIES_EFFECT"): {
+        "enabler": "card:f6771d32-395e-4832-b33d-cbc12dff1516",  # Thranduil amplifies the Elf token
+        "disposition": "needs_graph_repair",
+        "note": "reviewer adjudication: Thranduil's Elf anthem amplifies the Elf token created by "
+                "Down in the Valley; primitive graph lacks a typed representation for modifying the "
+                "characteristics of Elf objects produced by another card"},
+}
+
+
+def _repair_entry(d: _Data, s: str, t: str, enabler_card: str, relation: str, concept: str,
+                  grounding: list, confidence, direction_status: str, note: str | None = None) -> dict:
+    benef = t if enabler_card == s else s
+    a, b = sorted((s, t))
+    entry = {
+        "card_a": a, "card_b": b, "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
+        "relation": relation, "candidate_concept": concept,
+        "missing_node_type": _missing_node_type(relation),
+        "missing_node_hint": _missing_node_hint(relation, concept, grounding),
+        "proposed_direction": {"enabler": enabler_card, "beneficiary": benef},
+        "proposed_enabler_name": d.name.get(enabler_card, enabler_card),
+        "direction_status": direction_status,
+        "grounding": grounding, "confidence": confidence}
+    if note:
+        entry["adjudication_note"] = note
+    return entry
+
+
 def _typed_path(d: _Data, relation: str, s: str, t: str, concept: str):
     """Try both orientations against the RELATION-SPECIFIC signature. Returns
     (steps, src, tgt, 'grounded') for a faithful primitive path, else
@@ -444,25 +476,39 @@ def ingest(repo: Path = REPO) -> dict:
             counts["no_relation"] += 1
             results.append(rec)
             continue
-        # reconcile: the critic must ALSO find a RELATION and AGREE on the relation tuple
-        # (relation_type + connecting_concept), with valid spans...
+        # validate BOTH groundings up front (this normalizes each phrase's oracle_span +
+        # card_id in place), so any queue we branch into carries validated grounding.
+        ex_grounded = _valid_spans(d, ex.get("grounding"))
+        cr_grounded = _valid_spans(d, cr.get("grounding"))
         base_agree = (cr_verdict == "RELATION"
                       and (cr.get("relation_type") or "").upper() == (relation or "").upper()
                       and (cr.get("connecting_concept") or "") == (concept or "")
-                      and _valid_spans(d, cr.get("grounding")))
+                      and cr_grounded)
         enabler_agree = (cr.get("enabler") or "") == (ex.get("enabler") or "")
-        if base_agree and not enabler_agree:
+        if base_agree and ex_grounded and not enabler_agree:
             # relation is real but extractor/critic point the arrow differently -> do NOT
             # silently drop; queue for MANUAL adjudication (Thranduil → Down in the Valley).
             rec["status"] = "needs_adjudication"
             a, b = sorted((s, t))
-            adjudicate.append({
-                "card_a": a, "card_b": b, "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
-                "relation": relation, "candidate_concept": concept,
-                "extractor_enabler": s if (ex.get("enabler") or "") == "source" else t,
-                "critic_enabler": s if (cr.get("enabler") or "") == "source" else t,
-                "extractor_mechanism": ex.get("mechanism"), "critic_mechanism": cr.get("mechanism"),
-                "grounding": ex.get("grounding"), "confidence": ex.get("confidence")})
+            ex_en = s if (ex.get("enabler") or "") == "source" else t
+            cr_en = s if (cr.get("enabler") or "") == "source" else t
+            adj = {"card_a": a, "card_b": b, "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
+                   "relation": relation, "candidate_concept": concept,
+                   "extractor_enabler": ex_en, "critic_enabler": cr_en,
+                   "extractor_mechanism": ex.get("mechanism"), "critic_mechanism": cr.get("mechanism"),
+                   "extractor_grounding": ex.get("grounding"),   # normalized (spans + card_id)
+                   "critic_grounding": cr.get("grounding"),
+                   "confidence": ex.get("confidence")}
+            decision = _ADJUDICATION_DECISIONS.get((frozenset((s, t)), relation))
+            if decision:
+                en = decision["enabler"]
+                adj["resolution"] = {"enabler": en, "disposition": decision["disposition"],
+                                     "note": decision["note"]}
+                if decision["disposition"] == "needs_graph_repair":
+                    repair.append(_repair_entry(d, s, t, en, relation, concept, ex.get("grounding"),
+                                                ex.get("confidence"), "adjudicated", decision["note"]))
+                    counts["requires_graph_repair"] += 1
+            adjudicate.append(adj)
             counts["needs_adjudication"] += 1
             results.append(rec)
             continue
@@ -472,7 +518,7 @@ def ingest(repo: Path = REPO) -> dict:
             counts["critic_disagreement"] += 1
             results.append(rec)
             continue
-        if not _valid_spans(d, ex.get("grounding")):
+        if not ex_grounded:
             rec["status"] = "ungrounded"
             counts["ungrounded"] += 1
             results.append(rec)
@@ -489,22 +535,11 @@ def ingest(repo: Path = REPO) -> dict:
             continue
         if kind != "grounded" or not _grounding_covers_path(d, steps, ex.get("grounding")):
             # credible but no faithful primitive path -> graph-repair queue, NOT a shortcut.
-            # Direction is NOT mechanically proven here, so store an UNORDERED pair plus the
-            # agreed extractor/critic proposed direction (enabler card) and its status.
+            # Direction is NOT mechanically proven here; store the agreed enabler as proposed.
             enabler_card = s if (ex.get("enabler") or "source") == "source" else t
-            benef_card = t if enabler_card == s else s
-            a, b = sorted((s, t))
             rec["status"] = "requires_graph_repair"
-            repair.append({
-                "card_a": a, "card_b": b,
-                "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
-                "relation": relation, "candidate_concept": concept,
-                "missing_node_type": _missing_node_type(relation),
-                "missing_node_hint": _missing_node_hint(relation, concept, ex.get("grounding")),
-                "proposed_direction": {"enabler": enabler_card, "beneficiary": benef_card},
-                "proposed_enabler_name": d.name.get(enabler_card, enabler_card),
-                "direction_status": "proposed",           # not mechanically proven
-                "grounding": ex.get("grounding"), "confidence": ex.get("confidence")})
+            repair.append(_repair_entry(d, s, t, enabler_card, relation, concept, ex.get("grounding"),
+                                        ex.get("confidence"), "proposed"))
             counts["requires_graph_repair"] += 1
             results.append(rec)
             continue
@@ -589,6 +624,7 @@ def _audit_report(repo: Path, results: list, accepted: list, repair: list, adjud
          f"{stats.get('augmented_metaedges', 0)} augmented relations (deduped)",
          f"- **graph-repair**: {stats.get('repair_verdicts', 0)} verdicts → "
          f"{stats.get('repair_queue', 0)} queue entries (deduped, unordered)",
+         f"- **manual adjudication**: {stats.get('adjudication_queue', 0)}",
          f"- **critic disagreement**: {stats.get('critic_disagreement', 0)}",
          f"- **duplicate of mechanical**: {stats.get('duplicate', 0)}",
          f"- **ungrounded**: {stats.get('ungrounded', 0)}",

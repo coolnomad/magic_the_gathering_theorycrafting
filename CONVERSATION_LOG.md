@@ -2462,3 +2462,62 @@ Two semantic cleanup items remain:
 2. Thranduil ΓåÆ Down in the Valley disappeared into `critic_disagreement`. This is a genuine relation: ThranduilΓÇÖs anthem amplifies the Elf token created by Down in the Valley. The extractorΓÇÖs mechanism was correct but its `enabler` label contradicted its own explanation; the critic used the correct enabler. Strict reconciliation appropriately rejected it automatically, but it now needs manual adjudication rather than permanent exclusion.
 
 So the interface correction is good and can be frozen. I would make those two targeted semantic adjudications before executing graph repairΓÇöespecially Gollum, because its current repair instruction would construct the wrong intermediate event.
+
+### [2026-08-15 21:46] ASSISTANT
+Two targeted semantic adjudications â€” both worth doing before graph repair. Let me (1) make the repair hint grounding-driven (so Gollum's "loses life" â†’ `Event:life-lost`, not the misleading `resource:card` concept), and (2) route enabler-only disagreements to a manual-adjudication queue instead of silently dropping them (so Thranduilâ†’Down in the Valley survives for review).
+
+First, the grounding-driven missing-event hint:
+
+Now the reconcile split â€” enabler-only disagreement goes to a manual-adjudication queue, and update the `_missing_node_hint` callsite:
+
+Now write the adjudication queue and add it to stats/report:
+
+Now: 3 accepted, 7 repair, **1 adjudication** (Thranduil), 11 critic-disagreement. Let me verify Gollum's hint is now `Event:life-lost` and the adjudication queue captured Thranduil.
+
+Both fixes land: Gollum's hint is now `Event:life-lost` (grounding-driven), and Thranduil â†” Down in the Valley is preserved in the adjudication queue with both proposed enablers (the critic correctly names Thranduil as the amplifier). Let me add regression tests.
+
+125 tests pass. Let me record v3.2 and commit.
+
+Pushed â€” `4db9216`. Both semantic cleanup items are done.
+
+## v3.2 â€” two targeted adjudications
+
+**1. Grounding-driven repair hints.** `_missing_node_hint` now infers the missing intermediate from the **grounding text**, not the (possibly misleading) candidate concept:
+- Gollum â†’ Master: "Each opponent **loses 2 life**" â‡’ `Event:life-lost` (was the wrong "creature-ability-activated / card-drawn")
+- all life-loss â†’ Master pairs â‡’ `Event:life-lost`; Great Goblin â‡’ `Event:counter-placed`; Gandalf â†’ Elrond â‡’ `Event:creature-ability-activated`
+
+So a repair agent will now construct the correct intermediate event.
+
+**2. Manual-adjudication queue for direction conflicts.** The reconcile now **splits** the enabler check: agreement on relation_type + concept + spans but a *direction* conflict routes to `audit_adjudication_queue.jsonl` (recording both proposed enablers + both mechanisms) instead of silently landing in `critic_disagreement`. **Thranduil â†” Down in the Valley** (Elf-anthem amplifies the Elf token) is now preserved for review â€” the critic correctly named Thranduil as the enabler; the extractor's label contradicted its own explanation.
+
+**Result:** 142/142 audited; 3 accepted Â· 7 repair (correct Event/Resource targets) Â· **1 adjudication** (Thranduil) Â· 11 critic-disagreement Â· 114 NO_RELATION. **125 tests pass** (+ grounding-hint and adjudication-queue regressions).
+
+Phase 5 Part 2 is now complete on the audit side, and both downstream queues are trustworthy:
+- **repair queue** (7) â€” unordered pairs, correct proposed directions, correct intermediate-event instructions â†’ input to a graph-repair + reprojection pass.
+- **adjudication queue** (1) â€” genuine relation with a direction conflict â†’ human decision.
+
+When you're ready, the natural next step is the **graph-repair pass**: add the named intermediate Event nodes + TRIGGERS edges, resolve the Thranduil direction, then reproject those pairs mechanically so they become faithful typed paths in the augmented layer. Holding for your review.
+
+### [2026-08-15 21:50] USER
+Commit `4db9216` is mostly correct. The full suite passes: 125 tests.
+
+The two requested semantic issues are now handled properly:
+
+* Gollum ΓåÆ Master correctly requests `Event:life-lost`.
+* Thranduil/Down is preserved in a dedicated adjudication queue instead of being discarded.
+* Grounding-driven hints also correctly distinguish GandalfΓÇÖs activated-ability event from card drawing.
+
+One remaining provenance defect: direction-conflict cases enter adjudication before extractor grounding is validated by `_valid_spans()`. Consequently, the Thranduil adjudication record lacks computed `oracle_span` and `card_id`, despite both excerpts being valid. The queue also stores only extractor grounding, not the independently validated critic grounding.
+
+IΓÇÖd make a very small v3.2.1 adjustment:
+
+1. Validate extractor grounding before branching into adjudication.
+2. Store `extractor_grounding` and `critic_grounding` separately, both normalized with spans.
+3. Add `adjudication: 1` to the reportΓÇÖs summary counts.
+4. Add a test that every adjudication grounding has an exact face-specific span.
+
+After that, adjudicate this case as:
+
+**Thranduil, Sindarin Liege ΓåÆ Down in the Valley**, `AMPLIFIES_EFFECT`, via `token:elf`.
+
+That relation will then need graph repair because the primitive graph lacks a typed representation for Thranduil modifying the characteristics of Elf objects produced by another card.
