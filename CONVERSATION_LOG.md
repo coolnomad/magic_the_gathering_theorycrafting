@@ -3111,3 +3111,112 @@ What is solid:
 * All 163 tests pass from a clean archive.
 
 Verdict: the pair index, coverage, and provenance-path changes are good. Rename the current gold set to something like `structural_validation_set`, fix the multi-edge sampler/test, and implement substantive invariants #11 and #12 before declaring Phase 6 complete.
+
+### [2026-08-16 10:27] ASSISTANT
+Structural validation set now passes 83/83 with 2 distinct multi-edge combos (up from 1 â€” the union surfaced `ENABLES_TRIGGER+INFRASTRUCTURE_CASTING`). Now let me update the tests. Let me read the coverage test:
+
+Now let me rewrite the coverage test to reflect the rename and the corrected multi-edge semantics (combos, not â‰¥20 IDs):
+
+Now the substantive invariants #11 and #12. Let me inspect the materialized legend layer and self-pair metaedge structure:
+
+Both invariants have real materialized substrate now. Let me rewrite tests #11 and #12 to be substantive:
+
+Now let me strengthen invariant #2 (the reviewer called it "improved but indirect"). Let me check the projection data for the Recruitâ†’drawâ†’Councillors path:
+
+No direct metaedge â€” the connection is event-mediated. Let me trace the graph substrate:
+
+The graph deliberately does **not** fabricate the Recruitâ†’Councillors edge â€” `event:draw_second_card_each_turn` is a sourceless trigger (the "second draw" ordering is a turn-structure condition the graph doesn't model), and there's no metaedge in any layer. That's the honest, defensible fact. Let me rewrite #2 to assert it completely across all three layers:
+
+Let me add the `defaultdict` import to test_inv2:
+
+Now let me regenerate all Phase 6 artifacts and run the full test suite:
+
+Two issues: the legendary-face detection field differs from what `materialize_legend` uses, and the grounded-subgraph test needs the legend edge layer. Let me check how modules.py detects legendary faces:
+
+Now fix the grounded-subgraph test to include the legend edge layer in the resolvable edge-id universe:
+
+All 27 Phase 6 tests pass. Let me run the entire suite to confirm nothing regressed:
+
+All 166 pass. Let me clean up the now-stale renamed artifacts (old `gold_set.jsonl` and report):
+
+Let me check where the new report is written and confirm its path:
+
+The report still writes to `reports/gold_set.md`. Let me fix that path and delete the stale files:
+
+Let me view the report header and the tail of LABNOTEBOOK to match the entry format:
+
+The mojibake is just the console reader (cp1252); the file is written UTF-8. Now let me read the tail of LABNOTEBOOK and INSTRUCTIONS entry format:
+
+Now let me append the v3.1 LABNOTEBOOK entry (append-only):
+
+Now let me commit. Let me check status and stage:
+
+`CONVERSATION_LOG.md` is auto-appended by the hooks. Let me check the unexpected `data/review/` changes before staging:
+
+Those `data/review/` diffs are pure reordering churn of `disputed_edges` (same content) â€” leftover from a prior-session audit run, unrelated to this frozen-audit work. I'll restore them to keep the frozen audit outputs canonical, then stage only the Phase 6 v3.1 changes:
+
+Committed as `197e314`. Let me do a final full-suite confirmation post-rename:
+
+Phase 6 v3.1 is complete and committed (`197e314`). Here's what the latest inline review asked for and what I did:
+
+## Six findings, resolved
+
+1. **Gold set framing was dishonest** â†’ Renamed `gold_set` â†’ `structural_validation_set` (`.jsonl` + `reports/structural_validation.md`, CLI `structural-validation`, old name aliased). The report header now states plainly: *not* an independent human gold set â€” deterministic structural assertions against the same graph; a human still adjudicates semantics.
+
+2. **Tautological strata** â†’ 
+   - **Saga** no longer asserts "subtype is Saga" (trivially true for cards selected *by* that subtype); now requires `REFERENCES_RULE rule:saga` **or** a `HAS_COUNTER_TYPE counter:lore` state.
+   - **Self-pair** no longer asserts "source == target"; now requires the reflexive effect not be routed through an `obj:another*/obj:other*` class.
+
+3. **Multi-edge sampler broken (all one combo; test checked IDs)** â†’ Now drawn from the **union of all three projection layers**, which surfaces a genuine second combination â€” `{ENABLES_TRIGGER, INFRASTRUCTURE_CASTING}` alongside `{CONTRIBUTES_TO_GATE, INFRASTRUCTURE_CASTING}`. The test checks distinct **combinations**, not pair-IDs.
+
+4. **#11 not implemented** â†’ Materialized the legend rule as an explicit **state constraint**: 55 `state:legend:{name}` States (`max_controlled=1`), one `HAS_STATE` edge per legendary face, unioned into the graph and surfaced as `module:legend-rule`. The layer is purely additive â€” frozen Phase 4 graph untouched.
+
+5. **#12 only partial** â†’ All **31 self-pair metaedges** verified genuinely reflexive (`participant_status: resolved`, no path through an another/other class), across every relation type that produces them.
+
+6. **#2 "improved but indirect"** â†’ Strengthened to the honest full picture: the graph **correctly refuses** to assert a Recruitâ†’Councillors edge (the "second card each turn" ordering condition is unmodeled), verified in **both directions across all three projection layers**.
+
+**166 tests pass, deterministic.** Item 6 from the earlier review (DÃ¡in's Company / Bothersome Noisemaker) remains the separately-planned targeted auditâ†’repair pass â€” it needs new primitive edges, not discovery. LABNOTEBOOK has the append-only v3.1 entry. Ready for your review.
+
+### [2026-08-16 10:28] USER
+I think the context compactition means it's time to start a fresh session - what should i tell it to read?
+
+### [2026-08-16 10:28] ASSISTANT
+For a clean handoff, tell the new session to read these, in order:
+
+**1. The mandated project rules (always first)**
+- `CLAUDE.md` â†’ which points to `INSTRUCTIONS.md` â€” read both fully. They set the mission, the append-only discipline for `LABNOTEBOOK.md` / `CONVERSATION_LOG.md`, and the entry format.
+
+**2. The build spec**
+- `docs/hob-knowledge-graph-build-spec.md` â€” the authoritative plan (phases, semantic invariants, coverage-report and gold-set requirements).
+
+**3. Current scientific state (most important for continuity)**
+- The **last ~4 entries of `LABNOTEBOOK.md`** (it's ~1080 lines now; the tail covers graph-repair â†’ Phase 6 v1 â†’ v2 â†’ v3 â†’ **v3.1**). This is where the "why" lives.
+- The most recent reviewer files: `docs/hob-kg-phase6-review-pt1.md` and `-pt2.md`. (The v3.1 review was **inline**, not a file â€” it's summarized in the v3.1 notebook entry.)
+
+**4. Memory** â€” auto-loads via `MEMORY.md`, but flag the three operational ones: `no-cd-in-bash.md` (avoid Bash approval prompts), `phase3-llm-via-subagents.md`, `provenance-rigor.md`.
+
+**Status line to paste in:**
+> Phase 6 v3.1 committed at `197e314`, **awaiting external review**. Phases 4, 5 (Parts 1+2), and graph-repair are frozen/accepted. 166 tests pass, deterministic. The frozen Phase 4 graph and Phase 5 projections are byte-stable; the legend layer (`legend_{nodes,edges}.jsonl`) is purely additive. **One known deferred item (reviewer-acknowledged): item 6** â€” DÃ¡in's Company (Dwarf/Equipment) and Bothersome Noisemaker (noncreature-cast) need a *fresh auditâ†’repairâ†’reprojection round* (new primitive edges), not discovery. Do not start it without a go-ahead.
+
+Two notes so the fresh session doesn't get confused:
+- `CONVERSATION_LOG.md` is appended by **hooks automatically** â€” don't hand-edit it.
+- Run everything via `python -m hobkg.cli <cmd>` (package is pip-installed editable; no `PYTHONPATH`, no leading `cd`).
+
+Want me to write this into a `HANDOFF.md` at the repo root so you can just point the new session at one file?
+
+### [2026-08-16 10:29] USER
+write it to a handoff.md
+
+### [2026-08-16 10:30] ASSISTANT
+Written to `HANDOFF.md` at the repo root.
+
+To start the fresh session, just tell it:
+
+> Read `HANDOFF.md` and follow it.
+
+That file walks it through the mandated rules â†’ spec â†’ current scientific state â†’ memory, states the status (v3.1 committed at `197e314`, awaiting review; item 6 deferred pending go-ahead), and lists the operational gotchas (hooks own `CONVERSATION_LOG.md`, `python -m hobkg.cli` with no `cd`/`PYTHONPATH`, append-only notebooks).
+
+I left it uncommitted so you can tweak it first. Want me to commit it?
+
+### [2026-08-16 10:30] USER
+my other agent doesn't see your commit. make sure it's committed and pushed
