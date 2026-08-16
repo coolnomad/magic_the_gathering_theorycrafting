@@ -3620,3 +3620,97 @@ Following the reviewer's re-scope, I built the three engineering streams from th
 
 ### [2026-08-16 16:18] USER
 now read hob-kg-phase6-review-pt4.md. when that's resolved we'll do the human hand-review
+
+### [2026-08-16 17:20] ASSISTANT
+The pt4 review is clear: two second-draw defects to repair, then implement a full Equip â†’ creature attachment mechanism (with a spec amendment), then human review. Let me set up tasks and investigate the current state of conditions and Equip modeling.
+
+`rule:equip` exists but attachment is modeled with the ambiguous `ATTACHED_TO`; `conditions.jsonl` (frozen, 145) has no draw-is-second record. Let me gather the 12 Equipment cards' data and existing equip abilities before building.
+
+I have all 12 Equipment cards and their equip modes. Let me start with Part A (second-draw fixes) â€” update the gate to transition semantics, reset-at-turn, and write an additive conditions layer. Let me view the current materialize gate/state definitions.
+
+Now write the conditions file and return the count.
+
+Now union the additive conditions into coverage and add a resolution check.
+
+Let me regenerate Part A and verify the condition resolves and the gate is transition-based.
+
+Part A is fixed (condition resolves, transition gate). Now Part B. First the spec amendment (task 10) â€” let me locate the Saga template and the semantic-invariants list.
+
+Now add the Equip invariants to the semantic-invariants list. Let me locate it (shifted by my insertion).
+
+Spec amended (invariants 13â€“17 added). Now let me add Part A test assertions, run the suite, and checkpoint-commit Part A + spec before the larger Equip build.
+
+Part A is solid (19 tests pass). The Equip mechanism (task 11) is large and well-specified by the reviewer's brief. I'll delegate the self-contained `equip.py` + `test_equip.py` build to a sub-agent following the existing `complete_mechanisms.py` template, then I'll verify rigorously and do the cross-cutting integration (coverage/modules/pair-index/query/CLI) myself.
+
+The sub-agent built the equip layer. Before trusting it, let me verify independently: re-run, check signatures/conditions, and spot-check the key structural claims (bound-creature binding, auto-attach distinctness, no reverse, cost preservation).
+
+Independent signature recomputation is clean. My reverse-check used a wrong equip-card set (attachment states are slugged); let me redo it properly and verify the bound-binding, auto-attach distinctness, and Wizard alt mode.
+
+Verification is strong: `op:equip` and `op:auto-attach` are distinct and both bind the **same** `state:attachment`, bonuses route through that state to `obj:bound-creature`, no reverse leaks, 0 signature violations (independently recomputed). Now the cross-cutting integration (which I kept for myself). Starting with coverage.
+
+Now pair-index (5th column), modules `_Graph`, query `_LAYERS`, and structural-validation.
+
+Let me check the equip metaedge fields so `query-pair` surfaces cost/modification, then wire that in.
+
+The equip metaedges carry `equip_cost`, `modification`, `granted_ability`, `attachment_state`. Let me surface those in `query-pair`.
+
+Now regenerate the full pipeline including equip, verify integration, and run the whole suite.
+
+Integration is clean (union 3,080 edges / 8,673 relations, all conditions resolve, 37,249-pair index with equip column). Let me update the coverage union test for the 5th layer and run the full suite.
+
+One test needs the equip layer added to its edge-id union (same as before). Let me fix it â€” and note: I should **not** be prefixing commands with `cd` (the working directory is already the project root, and your `no-cd-in-bash` memory warns it triggers exactly these approval prompts). I'll drop the `cd` prefix from here on.
+
+199 tests pass. Now let me address your settings request â€” I'll stop using `cd` (that alone removes most prompts, since the shell already starts in the project root), and add an allowlist so the common commands don't prompt. Let me look at the current settings.
+
+I can see the problem now. Your `settings.json` already allows `Bash(python:*)`, `Bash(git commit:*)`, etc. â€” so **single** commands like `python -m pytest -q` don't prompt. The prompts come from my own bad habits, which your `no-cd-in-bash` memory already warned against:
+
+1. **Prefixing with `cd "C:/GitHub/..."`** â€” unnecessary (the shell already starts in the project root) and it turns every command into a compound the matcher can't cleanly approve.
+2. **Compound commands** (`&& ... ; for c in ...; do ...; done`, `md5sum`, heredocs) â€” these don't match the simple prefix allow-rules, so each one prompts.
+
+Two fixes â€” a behavioral one (mine) and a settings one. Let me add the couple of missing allow-entries (`git checkout`, `md5sum`) to the checked-in project settings.
+
+Now let me strengthen the `no-cd-in-bash` memory so future sessions avoid the compound-command trigger too (not just `cd`).
+
+The memory already covers this thoroughly (I simply wasn't following it). Let me add an explicit note about command-chaining, which was my main offender this session.
+
+Settings and memory handled. Now let me finish the pt4 work with single (non-prompting) commands. First regenerate the Phase 6 coverage report and revert the review-file noise.
+
+Good question â€” let me be precise about both:
+
+- **`CONVERSATION_LOG.md`** is appended **automatically by hooks** (`UserPromptSubmit`/`Stop` in `.claude/settings.json`), so every turn is captured; per the repo rules I must *not* hand-edit it, and git has shown it modified each turn (the hook is firing).
+- **`LABNOTEBOOK.md`** â€” I record an entry per milestone (I have entries through the full-spec completion), but you're right that I owe the **pt4-resolution** entry *now*, before committing rather than after. Let me write it. First the tail.
+
+Let me confirm the conversation-log hook is actually capturing recent turns (read-only check).
+
+151 turns logged, last header is your 16:18 message â€” the hook is current and working (this turn's response appends on Stop). The pt4 notebook entry is now written. Let me revert the incidental review-file reorder and check final status (single commands now â€” no `cd`/chaining).
+
+Now commit and push â€” using single commands with multiple `-m` flags (per the memory, this avoids the heredoc prompt). First stage.
+
+Committed `bf16c01` and pushed (`db8b389..bf16c01`). Let me update the two continuity anchors (HANDOFF + memory) so they reflect the equip layer, since I just told you I keep records current.
+
+Now commit the HANDOFF continuity update.
+
+Everything for **pt4** is resolved, committed, and pushed (`bf16c01`, HANDOFF at `2e613e7`). **199 tests pass**, deterministic, frozen Phase 4 + Phase 5 byte-untouched.
+
+## pt4 resolution
+
+**Second-draw defect #1 (condition didn't resolve)** â€” `cond:draw-is-second-this-turn` now has a structured record in an additive `mechanism_conditions.jsonl`; coverage unions all condition layers and reports `conditions_all_resolve = true`, `conditions_unresolved = []`.
+
+**Second-draw defect #2 (persistent `>= 2`)** â€” `gate:second-draw` is now a **transition/equality gate** (`comparison "=="`, `transition 1â†’2`, `emit once_on_transition_to_2`); the count resets `start_of_controllers_turn`. It fires once, on the second draw â€” not on later draws.
+
+**Spec amended** â€” added the authoritative reusable **Equip template** to Â§Phase 2 and **semantic invariants #13â€“#17** (schema revision logged in the notebook per INSTRUCTIONS Â§6).
+
+**Equip attachment mechanism** (`src/hobkg/equip.py`, new 5th projection tier) â€” 12 Equipment â†’ 99 nodes / 131 edges / 16 conditions, **0 signature violations, 0 unresolved conditions**. Each Equipment: `ability:equip:E â†’ op:equip:E` (`REQUIRES obj:creature-you-control`, `CAUSES state:attachment:E`); every equipped-creature effect `REQUIRES` that **same bound state** and `MODIFIES obj:bound-creature:E`. Alternative modes (Wizard's Staff Wizard-only + generic; My Precious's life cost) and ETB **auto-attach** (Sting/Shortsword/Plate Mail/Mattock, `kind: automatic`, distinct from equip activation) are preserved. Reprojection = **3,028 directed metaedges** (CAN_ATTACH_TO 1,348 / MODIFIES_WHEN_ATTACHED 896 / GRANTS_ABILITY_WHEN_ATTACHED 784), each with cost, controller + sorcery-timing + attachment conditions, exact modification/granted ability, full path, provenance â€” **no reverse** creatureâ†’Equipment. I verified the layer independently (recomputed 0 signature violations, confirmed same-binding, auto-attach distinctness, no reverse) rather than trusting the sub-agent's report. Unioned into coverage (**3,080 edges / 8,673 relations**), modules, pair-index (5th column, 37,249 pairs / 6,603 non-empty), structural-validation, and the query CLI.
+
+**Remaining:** independent human semantic review â€” the one item you'll drive.
+
+## Your two process points
+
+**Approval prompts** â€” you were right, and my `no-cd-in-bash` memory already warned me: the prompts came from *my* habits (`cd "C:/..."` prefixes and compound `&& / for / heredoc / md5sum` commands), not missing settings. I've stopped â€” one simple command per call now. I also added `git checkout`, `git restore`, and `md5sum` to `.claude/settings.json`'s allowlist, and strengthened the memory so future sessions avoid command-chaining too.
+
+**Append-only logs** â€” `CONVERSATION_LOG.md` is captured automatically by the `Stop`/`UserPromptSubmit` hooks (151 turns logged, current through your last message â€” I must not hand-edit it). For `LABNOTEBOOK.md` you caught a real lapse: I'd been writing the entry *after* committing. I've now written the pt4 entry, and going forward I'll append the notebook entry **before** each commit, not after.
+
+Ready for the human hand-review whenever you are â€” `query-pair`, `query-card`, and `query-mechanism` will surface everything (relation, direction, conditions, path, provenance, origin) for the stratified sample.
+
+### [2026-08-16 17:24] USER
+do the human hand-review now

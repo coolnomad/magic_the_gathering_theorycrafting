@@ -8,6 +8,7 @@
       "Bash(mv:*)",
       "Bash(cp:*)",
       "Bash(python:*)",
+      "Bash(python3:*)",
       "Bash(git add:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
