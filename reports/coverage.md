@@ -3,7 +3,7 @@
 *Coverage is not correctness; edge count is not maximized.*
 
 - cards / faces parsed: **193 / 210**
-- abilities by kind: {'?': 29, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59}
+- abilities by kind: {'?': 29, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1}
 - primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** = union **2850** (+1 repair nodes, +58 legend nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113}; provenance gaps: 0
 - pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** = union **5289**
 - conditions: 145 (81 raw-unresolved); unresolved Oracle records: 16

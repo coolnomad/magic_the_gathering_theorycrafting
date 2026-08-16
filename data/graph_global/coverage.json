@@ -4,6 +4,7 @@
     "activated": 59,
     "replacement": 16,
     "spell_effect": 67,
+    "state_based_action": 1,
     "static": 134,
     "triggered": 142
   },

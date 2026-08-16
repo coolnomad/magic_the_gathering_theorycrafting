@@ -238,6 +238,11 @@ def test_inv11_legend_rule_materialized_as_sba_transition(edges, mods):
         assert n["data"]["conflict_threshold"] == 2               # conflict when >=2 are controlled
         assert "max_controlled" not in n["data"]                  # coarse approximation is gone
         assert n["origin"] == "legend_rule"
+        # the legend rule compares the PERMANENT FACE name — never the combined "Front // Adventure"
+        # card name (12 legendary Adventures would otherwise get a wrong conflict name)
+        assert "//" not in n["data"]["by_name"]
+    # regression: a legendary Adventure's conflict is named by its permanent face, not the card
+    assert "state:legend-conflict:beorn-reluctant-host" in conflict  # not "...-till-and-tend"
 
     # one HAS_STATE edge per legendary face -> its conflict state; exactly the legendary faces
     # (legendary faces are those carrying HAS_TYPE -> obj:supertype:legendary, per the assembler)
@@ -266,6 +271,12 @@ def test_inv11_legend_rule_materialized_as_sba_transition(edges, mods):
     assert set(legend_mod["anchors"]) == set(conflict) and len(legend_mod["anchors"]) == len(legendary_faces)
     # the SBA is reached as a downstream consumer of the conflict states (ENABLES one hop)
     assert any(c["target"] == sba for c in legend_mod["consumers"])
+    # the module must contain the COMPLETE SBA transition it claims to represent — not just the
+    # 55 HAS_STATE + 55 ENABLES edges, but also the shared CAUSES/MOVES_TO/REFERENCES_RULE chain
+    le_by_id = {e["edge_id"]: e for e in le}
+    sub_preds = {le_by_id[e]["predicate"] for e in legend_mod["subgraph_edge_ids"] if e in le_by_id}
+    assert {"HAS_STATE", "ENABLES", "CAUSES", "MOVES_TO", "REFERENCES_RULE"} <= sub_preds
+    assert set(legend_mod["subgraph_edge_ids"]) == set(le_by_id)   # the module is the whole layer
 
 
 def test_inv12_self_pair_this_vs_another_resolution(edges):

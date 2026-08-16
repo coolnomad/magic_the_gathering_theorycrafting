@@ -41,6 +41,8 @@ def test_coverage_reports_all_layers_and_union(cov):
     assert cov["edges_by_origin"].get("graph_repair") == 9
     assert cov["edges_by_origin"].get("legend_rule") == 113   # legend layer in the origin counts
     assert cov["edges_without_provenance"] == 0               # incl. every legend edge
+    # abilities counted over the UNIFIED node set — the legend SBA ability must be included
+    assert cov["abilities_by_kind"].get("state_based_action") == 1
     assert cov["relations_union"] == (cov["relations_mechanical"] + cov["relations_audited"]
                                       + cov["relations_repaired"])
     assert cov["relations_repaired"] == 8 and cov["relations_audited"] == 3

@@ -1078,3 +1078,19 @@ Reviewer (`docs/hob-kg-phase6-review-pt3.md`) accepted the v3.1 corrections (hon
 **Item 6 (still deferred — the planned targeted audit/repair pass):** Dwarf/Equipment → Dáin's Company and noncreature-spell-cast → Bothersome Noisemaker remain absent (no primitive producer/consumer edges); they need a fresh audit → repair → reprojection round, tracked separately.
 
 Refs: `docs/hob-kg-phase6-review-pt3.md`; `src/hobkg/{coverage,modules}.py`; `tests/{test_coverage,test_modules}.py`; `data/graph_global/{legend_nodes,legend_edges,coverage,mechanism_modules}.jsonl`; `reports/{coverage,mechanism_modules}.md`
+
+---
+
+## [2026-08-16 18:00] CORRECTION — Phase 6 v3.2.1: legend face-name, complete SBA module chain, unified ability counts
+
+Reviewer reviewed `4dab59b`: three v3.2 corrections substantially implemented (167 tests pass), but found two new legend-layer defects (one important) + one minor coverage gap. All three fixed.
+
+1. **Legend conflict named by the PERMANENT FACE, not the combined Adventure card name (important).** `materialize_legend` read names from `cards.jsonl`, so **12 legendary Adventures** got a semantically wrong conflict name like `Beorn, Reluctant Host // Till and Tend` — but the legend rule compares the permanent's name on the battlefield (`Beorn, Reluctant Host`). Copies still collided internally (same erroneous name), but the representation would fail clean transfer across printings/datasets. Fix: read the name from `faces.jsonl` keyed by the legendary `face_id` (the HAS_TYPE→`obj:supertype:legendary` source, always the `:0` permanent face). Now `state:legend-conflict:beorn-reluctant-host`; 0 conflict states contain `//`.
+
+2. **Legend module now contains the COMPLETE SBA transition.** The global legend layer had the full chain (`state ENABLES sba CAUSES op MOVES_TO graveyard`, + `sba REFERENCES_RULE rule`), but `module:legend-rule.subgraph_edge_ids` held only the 110 anchor-local edges (55 HAS_STATE + 55 ENABLES) — so the module was not expandable through the resolution it claims to represent. Added `modules._resolution_edges`: a bounded downstream walk from a module's consumer targets that continues THROUGH `Ability`/`Operation` nodes, adding their outgoing edges to `subgraph_edge_ids` only (members/contributors/consumers unchanged, so no card is pulled in as a member). The legend module now carries all **113** legend edges incl. the shared `CAUSES`/`MOVES_TO`/`REFERENCES_RULE`. Generic, so any module is now expandable through its resolution machinery.
+
+3. **`abilities_by_kind` over the unified node set (minor).** `coverage()` computed ability kinds from frozen `nodes.jsonl` only, omitting the legend `state_based_action` ability. Now counted over frozen ∪ repair ∪ legend nodes → `state_based_action: 1` appears.
+
+**Result.** 167 tests pass (strengthened inv11 with the face-name/`//` regression + the complete-chain assertion `subgraph == whole legend layer`; added the `state_based_action` coverage assertion — no net count change). Deterministic byte-identical rebuild; frozen Phase 4 graph + Phase 5 projections byte-untouched. Reviewer's other checks remain green (113 edges/58 nodes all provenance-bearing, controller-scoped threshold 2, owner-scoped graveyard, ENABLES-not-TRIGGERS, #2 deferred).
+
+Refs: reviewer feedback on `4dab59b`; `src/hobkg/{modules,coverage}.py` (`_resolution_edges`, face-name lookup, unified ability counts); `tests/{test_modules,test_coverage}.py`; `data/graph_global/{legend_nodes,legend_edges,mechanism_modules,coverage}.jsonl`

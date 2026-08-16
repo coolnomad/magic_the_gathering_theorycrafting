@@ -64,7 +64,13 @@ def coverage(repo: Path = REPO) -> dict:
     audit = _opt(G / "audit_results.jsonl")
     conds = list(_load_dicts(G / "conditions.jsonl"))
 
-    ability_kinds = Counter(n["data"].get("kind", "?") for n in nodes if n["type"] == "Ability")
+    # abilities counted over the UNIFIED node set (frozen + repair + legend), so the legend
+    # layer's state_based_action ability is included — not just the frozen Phase 4 nodes.
+    union_nodes = {n["id"]: n for n in nodes}
+    for n in repair_nodes + legend_nodes:
+        union_nodes.setdefault(n["id"], n)
+    ability_kinds = Counter(n["data"].get("kind", "?")
+                            for n in union_nodes.values() if n["type"] == "Ability")
     edges_by_pred = Counter(e["predicate"] for e in edges)
     # pair relations
     rel_by_type = Counter(m["relation"] for m in proj)

@@ -69,7 +69,10 @@ def materialize_legend(repo: Path) -> dict:
     SBA ability, move operation, and rule node are canonical (one legend rule for the whole set).
     Additive layer; the frozen Phase 4 graph is untouched. All edges are predicate-signature
     valid against `assemble.GLOBAL_SIGNATURES`."""
-    names = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
+    # name the conflict by the PERMANENT FACE's name (what the legend rule compares on the
+    # battlefield), not the combined Adventure card name — 12 legendary Adventures otherwise get
+    # a wrong "Front // Adventure" conflict name (e.g. "Beorn, Reluctant Host // Till and Tend").
+    face_names = {f["id"]: f["name"] for f in _load_dicts(repo / "data/normalized/faces.jsonl")}
     edges = list(_load_dicts(repo / "data/graph_global/edges.jsonl"))
     legendary_faces = sorted({e["source"] for e in edges
                               if e["predicate"] == "HAS_TYPE" and e["target"] == "obj:supertype:legendary"})
@@ -101,8 +104,7 @@ def materialize_legend(repo: Path) -> dict:
     ledges.append(_ledge(move, "MOVES_TO", "zone:graveyard", "excess legends go to owners' graveyards"))
 
     for face in legendary_faces:
-        card = _card_of(face)
-        name = names.get(card, card)
+        name = face_names.get(face) or _card_of(face) or face
         state = f"state:legend-conflict:{_slug(name)}"
         if state not in lnodes:                          # same-name legends share the conflict state
             lnodes[state] = {"id": state, "type": "State", "label": f"legend-rule conflict: {name}",
@@ -226,6 +228,31 @@ def _provenance_edges(g: _Graph, op_node: str, depth: int = 3):
     return ids
 
 
+def _resolution_edges(g: _Graph, starts: set, depth: int = 4):
+    """Downstream RESOLUTION chain from the module's machinery: starting at any reached
+    Ability/Operation node, follow its outgoing edges, continuing THROUGH Ability/Operation
+    nodes. This makes a module expandable through the mechanism it represents — e.g. the legend
+    SBA `state ENABLES ability CAUSES op MOVES_TO graveyard` includes the CAUSES/MOVES_TO/
+    REFERENCES_RULE edges, not just HAS_STATE/ENABLES. Added to subgraph edges only (members,
+    contributors, consumers are unchanged, so no card is pulled in as a member)."""
+    ids, seen, frontier = set(), set(), []
+    for s in starts:
+        if g.nodes.get(s, {}).get("type") in ("Ability", "Operation"):
+            seen.add(s)
+            frontier.append((s, 0))
+    while frontier:
+        node, d = frontier.pop()
+        if d >= depth:
+            continue
+        for e in g.out.get(node, []):
+            ids.add(e["edge_id"])
+            t = e["target"]
+            if t not in seen and g.nodes.get(t, {}).get("type") in ("Ability", "Operation"):
+                seen.add(t)
+                frontier.append((t, d + 1))
+    return ids
+
+
 def _module(g: _Graph, module_id: str, label: str, kind: str, anchors: list, members: set) -> dict:
     anchors = [a for a in anchors if a in g.nodes]
     anchorset = set(anchors)
@@ -256,6 +283,10 @@ def _module(g: _Graph, module_id: str, label: str, kind: str, anchors: list, mem
                         consumers.append({"card": _card_of(e2["target"]), "edge_id": e2["edge_id"],
                                           "predicate": "ENABLES", "target": e2["target"], "from": e["target"]})
                         note(e2)
+
+    # include the downstream resolution chain (e.g. legend SBA ability CAUSES op MOVES_TO
+    # graveyard) so the module is expandable through the mechanism it claims to represent
+    sub_edges |= _resolution_edges(g, {c.get("target") for c in consumers if c.get("target")})
 
     members = set(members) | {c["card"] for c in contributors if c["card"]} | \
               {c["card"] for c in consumers if c["card"]}
