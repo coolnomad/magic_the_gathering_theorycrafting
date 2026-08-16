@@ -16,8 +16,8 @@ def cov():
 
 
 @pytest.fixture(scope="module")
-def gold():
-    return coverage.gold_set()
+def sv():
+    return coverage.structural_validation_set()
 
 
 def test_coverage_core_numbers(cov):
@@ -57,24 +57,54 @@ def test_coverage_written(cov):
     assert disk["pair_relations_total"] == cov["pair_relations_total"]
 
 
-def test_gold_set_strata_match_spec(gold):
-    s = gold["strata"]
+def test_structural_validation_strata_match_spec(sv):
+    s = sv["strata"]
     assert s["recruit"] == 10 and s["storied"] == 9 and s["adventures"] == 17 and s["sagas"] == 8
-    assert s["null_pairs"] >= 20 and s["self_pairs"] >= 10 and s["multi_edge_pairs"] >= 20
+    assert s["null_pairs"] >= 20 and s["self_pairs"] >= 10
     assert s["replacement_effects"] >= 1
 
 
-def test_gold_set_is_adjudicated_and_diversified(gold):
+def test_structural_validation_is_adjudicated_and_diversified(sv):
     # verdicts present (not an open queue) and every deterministic check passes
-    assert gold["passed"] == gold["total_items"] and gold["failed"] == 0
+    assert sv["passed"] == sv["total_items"] and sv["failed"] == 0
     # null pairs use 20 DISTINCT source cards, not one repeated source
-    assert gold["distinct_null_sources"] == 20
-    lines = (G / "gold_set.jsonl").read_text(encoding="utf-8").splitlines()
+    assert sv["distinct_null_sources"] == 20
+    lines = (G / "structural_validation_set.jsonl").read_text(encoding="utf-8").splitlines()
     for l in lines:
         rec = json.loads(l)
         for it in rec["items"]:
             assert it["disposition"] in ("pass", "fail") and it["expected"]
-    # multi-edge pairs cover DISTINCT relation combinations (diversified)
+
+
+def test_multi_edge_stratum_covers_distinct_relation_COMBINATIONS(sv):
+    # the reviewer's finding: the old sampler drew 20 rows that were all ONE combination and
+    # the test only checked distinct pair-IDs. Now each item must be a distinct COMBINATION of
+    # relation types, drawn from the UNION of all three projection layers.
+    lines = (G / "structural_validation_set.jsonl").read_text(encoding="utf-8").splitlines()
     me = next(json.loads(l) for l in lines if json.loads(l)["stratum"] == "multi_edge_pairs")
-    combos = {tuple(sorted(it["ids"])) for it in me["items"]}
-    assert len(combos) == len(me["items"])
+    combos = {tuple(it["relation_combination"]) for it in me["items"]}
+    assert len(combos) == len(me["items"])            # every row is a *distinct* combination
+    assert sv["distinct_multi_edge_combos"] == len(combos)
+    # the union of layers must surface MORE than the single mechanical-only combo
+    assert len(combos) >= 2
+    assert ("CONTRIBUTES_TO_GATE", "INFRASTRUCTURE_CASTING") in combos
+    assert ("ENABLES_TRIGGER", "INFRASTRUCTURE_CASTING") in combos  # only visible via audit/repair layers
+
+
+def test_saga_stratum_is_not_a_tautology(sv):
+    # Saga adjudication must assert real chapter/lore structure, not "subtype is Saga" (which is
+    # trivially true for the very cards selected BY subtype Saga).
+    lines = (G / "structural_validation_set.jsonl").read_text(encoding="utf-8").splitlines()
+    sagas = next(json.loads(l) for l in lines if json.loads(l)["stratum"] == "sagas")
+    for it in sagas["items"]:
+        assert "lore" in it["expected"].lower() or "saga" in it["expected"].lower()
+        assert "type-confirmed" not in it["expected"]     # the old tautological phrasing is gone
+
+
+def test_self_pair_stratum_checks_reflexive_resolution(sv):
+    # self-pair adjudication must assert the reflexive effect is not routed through an
+    # "another/other" object class (which would be a DIFFERENT copy), not "source == target".
+    lines = (G / "structural_validation_set.jsonl").read_text(encoding="utf-8").splitlines()
+    sp = next(json.loads(l) for l in lines if json.loads(l)["stratum"] == "self_pairs")
+    for it in sp["items"]:
+        assert "another/other" in it["expected"] and "reflexive" in it["expected"]

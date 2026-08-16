@@ -40,11 +40,12 @@ def test_named_modules_present(mods):
 
 
 def test_every_module_is_a_grounded_subgraph(mods, edges):
-    # subgraph edges resolve to the UNION of frozen + repair-layer edges (Phase 6 v2)
-    rep = GLOBAL / "repair_edges.jsonl"
+    # subgraph edges resolve to the UNION of frozen + repair + legend layers (Phase 6 v3.1)
     edge_ids = {e["edge_id"] for e in edges}
-    if rep.exists():
-        edge_ids |= {json.loads(l)["edge_id"] for l in rep.read_text(encoding="utf-8").splitlines()}
+    for layer in ("repair_edges.jsonl", "legend_edges.jsonl"):
+        p = GLOBAL / layer
+        if p.exists():
+            edge_ids |= {json.loads(l)["edge_id"] for l in p.read_text(encoding="utf-8").splitlines()}
     assert mods
     for m in mods.values():
         assert m["anchors"] and (m["members"] or m["contributors"] or m["consumers"])
@@ -171,31 +172,88 @@ def test_module_subgraph_includes_provenance_path(mods, edges):
 
 
 # --- remaining semantic invariants (spec) ------------------------------------
-def test_inv2_councillors_second_draw_only_and_not_reverse(edges):
-    # Master's Councillors triggers ONLY on the second-draw event (encodes "only through
-    # the second draw"), and produces no draw that a Recruit card could consume (no reverse).
-    faces = _load_dicts(REPO / "data/normalized/faces.jsonl")
+def test_inv2_councillors_second_draw_path_and_no_reverse_all_layers(edges):
+    # SUBSTANTIVE #2: Master's Councillors triggers ONLY on the second-draw event, and the graph
+    # correctly REFUSES to assert a Recruit->Councillors enabling relation — because "the second
+    # card drawn each turn" is a per-turn ORDERING condition the graph does not model, the
+    # second-draw event has no modeled producer. We validate the full picture in BOTH directions
+    # across ALL THREE projection layers.
+    from collections import defaultdict
+    faces = list(_load_dicts(REPO / "data/normalized/faces.jsonl"))
     mc = next(f["card_id"] for f in faces if f["name"] == "Master's Councillors")
     u = mc.split(":")[1]
+    mech = defaultdict(set)
+    for m in _load_dicts(REPO / "data/rules/mechanics.jsonl"):
+        mech[m["mechanic"]].add(m["card_id"])
+    recruit = mech["Recruit"]
+    assert recruit, "HOB has Recruit cards"
+
+    # (1) Councillors triggers ONLY on a second-draw event
     trig = {e["source"] for e in edges if e["predicate"] == "TRIGGERS" and u in e["target"]}
-    assert trig and all("second" in t for t in trig)         # only via a second-draw event
-    # Councillors does not PRODUCE a draw/card that would let the relation run in reverse
-    assert not any(u in e["source"] and e["predicate"] == "PRODUCES"
+    assert trig and all("second" in t for t in trig)
+    # (2) that second-draw event has NO modeled producer/cause (the ordering condition is unmodeled,
+    #     so the graph does not invent a Recruit-draw -> second-draw production edge)
+    for ev in trig:
+        assert not any(e["target"] == ev for e in edges), f"{ev} must have no incoming producer"
+    # (3) Councillors produces no draw/card -> no reverse enabling is even possible
+    assert not any(u in e["source"] and e["predicate"] in ("PRODUCES", "SUPPLIES", "CREATES_OBJECT")
                    and e["target"] in ("resource:card", "event:draw") for e in edges)
+    # (4) across ALL THREE projection layers there is NO metaedge either way between any Recruit
+    #     card and Councillors (the graph asserts no unsupported synergy in either direction)
+    for layer in ("card_pair_projection.jsonl", "card_pair_projection_audit.jsonl",
+                  "card_pair_projection_repaired.jsonl"):
+        p = GLOBAL / layer
+        if not p.exists():
+            continue
+        for m in _load_dicts(p):
+            s, t = m["source_card"], m["target_card"]
+            assert not (t == mc and s in recruit), f"unexpected Recruit->Councillors edge in {layer}"
+            assert not (s == mc and t in recruit), f"unexpected Councillors->Recruit edge in {layer}"
 
 
-def test_inv11_legend_conflicts_not_subjective_synergy(edges):
-    # legend-rule conflicts are NOT (mis)represented as subjective negative-synergy edges;
-    # the predicate vocabulary is entirely mechanistic.
+def test_inv11_legend_rule_materialized_as_state_constraint(edges, mods):
+    # SUBSTANTIVE #11: the legend rule is modeled as an explicit, mechanistic STATE CONSTRAINT
+    # (a max-one-controlled state per legendary name), NOT as a subjective negative-synergy edge.
     preds = {e["predicate"] for e in edges}
     assert not (preds & {"SYNERGY", "NEGATIVE_SYNERGY", "ANTI_SYNERGY", "ARCHETYPE"})
-    # the graph does model the legendary supertype (the substrate a state-constraint model would use)
-    assert any(e["target"] == "obj:supertype:legendary" for e in edges)
+    ln = {n["id"]: n for n in _load_dicts(GLOBAL / "legend_nodes.jsonl")}
+    le = list(_load_dicts(GLOBAL / "legend_edges.jsonl"))
+    assert ln, "legend layer must be materialized"
+    for n in ln.values():
+        assert n["type"] == "State" and n["data"]["rule"] == "legend"
+        assert n["data"]["max_controlled"] == 1          # the mechanistic constraint (not a value judgment)
+        assert n["origin"] == "legend_rule"
+    # one HAS_STATE edge per legendary face -> its legend state; exactly the legendary faces
+    # (legendary faces are those carrying HAS_TYPE -> obj:supertype:legendary, per the assembler)
+    legendary_faces = {e["source"] for e in edges
+                       if e["predicate"] == "HAS_TYPE" and e["target"] == "obj:supertype:legendary"}
+    assert legendary_faces, "there are legendary faces in HOB"
+    has_state = {(e["source"], e["target"]) for e in le if e["predicate"] == "HAS_STATE"}
+    assert {s for s, _ in has_state} == legendary_faces   # every legendary face, only legendary faces
+    assert all(t in ln for _, t in has_state)             # each points at a materialized legend state
+    assert len(ln) == len(legendary_faces)
+    # surfaced as a Phase 6 module whose anchors are the legend states
+    legend_mod = mods["module:legend-rule"]
+    assert legend_mod["kind"] == "state_constraint"
+    assert set(legend_mod["anchors"]) == set(ln) and len(legend_mod["anchors"]) == len(legendary_faces)
 
 
-def test_inv12_self_pair_object_identity(edges):
-    proj = _load_dicts(GLOBAL / "card_pair_projection.jsonl")
+def test_inv12_self_pair_this_vs_another_resolution(edges):
+    # SUBSTANTIVE #12: every self-pair metaedge is a GENUINE reflexive self-effect. The projection
+    # resolves object identity per relation (this vs another vs copy): a self-pair must be reflexive
+    # AND must NOT be routed through an "another/other" class (which is a DIFFERENT copy).
+    proj = list(_load_dicts(GLOBAL / "card_pair_projection.jsonl"))
     self_pairs = [m for m in proj if m["self_pair"]]
     assert self_pairs and all(m["source_card"] == m["target_card"] for m in self_pairs)
-    # "another/other" object classes let one object affect a DIFFERENT copy, not itself
+    # the "another/other" self-exclusion classes exist (the substrate that makes the distinction real)
     assert any(e["target"].startswith("obj:another") for e in edges)
+    for m in self_pairs:
+        assert m["participant_status"] == "resolved"      # identity was resolved, not left ambiguous
+        path_nodes = [n for a in m.get("alternative_paths", []) for n in a["primitive_path"]]
+        assert not any(n.startswith(("obj:another", "obj:other")) for n in path_nodes), (
+            f"self-pair {m['source_card']} ({m['relation']}) is routed through an 'another/other' "
+            "class — that is a different copy, not a reflexive self-effect")
+    # every relation type that produces self-pairs did so through resolved identity (no relation
+    # is silently exempt from the this/another/copy distinction)
+    assert {m["relation"] for m in self_pairs} <= {
+        "INFRASTRUCTURE_CASTING", "CONTRIBUTES_TO_GATE", "ENABLES_TRIGGER", "SUPPLIES_RESOURCE"}

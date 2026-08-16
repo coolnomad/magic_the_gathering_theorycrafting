@@ -1,8 +1,8 @@
 # HOB Phase 6 — Higher-Order Mechanism Modules
 
-- **modules**: 36
+- **modules**: 37
 - **modules with feedback cycles**: 1
-- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 5, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 3, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
+- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 5, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 3, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'state_constraint': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
 
 ## Modules
 
@@ -89,6 +89,10 @@
 ### Landfall  (`landfall`)
 - anchors: `rule:landfall`, `keyword:landfall`
 - members: 9  · contributors: 8  · consumers: 0  · conditions: 0  · feedback cycles: 0
+
+### legend rule (state constraint)  (`state_constraint`)
+- anchors: `state:legend:azog-moria-s-ruin`, `state:legend:balin-loremaster`, `state:legend:bard-king-of-dale`, `state:legend:bard-the-bowman`, `state:legend:belladonna-took`, `state:legend:beorn-reluctant-host-till-and-tend`, `state:legend:beorn-the-fierce`, `state:legend:bifur-melodic-rider`, `state:legend:bilbo-baggins-burglar-take-a-glance`, `state:legend:bilbo-luckwearer-burglar-s-plot`, `state:legend:bilbo-thief-in-the-night`, `state:legend:bofur-reliable-guardian-concerted-care`, `state:legend:bolg-of-the-north`, `state:legend:bombur-gentle-dreamer`, `state:legend:d-in-ironfoot`, `state:legend:d-in-lord-of-the-iron-hills`, `state:legend:dori-bearer-of-friends`, `state:legend:dwalin-weaponmaster`, `state:legend:elrond-moon-reader`, `state:legend:f-li-the-pathfinder`, `state:legend:galion-elvenking-s-butler`, `state:legend:gandalf-goblins-bane-flameshape`, `state:legend:gandalf-spark-starter`, `state:legend:gandalf-wandering-wizard`, `state:legend:gl-in-the-mighty-easy-pickings`, `state:legend:glamdring-foe-hammer-gleam-of-death`, `state:legend:gollum-riddle-master`, `state:legend:gollum-silent-slinker-meager-meal`, `state:legend:gollum-the-abandoned`, `state:legend:in-the-brave`, `state:legend:k-li-the-resourceful`, `state:legend:my-precious-allure-of-power`, `state:legend:nori-teller-of-tales`, `state:legend:orcrist-goblin-cleaver`, `state:legend:ori-keeper-of-songs`, `state:legend:radagast-of-rhosgobel`, `state:legend:smaug-the-great-calamity-spew-flame`, `state:legend:smaug-the-magnificent`, `state:legend:smaug-wicked-worm`, `state:legend:sting-bilbo-s-sword`, `state:legend:the-arkenstone-seek-the-heart`, `state:legend:the-black-arrow`, `state:legend:the-chief-warg`, `state:legend:the-great-goblin`, `state:legend:the-lord-of-the-eagles`, `state:legend:the-master-of-lake-town`, `state:legend:the-notary-hobbits`, `state:legend:the-queen-of-dale`, `state:legend:the-sackville-bagginses`, `state:legend:thorin-mountain-king`, `state:legend:thorin-oakenshield`, `state:legend:thr-r-s-map`, `state:legend:thranduil-sindarin-liege-silvan-rally`, `state:legend:thranduil-the-elvenking`, `state:legend:tom-bert-and-william`
+- members: 55  · contributors: 55  · consumers: 0  · conditions: 0  · feedback cycles: 0
 
 ### Recruit  (`recruit`)
 - anchors: `rule:recruit`, `gate:recruit-nonland-discard`

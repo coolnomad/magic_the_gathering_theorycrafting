@@ -156,10 +156,10 @@ def pair_index(repo: Path = REPO) -> dict:
             "nonempty_pairs": nonempty, "empty_pairs": n - nonempty}
 
 
-def gold_set(repo: Path = REPO) -> dict:
-    """Stratified sample (spec §Manual gold set), DIVERSIFIED and each item ADJUDICATED
-    with a deterministic expected-structure check (pass/fail) so the review gate carries
-    verdicts rather than being an open queue. Human reviewers may override any verdict."""
+def structural_validation_set(repo: Path = REPO) -> dict:
+    """Stratified STRUCTURAL VALIDATION set (NOT an independent human gold set — it applies
+    deterministic structural assertions to the same graph being evaluated; human reviewers
+    still adjudicate semantics). Diversified sampling + per-item pass/fail verdicts."""
     G = repo / "data" / "graph_global"
     faces = list(_load_dicts(repo / "data/normalized/faces.jsonl"))
     cards = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
@@ -172,13 +172,20 @@ def gold_set(repo: Path = REPO) -> dict:
         c = _card_of(e["source"])
         if c:
             by_card_pred[(c, e["predicate"])].add(e["target"])
-    proj = list(_load_dicts(G / "card_pair_projection.jsonl"))
-    aud = {(m["source_card"], m["target_card"]) for m in _opt(G / "card_pair_projection_audit.jsonl")}
-    rep = {(m["source_card"], m["target_card"]) for m in _opt(G / "card_pair_projection_repaired.jsonl")}
-    pairs = defaultdict(set)
-    for m in proj:
-        pairs[(m["source_card"], m["target_card"])].add(m["relation"])
-    related = set(pairs) | aud | rep
+    lore_cards = {_card_of(e["source"]) for e in edges
+                  if e["predicate"] == "HAS_COUNTER_TYPE" and e["target"] == "counter:lore"} - {None}
+    # relation TYPES per pair across ALL THREE layers (mechanical + audit + repaired)
+    rel_by_pair = defaultdict(set)
+    for layer in ("card_pair_projection.jsonl", "card_pair_projection_audit.jsonl",
+                  "card_pair_projection_repaired.jsonl"):
+        for m in _opt(G / layer):
+            rel_by_pair[(m["source_card"], m["target_card"])].add(m["relation"])
+    related = set(rel_by_pair)
+    # self-pair metaedges + their primitive paths (to check reflexive resolution)
+    selfpath = {}
+    for m in _load_dicts(G / "card_pair_projection.jsonl"):
+        if m["source_card"] == m["target_card"]:
+            selfpath[m["source_card"]] = [n for a in m.get("alternative_paths", []) for n in a["primitive_path"]]
 
     sagas = sorted({f["card_id"] for f in faces
                     if "Saga" in ((f.get("type_line") or {}).get("subtypes") or [])})
@@ -188,9 +195,8 @@ def gold_set(repo: Path = REPO) -> dict:
     for f in faces:
         faces_by_card[f["card_id"]].add(f["id"])
 
-    # DIVERSIFIED null pairs: one per distinct source card (not all one source)
     all_ids = sorted(cards)
-    null_pairs, used_src = [], set()
+    null_pairs, used_src = [], set()               # one per DISTINCT source card
     for a in all_ids:
         if a in used_src:
             continue
@@ -201,25 +207,32 @@ def gold_set(repo: Path = REPO) -> dict:
                 break
         if len(null_pairs) >= 20:
             break
-    # DIVERSIFIED multi-edge pairs: cover distinct relation-type COMBINATIONS first
+    # multi-edge: distinct relation-type COMBINATIONS across all layers (one per combo)
     combos = {}
-    for p, v in sorted(pairs.items()):
+    for p, v in sorted(rel_by_pair.items()):
         if len(v) > 1:
-            combos.setdefault(frozenset(v), p)
-    multi_edge = sorted(combos.values())
-    if len(multi_edge) < 20:
-        extra = [p for p, v in sorted(pairs.items()) if len(v) > 1 and p not in multi_edge]
-        multi_edge += extra[:20 - len(multi_edge)]
-    multi_edge = multi_edge[:20]
-    self_pairs = sorted({m["source_card"] for m in proj if m["source_card"] == m["target_card"]})[:10]
+            combos.setdefault(frozenset(v), (p, sorted(v)))
+    multi_edge = [pv for _, pv in sorted(combos.items(), key=lambda kv: sorted(kv[0]))]
+    self_pairs = sorted(selfpath)[:10]
 
     def adj_card(c, expect, ok):
         return {"item": cards.get(c, c), "id": c, "expected": expect,
                 "disposition": "pass" if ok else "fail"}
 
-    def adj_pair(p, expect, ok):
-        return {"item": [cards.get(p[0], p[0]), cards.get(p[1], p[1])], "ids": list(p),
-                "expected": expect, "disposition": "pass" if ok else "fail"}
+    def adj_pair(p, expect, ok, extra=None):
+        r = {"item": [cards.get(p[0], p[0]), cards.get(p[1], p[1])], "ids": list(p),
+             "expected": expect, "disposition": "pass" if ok else "fail"}
+        if extra:
+            r.update(extra)
+        return r
+
+    def saga_ok(c):
+        return "rule:saga" in by_card_pred.get((c, "REFERENCES_RULE"), set()) or c in lore_cards
+
+    def selfpair_ok(c):
+        # a genuine self-effect: the reflexive path must NOT run through an "another/other"
+        # object class (which would be one copy affecting a DIFFERENT object, not itself)
+        return not any(n.startswith(("obj:another", "obj:other")) for n in selfpath.get(c, []))
 
     adjudicated = {
         "recruit": [adj_card(c, "references rule:recruit",
@@ -230,18 +243,21 @@ def gold_set(repo: Path = REPO) -> dict:
                     for c in sorted(mech["Storied"])],
         "adventures": [adj_card(c, "exactly two face nodes", len(faces_by_card[c]) == 2)
                        for c in sorted({f["card_id"] for f in faces if f.get("role") == "adventure"})],
-        "sagas": [adj_card(c, "subtype Saga (type-confirmed)", True) for c in sagas],
+        "sagas": [adj_card(c, "has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)",
+                           saga_ok(c)) for c in sagas],
         "replacement_effects": [adj_card(c, "has a REPLACES edge", bool(by_card_pred.get((c, "REPLACES"))))
                                 for c in replacement],
         "multi_token_or_type": [adj_card(c, "creates >=2 token types",
                                          len(by_card_pred.get((c, "CREATES_OBJECT"), set())) >= 2)
                                 for c in multitoken],
-        "null_pairs": [adj_pair(p, "no relation in any layer",
+        "null_pairs": [adj_pair(p, "no relation in any of the 3 projection layers",
                                 p not in related and (p[1], p[0]) not in related) for p in null_pairs],
-        "self_pairs": [adj_pair((c, c), "source == target (self object)", True) for c in self_pairs],
-        "multi_edge_pairs": [adj_pair(p, ">=2 relation types", len(pairs[p]) >= 2) for p in multi_edge],
+        "self_pairs": [adj_pair((c, c), "reflexive self-effect not routed through an 'another/other' class",
+                                selfpair_ok(c)) for c in self_pairs],
+        "multi_edge_pairs": [adj_pair(p, f"relation combination {combo}", len(combo) >= 2,
+                                      {"relation_combination": combo}) for (p, combo) in multi_edge],
     }
-    with (G / "gold_set.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+    with (G / "structural_validation_set.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for stratum, items in sorted(adjudicated.items()):
             passed = sum(1 for it in items if it["disposition"] == "pass")
             fh.write(json.dumps({"stratum": stratum, "count": len(items), "passed": passed,
@@ -250,17 +266,24 @@ def gold_set(repo: Path = REPO) -> dict:
     counts = {k: len(v) for k, v in adjudicated.items()}
     total = sum(counts.values())
     passed = sum(1 for its in adjudicated.values() for it in its if it["disposition"] == "pass")
-    _gold_report(repo, adjudicated)
+    _validation_report(repo, adjudicated)
     return {"strata": counts, "total_items": total, "passed": passed, "failed": total - passed,
-            "distinct_null_sources": len({it["ids"][0] for it in adjudicated["null_pairs"]})}
+            "distinct_null_sources": len({it["ids"][0] for it in adjudicated["null_pairs"]}),
+            "distinct_multi_edge_combos": len({tuple(it["relation_combination"])
+                                               for it in adjudicated["multi_edge_pairs"]})}
 
 
-def _gold_report(repo, adjudicated):
+# backwards-compatible alias
+gold_set = structural_validation_set
+
+
+def _validation_report(repo, adjudicated):
     total = sum(len(v) for v in adjudicated.values())
     passed = sum(1 for its in adjudicated.values() for it in its if it["disposition"] == "pass")
-    L = ["# HOB Gold Set (stratified, adjudicated)", "",
-         f"Deterministic structural adjudication: **{passed}/{total} pass**. "
-         "Human reviewers may override any verdict.", ""]
+    L = ["# HOB Structural Validation Set (stratified, adjudicated)", "",
+         "*NOT an independent human gold set: these are deterministic structural assertions "
+         "against the same graph. Human reviewers still adjudicate semantics and may override.*", "",
+         f"Structural checks: **{passed}/{total} pass**.", ""]
     for stratum, items in sorted(adjudicated.items()):
         p = sum(1 for it in items if it["disposition"] == "pass")
         L.append(f"## {stratum} — {p}/{len(items)} pass")
@@ -268,4 +291,4 @@ def _gold_report(repo, adjudicated):
             name = it["item"] if isinstance(it["item"], str) else " → ".join(it["item"])
             L.append(f"- [{it['disposition']}] {name}  _(expect: {it['expected']})_")
         L.append("")
-    (repo / "reports" / "gold_set.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    (repo / "reports" / "structural_validation.md").write_text("\n".join(L) + "\n", encoding="utf-8")

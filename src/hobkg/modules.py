@@ -37,20 +37,59 @@ def _load_optional(path: Path):
     return list(_load_dicts(path)) if path.exists() else []
 
 
+def _slug(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:50] or "x"
+
+
+def materialize_legend(repo: Path) -> dict:
+    """Model the legend rule as an explicit STATE CONSTRAINT, not subjective synergy:
+    each legendary permanent HAS_STATE a per-name `state:legend:{name}` whose data records
+    'at most one legendary permanent with this name may be controlled'. Same-name legends
+    share the state node (that shared node IS the conflict). Additive layer."""
+    names = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
+    edges = list(_load_dicts(repo / "data/graph_global/edges.jsonl"))
+    legendary_faces = sorted({e["source"] for e in edges
+                              if e["predicate"] == "HAS_TYPE" and e["target"] == "obj:supertype:legendary"})
+    lnodes, ledges = {}, []
+    for face in legendary_faces:
+        card = _card_of(face)
+        name = names.get(card, card)
+        state = f"state:legend:{_slug(name)}"
+        lnodes[state] = {"id": state, "type": "State", "label": f"legend rule: {name}",
+                         "data": {"rule": "legend", "by_name": name, "max_controlled": 1,
+                                  "constraint": "at most one legendary permanent with this name may be controlled"},
+                         "provenance": [{"source": "legend_rule", "derivation": "supertype:legendary"}],
+                         "origin": "legend_rule"}
+        eid = "l" + re.sub(r"[^a-z0-9]", "", (face + state))[-15:]
+        ledges.append({"edge_id": eid, "source": face, "predicate": "HAS_STATE", "target": state,
+                       "provenance": [{"source": "legend_rule", "derivation": "legend rule state constraint"}],
+                       "origin": "legend_rule"})
+    G = repo / "data" / "graph_global"
+    with (G / "legend_nodes.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for n in sorted(lnodes.values(), key=lambda n: n["id"]):
+            fh.write(json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n")
+    with (G / "legend_edges.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for e in sorted(ledges, key=lambda e: (e["source"], e["target"])):
+            fh.write(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n")
+    return {"legend_states": len(lnodes), "legend_edges": len(ledges)}
+
+
 class _Graph:
     def __init__(self, repo: Path):
         # union the frozen Phase 4 graph with the (additive) graph-repair layer, keeping
         # each node/edge's origin so repaired structures participate in modules too.
         self.nodes = {n["id"]: n for n in _load_dicts(repo / "data/graph_global/nodes.jsonl")}
-        for n in _load_optional(repo / "data/graph_global/repair_nodes.jsonl"):
-            self.nodes.setdefault(n["id"], {**n, "origin": n.get("origin", "graph_repair")})
+        for layer in ("repair_nodes.jsonl", "legend_nodes.jsonl"):
+            for n in _load_optional(repo / "data/graph_global" / layer):
+                self.nodes.setdefault(n["id"], n)
         self.edges = []
         for e in _load_dicts(repo / "data/graph_global/edges.jsonl"):
             e.setdefault("origin", "phase4")
             self.edges.append(e)
-        for e in _load_optional(repo / "data/graph_global/repair_edges.jsonl"):
-            e.setdefault("origin", "graph_repair")
-            self.edges.append(e)
+        for layer, origin in (("repair_edges.jsonl", "graph_repair"), ("legend_edges.jsonl", "legend_rule")):
+            for e in _load_optional(repo / "data/graph_global" / layer):
+                e.setdefault("origin", origin)
+                self.edges.append(e)
         self.out = defaultdict(list)
         self.inc = defaultdict(list)
         for e in self.edges:
@@ -183,8 +222,15 @@ def _module(g: _Graph, module_id: str, label: str, kind: str, anchors: list, mem
 
 
 def build_modules(repo: Path = REPO) -> dict:
+    materialize_legend(repo)                              # (re)materialize the legend-rule layer
     g = _Graph(repo)
     mods = []
+
+    # --- legend rule as an explicit state constraint (not subjective synergy) ---
+    legend_states = sorted(n for n in g.nodes if n.startswith("state:legend:"))
+    if legend_states:
+        mods.append(_module(g, "module:legend-rule", "legend rule (state constraint)",
+                            "state_constraint", legend_states, set()))
 
     # --- per-gate modules (the spec's mechanism_modules) ---
     for gate in sorted(n for n in g.nodes if n.startswith("gate:")):

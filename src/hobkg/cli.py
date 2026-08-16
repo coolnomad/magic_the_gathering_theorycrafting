@@ -78,9 +78,9 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "coverage":
         from . import coverage
         print(json.dumps(coverage.coverage(), indent=2))
-    elif cmd == "gold-set":
+    elif cmd in ("structural-validation", "gold-set"):
         from . import coverage
-        print(json.dumps(coverage.gold_set(), indent=2))
+        print(json.dumps(coverage.structural_validation_set(), indent=2))
     elif cmd == "pair-index":
         from . import coverage
         print(json.dumps(coverage.pair_index(), indent=2))
