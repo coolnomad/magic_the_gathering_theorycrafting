@@ -2912,3 +2912,31 @@ anthem Operation ΓåÆ MODIFIES ΓåÆ Elf object class
 * All 139 tests pass.
 
 This resolves the issue I flagged. The repaired graph layer is now internally schema-consistent and can be frozen.
+
+### [2026-08-16 08:55] ASSISTANT
+The graph-repair layer is accepted and can be frozen. Let me record the freeze and update the project-status memory (no code changes).
+
+Recorded and pushed â€” `5f15f55`. **Graph-repair + reprojection is frozen.**
+
+## Where the build stands
+
+The card-pair layer now has three clean, separate tiers â€” all frozen:
+
+| Tier | File | Content |
+|---|---|---|
+| Mechanical (Part 1) | `card_pair_projection.jsonl` | 5,278 metaedges |
+| LLM audit (Part 2) | `card_pair_projection_audit.jsonl` | 3 `llm_audit` typed paths |
+| Graph repair | `card_pair_projection_repaired.jsonl` | 8 `graph_repair` typed paths |
+
+Plus the additive, signature-validated repair layer (`repair_edges.jsonl` / `repair_nodes.jsonl`) â€” with the frozen Phase 4 graph left byte-identical throughout. 139 tests pass.
+
+**Completed so far:** Phases 1â€“4 (frozen), Phase 5 Part 1 (projection) + Part 2 (audit) frozen, and graph-repair + reprojection frozen.
+
+**Remaining build work** (each awaiting your go-ahead):
+1. **Phase 6 â€” higher-order mechanism assembly** (spec Â§Phase 6): discover higher-order structures by grouping edges around shared gates, resources, and state transitions.
+2. **A fresh audit/repair round** for the separate projection gaps you flagged: Dwarf/Equipment support and noncreature-cast triggers (relevant to the sealed-deck maindeck; not among the 8 repaired).
+
+Updated the project-status memory accordingly. Just point me at whichever you'd like next.
+
+### [2026-08-16 08:59] USER
+proceed to Phase 6

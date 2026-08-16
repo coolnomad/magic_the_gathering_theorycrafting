@@ -72,6 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "reproject":
         from . import graph_repair
         print(json.dumps(graph_repair.reproject(), indent=2))
+    elif cmd == "modules":
+        from . import modules
+        print(json.dumps(modules.build_modules(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

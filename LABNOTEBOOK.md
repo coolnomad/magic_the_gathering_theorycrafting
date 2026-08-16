@@ -978,3 +978,23 @@ Rebuilt deterministically by `python -m hobkg.cli graph-repair` then `reproject`
 **Remaining build work (both need a go-ahead):** (a) **Phase 6** — higher-order mechanism assembly (spec §Phase 6): group edges around shared gates/resources/state transitions into higher-order structures. (b) A **fresh audit/repair round** for the reviewer-flagged separate projection gaps: Dwarf/Equipment support and noncreature-cast triggers (not in the 8 repaired; relevant to the sealed-deck maindeck).
 
 Refs: `data/graph_global/{repair_edges,repair_nodes,card_pair_projection_repaired}.jsonl`; `src/hobkg/graph_repair.py`; `reports/graph_repair.md`
+
+---
+
+## [2026-08-16 20:00] EXPERIMENT — Phase 6 v1: higher-order mechanism modules
+
+With the user's go-ahead, built Phase 6 (spec §Phase 6): discover higher-order structures by grouping primitive edges around shared ANCHORS — not by enumerating triples. `src/hobkg/modules.py` (`python -m hobkg.cli modules`).
+
+**Module model.** Each module is a formal, labelled SUBGRAPH of the frozen graph: `{anchors, members (cards), contributors (upstream edges feeding the anchor), consumers (downstream edges it feeds — following gate→state→ENABLES→ability one hop), conditions (condition_ids on the subgraph edges), feedback_cycles (directed cycles through an anchor, incl. length-1 self-loops), subgraph_edge_ids}`. Labels index formal subgraphs, not subjective archetypes.
+
+**22 modules** → `data/graph_global/mechanism_modules.jsonl` + `reports/mechanism_modules.md`:
+- 3 per-gate modules (the spec's `mechanism_modules(graph)`): `gate:storied` (74 contributors QUALIFIES_FOR / 17 consumers COUNTS+ENABLES+PRODUCES), `gate:recruit-nonland-discard`, `gate:amass-no-army`.
+- 8 named mechanic modules: Recruit (10 members; consumer CREATES_OBJECT soldier; cond:recruit-nonland-discard), Storied (74; PERSISTS_AS feedback cycle on enduring_story), Amass (14; INSTANTIATES op:amass), Ferocious (6), Landfall (9), Hone/Equipment, Saga (counter:lore), plus graveyard-reuse (cards MOVES_FROM zone:graveyard) and second-draw triggers.
+- 10 token-production modules (one per created TokenSpec: treasure, dwarf, wolf, elf, axe, dragon, bear, bird-soldier, copy, stone-boulder).
+1 module carries a feedback cycle (Storied: `enduring_story PERSISTS_AS enduring_story` — the persistence loop). Deterministic byte-identical rebuild.
+
+**Semantic-invariant tests** (spec §Semantic invariants, graph-testable subset): #1 Recruit soldier conditional on nonland discard (`gate:recruit-nonland-discard CREATES_OBJECT token:human-soldier` gated by `cond:recruit-nonland-discard`); #4 Storied counts exactly 3 distinct classes (artifact/legendary/saga union); #5 a permanent matching multiple counted types is ONE qualifying entity (contributor set == qualifier set; parallel QUALIFIES_FOR provenance-variants dedup to the same entity — NOT a type double-count); #6 enduring story persists (PERSISTS_AS self-loop, surfaced as the Storied feedback cycle); #8 all 17 Adventures have exactly two distinct face nodes; #10 "other/another" self-exclusion object classes exist. 148 tests pass (+13 module/invariant gates).
+
+**Deferred (Phase 6 follow-ups / spec):** the remaining spec semantic invariants that need runtime/pair reasoning (#2 Recruit↔Master's-Councillors second-draw-only, #3 Bard modifies Recruit draw+token quantities, #7 qualifying-token install, #11 legend-rule state constraints, #12 self-pair object identity); the full coverage report (spec §Coverage report); and the manual gold-set stratified review (spec §Manual gold set). Presenting v1 for review.
+
+Refs: `docs/hob-knowledge-graph-build-spec.md` (§Phase 6, §Semantic invariants); `src/hobkg/modules.py`; `tests/test_modules.py`; `data/graph_global/mechanism_modules.jsonl`; `reports/mechanism_modules.md`
