@@ -3220,3 +3220,114 @@ I left it uncommitted so you can tweak it first. Want me to commit it?
 
 ### [2026-08-16 10:30] USER
 my other agent doesn't see your commit. make sure it's committed and pushed
+
+### [2026-08-16 10:31] ASSISTANT
+The commit exists locally but `main` is **ahead 1** â€” it was never pushed, which is why your other agent can't see it. Let me commit HANDOFF.md, restore the review-file reordering churn, and push:
+
+Pushed. `main` is now in sync with `origin/main` (no "ahead" marker).
+
+Both commits are now on GitHub:
+- `197e314` â€” Phase 6 v3.1 (the work your other agent couldn't see)
+- `3dbff4c` â€” HANDOFF.md
+
+The root cause was that v3.1 had only been committed locally, never pushed. Your other agent should now see both after a `git pull` (or `git fetch`). The `data/review/*.jsonl` reordering churn was restored again (it keeps re-appearing from the frozen audit's non-deterministic edge ordering, but it's content-identical, so nothing of substance was lost).
+
+### [2026-08-16 10:33] USER
+ Read HANDOFF.md and follow it.
+
+### [2026-08-16 11:17] ASSISTANT
+I've read the handoff materials in order: `CLAUDE.md` â†’ `INSTRUCTIONS.md` (mission + append-only discipline), the build spec, the tail of `LABNOTEBOOK.md` (graph-repair â†’ Phase 6 v1 â†’ v2 â†’ v3 â†’ **v3.1**), and the operational memories. Let me confirm the repo state matches the handoff.
+
+The working tree is at `3dbff4c` (HANDOFF added on top of the v3.1 commit `197e314`), and there's a new untracked file â€” `docs/hob-kg-phase6-review-pt3.md`. That's the external review the handoff said we were awaiting. Let me read it.
+
+The awaited external review (`hob-kg-phase6-review-pt3.md`) is now on disk. Its verdict: **v3.1 is a meaningful correction** â€” the prior fixes (honest structural-validation rename, non-tautological Saga checks, two distinct multi-edge combinations, per-record self-pair checks, deterministic 55-face legend module) all held. **Three issues remain before Phase 6 can be frozen:**
+
+1. **Unified coverage regressed** â€” the new legend layer (55 nodes + 55 edges) isn't counted by `coverage()`. It still reports 2,728 frozen + 9 repair = 2,737, omitting `legend_{nodes,edges}.jsonl`. The true union is **2,792 edges**. Legend layer should appear separately *and* in the union (edge/provenance/predicate/origin counts).
+2. **Invariant #2 (Recruitâ†”Councillors)** â€” the honest "no edge asserted" handling is fine, but it's an *unresolved representational gap*, not a completed invariant. Should be **labeled deferred/unmodeled** (real fix eventually needs a turn-scoped cards-drawn-this-turn count state/gate).
+3. **Legend rule is only approximated** â€” `max_controlled=1` says the second permanent *can't coexist*, but MTG actually lets it enter, then a state-based action makes the controller choose one and send the rest to the graveyard. Also needs explicit controller scope.
+
+Items 1 and 2 are unambiguous mechanical fixes. Item 3 has a genuine fork the reviewer left to us, so I'll confirm direction before touching the legend layer.
+
+The user chose **model the real SBA transition** for item 3. Let me set up task tracking and read the relevant code.
+
+Now let me read `coverage.py` to see how `coverage()` counts edges (item 1) and where invariant #2 is handled.
+
+Let me read the tests that cover invariant #2, #11 (legend), and coverage, so my changes stay consistent with the existing test structure.
+
+Now let me check the predicate signature table so the new legend edges stay schema-valid, and look at how the legend module test asserts things.
+
+I now have the full picture. Let me create tasks and check for other references to the legend state id prefix before I rename it.
+
+Both source/test references are `modules.py` and `test_modules.py`. Let me confirm the CLI command names for regeneration.
+
+Starting with Item 3 (it defines the legend layer that Item 1 then counts). Rewriting `materialize_legend` in `modules.py`.
+
+Now update the `materialize_legend` return stats and the `build_modules` state-prefix reference.
+
+Now let me regenerate the legend layer to get the actual counts before I wire up coverage and tests.
+
+58 legend nodes / 113 edges, as designed. Let me validate every legend edge against the global predicate signatures.
+
+0 signature violations. Now update the inv11 legend test to the richer SBA model.
+
+Item 3 code is done. Now Item 1 â€” wire the legend layer into `coverage()`.
+
+Now Item 2 â€” add the deferred-invariants record to coverage. Let me add the constant and thread it into the stats + report.
+
+Now update the coverage report to surface the legend layer and the deferred invariants.
+
+Now add a deferred-invariants section to the report body.
+
+Now update `test_coverage.py` â€” the union test and a new deferred-invariants test.
+
+Now update the inv2 test name/framing in `test_modules.py` to reflect it's a deferred gap, not a completed invariant.
+
+Now regenerate coverage artifacts and run the full test suite.
+
+All 167 pass. Let me verify determinism (byte-identical rebuild) and that the frozen Phase 4 graph is untouched.
+
+Byte-identical and frozen graph untouched. Let me mark tasks done and review the generated reports.
+
+The legend module reports the SBA transition cleanly. But I notice `data/review/llm_accepted.jsonl` and `llm_queued.jsonl` were modified during my session â€” nothing I changed should touch those. Let me investigate.
+
+Those two `data/review/*.jsonl` diffs are **only a reordering** of the `disputed_edges` arrays within each record â€” identical content, different list order. That's a pre-existing set-ordering nondeterminism in the audit/review pipeline, triggered by running the test suite (`test_audit.py` rewrites them), not by my Phase 6 changes. Let me confirm: revert them and check whether a plain `pytest` re-dirties them.
+
+Confirmed â€” my task commands don't touch `data/review/`; that reordering was `test_audit.py` (frozen Phase 5 pipeline) exhibiting a pre-existing set-ordering nondeterminism. I've reverted it. Now let me record the science in the append-only lab notebook.
+
+Now a final full-suite run to confirm green, then revert the incidental review-file reorder.
+
+`reports/coverage.md` isn't showing as modified despite my report-code changes â€” let me verify it actually reflects the new content.
+
+There seem to be two different coverage-report formats. Let me look at what actually writes `reports/coverage.md`.
+
+Interesting â€” `reports/coverage.md` is written by *two* functions: my `coverage.py` (Phase 6) and `pipeline.py:366` (Phase 1). Let me determine which wins and whether this is pre-existing.
+
+`python -m hobkg.cli coverage` writes the **Phase 6** report; the earlier "unmodified" was because my final `pytest` re-ran a Phase 1 pipeline test (`pipeline.py:366`) that clobbers the same path. This two-writer collision on `reports/coverage.md` is pre-existing. Let me confirm the Phase 6 report now carries the legend line + deferred section, and that `coverage.json` (the authoritative artifact) is correct.
+
+All three review items are done and verified. Here's the summary.
+
+## Phase 6 v3.2 â€” pt3 review addressed
+
+The awaited external review (`docs/hob-kg-phase6-review-pt3.md`) accepted v3.1 and left three issues before freezing Phase 6. All three are fixed; **167 tests pass**, deterministic byte-identical rebuild, frozen Phase 4 graph + Phase 5 projections **byte-untouched**.
+
+**1. Legend layer in unified coverage** â€” `coverage()` was omitting `legend_{nodes,edges}.jsonl`. It now counts them separately and in the union: **frozen 2,728 + repair 9 + legend 113 = 2,850 edges** (`edges_legend`/`nodes_legend`, `edges_by_origin: legend_rule`, predicate/provenance counts all include it; provenance gaps still 0). The reviewer's estimate of 2,792 assumed the *old* 55-edge layer â€” item 3 grew it to 113.
+
+**2. Invariant #2 labeled deferred/unmodeled** â€” added `coverage.DEFERRED_INVARIANTS` (in `coverage.json` + a new report section) recording Recruitâ†”Councillors as `deferred_unmodeled`, naming the real fix (a turn-scoped cards-drawn-this-turn count state/gate). The test is renamed to pin the honest current handling rather than claim a satisfied invariant.
+
+**3. Real legend-rule SBA transition** (your choice) â€” replaced the coarse `max_controlled=1` "second copy can't exist" state with the actual CR 704.5j state-based action:
+- legendary face `HAS_STATE` â†’ **controller-scoped** `state:legend-conflict:{name}`
+- `ENABLES` â†’ canonical `ability:legend-sba` (kind `state_based_action`)
+- `CAUSES` â†’ `op:legend-sba-put-in-graveyard` (`chooser: controller`, `destination_scope: owner`) `MOVES_TO` â†’ `zone:graveyard`
+
+One deliberate deviation from the AskUserQuestion preview: I used **ENABLES, not TRIGGERS**, from the conflict state to the SBA â€” an SBA is checked continuously, not event-fired, so the `Eventâ†’Ability` TRIGGERS signature would misrepresent it. ENABLES is both schema-valid (0 signature violations against `GLOBAL_SIGNATURES`) and more rules-accurate. Noted in the notebook for transparency.
+
+**Two things to flag (both pre-existing, out of scope, not fixed):**
+- **`reports/coverage.md` has two writers** â€” `coverage.py` (Phase 6) and `pipeline.py:366` (Phase 1) write the same path, so whichever runs last wins. Running the full `pytest` clobbers the Phase 6 report with the Phase 1 one. I left it as the Phase 6 version; worth a rename to deconflict (needs a go-ahead â€” touches frozen Phase 1).
+- **`data/review/llm_{accepted,queued}.jsonl` reorder nondeterministically** â€” the audit pipeline serializes `disputed_edges` in set-iteration order, so `test_audit.py` rewrites them with identical content but different order. Reverted the spurious diff; flagged for a possible stable-sort fix.
+
+**Item 6 remains deferred** (DÃ¡in's Company / Bothersome Noisemaker â€” separate audit/repair round).
+
+I've recorded all of this in `LABNOTEBOOK.md`. I have **not committed** â€” following the per-phase review rhythm. Want me to commit this as the Phase 6 v3.2 correction, or adjust anything first (e.g. the ENABLES-vs-TRIGGERS choice, or fixing the `reports/coverage.md` writer collision)?
+
+### [2026-08-16 14:09] USER
+did you commit and push it?

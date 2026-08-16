@@ -22,6 +22,21 @@ def _card_of(nid):
     return "card:" + m.group(0) if m else None
 
 
+# Spec semantic invariants that are DELIBERATELY not modeled as graph structure yet — recorded
+# honestly as representational gaps, not presented as satisfied invariants. The graph asserts no
+# edge for these rather than inventing an unsupported one (per the spec's "flag ambiguity" rule).
+DEFERRED_INVARIANTS = [
+    {"id": 2, "name": "Recruit -> Master's Councillors second-draw ordering",
+     "status": "deferred_unmodeled",
+     "reason": ("Councillors triggers only on 'the second card drawn each turn' — a per-turn "
+                "ORDERING condition. Modeling it needs a turn-scoped cards-drawn-this-turn count "
+                "state/gate (draw -> increment count -> count reaches 2 -> second-draw event -> "
+                "Councillors), where Recruit contributes one draw without being sufficient alone. "
+                "Until that turn-scoped counter exists, the graph correctly asserts NO Recruit<->"
+                "Councillors edge in either direction across all three projection layers.")},
+]
+
+
 def _opt(path):
     return list(_load_dicts(path)) if path.exists() else []
 
@@ -32,10 +47,14 @@ def coverage(repo: Path = REPO) -> dict:
     frozen_edges = list(_load_dicts(G / "edges.jsonl"))
     repair_edges = _opt(G / "repair_edges.jsonl")
     repair_nodes = _opt(G / "repair_nodes.jsonl")
-    # deduplicated union of the frozen Phase 4 layer + the graph-repair layer
+    legend_edges = _opt(G / "legend_edges.jsonl")
+    legend_nodes = _opt(G / "legend_nodes.jsonl")
+    # deduplicated union of the frozen Phase 4 layer + the graph-repair layer + the legend layer
     union = {e["edge_id"]: {**e, "origin": e.get("origin", "phase4")} for e in frozen_edges}
     for e in repair_edges:
         union[e["edge_id"]] = {**e, "origin": e.get("origin", "graph_repair")}
+    for e in legend_edges:
+        union[e["edge_id"]] = {**e, "origin": e.get("origin", "legend_rule")}
     edges = list(union.values())
     cards = list(_load_dicts(repo / "data/normalized/cards.jsonl"))
     faces = list(_load_dicts(repo / "data/normalized/faces.jsonl"))
@@ -70,7 +89,9 @@ def coverage(repo: Path = REPO) -> dict:
         "abilities_by_kind": dict(ability_kinds),
         # per-layer AND deduplicated union (the completed graph, not just Phase 4)
         "edges_frozen": len(frozen_edges), "edges_repair": len(repair_edges),
+        "edges_legend": len(legend_edges),
         "edges_union": len(edges), "nodes_repair": len(repair_nodes),
+        "nodes_legend": len(legend_nodes),
         "edges_total": len(edges), "edges_by_predicate": dict(edges_by_pred),
         "edges_by_origin": dict(Counter(e.get("origin", "phase4") for e in edges)),
         "edges_without_provenance": sum(1 for e in edges if not e.get("provenance")),
@@ -92,6 +113,7 @@ def coverage(repo: Path = REPO) -> dict:
         "infrastructure_only_pairs": infra_only,
         "cards_no_noninfra_outgoing": len(no_out),
         "cards_no_noninfra_incoming": len(no_in),
+        "deferred_invariants": DEFERRED_INVARIANTS,
     }
     _coverage_report(repo, stats, no_out, no_in, cards)
     (G / "coverage.json").write_text(json.dumps(stats, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
@@ -106,7 +128,8 @@ def _coverage_report(repo, s, no_out, no_in, cards):
          f"- cards / faces parsed: **{s['cards_parsed']} / {s['faces_parsed']}**",
          f"- abilities by kind: {s['abilities_by_kind']}",
          f"- primitive edges (per layer + union): frozen **{s['edges_frozen']}** + repair "
-         f"**{s['edges_repair']}** = union **{s['edges_union']}** (+{s['nodes_repair']} repair nodes); "
+         f"**{s['edges_repair']}** + legend **{s['edges_legend']}** = union **{s['edges_union']}** "
+         f"(+{s['nodes_repair']} repair nodes, +{s['nodes_legend']} legend nodes); "
          f"by origin {s['edges_by_origin']}; provenance gaps: {s['edges_without_provenance']}",
          f"- pair relations (per layer + union): mechanical **{s['relations_mechanical']}** + audited "
          f"**{s['relations_audited']}** + repaired **{s['relations_repaired']}** = union **{s['relations_union']}**",
@@ -124,6 +147,11 @@ def _coverage_report(repo, s, no_out, no_in, cards):
          "## Edges by predicate", ""]
     for k, v in sorted(s["edges_by_predicate"].items(), key=lambda x: -x[1]):
         L.append(f"- {k}: {v}")
+    L += ["", "## Deferred / unmodeled semantic invariants", "",
+          "*Recorded as honest representational gaps — the graph asserts no edge rather than "
+          "inventing an unsupported one.*", ""]
+    for d in s["deferred_invariants"]:
+        L.append(f"- **#{d['id']} {d['name']}** — _{d['status']}_: {d['reason']}")
     L += ["", "## Cards with no non-infrastructure outgoing relation (sample)", ""]
     L += [f"- {nm.get(c, c)}" for c in no_out[:30]]
     (repo / "reports" / "coverage.md").write_text("\n".join(L) + "\n", encoding="utf-8")

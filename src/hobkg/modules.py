@@ -18,6 +18,7 @@ they are not subjective archetypes. Output: `data/graph_global/mechanism_modules
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from collections import defaultdict
@@ -41,37 +42,89 @@ def _slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")[:50] or "x"
 
 
+def _ledge(src: str, pred: str, tgt: str, derivation: str) -> dict:
+    """A deterministic, unique-id legend-layer edge with provenance."""
+    eid = "legend:" + hashlib.sha1(f"{src}|{pred}|{tgt}".encode()).hexdigest()[:12]
+    return {"edge_id": eid, "source": src, "predicate": pred, "target": tgt,
+            "provenance": [{"source": "comprehensive_rules", "rule": "704.5j", "derivation": derivation}],
+            "origin": "legend_rule"}
+
+
 def materialize_legend(repo: Path) -> dict:
-    """Model the legend rule as an explicit STATE CONSTRAINT, not subjective synergy:
-    each legendary permanent HAS_STATE a per-name `state:legend:{name}` whose data records
-    'at most one legendary permanent with this name may be controlled'. Same-name legends
-    share the state node (that shared node IS the conflict). Additive layer."""
+    """Model the legend rule (CR 704.5j) as its actual STATE-BASED ACTION — not a subjective
+    negative-synergy edge, and not the coarse "a second copy cannot exist" approximation. Per
+    the rule, a second same-name legendary permanent DOES enter; then a state-based action makes
+    the controller choose one and put the rest into their owners' graveyards:
+
+        legendary face --HAS_STATE--> state:legend-conflict:{name}
+            (controller-scoped: one player controls >=2 legendary permanents with this name)
+        state:legend-conflict:{name} --ENABLES--> ability:legend-sba
+            (ENABLES, not TRIGGERS: an SBA is checked continuously, it is not an event-fired
+             triggered ability, so the Event->Ability TRIGGERS signature would misrepresent it)
+        ability:legend-sba --CAUSES--> op:legend-sba-put-in-graveyard
+            (controller keeps one; the rest are put into their OWNERS' graveyards)
+        op:legend-sba-put-in-graveyard --MOVES_TO--> zone:graveyard
+
+    Same-name legends share the per-name conflict state (that shared node IS the conflict). The
+    SBA ability, move operation, and rule node are canonical (one legend rule for the whole set).
+    Additive layer; the frozen Phase 4 graph is untouched. All edges are predicate-signature
+    valid against `assemble.GLOBAL_SIGNATURES`."""
     names = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
     edges = list(_load_dicts(repo / "data/graph_global/edges.jsonl"))
     legendary_faces = sorted({e["source"] for e in edges
                               if e["predicate"] == "HAS_TYPE" and e["target"] == "obj:supertype:legendary"})
     lnodes, ledges = {}, []
+
+    # canonical, shared SBA machinery (one legend rule, CR 704.5j, for the whole set)
+    rule, sba, move = "rule:legend", "ability:legend-sba", "op:legend-sba-put-in-graveyard"
+    _CR_TEXT = ("If two or more legendary permanents with the same name are controlled by the "
+                "same player, that player chooses one of them, and the rest are put into their "
+                "owners' graveyards.")
+    lnodes[rule] = {"id": rule, "type": "Rule", "label": "legend rule (CR 704.5j)",
+                    "data": {"rule": "legend", "cr": "704.5j", "text": _CR_TEXT},
+                    "provenance": [{"source": "comprehensive_rules", "rule": "704.5j"}],
+                    "origin": "legend_rule"}
+    lnodes[sba] = {"id": sba, "type": "Ability", "label": "legend-rule state-based action",
+                   "data": {"kind": "state_based_action", "rule": "legend", "cr": "704.5j",
+                            "scope": "controller",
+                            "effect": "controller keeps one; the rest go to their owners' graveyards"},
+                   "provenance": [{"source": "comprehensive_rules", "rule": "704.5j"}],
+                   "origin": "legend_rule"}
+    lnodes[move] = {"id": move, "type": "Operation",
+                    "label": "put excess same-name legendary permanents into graveyard",
+                    "data": {"operation": "put_into_graveyard", "chooser": "controller",
+                             "destination_scope": "owner", "quantity": "all but one"},
+                    "provenance": [{"source": "comprehensive_rules", "rule": "704.5j"}],
+                    "origin": "legend_rule"}
+    ledges.append(_ledge(sba, "REFERENCES_RULE", rule, "SBA implements the legend rule"))
+    ledges.append(_ledge(sba, "CAUSES", move, "SBA puts the excess permanents into graveyards"))
+    ledges.append(_ledge(move, "MOVES_TO", "zone:graveyard", "excess legends go to owners' graveyards"))
+
     for face in legendary_faces:
         card = _card_of(face)
         name = names.get(card, card)
-        state = f"state:legend:{_slug(name)}"
-        lnodes[state] = {"id": state, "type": "State", "label": f"legend rule: {name}",
-                         "data": {"rule": "legend", "by_name": name, "max_controlled": 1,
-                                  "constraint": "at most one legendary permanent with this name may be controlled"},
-                         "provenance": [{"source": "legend_rule", "derivation": "supertype:legendary"}],
-                         "origin": "legend_rule"}
-        eid = "l" + re.sub(r"[^a-z0-9]", "", (face + state))[-15:]
-        ledges.append({"edge_id": eid, "source": face, "predicate": "HAS_STATE", "target": state,
-                       "provenance": [{"source": "legend_rule", "derivation": "legend rule state constraint"}],
-                       "origin": "legend_rule"})
+        state = f"state:legend-conflict:{_slug(name)}"
+        if state not in lnodes:                          # same-name legends share the conflict state
+            lnodes[state] = {"id": state, "type": "State", "label": f"legend-rule conflict: {name}",
+                             "data": {"rule": "legend", "cr": "704.5j", "by_name": name,
+                                      "scope": "controller", "conflict_threshold": 2,
+                                      "resolution": "state_based_action",
+                                      "transition": (f"one player controls >=2 legendary permanents named "
+                                                     f"'{name}'; controller keeps one, the rest are put "
+                                                     "into their owners' graveyards")},
+                             "provenance": [{"source": "legend_rule", "derivation": "supertype:legendary"}],
+                             "origin": "legend_rule"}
+            ledges.append(_ledge(state, "ENABLES", sba, "the name-conflict condition triggers the SBA"))
+        ledges.append(_ledge(face, "HAS_STATE", state, "legendary permanent is subject to the legend rule"))
     G = repo / "data" / "graph_global"
     with (G / "legend_nodes.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for n in sorted(lnodes.values(), key=lambda n: n["id"]):
             fh.write(json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n")
     with (G / "legend_edges.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for e in sorted(ledges, key=lambda e: (e["source"], e["target"])):
+        for e in sorted(ledges, key=lambda e: (e["source"], e["predicate"], e["target"])):
             fh.write(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n")
-    return {"legend_states": len(lnodes), "legend_edges": len(ledges)}
+    return {"legend_nodes": len(lnodes), "legend_edges": len(ledges),
+            "legend_conflict_states": sum(1 for n in lnodes.values() if n["id"].startswith("state:legend-conflict:"))}
 
 
 class _Graph:
@@ -226,10 +279,10 @@ def build_modules(repo: Path = REPO) -> dict:
     g = _Graph(repo)
     mods = []
 
-    # --- legend rule as an explicit state constraint (not subjective synergy) ---
-    legend_states = sorted(n for n in g.nodes if n.startswith("state:legend:"))
+    # --- legend rule as an explicit state-based-action transition (not subjective synergy) ---
+    legend_states = sorted(n for n in g.nodes if n.startswith("state:legend-conflict:"))
     if legend_states:
-        mods.append(_module(g, "module:legend-rule", "legend rule (state constraint)",
+        mods.append(_module(g, "module:legend-rule", "legend rule (state-based action)",
                             "state_constraint", legend_states, set()))
 
     # --- per-gate modules (the spec's mechanism_modules) ---
