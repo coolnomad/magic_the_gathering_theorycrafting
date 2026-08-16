@@ -72,6 +72,16 @@ def _mid(source: str, predicate: str, target: str) -> str:
     return "e" + hashlib.sha1(f"{source}|{predicate}|{target}".encode("utf-8")).hexdigest()[:15]
 
 
+def _step(edge: dict, direction: str) -> dict:
+    """A lean path step: keeps the edge_id (so provenance is retrievable from the edge), the
+    predicate, traversed endpoints, direction, and semantic props — but NOT the full provenance
+    blob (embedding it in every step of 3,250 long paths bloats the projection ~10x and is
+    redundant, since each step's edge_id resolves to the edge that carries the provenance)."""
+    s = project._step(edge, direction)
+    s.pop("provenance", None)
+    return s
+
+
 class _G:
     def __init__(self, repo: Path):
         self.nodes = {n["id"]: n for n in _load_dicts(repo / "data/graph_global/nodes.jsonl")}
@@ -361,10 +371,20 @@ def materialize(repo: Path = REPO) -> dict:
             low = cl["text"].lower()
             if re.search(r"gets [+\-]\d+/[+\-]\d+", low) or " has " in low:
                 continue                                 # already represented by a P/T or grant clause
-            dispositions.append({"face": E, "equipment": name, "clause": cl["text"],
-                                 "disposition": "deliberately_ignored",
-                                 "reason": "complex non-P/T, non-keyword equipped-creature effect (out of the "
-                                           "template's structured scope; recorded, not misrepresented)"})
+            # pt6: these complex effects are NOT "successfully disposed" — they are UNRESOLVED, and
+            # the ones needing new predicates (triggers / dynamic costs / ability modification) are
+            # explicit schema-extension requests. Strategically material for later deck projection.
+            needs_schema = any(k in low for k in
+                               ("whenever", "triggers an additional", "cost {", "costs {",
+                                "deals combat damage", "for each", "instead", "additional time"))
+            dispositions.append({
+                "face": E, "equipment": name, "clause": cl["text"],
+                "disposition": "schema_extension_required" if needs_schema else "unresolved",
+                "schema_extension_required": needs_schema,
+                "reason": ("complex equipped-creature effect not expressible with the current Equip "
+                           "template primitives" + (" — needs a schema extension (trigger / dynamic-cost / "
+                           "ability-modification predicates)" if needs_schema else " — pending structured "
+                           "extraction"))})
 
     # ---- token:axe (Equipment with no card face): primitive template coverage -------------
     axe_creator_ops = [e for e in g.edges if e["predicate"] == "CREATES_OBJECT" and e["target"] == TOKEN_AXE]
@@ -489,7 +509,7 @@ def reproject(repo: Path = REPO) -> dict:
         hf = hasface.get(c_card)
         if not ht or not hf:
             return None
-        return [project._step(ht, "reverse"), project._step(hf, "reverse")]
+        return [_step(ht, "reverse"), _step(hf, "reverse")]
 
     def can_attach(host, e_card, cost, mode, req_obj, suffix, pop_cards, cond_extra):
         hf_e = hasface.get(e_card)
@@ -498,15 +518,15 @@ def reproject(repo: Path = REPO) -> dict:
         req = E(f"op:{suffix}:{host}", "REQUIRES", req_obj)
         if not (hf_e and hab and cau and req):
             return
-        head = [project._step(hf_e, "forward"), project._step(hab, "forward"),
-                project._step(cau, "forward"), project._step(req, "forward")]
+        head = [_step(hf_e, "forward"), _step(hab, "forward"),
+                _step(cau, "forward"), _step(req, "forward")]
         # bridge from req_obj to the creature type if needed (obj:creature-you-control -> obj:type:creature)
         bridge_obj = OBJ_TYPE_CREATURE if req_obj == OBJ_CREATURE_YOU_CONTROL else req_obj
         if req_obj == OBJ_CREATURE_YOU_CONTROL:
             b = E(OBJ_CREATURE_YOU_CONTROL, "HAS_TYPE", OBJ_TYPE_CREATURE)
             if not b:
                 return
-            head.append(project._step(b, "forward"))
+            head.append(_step(b, "forward"))
         for c_card in pop_cards:
             tail = tail_to_creature(bridge_obj, c_card)
             if not tail:
@@ -543,9 +563,9 @@ def reproject(repo: Path = REPO) -> dict:
             mod = E(opnode, "MODIFIES", bound)
             if not (hf_e and hab_equip and equip_cau and equip_state and req_state and mod and bnd):
                 continue
-            head = [project._step(hf_e, "forward"), project._step(hab_equip, "forward"),
-                    project._step(equip_cau, "forward"), project._step(equip_state, "forward"),
-                    project._step(req_state, "reverse"), project._step(mod, "forward"), project._step(bnd, "forward")]
+            head = [_step(hf_e, "forward"), _step(hab_equip, "forward"),
+                    _step(equip_cau, "forward"), _step(equip_state, "forward"),
+                    _step(req_state, "reverse"), _step(mod, "forward"), _step(bnd, "forward")]
             for c_card in creature_cards:
                 tail = tail_to_creature(OBJ_TYPE_CREATURE, c_card)
                 if not tail:
@@ -581,10 +601,10 @@ def reproject(repo: Path = REPO) -> dict:
         bind = E(OBJ_CREATURE_YOU_CONTROL, "HAS_TYPE", OBJ_TYPE_CREATURE)
         if not (cause_edge and hab_creator and hab_equip and cau_equip and req_equip and bind):
             continue
-        head = [project._step(hf, "forward"), project._step(hab_creator, "forward"),
-                project._step(cause_edge, "forward"), project._step(ce, "forward"),
-                project._step(hab_equip, "forward"), project._step(cau_equip, "forward"),
-                project._step(req_equip, "forward"), project._step(bind, "forward")]
+        head = [_step(hf, "forward"), _step(hab_creator, "forward"),
+                _step(cause_edge, "forward"), _step(ce, "forward"),
+                _step(hab_equip, "forward"), _step(cau_equip, "forward"),
+                _step(req_equip, "forward"), _step(bind, "forward")]
         axe_cost_n = eq_nodes.get(f"cost:equip:{TOKEN_AXE}", {}).get("data", {})
         axe_cost = {"mana_cost": axe_cost_n.get("mana_cost"), "additional_cost": axe_cost_n.get("additional_cost"),
                     "raw": axe_cost_n.get("raw")}

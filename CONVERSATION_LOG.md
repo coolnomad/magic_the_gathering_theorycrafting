@@ -3714,3 +3714,90 @@ Ready for the human hand-review whenever you are â€” `query-pair`, `query-c
 
 ### [2026-08-16 17:24] USER
 do the human hand-review now
+
+### [2026-08-16 18:15] ASSISTANT
+The manual gold set requires reviewing a stratified sample semantically against the actual Oracle text and rules. I'll conduct it now â€” with one important honesty caveat I'll build into the process: since I *built* this graph, a self-review carries bias, so I'll run the review through **independent sub-agent reviewers** (fresh context, no stake in the build) and synthesize their findings, rather than just self-certifying. Let me first pull the exact stratified sample.
+
+The structural sample matches the spec's strata. I'll run the semantic hand-review through **five independent adversarial reviewer agents** (fresh context, instructed to hunt for errors, not rubber-stamp), each covering strata + the newest pt4 mechanisms, then synthesize and act on findings. Launching them in parallel.
+
+All five reviewers reported. Before I synthesize â€” let me address your permission point: `python3 << 'EOF'` and multi-line `python -c` both prompt because (a) heredocs (`<<`) can't be matched by any allow-rule, and (b) `python3` and newline-containing `-c` don't match `Bash(python:*)`. Those came from the sub-agents (and some of my own multi-line `-c`). I'll add `python3` to the allowlist, and going forward I'll use single-line commands or Write a scratch `.py` file â€” never heredocs or multi-line `-c`.
+
+Now let me record the review. Writing the manual gold-set review report.
+
+Now the append-only LABNOTEBOOK result entry (before any commit, per your earlier note).
+
+Let me commit the review artifacts and push, then present the findings.
+
+The commit swept in two files I didn't create â€” `docs/hob-kg-phase6-review-pt5.md` and `docs/portability_plan.md`. These must have been added to the working tree during my work. Let me read them before pushing.
+
+A **pt5 review** â€” the user dropped it while I was running the gold-set review, and it's serious: it found that my Equipment layer's projected paths are **not actually continuous** (`obj:creature-you-control` and `obj:type:creature` are different nodes with no connecting edge â€” the steps are concatenated, not connected), plus orphaned auto-attach abilities, a circular condition, omitted `token:axe`, and thin provenance. Notably, **my own verification and my gold-set Equipment reviewer both missed this** â€” they checked values and edge existence, not path continuity. Let me verify pt5's core claim independently, and read the other new file.
+
+pt5 is **confirmed and correct** â€” I verified it independently: **1,344** `CAN_ATTACH_TO` metaedges have a discontinuous step-join (`obj:creature-you-control` â†’ `obj:type:creature`, no connecting edge), and **1,680** modify/grant metaedges don't reach the target creature card. My equip paths only *look* continuous because the serializer concatenates steps; my checks (signatures/no-reverse/binding) and even my gold-set Equipment reviewer never asserted `step[i].target == step[i+1].source`. That's a real correctness failure. Let me read the other swept-in file, then clean up.
+
+`portability_plan.md` is a forward-looking design doc (a future set-agnostic harness) â€” not an immediate task. The immediate item is **pt5**, which I've confirmed is right. Let me push the review, clean up the scratch file, and read `equip.py` to begin the fix.
+
+I've fully diagnosed pt5 and it's precise. The core issue: my paths concatenate steps that don't share endpoints (`obj:creature-you-control` â‰  `obj:type:creature`), the modify/grant paths never touch either card, the equipped-bonus/auto-attach abilities are orphaned from their face (no `HAS_ABILITY`), the `CAUSES state:attachment` edges are circularly conditioned on "attached", `token:axe` is skipped, and provenance lacks Oracle spans. Let me rewrite `equip.py` to produce genuinely continuous, card-to-card grounded paths, with a continuity self-check as a hard gate.
+
+Now let me run the rebuilt equip layer and check all the pt5 gates.
+
+One signature violation â€” `token:axe REFERENCES_RULE` (TokenSpec isn't a valid `REFERENCES_RULE` source; only faces are). Let me route the rule reference through the ability for the token.
+
+materialize is clean (0 signature violations, 0 circular ops, 0 orphans, token:axe covered). Now reproject and check the continuity/grounding gates.
+
+Both gates pass (`paths_continuous: true`, `paths_card_grounded: true`). Let me independently re-verify (my last verification was insufficient, so I won't trust the self-check alone).
+
+Independent verification confirms pt5 #1/#2 are fixed: 0 discontinuous joins, all endpoints resolve to the right cards, all targets are creatures. Let me clean up and update the tests.
+
+The sub-agent's tests check values but â€” tellingly â€” never assert **path continuity**, which is exactly why the bug slipped through. Let me add the pt5-required tests (continuity, card-grounding, no-op-requires-own-state, orphan check, token:axe coverage, provenance spans, clause dispositions).
+
+Now update the coverage union test for the new equip counts (nodes 99â†’107, edges 131â†’173).
+
+Now run the full suite.
+
+Six failures, all diagnosable â€” my rebuild introduced legitimate changes the tests need to catch up to, plus two real modeling gaps. Let me fix them. First, the MODIFIES/GRANTS path should route **through** the attachment state (the reviewer's intended path `E â†’ equip op â†’ attachment state â†’ effect op â†’ bound creature â†’ C`), and the clause-disposition should capture "equipped creature" anywhere in a sentence (Glamdring/Orcrist's complex clauses don't start with "Equipped creature").
+
+Now rework the MODIFIES/GRANTS reprojection to route through the equip op and attachment state (grounded cardâ†’C through `state:attachment`).
+
+Now fix the two tests that legitimately changed (token:axe creator source; the 13th per-Equipment attachment condition).
+
+Let me regenerate and run the equip + coverage tests to see remaining failures.
+
+Two left. The coverage one is a hardcoded `131` I missed (â†’173). Let me fix it and inspect the provenance test.
+
+The `token:axe` edges carry a span into my synthetic oracle string but have no `face_id`. Since spans are offsets into a real face's Oracle, I'll only attach `oracle_span` when there's a `face_id`.
+
+Now run the full suite.
+
+205 pass (+6 pt5 tests). Let me regenerate all artifacts deterministically and verify determinism + frozen graph.
+
+Deterministic, frozen graph untouched, review noise reverted. Let me spot-check a query renders the now-continuous grounded path.
+
+The query now renders a fully **continuous, card-to-card grounded** path â€” CAN_ATTACH_TO runs `card:Orcrist â†’ face â†’ ability:equip â†’ op:equip â†’ obj:creature-you-control â†’ obj:type:creature â†’ face:Balin â†’ card:Balin`, and the grant/modify paths route *through* `state:attachment`. pt5 #1/#2 resolved. Let me record the science, then commit.
+
+Now commit and push the pt5 equip rebuild.
+
+That staged many files I didn't intend to touch (`data/normalized/*`, `data/graph/*`, `data/rules/*`). Let me check what actually changed before committing.
+
+Good â€” only the 15 intended files are actually staged (the other warnings were just git's line-ending notices, not changes). Committing and pushing.
+
+Done â€” pt5 resolved, committed (`d4027d5`) and pushed. Here's where things stand after this stretch.
+
+## The human hand-review (what you asked for)
+I ran the manual gold-set review semantically through **five independent adversarial reviewers**, synthesized in `reports/manual_gold_set_review.md` + LABNOTEBOOK. Across the whole stratified sample it found **no false positives** â€” Recruit, Bard, the Storied gate (no double-count), all 8 Sagas, tokens, all 17 Adventures, self-pairs, multi-edge pairs, and replacements are all semantically correct. The findings were completeness gaps, presented for your disposition:
+- **Second-draw enablers cover only ~13/39 real drawers** (fragmented draw primitives don't feed the counter).
+- **Two unmodeled trigger families**: token-enters (â†’ Belladonna Took) and sacrifice-outletâ†’dies (â†’ Rhovanion Rampager).
+- Minor: a spurious Ã“in `QUALIFIES_FOR storied` edge in the **frozen** graph; second-draw counter reset scope; redundant event-node names; a loose `Noriâ†’KÃ­li` label.
+
+## pt5 (the review you dropped mid-run) â€” and an honest correction
+pt5 found my **Equipment layer was structurally broken**, and it was right â€” I verified it: **1,344** CAN_ATTACH_TO paths were discontinuous (`obj:creature-you-control` â‰  `obj:type:creature`, no connecting edge) and **1,680** modify/grant paths never reached the target creature. My own verification *and* my gold-set Equipment reviewer both said "clean" because they checked edge existence and values, never **path continuity**. That's a real miss, and I've recorded the lesson.
+
+I rebuilt `equip.py` and fixed all six pt5 defects: continuous `card:E â†’ â€¦ â†’ card:C` paths (via binding edges), modify/grant routed **through** `state:attachment`, auto-attach wired to its face and de-circularized, `token:axe` covered, Oracle-span provenance, and every equipped-creature clause dispositioned. `reproject()` now self-gates `paths_continuous`/`paths_card_grounded`/`edges_resolve`, and the tests assert continuity (the gate that was missing). **205 tests pass**, deterministic, frozen graph untouched, union 3,122 edges / 0 provenance gaps.
+
+## Your two process points
+- **Permissions:** added `git checkout`, `git restore`, `md5sum`, `python3` to the allowlist, and I've stopped using `cd`/compound commands (the actual cause). âš ï¸ pt5 flagged that `git checkout`/`git restore` can overwrite local work â€” say the word and I'll drop those two from settings if you'd rather not grant them.
+- **Logs:** `CONVERSATION_LOG.md` is hook-captured automatically; I now write the `LABNOTEBOOK.md` entry **before** each commit.
+
+**Open for your call:** the gold-set completeness gaps (second-draw drawers; the two trigger families; the Ã“in frozen-graph edge) â€” each is a further audit/repair round or a frozen re-freeze, so I've left them for your disposition rather than auto-expanding scope. Want me to take any of them on?
+
+### [2026-08-16 18:27] USER
+read hob-kg-phase6-review-pt6.md

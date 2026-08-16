@@ -368,7 +368,12 @@ def test_pt5_every_equipped_clause_dispositioned():
     disp = list(_load_dicts(G / "equip_dispositions.jsonl"))
     assert disp
     for d in disp:
-        assert d["disposition"] in ("represented", "deliberately_ignored", "unresolved")
-    # the complex effects the review noted are recorded as deliberately_ignored, not missing
-    ignored_faces = {d["equipment"] for d in disp if d["disposition"] == "deliberately_ignored"}
-    assert {"Glamdring, Foe-hammer", "Orcrist, Goblin-cleaver"} <= ignored_faces
+        assert d["disposition"] in ("represented", "unresolved", "schema_extension_required")
+    # pt6: the strategically-important complex effects are UNRESOLVED / schema_extension_required
+    # (honestly NOT "successfully disposed"), not silently dropped and not falsely "represented"
+    open_faces = {d["equipment"] for d in disp if d["disposition"] != "represented"}
+    assert {"Glamdring, Foe-hammer", "Orcrist, Goblin-cleaver"} <= open_faces
+    # Orcrist's combat-damage trigger needs a schema extension (a trigger predicate)
+    orcrist = [d for d in disp if d["equipment"] == "Orcrist, Goblin-cleaver"
+               and d["disposition"] == "schema_extension_required"]
+    assert orcrist and any("combat damage" in d["clause"].lower() for d in orcrist)
