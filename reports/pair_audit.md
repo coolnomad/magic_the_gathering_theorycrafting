@@ -2,8 +2,8 @@
 
 - **coverage**: 142/142 candidates audited
 - **accepted**: 5 verdicts → 3 augmented relations (deduped)
-- **graph-repair**: 11 verdicts → 8 queue entries (deduped, unordered)
-- **manual adjudication**: 1
+- **graph-repair entries**: 8 (from 11 verdicts, deduped, unordered)
+- **adjudications**: 0 unresolved / 1 resolved
 - **critic disagreement**: 11
 - **duplicate of mechanical**: 1
 - **ungrounded**: 0
@@ -24,8 +24,8 @@
 - **Reverent Howl — The Master of Lake-town** [ENABLES_TRIGGER] candidate_concept `resource:life` → add **Event** (add Event:life-lost + TRIGGERS to the beneficiary ability); proposed enabler: Reverent Howl [proposed]
 - **The Master of Lake-town — Rage into the Valley** [ENABLES_TRIGGER] candidate_concept `resource:life` → add **Event** (add Event:life-lost + TRIGGERS to the beneficiary ability); proposed enabler: Rage into the Valley [proposed]
 - **The Master of Lake-town — The Sackville-Bagginses** [ENABLES_TRIGGER] candidate_concept `resource:life` → add **Event** (add Event:life-lost + TRIGGERS to the beneficiary ability); proposed enabler: The Sackville-Bagginses [proposed]
-- **Down in the Valley — Thranduil, Sindarin Liege // Silvan Rally** [AMPLIFIES_EFFECT] candidate_concept `token:elf` → add **Event** (canonicalize the shared node (token:elf)); proposed enabler: Thranduil, Sindarin Liege // Silvan Rally [adjudicated]
+- **Down in the Valley — Thranduil, Sindarin Liege // Silvan Rally** [AMPLIFIES_EFFECT] candidate_concept `token:elf` → add **ObjectModifier** (add an ObjectModifier: the amplifier's static ability MODIFIES objects of subtype 'elf' (e.g. power/toughness), which the beneficiary CREATES_OBJECT (token:elf); derived path = amplifier MODIFIES elf-objects <- CREATES_OBJECT <- beneficiary); proposed enabler: Thranduil, Sindarin Liege // Silvan Rally [adjudicated]
 
-## Manual-adjudication queue (real relation; extractor/critic disagree on direction)
+## Direction adjudications (real relation; extractor/critic disagreed on direction)
 
-- **Down in the Valley — Thranduil, Sindarin Liege // Silvan Rally** [AMPLIFIES_EFFECT] via `token:elf` — extractor enabler Down in the Valley vs critic enabler Thranduil, Sindarin Liege // Silvan Rally
+- **Down in the Valley — Thranduil, Sindarin Liege // Silvan Rally** [AMPLIFIES_EFFECT] via `token:elf` — RESOLVED → enabler Thranduil, Sindarin Liege // Silvan Rally, needs_graph_repair

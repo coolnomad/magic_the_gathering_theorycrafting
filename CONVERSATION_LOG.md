@@ -2521,3 +2521,77 @@ After that, adjudicate this case as:
 **Thranduil, Sindarin Liege ΓåÆ Down in the Valley**, `AMPLIFIES_EFFECT`, via `token:elf`.
 
 That relation will then need graph repair because the primitive graph lacks a typed representation for Thranduil modifying the characteristics of Elf objects produced by another card.
+
+### [2026-08-15 21:55] ASSISTANT
+A precise v3.2.1 â€” and then I'll act on the reviewer's adjudication decision. First let me get the Thranduil / Down in the Valley card ids so I can record the resolution.
+
+Reviewer adjudicated: **Thranduil (f6771d32) is the enabler**, and it needs graph repair. Let me implement the four interface fixes plus record that decision. First, add the adjudication-decision record and reorder grounding validation.
+
+Now add the decision map and factor out the repair-entry builder (used by both the normal and adjudicated branches):
+
+Now update the normal repair branch to use `_repair_entry`:
+
+Now add the adjudication count to the report summary (item 3):
+
+Now: 3 accepted, 8 repair (incl. Thranduil adjudicated), 1 adjudication (with resolution). Let me verify the adjudication record now has validated spans and both groundings, and Thranduil landed in repair with the resolved direction.
+
+All four v3.2.1 items work: the adjudication record now carries validated `card_id` + exact `oracle_span` for **both** extractor and critic grounding, and Thranduil is resolved to the repair queue (enabler=Thranduil, `adjudicated`). Let me extend the adjudication test to assert exact spans.
+
+The Thranduil repair entry now has `direction_status: "adjudicated"`, breaking the strict `== "proposed"` assertion. Let me relax it.
+
+125 tests pass. Let me record v3.2.1 and commit.
+
+Pushed â€” `b01cccb`. All four v3.2.1 interface fixes plus the reviewer's adjudication decision are in.
+
+## v3.2.1 â€” adjudication provenance + Thranduil resolved
+
+**Interface fixes:**
+1. **Both groundings validated up front** â€” `ingest` normalizes extractor *and* critic grounding (computing `oracle_span` + `card_id` per phrase) *before* branching, so any queue entry carries proper provenance.
+2. **Both stored separately** â€” the adjudication record now has `extractor_grounding` and `critic_grounding`, each span-validated (verified exact: "Other Elves you control get +1/+1." and "create a 1/1 green Elf creature token").
+3. **`manual adjudication` count** added to the report summary.
+4. **Regression test** â€” every adjudication grounding (both sides) has an exact face-specific span + `card_id`.
+
+**Your adjudication decision, applied** (`_ADJUDICATION_DECISIONS`): **Thranduil, Sindarin Liege â†’ Down in the Valley**, `AMPLIFIES_EFFECT` via `token:elf`, enabler = **Thranduil**, disposition = `needs_graph_repair`. The reconcile resolves it â€” the adjudication record carries a `resolution`, and a correctly-directed entry (`direction_status: "adjudicated"`) is emitted into the repair queue with your note that the primitive graph lacks a typed representation for one card modifying the characteristics of Elf objects produced by another.
+
+**Result:** 142/142 audited Â· 3 accepted Â· **8 repair** (7 proposed + Thranduil adjudicated) Â· 1 adjudication (resolved, span-validated) Â· 11 critic-disagreement Â· 114 NO_RELATION. **125 tests pass.**
+
+Both downstream queues are now fully provenance-bearing and correctly directed. The audit side of Phase 5 Part 2 is complete. When you're ready, the remaining work is the **graph-repair pass**: materialize the named intermediate Event nodes + TRIGGERS edges (life-lost, counter-placed, creature-ability-activated) and the Elf-anthem modification the queues specify, then reproject those pairs mechanically into faithful typed paths. Holding for your review.
+
+### [2026-08-15 22:02] USER
+Commit `b01cccb` passes all 125 tests, and the requested provenance correction is complete:
+
+* Both extractor and critic grounding are independently retained.
+* Every grounding excerpt has validated `card_id` and `oracle_span`.
+* Thranduil is correctly adjudicated as the enabler.
+* The relation is correctly routed into graph repair.
+
+One important type error remains in the new repair entry:
+
+```text
+candidate_concept: token:elf
+missing_node_type: Event
+```
+
+`token:elf` already exists as a `TokenSpec`. The missing mechanism is not an event; it is the relationship between ThranduilΓÇÖs static anthem and the characteristics/state of Elf objects. The repair should request something like:
+
+* `missing_node_type: ObjectModifier` or `State`
+* Thranduil ability `MODIFIES` Elf objects matching subtype `Elf`
+* modification: `power +1`, `toughness +1`
+* Down in the Valley `CREATES_OBJECT token:elf`
+
+Then the derived card relation is:
+
+```text
+Thranduil ability
+  ΓåÆ MODIFIES Elf objects
+  ΓåÉ CREATES_OBJECT
+Down in the Valley
+```
+
+There is also a bookkeeping ambiguity: the adjudication is resolved but still counted and displayed under ΓÇ£Manual-adjudication queue.ΓÇ¥ Better reporting would distinguish:
+
+* unresolved adjudications: 0
+* resolved adjudications: 1
+* graph-repair entries: 8
+
+So the provenance fix is good, but I would correct the Thranduil repair type before allowing the repair agent to consume the queue. Otherwise it may construct a fictitious Elf event instead of representing a continuous object-level modifier.

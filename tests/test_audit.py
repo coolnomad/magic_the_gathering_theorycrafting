@@ -103,6 +103,25 @@ def test_repair_queue_unordered_with_proposed_direction(istats, repair):
         assert r["proposed_direction"]["enabler"] in (r["card_a"], r["card_b"])
         if r["relation"] == "ENABLES_TRIGGER":
             assert r["missing_node_type"] == "Event"         # needs an intermediate Event
+        # a static anthem over an existing token/object is an ObjectModifier, NOT an Event
+        if r["relation"] == "AMPLIFIES_EFFECT" and r["candidate_concept"].startswith(("token:", "obj:")):
+            assert r["missing_node_type"] == "ObjectModifier"
+
+
+def test_thranduil_repair_is_object_modifier_not_event(repair):
+    if not repair:
+        pytest.skip("no repair queue")
+    th = next((r for r in repair if "Thranduil" in r["card_a_name"] + r["card_b_name"]
+               and "Down in the Valley" in r["card_a_name"] + r["card_b_name"]), None)
+    assert th is not None
+    assert th["missing_node_type"] == "ObjectModifier"       # token:elf exists; not an Event
+    assert th["direction_status"] == "adjudicated"
+    assert "MODIFIES" in th["missing_node_hint"] and "CREATES_OBJECT" in th["missing_node_hint"]
+
+
+def test_adjudication_counts_split_resolved_unresolved(istats):
+    assert istats["adjudications_resolved"] + istats["adjudications_unresolved"] == istats["adjudication_queue"]
+    assert istats["adjudications_resolved"] == 1 and istats["adjudications_unresolved"] == 0
 
 
 def test_repair_queue_directions_are_correct(repair):

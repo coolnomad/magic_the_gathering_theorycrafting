@@ -317,10 +317,18 @@ def _sig_supplies(d, a, b, concept):
 
 _SIGNATURES = {"ENABLES_TRIGGER": _sig_enables_trigger, "AMPLIFIES_EFFECT": _sig_amplifies,
                "SUPPLIES_RESOURCE": _sig_supplies}
-def _missing_node_type(relation: str) -> str:
+def _missing_node_type(relation: str, concept: str) -> str:
     # what the repair agent must ADD/canonicalize for a faithful path to exist
-    return {"ENABLES_TRIGGER": "Event", "AMPLIFIES_EFFECT": "Event",
-            "SUPPLIES_RESOURCE": "Resource"}.get(relation, "Node")
+    concept = concept or ""
+    if relation == "ENABLES_TRIGGER":
+        return "Event"                                   # intermediate trigger event
+    if relation == "AMPLIFIES_EFFECT":
+        # a static anthem MODIFYING an existing object (token:elf, obj:*) is a continuous
+        # object-level modifier, NOT an event — don't fabricate an Elf event.
+        return "ObjectModifier" if concept.startswith(("token:", "obj:")) else "Event"
+    if relation == "SUPPLIES_RESOURCE":
+        return "Resource"
+    return "Node"
 
 
 def _missing_node_hint(relation: str, concept: str, grounding: list) -> str:
@@ -347,6 +355,13 @@ def _missing_node_hint(relation: str, concept: str, grounding: list) -> str:
         if concept.startswith("counter:"):
             return "add Event:counter-placed + TRIGGERS to the beneficiary ability"
         return "add the intermediate Event + a TRIGGERS edge to the beneficiary ability"
+    if relation == "AMPLIFIES_EFFECT":
+        if concept.startswith(("token:", "obj:")):
+            sub = concept.split(":")[-1]
+            return (f"add an ObjectModifier: the amplifier's static ability MODIFIES objects of "
+                    f"subtype '{sub}' (e.g. power/toughness), which the beneficiary CREATES_OBJECT "
+                    f"({concept}); derived path = amplifier MODIFIES {sub}-objects <- CREATES_OBJECT <- beneficiary")
+        return "canonicalize the shared modified event/resource node so amplifier MODIFIES it"
     if relation == "SUPPLIES_RESOURCE":
         return f"canonicalize the shared resource ({concept}) so producer feeds consumer"
     return f"canonicalize the shared node ({concept})"
@@ -373,7 +388,7 @@ def _repair_entry(d: _Data, s: str, t: str, enabler_card: str, relation: str, co
     entry = {
         "card_a": a, "card_b": b, "card_a_name": d.name.get(a, a), "card_b_name": d.name.get(b, b),
         "relation": relation, "candidate_concept": concept,
-        "missing_node_type": _missing_node_type(relation),
+        "missing_node_type": _missing_node_type(relation, concept),
         "missing_node_hint": _missing_node_hint(relation, concept, grounding),
         "proposed_direction": {"enabler": enabler_card, "beneficiary": benef},
         "proposed_enabler_name": d.name.get(enabler_card, enabler_card),
@@ -594,7 +609,9 @@ def ingest(repo: Path = REPO) -> dict:
              # verdict-level vs deduplicated-output counts (kept distinct, not conflated)
              "accepted_verdicts": counts.get("accepted", 0), "augmented_metaedges": len(accepted),
              "repair_verdicts": counts.get("requires_graph_repair", 0), "repair_queue": len(repair),
-             "adjudication_queue": len(adjudicate)}
+             "adjudication_queue": len(adjudicate),
+             "adjudications_resolved": sum(1 for r in adjudicate if r.get("resolution")),
+             "adjudications_unresolved": sum(1 for r in adjudicate if not r.get("resolution"))}
     _audit_report(repo, results, accepted, repair, adjudicate, stats)
     return stats
 
@@ -622,9 +639,10 @@ def _audit_report(repo: Path, results: list, accepted: list, repair: list, adjud
          f"- **coverage**: {stats.get('audited', 0)}/{stats.get('total_candidates', 0)} candidates audited",
          f"- **accepted**: {stats.get('accepted_verdicts', 0)} verdicts → "
          f"{stats.get('augmented_metaedges', 0)} augmented relations (deduped)",
-         f"- **graph-repair**: {stats.get('repair_verdicts', 0)} verdicts → "
-         f"{stats.get('repair_queue', 0)} queue entries (deduped, unordered)",
-         f"- **manual adjudication**: {stats.get('adjudication_queue', 0)}",
+         f"- **graph-repair entries**: {stats.get('repair_queue', 0)} "
+         f"(from {stats.get('repair_verdicts', 0)} verdicts, deduped, unordered)",
+         f"- **adjudications**: {stats.get('adjudications_unresolved', 0)} unresolved / "
+         f"{stats.get('adjudications_resolved', 0)} resolved",
          f"- **critic disagreement**: {stats.get('critic_disagreement', 0)}",
          f"- **duplicate of mechanical**: {stats.get('duplicate', 0)}",
          f"- **ungrounded**: {stats.get('ungrounded', 0)}",
@@ -640,11 +658,13 @@ def _audit_report(repo: Path, results: list, accepted: list, repair: list, adjud
         L.append(f"- **{r['card_a_name']} — {r['card_b_name']}** [{r['relation']}] "
                  f"candidate_concept `{r['candidate_concept']}` → add **{r['missing_node_type']}** "
                  f"({r['missing_node_hint']}); proposed enabler: {pe} [{r['direction_status']}]")
-    L += ["", "## Manual-adjudication queue (real relation; extractor/critic disagree on direction)", ""]
+    L += ["", "## Direction adjudications (real relation; extractor/critic disagreed on direction)", ""]
     for r in adjudicate:
+        res = r.get("resolution")
+        status = (f"RESOLVED → enabler {r['card_a_name'] if res['enabler']==r['card_a'] else r['card_b_name']}, "
+                  f"{res['disposition']}") if res else "UNRESOLVED (needs human decision)"
         L.append(f"- **{r['card_a_name']} — {r['card_b_name']}** [{r['relation']}] via "
-                 f"`{r['candidate_concept']}` — extractor enabler {r['card_a_name'] if r['extractor_enabler']==r['card_a'] else r['card_b_name']}"
-                 f" vs critic enabler {r['card_a_name'] if r['critic_enabler']==r['card_a'] else r['card_b_name']}")
+                 f"`{r['candidate_concept']}` — {status}")
     (repo / "reports" / "pair_audit.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 

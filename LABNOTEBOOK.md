@@ -874,3 +874,16 @@ Reviewer flagged a provenance defect (inline, post-v3.2): direction-conflict cas
 **Result.** 142/142 audited; 3 accepted; **8 repair** (7 proposed + Thranduil adjudicated); 1 adjudication (resolved, both groundings span-validated); 11 critic-disagreement; 114 NO_RELATION. 125 tests pass. Both downstream queues are now fully provenance-bearing and correctly directed — ready for the graph-repair pass.
 
 Refs: inline reviewer feedback (post-v3.2); `src/hobkg/audit.py` (`_ADJUDICATION_DECISIONS`, `_repair_entry`); `tests/test_audit.py`; `data/graph_global/{audit_repair_queue,audit_adjudication_queue}.jsonl`
+
+---
+
+## [2026-08-17 01:50] CORRECTION — Phase 5 Part 2 v3.2.2: repair-type for object modifiers + adjudication bookkeeping
+
+Reviewer (inline, post-v3.2.1): the Thranduil repair entry mis-typed the missing mechanism as `Event` when `token:elf` already exists as a TokenSpec — the real gap is a continuous object-level modifier (Thranduil's static anthem modifying Elf-object characteristics), and a repair agent would otherwise fabricate a fictitious Elf event. Two fixes:
+
+1. **AMPLIFIES-over-object → ObjectModifier, not Event.** `_missing_node_type(relation, concept)` now returns **`ObjectModifier`** for AMPLIFIES_EFFECT when the candidate concept is a `token:`/`obj:` (an existing object), and the hint spells out the correct derived path: *amplifier's static ability MODIFIES objects of subtype `elf` (power/toughness) <- CREATES_OBJECT <- beneficiary*. So Thranduil → Down in the Valley now requests `missing_node_type: ObjectModifier` with a MODIFIES/CREATES_OBJECT mechanism, not an Elf event. (ENABLES_TRIGGER still → Event; SUPPLIES_RESOURCE → Resource.)
+2. **Adjudication bookkeeping split.** Stats + report now distinguish **adjudications_unresolved (0) / adjudications_resolved (1)** and **graph-repair entries (8)** — the resolved Thranduil case is no longer ambiguously displayed as an open "manual-adjudication queue" item; the report shows it as RESOLVED → enabler Thranduil, needs_graph_repair.
+
+127 tests pass (+ ObjectModifier repair-type, Thranduil-specific, and resolved/unresolved-split regressions). The repair queue now types each missing mechanism correctly (Event vs ObjectModifier vs Resource), so a repair agent builds a continuous modifier for Thranduil rather than a fabricated event.
+
+Refs: inline reviewer feedback (post-v3.2.1); `src/hobkg/audit.py` (`_missing_node_type`/`_missing_node_hint`); `tests/test_audit.py`; `data/graph_global/audit_repair_queue.jsonl`; `reports/pair_audit.md`
