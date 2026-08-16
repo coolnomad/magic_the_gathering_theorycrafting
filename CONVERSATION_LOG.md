@@ -3385,3 +3385,69 @@ Everything else is correct:
 * Frozen Phase 4 and Phase 5 outputs remain untouched.
 
 Verdict: nearly ready. Fix legend names using face-level names, include the complete SBA chain in the legend module, and calculate ability counts over the unified node set. Then Phase 6 can be frozen, with Recruit/Councillors and the two targeted pair-projection gaps explicitly deferred.
+
+### [2026-08-16 14:23] ASSISTANT
+Three clear fixes. Let me inspect `faces.jsonl` to get the face-level name field and confirm the legendary face id format.
+
+Confirmed â€” faces carry a per-face `name`, and the legendary face (`:0`, "Beorn, Reluctant Host") is the HAS_TYPE source. **Fix 1**: read the name from `faces.jsonl` by face_id.
+
+**Fix 2**: make the module include the complete SBA resolution chain. I'll add a bounded downstream walk through the resolution machinery (Ability/Operation nodes) reached from the anchors' consumers, adding those edges to the subgraph.
+
+Now call it inside `_module` after contributors/consumers are built.
+
+**Fix 3**: compute `abilities_by_kind` over the unified node set (frozen + repair + legend) so the new `state_based_action` ability is counted.
+
+Now regenerate and verify all three fixes.
+
+All three verified. Now lock them in with tests. Updating `test_inv11` to assert face-level names and the module's complete SBA chain.
+
+Now add the module-completeness assertion (the module's subgraph must contain the full SBA chain, not just HAS_STATE/ENABLES).
+
+Now the coverage test for Fix 3 (unified ability kinds).
+
+All 167 pass. Let me regenerate the deliverables last (pytest clobbers `reports/coverage.md` via the Phase 1 pipeline test), verify determinism, and revert the incidental review-file reorder.
+
+Deterministic, frozen graph untouched. Recording the science, then committing and pushing.
+
+Done â€” committed and pushed.
+
+- **Commit:** `9cac50a` â€” *"Phase 6 v3.2.1: legend face-name, complete SBA module chain, unified ability counts"*
+- **Pushed:** `4dab59b..9cac50a  main -> main`; working tree clean, in sync with `origin/main`.
+
+All three review findings on `4dab59b` fixed and verified (**167 tests pass**, deterministic rebuild, frozen Phase 4 + Phase 5 byte-untouched):
+
+1. **Legend names from the permanent face (important)** â€” `materialize_legend` now reads the name from `faces.jsonl` by the legendary `face_id` instead of the combined card name. The 12 legendary Adventures are corrected (e.g. `state:legend-conflict:beorn-reluctant-host`, no longer `...-till-and-tend`); **0** conflict states contain `//`.
+2. **Complete SBA chain in the module** â€” added `modules._resolution_edges`, a bounded downstream walk through `Ability`/`Operation` nodes. `module:legend-rule.subgraph_edge_ids` now holds all **113** legend edges including the shared `CAUSES` / `MOVES_TO` / `REFERENCES_RULE`, so the module is expandable through the resolution it represents. It's added to `subgraph_edge_ids` only, so members/contributors/consumers are unchanged (no card wrongly pulled in as a member). Generalizes to every module.
+3. **Unified ability counts (minor)** â€” `abilities_by_kind` is computed over frozen âˆª repair âˆª legend nodes, so `state_based_action: 1` now appears.
+
+Regression tests added/strengthened: the `//`-free / Beorn face-name check, the module-must-equal-the-whole-legend-layer assertion, and the `state_based_action` coverage assertion.
+
+Per your verdict, Phase 6 should now be freezable, with Recruit/Councillors (#2) and the two targeted pair-projection gaps (DÃ¡in's Company, Bothersome Noisemaker) explicitly deferred. Ready for your re-review of `9cac50a`.
+
+### [2026-08-16 14:32] USER
+Commit `9cac50a` is clean. Phase 6 can be frozen.
+
+Verified from a clean archive:
+
+* 167 tests pass.
+* All 55 legend conflict states use permanent-face names; none contain combined Adventure names.
+* `Beorn, Reluctant Host` and `Beorn the Fierce` are correctly distinct.
+* The legend module contains all 113 legend-layer edges:
+
+  * 55 `HAS_STATE`
+  * 55 `ENABLES`
+  * 1 `CAUSES`
+  * 1 `MOVES_TO`
+  * 1 `REFERENCES_RULE`
+* Unified coverage reports 2,850 edges: 2,728 frozen + 9 repair + 113 legend.
+* `state_based_action: 1` appears in unified ability counts.
+* Generated artifacts match the implementation.
+
+Remaining work is properly separated from the Phase 6 freeze:
+
+* Recruit ΓåÆ second-draw ΓåÆ MasterΓÇÖs Councillors is explicitly deferred pending turn-scoped state.
+* Dwarf/Equipment ΓåÆ D├íinΓÇÖs Company needs targeted audit/repair.
+* Noncreature cast ΓåÆ Bothersome Noisemaker needs targeted audit/repair.
+* Independent human semantic validation remains distinct from the automated structural checks.
+
+No new blocker found.

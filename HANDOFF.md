@@ -10,41 +10,44 @@ Read the items below **in order**, then check the status line, then wait for dir
 
 ## 2. The build spec
 - `docs/hob-knowledge-graph-build-spec.md` — authoritative plan: phases, semantic invariants,
-  coverage-report and gold-set requirements.
+  coverage-report and gold-set requirements. See §Completion criteria.
 
 ## 3. Current scientific state (most important for continuity)
-- The **last ~4 entries of `LABNOTEBOOK.md`** (~1080 lines; the tail runs graph-repair →
-  Phase 6 v1 → v2 → v3 → **v3.1**). This is where the "why" lives.
-- Reviewer files: `docs/hob-kg-phase6-review-pt1.md` and `-pt2.md`.
-  The **v3.1 review was inline, not a file** — it is summarized in the v3.1 notebook entry.
+- The **last ~5 entries of `LABNOTEBOOK.md`** (the tail runs Phase 6 v3 → v3.1 → v3.2 → v3.2.1
+  → the **Phase 6 FREEZE decision**). This is where the "why" lives.
+- Reviewer files: `docs/hob-kg-phase6-review-pt{1,2,3}.md`. Later Phase 6 reviews (v3.1, v3.2,
+  v3.2.1, and the freeze) were **inline in chat**, summarized in the corresponding notebook entries.
 
 ## 4. Memory
 Auto-loads via `MEMORY.md`. Flag the operational ones: `no-cd-in-bash.md` (avoid Bash
-approval prompts), `phase3-llm-via-subagents.md`, `provenance-rigor.md`.
+approval prompts), `phase3-llm-via-subagents.md`, `provenance-rigor.md`; and `phase4-frozen.md`
+for the full build-phase status.
 
 ## Status
-- **Phase 6 v3.1 committed at `197e314`, awaiting external review.**
-- Phases 4, 5 (Parts 1+2), and graph-repair are **frozen/accepted**.
-- **166 tests pass, deterministic.** The frozen Phase 4 graph and Phase 5 projections are
-  byte-stable; the legend layer (`data/graph_global/legend_{nodes,edges}.jsonl`) is purely additive.
-- **Deferred, reviewer-acknowledged — item 6:** Dáin's Company (Dwarf/Equipment) and
-  Bothersome Noisemaker (noncreature-cast) need a *fresh audit → repair → reprojection round*
-  (new primitive producer/consumer edges), **not** discovery. **Do not start without a go-ahead.**
+- **ALL named build phases (0–6) are FROZEN.** Phase 6 (higher-order mechanism assembly) was
+  accepted at **`9cac50a`**. The HOB mechanistic KG is complete per the spec's completion criteria.
+- **167 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
+  conditions}.jsonl`) and Phase 5 projections are byte-stable; the graph-repair and legend layers
+  are purely additive.
+- Card-pair layer = 3 separate tiers: `card_pair_projection.jsonl` (5,278 mechanical),
+  `card_pair_projection_audit.jsonl` (3 llm_audit), `card_pair_projection_repaired.jsonl` (8 graph_repair).
+- Phase 6 deliverables: `mechanism_modules.jsonl` (37 modules), the additive legend-rule SBA layer
+  `legend_{nodes,edges}.jsonl` (58 nodes / 113 edges, CR 704.5j), unified `coverage.json`
+  (2,850 edges), `pair_index.jsonl` (37,249 pairs), `structural_validation_set.jsonl`.
 
-## What v3.1 changed (the last review's six findings)
-1. Renamed `gold_set` → `structural_validation_set` (`.jsonl` + `reports/structural_validation.md`,
-   CLI `structural-validation`, old name aliased). Report states plainly it is NOT an independent
-   human gold set — deterministic structural assertions against the same graph.
-2. De-tautologized Saga (requires `REFERENCES_RULE rule:saga` or a `counter:lore` state) and
-   self-pair (reflexive effect must not route through an `obj:another*/obj:other*` class).
-3. Multi-edge sampler now draws combos from the **union of all three projection layers**;
-   test checks distinct **combinations**, not pair-IDs.
-4. Substantive #11: legend rule materialized as a state constraint (55 `state:legend:{name}`
-   States, `max_controlled=1`), surfaced as `module:legend-rule`.
-5. Substantive #12: all 31 self-pair metaedges verified reflexive (`participant_status: resolved`,
-   no another/other routing), per relation.
-6. Strengthened #2: graph correctly refuses a Recruit→Councillors edge (second-draw ordering is
-   unmodeled), verified both directions across all three projection layers.
+## Remaining work — follow-on capability only, NOT gaps in the frozen graph (each needs a go-ahead)
+1. **Invariant #2** — Recruit → second-draw → Master's Councillors: needs a turn-scoped
+   cards-drawn-this-turn count state/gate (recorded in `coverage.DEFERRED_INVARIANTS`).
+2. **Dwarf/Equipment → Dáin's Company** — targeted audit → repair → reprojection round
+   (same machinery as the 8 already repaired).
+3. **Noncreature cast → Bothersome Noisemaker** — targeted audit → repair → reprojection round.
+4. **Independent human semantic validation** — distinct from the automated structural checks
+   (the "structural validation set" is explicitly NOT an independent human gold set).
+- Housekeeping (pre-existing, non-blocking): `reports/coverage.md` has **two writers**
+  (`pipeline.py` Phase 1 vs `coverage.py` Phase 6) that clobber each other — running full `pytest`
+  leaves the Phase 1 version; regenerate with `python -m hobkg.cli coverage` for the Phase 6 one.
+  Also `data/review/llm_{accepted,queued}.jsonl` reorder nondeterministically (set-iteration order);
+  revert the spurious diff after running the suite.
 
 ## Operational gotchas
 - `CONVERSATION_LOG.md` is appended by **hooks automatically** — do **not** hand-edit it.

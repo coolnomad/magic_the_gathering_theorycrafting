@@ -1094,3 +1094,29 @@ Reviewer reviewed `4dab59b`: three v3.2 corrections substantially implemented (1
 **Result.** 167 tests pass (strengthened inv11 with the face-name/`//` regression + the complete-chain assertion `subgraph == whole legend layer`; added the `state_based_action` coverage assertion — no net count change). Deterministic byte-identical rebuild; frozen Phase 4 graph + Phase 5 projections byte-untouched. Reviewer's other checks remain green (113 edges/58 nodes all provenance-bearing, controller-scoped threshold 2, owner-scoped graveyard, ENABLES-not-TRIGGERS, #2 deferred).
 
 Refs: reviewer feedback on `4dab59b`; `src/hobkg/{modules,coverage}.py` (`_resolution_edges`, face-name lookup, unified ability counts); `tests/{test_modules,test_coverage}.py`; `data/graph_global/{legend_nodes,legend_edges,mechanism_modules,coverage}.jsonl`
+
+---
+
+## [2026-08-16 19:30] DECISION — Phase 6 (higher-order mechanism assembly) FROZEN
+
+Reviewer accepted commit `9cac50a` from a clean archive: **no new blocker.** Verified: 167 tests pass; all 55 legend conflict states use permanent-face names (none combined-Adventure; `Beorn, Reluctant Host` and `Beorn the Fierce` correctly distinct); the legend module contains all 113 legend-layer edges (55 HAS_STATE + 55 ENABLES + 1 CAUSES + 1 MOVES_TO + 1 REFERENCES_RULE); unified coverage = 2,850 edges (2,728 frozen + 9 repair + 113 legend); `state_based_action: 1` in unified ability counts; generated artifacts match the implementation. **Verdict: Phase 6 can be frozen.**
+
+**Phase 6 is now COMPLETE and frozen.** Deliverables (all additive; frozen Phase 4 graph + Phase 5 projections byte-untouched):
+- `data/graph_global/mechanism_modules.jsonl` + `reports/mechanism_modules.md` — 37 formal, labelled subgraph modules (per-gate, named mechanic, per-token, discovery, second-draw, and the legend-rule module), each expandable through its resolution machinery (`modules._resolution_edges`).
+- `data/graph_global/legend_{nodes,edges}.jsonl` — the legend rule modeled as its actual CR 704.5j state-based action (58 nodes / 113 edges, all provenance-bearing, signature-valid): face `HAS_STATE` → controller-scoped `state:legend-conflict:{face-name}` `ENABLES` → `ability:legend-sba` `CAUSES` → owner-scoped `op:legend-sba-put-in-graveyard` `MOVES_TO` → `zone:graveyard`.
+- `data/graph_global/coverage.json` + `reports/coverage.md` — unified per-layer + union coverage (2,850 edges; abilities over the unified node set; `DEFERRED_INVARIANTS`).
+- `data/graph_global/pair_index.jsonl` — 37,249 ordered-pair completion index.
+- `data/graph_global/structural_validation_set.jsonl` + `reports/structural_validation.md` — stratified deterministic structural checks (explicitly NOT an independent human gold set).
+Rebuilt deterministically by `python -m hobkg.cli {modules,coverage,pair-index,structural-validation}`.
+
+**Explicitly deferred, cleanly separated from the freeze (each needs a go-ahead):**
+1. **Invariant #2** — Recruit → second-draw → Master's Councillors: needs a turn-scoped cards-drawn-this-turn count state/gate (recorded in `coverage.DEFERRED_INVARIANTS`).
+2. **Dwarf/Equipment → Dáin's Company** — targeted audit → repair → reprojection round.
+3. **Noncreature cast → Bothersome Noisemaker** — targeted audit → repair → reprojection round.
+4. **Independent human semantic validation** — remains distinct from the automated structural checks.
+
+Also open (housekeeping, pre-existing, non-blocking): the `reports/coverage.md` two-writer collision (Phase 1 pipeline vs Phase 6 coverage) and the `data/review/llm_{accepted,queued}.jsonl` set-order nondeterminism.
+
+**All named build phases (0–6) are now frozen.** The HOB mechanistic knowledge graph is complete per the spec's completion criteria (all 193 cards normalized; Adventures/Sagas tested; named mechanics have rule templates; global multigraph validates; all 37,249 ordered pairs have a projection record; higher-order gates represented without enumeration; infrastructure filterable; validation + coverage reports generated; any pair is queryable with provenance). The remaining items above are follow-on capability work, not gaps in the frozen graph.
+
+Refs: reviewer acceptance of `9cac50a`; `docs/hob-knowledge-graph-build-spec.md` (§Completion criteria); [[phase4-frozen]]
