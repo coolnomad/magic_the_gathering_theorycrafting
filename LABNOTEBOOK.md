@@ -887,3 +887,20 @@ Reviewer (inline, post-v3.2.1): the Thranduil repair entry mis-typed the missing
 127 tests pass (+ ObjectModifier repair-type, Thranduil-specific, and resolved/unresolved-split regressions). The repair queue now types each missing mechanism correctly (Event vs ObjectModifier vs Resource), so a repair agent builds a continuous modifier for Thranduil rather than a fabricated event.
 
 Refs: inline reviewer feedback (post-v3.2.1); `src/hobkg/audit.py` (`_missing_node_type`/`_missing_node_hint`); `tests/test_audit.py`; `data/graph_global/audit_repair_queue.jsonl`; `reports/pair_audit.md`
+
+---
+
+## [2026-08-17 02:10] DECISION — Phase 5 Part 2 (pairwise LLM audit) FROZEN
+
+Reviewer accepted commit `3f14fb6`: 127 tests pass, 142/142 coverage, Thranduil repair correctly typed `ObjectModifier` with the right direction, grounding/spans intact, adjudication accounting clear (0 unresolved / 1 resolved), repair queue 8 entries from 11 verdicts, regeneration reproduces the committed counts. **Verdict: no further blocking defect; Phase 5 Part 2 can be frozen and the graph-repair process can consume the eight queued mechanisms.**
+
+**Phase 5 is now COMPLETE and frozen** (Part 1 mechanical projection frozen 2026-08-16 at `0b6d48f`; Part 2 pairwise audit frozen here). Deliverables:
+- `data/graph_global/card_pair_projection.jsonl` — 5,278 mechanical metaedges (Part 1).
+- `data/graph_global/card_pair_projection_audit.jsonl` — 3 accepted faithful typed paths, `origin: llm_audit` (Bard AMPLIFIES draw), kept SEPARATE from the canonical projection.
+- `data/graph_global/audit_repair_queue.jsonl` — 8 credible relations lacking a primitive path, each with an unordered pair, a correctly-typed missing mechanism (Event / ObjectModifier / Resource), a proposed/adjudicated direction, and grounding.
+- `data/graph_global/audit_adjudication_queue.jsonl` — 1 resolved direction-conflict record (Thranduil), both groundings span-validated.
+Rebuilt deterministically by `python -m hobkg.cli audit-candidates` / `audit-ingest`.
+
+**Next (not started — awaiting go-ahead): graph-repair + reprojection.** Consume the 8 repair-queue mechanisms — materialize the intermediate Event nodes + TRIGGERS edges (life-lost, counter-placed, creature-ability-activated), the Wolf-count resource canonicalization, and the Thranduil ObjectModifier (static MODIFIES over Elf objects) — then reproject those pairs mechanically so they become faithful typed paths. Then Phase 6 (higher-order mechanism assembly, spec §Phase 6). Per the per-phase review rhythm, do NOT start graph repair without the user's go-ahead.
+
+Refs: `data/graph_global/{card_pair_projection,card_pair_projection_audit,audit_repair_queue,audit_adjudication_queue}.jsonl`; `src/hobkg/{project,audit}.py`; `reports/pair_audit.md`

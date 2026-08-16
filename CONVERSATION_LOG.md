@@ -2595,3 +2595,48 @@ There is also a bookkeeping ambiguity: the adjudication is resolved but still co
 * graph-repair entries: 8
 
 So the provenance fix is good, but I would correct the Thranduil repair type before allowing the repair agent to consume the queue. Otherwise it may construct a fictitious Elf event instead of representing a continuous object-level modifier.
+
+### [2026-08-15 22:05] ASSISTANT
+Two fixes â€” the Thranduil repair *type* is genuinely wrong (`token:elf` is an existing TokenSpec; the missing piece is a static object-modifier, not an Event), and the adjudication bookkeeping should distinguish resolved vs unresolved. Let me correct the missing-node typing for AMPLIFIES-over-objects.
+
+Now update the `_missing_node_type` callsite and split the adjudication counts (resolved vs unresolved):
+
+Now the stats split (resolved vs unresolved adjudications) and report:
+
+Let me update the report's adjudication section to show resolution status, then re-ingest:
+
+Counts are correct (repair 8; adjudications 1 resolved / 0 unresolved) and Thranduil's `missing_node_type` is now **ObjectModifier**. The hint has a unicode arrow that the Windows console can't print â€” let me make it ASCII-safe.
+
+Correct â€” Thranduil now requests an `ObjectModifier` (MODIFIES elf-objects â† CREATES_OBJECT), not a fictitious event. Let me add regression tests and run the suite.
+
+127 tests pass. Let me record v3.2.2 and commit.
+
+Pushed â€” `3f14fb6`. Both issues fixed.
+
+## v3.2.2 â€” correct repair-type + adjudication bookkeeping
+
+**1. ObjectModifier, not a fabricated Event.** `token:elf` already exists as a TokenSpec, so the missing piece for Thranduil is a *continuous object-level modifier*, not an event. `_missing_node_type` now returns **`ObjectModifier`** for `AMPLIFIES_EFFECT` over a `token:`/`obj:` concept, and the hint spells out the correct derived path:
+
+> add an ObjectModifier: the amplifier's static ability **MODIFIES** objects of subtype `elf` (power/toughness), which the beneficiary **CREATES_OBJECT** (`token:elf`); derived path = amplifier MODIFIES elf-objects `<- CREATES_OBJECT <-` beneficiary
+
+So a repair agent will build Thranduil's continuous anthem modifier over Elf objects rather than inventing an Elf event. (ENABLES_TRIGGER still â†’ `Event`; SUPPLIES_RESOURCE â†’ `Resource`.)
+
+**2. Adjudication bookkeeping split.** Stats and report now distinguish **adjudications: 0 unresolved / 1 resolved** and **graph-repair entries: 8** â€” the resolved Thranduil case shows as `RESOLVED â†’ enabler Thranduil, needs_graph_repair`, no longer ambiguously displayed as an open queue item.
+
+**127 tests pass** (+ ObjectModifier typing, Thranduil-specific, and resolved/unresolved-split regressions).
+
+The full audit pipeline and both downstream queues are now correct and correctly typed. Phase 5 Part 2 is complete on the audit side; the repair queue types every missing mechanism (Event / ObjectModifier / Resource) so a graph-repair agent can consume it safely. Holding for your review.
+
+### [2026-08-15 22:08] USER
+Commit `3f14fb6` is clean and ready to proceed.
+
+* 127 tests pass.
+* Coverage remains 142/142.
+* Thranduil repair now correctly uses `ObjectModifier`, not `Event`.
+* Direction is correct: Thranduil ΓåÆ Down in the Valley.
+* Grounding and spans remain intact.
+* Accounting is now clear: 0 unresolved and 1 resolved adjudication.
+* Repair queue contains 8 entries from 11 verdicts.
+* Regeneration reproduces the committed counts and Thranduil record correctly.
+
+I donΓÇÖt see another blocking defect in this stage. Phase 5 Part 2 can be frozen, and the graph-repair process can consume the eight queued mechanisms.
