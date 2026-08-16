@@ -3,11 +3,11 @@
 *Coverage is not correctness; edge count is not maximized.*
 
 - cards / faces parsed: **193 / 210**
-- abilities by kind: {'?': 43, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1, 'automatic': 4, 'static_pt_bonus': 9, 'static_grant': 6}
-- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **111** + equip **173** = union **3134** (+1 repair, +58 legend, +3 mechanism, +107 equip nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 111, 'equip': 173}; provenance gaps: 0
-- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **392** + equip **3250** = union **8931**
+- abilities by kind: {'?': 43, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1, 'automatic': 4, 'static_pt_bonus': 9, 'static_grant': 6, 'sacrifice_outlet': 9}
+- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **111** + equip **173** + completeness **101** = union **3235** (+1 repair, +58 legend, +3 mechanism, +107 equip, +28 completeness nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 111, 'equip': 173, 'completeness': 101}; provenance gaps: 0
+- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **392** + equip **3250** + completeness **1036** = union **9967**
 - conditions all resolve: **True** (unresolved: none)
-- conditions: 163 (81 raw-unresolved); unresolved Oracle records: 16
+- conditions: 166 (81 raw-unresolved); unresolved Oracle records: 16
 - LLM: 210 faces accepted; audit 5 accepted / 114 no-relation / 10 graph-repair
 - pair relations: **5278** {'CONTRIBUTES_TO_GATE': 666, 'INFRASTRUCTURE_CASTING': 4593, 'ENABLES_TRIGGER': 4, 'SUPPLIES_RESOURCE': 15}
 - pairs with multiple relation types: 80
@@ -17,27 +17,27 @@
 
 ## Edges by predicate
 
-- HAS_ABILITY: 612
+- HAS_ABILITY: 621
 - HAS_TYPE: 552
-- CAUSES: 399
+- CAUSES: 432
 - HAS_COST: 223
 - HAS_FACE: 210
 - ENABLES: 115
+- PRODUCES: 109
 - REFERENCES_RULE: 102
+- MOVES_TO: 98
 - MODIFIES: 96
-- MOVES_TO: 89
-- PRODUCES: 86
 - MOVES_FROM: 84
-- TRIGGERS: 82
+- TRIGGERS: 83
 - HAS_KEYWORD: 80
 - QUALIFIES_FOR: 78
+- REQUIRES: 64
 - HAS_STATE: 63
-- REQUIRES: 51
+- CONSUMES: 36
 - SCALES_WITH: 35
 - ADDS_COUNTER: 34
 - CREATES_OBJECT: 27
 - INSTANTIATES: 26
-- CONSUMES: 23
 - CAN_LEAD_TO: 21
 - ATTACHED_TO: 12
 - HAS_COUNTER_TYPE: 11

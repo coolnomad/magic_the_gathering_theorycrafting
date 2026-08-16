@@ -47,7 +47,9 @@ def coverage(repo: Path = REPO) -> dict:
     mechanism_nodes = _opt(G / "mechanism_nodes.jsonl")
     equip_edges = _opt(G / "equip_edges.jsonl")
     equip_nodes = _opt(G / "equip_nodes.jsonl")
-    # deduplicated union of frozen Phase 4 + graph-repair + legend + mechanism + equip layers
+    completeness_edges = _opt(G / "completeness_edges.jsonl")
+    completeness_nodes = _opt(G / "completeness_nodes.jsonl")
+    # deduplicated union of frozen + graph-repair + legend + mechanism + equip + completeness layers
     union = {e["edge_id"]: {**e, "origin": e.get("origin", "phase4")} for e in frozen_edges}
     for e in repair_edges:
         union[e["edge_id"]] = {**e, "origin": e.get("origin", "graph_repair")}
@@ -57,6 +59,8 @@ def coverage(repo: Path = REPO) -> dict:
         union[e["edge_id"]] = {**e, "origin": e.get("origin", "mechanism_repair")}
     for e in equip_edges:
         union[e["edge_id"]] = {**e, "origin": e.get("origin", "equip")}
+    for e in completeness_edges:
+        union[e["edge_id"]] = {**e, "origin": e.get("origin", "completeness")}
     edges = list(union.values())
     cards = list(_load_dicts(repo / "data/normalized/cards.jsonl"))
     faces = list(_load_dicts(repo / "data/normalized/faces.jsonl"))
@@ -65,9 +69,10 @@ def coverage(repo: Path = REPO) -> dict:
     repaired_rel = _opt(G / "card_pair_projection_repaired.jsonl")
     mechanism_rel = _opt(G / "card_pair_projection_mechanism.jsonl")
     equip_rel = _opt(G / "card_pair_projection_equip.jsonl")
+    completeness_rel = _opt(G / "card_pair_projection_completeness.jsonl")
     audit = _opt(G / "audit_results.jsonl")
     conds = list(_load_dicts(G / "conditions.jsonl")) + _opt(G / "mechanism_conditions.jsonl") \
-        + _opt(G / "equip_conditions.jsonl")
+        + _opt(G / "equip_conditions.jsonl") + _opt(G / "completeness_conditions.jsonl")
     # every condition_id referenced by any edge (union) must resolve to a condition record
     defined_conds = {c["condition_id"] for c in conds}
     referenced_conds = {c for e in edges for c in (e.get("condition_ids") or [])}
@@ -76,7 +81,7 @@ def coverage(repo: Path = REPO) -> dict:
     # abilities counted over the UNIFIED node set (frozen + repair + legend), so the legend
     # layer's state_based_action ability is included — not just the frozen Phase 4 nodes.
     union_nodes = {n["id"]: n for n in nodes}
-    for n in repair_nodes + legend_nodes + mechanism_nodes + equip_nodes:
+    for n in repair_nodes + legend_nodes + mechanism_nodes + equip_nodes + completeness_nodes:
         union_nodes.setdefault(n["id"], n)
     ability_kinds = Counter(n["data"].get("kind", "?")
                             for n in union_nodes.values() if n["type"] == "Ability")
@@ -105,19 +110,19 @@ def coverage(repo: Path = REPO) -> dict:
         # per-layer AND deduplicated union (the completed graph, not just Phase 4)
         "edges_frozen": len(frozen_edges), "edges_repair": len(repair_edges),
         "edges_legend": len(legend_edges), "edges_mechanism": len(mechanism_edges),
-        "edges_equip": len(equip_edges),
+        "edges_equip": len(equip_edges), "edges_completeness": len(completeness_edges),
         "edges_union": len(edges), "nodes_repair": len(repair_nodes),
         "nodes_legend": len(legend_nodes), "nodes_mechanism": len(mechanism_nodes),
-        "nodes_equip": len(equip_nodes),
+        "nodes_equip": len(equip_nodes), "nodes_completeness": len(completeness_nodes),
         "edges_total": len(edges), "edges_by_predicate": dict(edges_by_pred),
         "edges_by_origin": dict(Counter(e.get("origin", "phase4") for e in edges)),
         "edges_without_provenance": sum(1 for e in edges if not e.get("provenance")),
         # relations per layer + union
         "relations_mechanical": len(proj), "relations_audited": len(audit_accepted),
         "relations_repaired": len(repaired_rel), "relations_mechanism": len(mechanism_rel),
-        "relations_equip": len(equip_rel),
+        "relations_equip": len(equip_rel), "relations_completeness": len(completeness_rel),
         "relations_union": (len(proj) + len(audit_accepted) + len(repaired_rel) + len(mechanism_rel)
-                            + len(equip_rel)),
+                            + len(equip_rel) + len(completeness_rel)),
         "conditions_total": len(conds),
         "conditions_raw_unresolved": sum(1 for c in conds if c.get("status") == "raw_unresolved"),
         "conditions_unresolved": unresolved_conds,
@@ -150,12 +155,14 @@ def _coverage_report(repo, s, no_out, no_in, cards):
          f"- abilities by kind: {s['abilities_by_kind']}",
          f"- primitive edges (per layer + union): frozen **{s['edges_frozen']}** + repair "
          f"**{s['edges_repair']}** + legend **{s['edges_legend']}** + mechanism **{s['edges_mechanism']}** "
-         f"+ equip **{s['edges_equip']}** = union **{s['edges_union']}** (+{s['nodes_repair']} repair, "
-         f"+{s['nodes_legend']} legend, +{s['nodes_mechanism']} mechanism, +{s['nodes_equip']} equip nodes); "
-         f"by origin {s['edges_by_origin']}; provenance gaps: {s['edges_without_provenance']}",
+         f"+ equip **{s['edges_equip']}** + completeness **{s['edges_completeness']}** = union "
+         f"**{s['edges_union']}** (+{s['nodes_repair']} repair, +{s['nodes_legend']} legend, "
+         f"+{s['nodes_mechanism']} mechanism, +{s['nodes_equip']} equip, +{s['nodes_completeness']} "
+         f"completeness nodes); by origin {s['edges_by_origin']}; provenance gaps: {s['edges_without_provenance']}",
          f"- pair relations (per layer + union): mechanical **{s['relations_mechanical']}** + audited "
          f"**{s['relations_audited']}** + repaired **{s['relations_repaired']}** + mechanism "
-         f"**{s['relations_mechanism']}** + equip **{s['relations_equip']}** = union **{s['relations_union']}**",
+         f"**{s['relations_mechanism']}** + equip **{s['relations_equip']}** + completeness "
+         f"**{s['relations_completeness']}** = union **{s['relations_union']}**",
          f"- conditions all resolve: **{s['conditions_all_resolve']}** "
          f"(unresolved: {s['conditions_unresolved'] or 'none'})",
          f"- conditions: {s['conditions_total']} ({s['conditions_raw_unresolved']} raw-unresolved); "
@@ -191,7 +198,7 @@ def pair_index(repo: Path = REPO) -> dict:
     its mechanical, audited, repaired, and mechanism-repair relations (empty pairs included)."""
     G = repo / "data" / "graph_global"
     cards = sorted(c["id"] for c in _load_dicts(repo / "data/normalized/cards.jsonl"))
-    mech, aud, rep, mch, eqp = (defaultdict(list) for _ in range(5))
+    mech, aud, rep, mch, eqp, cmp = (defaultdict(list) for _ in range(6))
     for m in _load_dicts(G / "card_pair_projection.jsonl"):
         mech[(m["source_card"], m["target_card"])].append(m["relation"])
     for m in _opt(G / "card_pair_projection_audit.jsonl"):
@@ -202,17 +209,20 @@ def pair_index(repo: Path = REPO) -> dict:
         mch[(m["source_card"], m["target_card"])].append(m["relation"])
     for m in _opt(G / "card_pair_projection_equip.jsonl"):
         eqp[(m["source_card"], m["target_card"])].append(m["relation"])
+    for m in _opt(G / "card_pair_projection_completeness.jsonl"):
+        cmp[(m["source_card"], m["target_card"])].append(m["relation"])
     n, nonempty = 0, 0
     with (G / "pair_index.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for a in cards:
             for b in cards:
-                mr, ar, rr, cr, er = (sorted(d[(a, b)]) for d in (mech, aud, rep, mch, eqp))
-                total = len(mr) + len(ar) + len(rr) + len(cr) + len(er)
+                mr, ar, rr, cr, er, pr = (sorted(d[(a, b)]) for d in (mech, aud, rep, mch, eqp, cmp))
+                total = len(mr) + len(ar) + len(rr) + len(cr) + len(er) + len(pr)
                 n += 1
                 nonempty += 1 if total else 0
                 fh.write(json.dumps({"source_card": a, "target_card": b, "self_pair": a == b,
                                      "mechanical": mr, "audited": ar, "repaired": rr, "mechanism": cr,
-                                     "equip": er, "total_relations": total}, sort_keys=True) + "\n")
+                                     "equip": er, "completeness": pr, "total_relations": total},
+                                    sort_keys=True) + "\n")
     return {"pair_records": n, "possible_ordered_pairs": len(cards) ** 2,
             "nonempty_pairs": nonempty, "empty_pairs": n - nonempty}
 
@@ -239,7 +249,7 @@ def structural_validation_set(repo: Path = REPO) -> dict:
     rel_by_pair = defaultdict(set)
     for layer in ("card_pair_projection.jsonl", "card_pair_projection_audit.jsonl",
                   "card_pair_projection_repaired.jsonl", "card_pair_projection_mechanism.jsonl",
-                  "card_pair_projection_equip.jsonl"):
+                  "card_pair_projection_equip.jsonl", "card_pair_projection_completeness.jsonl"):
         for m in _opt(G / layer):
             rel_by_pair[(m["source_card"], m["target_card"])].add(m["relation"])
     related = set(rel_by_pair)

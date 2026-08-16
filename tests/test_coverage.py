@@ -35,22 +35,25 @@ def test_coverage_reports_all_layers_and_union(cov):
     # frozen + repair + legend + mechanism + equip layers reported SEPARATELY and as a
     # deduplicated union (the completed graph, not just Phase 4).
     assert cov["edges_frozen"] == 2728 and cov["edges_repair"] == 9 and cov["edges_legend"] == 113
-    assert cov["edges_mechanism"] == 111 and cov["edges_equip"] == 173
+    assert cov["edges_mechanism"] == 111 and cov["edges_equip"] == 173 and cov["edges_completeness"] == 101
     assert cov["nodes_mechanism"] == 3 and cov["nodes_legend"] == 58 and cov["nodes_equip"] == 107
+    assert cov["nodes_completeness"] == 28
     assert cov["edges_union"] == (cov["edges_frozen"] + cov["edges_repair"] + cov["edges_legend"]
-                                  + cov["edges_mechanism"] + cov["edges_equip"]) == 3134
+                                  + cov["edges_mechanism"] + cov["edges_equip"]
+                                  + cov["edges_completeness"]) == 3235
     assert cov["edges_by_origin"].get("graph_repair") == 9
     assert cov["edges_by_origin"].get("legend_rule") == 113   # legend layer in the origin counts
     assert cov["edges_by_origin"].get("mechanism_repair") == 111  # mechanism layer (incl. broadened draws)
     assert cov["edges_by_origin"].get("equip") == 173        # equip layer in the origin counts
+    assert cov["edges_by_origin"].get("completeness") == 101  # completeness layer in the origin counts
     assert cov["edges_without_provenance"] == 0              # incl. every legend/mechanism/equip edge
     # abilities counted over the UNIFIED node set — the legend SBA ability must be included
     assert cov["abilities_by_kind"].get("state_based_action") == 1
     assert cov["relations_union"] == (cov["relations_mechanical"] + cov["relations_audited"]
                                       + cov["relations_repaired"] + cov["relations_mechanism"]
-                                      + cov["relations_equip"])
+                                      + cov["relations_equip"] + cov["relations_completeness"])
     assert cov["relations_repaired"] == 8 and cov["relations_audited"] == 3
-    assert cov["relations_mechanism"] > 0 and cov["relations_equip"] > 0
+    assert cov["relations_mechanism"] > 0 and cov["relations_equip"] > 0 and cov["relations_completeness"] > 0
 
 
 def test_coverage_no_deferred_invariants_all_modeled(cov):

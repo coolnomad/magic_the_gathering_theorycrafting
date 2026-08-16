@@ -21,6 +21,8 @@ _LAYERS = [
     ("graph_repair", "card_pair_projection_repaired.jsonl", "graph-repair (materialized intermediate)"),
     ("mechanism_repair", "card_pair_projection_mechanism.jsonl", "mechanism-repair (stateful / targeted)"),
     ("equip", "card_pair_projection_equip.jsonl", "equip (Equipment->creature attachment)"),
+    ("completeness", "card_pair_projection_completeness.jsonl",
+     "completeness (token-entry / sac->dies / sacrifice-fodder)"),
 ]
 
 

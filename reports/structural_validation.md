@@ -2,7 +2,7 @@
 
 *NOT an independent human gold set: these are deterministic structural assertions against the same graph. Human reviewers still adjudicate semantics and may override.*
 
-Structural checks: **111/111 pass**.
+Structural checks: **119/119 pass**.
 
 ## adventures — 17/17 pass
 - [pass] Gollum, Silent Slinker // Meager Meal  _(expect: exactly two face nodes)_
@@ -23,7 +23,7 @@ Structural checks: **111/111 pass**.
 - [pass] Bilbo Baggins, Burglar // Take a Glance  _(expect: exactly two face nodes)_
 - [pass] Smaug, the Great Calamity // Spew Flame  _(expect: exactly two face nodes)_
 
-## multi_edge_pairs — 30/30 pass
+## multi_edge_pairs — 38/38 pass
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE'])_
 - [pass] My Precious // Allure of Power → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
@@ -36,48 +36,48 @@ Structural checks: **111/111 pass**.
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'SUPPLIES_RESOURCE'])_
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER'])_
 - [pass] My Precious // Allure of Power → Lakeshore Apothecary  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
-- [pass] Orcrist, Goblin-cleaver → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → Belladonna Took  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] The Black Arrow → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Well-Worn Spatula → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] My Precious // Allure of Power → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] Orcrist, Goblin-cleaver → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
 - [pass] The Black Arrow → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] The Black Arrow → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] The Black Arrow → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] My Precious // Allure of Power → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] My Precious // Allure of Power → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
 - [pass] Well-Worn Spatula → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED'])_
+- [pass] Well-Worn Spatula → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] Well-Worn Spatula → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] Glamdring, Foe-hammer // Gleam of Death → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'SUPPLIES_RESOURCE'])_
 - [pass] Smaug, Wicked Worm → Balin, Loremaster  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'INFRASTRUCTURE_CASTING'])_
-- [pass] Dori, Bearer of Friends → Kíli the Resourceful  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'INFRASTRUCTURE_CASTING', 'SUPPLIES_RESOURCE'])_
-- [pass] Nori, Teller of Tales → Kíli the Resourceful  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'SUPPLIES_RESOURCE'])_
-- [pass] Giant's Boulder → Uncover the Moon-Letters  _(expect: relation combination ['ENABLES_TRIGGER', 'INFRASTRUCTURE_CASTING'])_
-- [pass] Plunder the Trollshaws → Uncover the Moon-Letters  _(expect: relation combination ['ENABLES_TRIGGER', 'SUPPLIES_RESOURCE'])_
-- [pass] Dori, Bearer of Friends → Dáin's Company  _(expect: relation combination ['INFRASTRUCTURE_CASTING', 'SUPPLIES_RESOURCE'])_
 
 ## multi_token_or_type — 1/1 pass
 - [pass] The Misty Mountains Cold  _(expect: creates >=2 token types)_
 
 ## null_pairs — 20/20 pass
-- [pass] Rhovanion Rampager → Belladonna Took  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Belladonna Took → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Gollum, Silent Slinker // Meager Meal → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Nori, Teller of Tales → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Rhovanion Rampager → The Arkenstone // Seek the Heart  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Belladonna Took → Gollum, Silent Slinker // Meager Meal  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Gollum, Silent Slinker // Meager Meal → Belladonna Took  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Nori, Teller of Tales → Belladonna Took  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Bejeweled Warg → Hobbit Hole  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Head of the Hunt → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Head of the Hunt → Gollum, Silent Slinker // Meager Meal  _(expect: no relation in any of the 3 projection layers)_
 - [pass] The Arkenstone // Seek the Heart → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Balin, Loremaster → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Tom, Bert, and William → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Lake-town Toymaker → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Silvan Reveler → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Balin, Loremaster → Head of the Hunt  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Tom, Bert, and William → The Arkenstone // Seek the Heart  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Lake-town Toymaker → Belladonna Took  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Silvan Reveler → Belladonna Took  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Uneasy Partings → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
 - [pass] The Eagles Are Coming! → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Hobbit Hole → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Gnashing of Teeth → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Smaug, Wicked Worm → Hobbit Hole  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Great Ugly-Looking Goblin // Clap! Snap! → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Great Ugly-Looking Goblin // Clap! Snap! → Belladonna Took  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Glamdring, Foe-hammer // Gleam of Death → The Arkenstone // Seek the Heart  _(expect: no relation in any of the 3 projection layers)_
-- [pass] Beorn, Reluctant Host // Till and Tend → Rhovanion Rampager  _(expect: no relation in any of the 3 projection layers)_
+- [pass] Beorn, Reluctant Host // Till and Tend → Belladonna Took  _(expect: no relation in any of the 3 projection layers)_
 - [pass] Woodland Weavemaster → Hobbit Hole  _(expect: no relation in any of the 3 projection layers)_
 
 ## recruit — 10/10 pass

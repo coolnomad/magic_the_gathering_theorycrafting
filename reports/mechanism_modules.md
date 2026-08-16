@@ -1,8 +1,8 @@
 # HOB Phase 6 — Higher-Order Mechanism Modules
 
-- **modules**: 38
+- **modules**: 51
 - **modules with feedback cycles**: 1
-- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 5, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 4, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'state_constraint': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
+- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 9, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 13, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'state_constraint': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
 
 ## Modules
 
@@ -30,9 +30,25 @@
 - anchors: `event:damage`
 - members: 2  · contributors: 4  · consumers: 0  · conditions: 1  · feedback cycles: 0
 
+### shared event: event:dies  (`discovered_event`)
+- anchors: `event:dies`
+- members: 10  · contributors: 8  · consumers: 2  · conditions: 0  · feedback cycles: 0
+
 ### life-loss trigger  (`discovered_event`)
 - anchors: `event:player-loses-life`
 - members: 5  · contributors: 4  · consumers: 1  · conditions: 0  · feedback cycles: 0
+
+### shared event: event:this-creature-dies  (`discovered_event`)
+- anchors: `event:this-creature-dies`
+- members: 9  · contributors: 8  · consumers: 2  · conditions: 0  · feedback cycles: 0
+
+### shared event: event:this_creature_dies  (`discovered_event`)
+- anchors: `event:this_creature_dies`
+- members: 9  · contributors: 8  · consumers: 1  · conditions: 0  · feedback cycles: 0
+
+### shared event: event:token-you-control-enters  (`discovered_event`)
+- anchors: `event:token-you-control-enters`
+- members: 24  · contributors: 23  · consumers: 1  · conditions: 0  · feedback cycles: 0
 
 ### shared obj: obj:subtype:elf  (`discovered_obj`)
 - anchors: `obj:subtype:elf`
@@ -70,6 +86,42 @@
 - anchors: `gate:amass-no-army`
 - members: 0  · contributors: 1  · consumers: 1  · conditions: 1  · feedback cycles: 0
 
+### gate:completeness:sac-cost:face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0`
+- members: 0  · contributors: 0  · consumers: 1  · conditions: 3  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:0ea58cfe-b37c-49a6-a3be-7e60065b8238:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:0ea58cfe-b37c-49a6-a3be-7e60065b8238:0`
+- members: 0  · contributors: 0  · consumers: 1  · conditions: 3  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:2e728381-6db0-4c66-883d-82d718fef833:1  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:2e728381-6db0-4c66-883d-82d718fef833:1`
+- members: 0  · contributors: 0  · consumers: 1  · conditions: 2  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:88522a0f-5377-4522-97f4-4148bef954af:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:88522a0f-5377-4522-97f4-4148bef954af:0`
+- members: 0  · contributors: 0  · consumers: 1  · conditions: 3  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:8d88facd-cf7e-498e-ab6b-6bd021316162:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:8d88facd-cf7e-498e-ab6b-6bd021316162:0`
+- members: 0  · contributors: 0  · consumers: 2  · conditions: 2  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:cfaa8b7b-7bfc-4660-bbc7-a717e05df6ef:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:cfaa8b7b-7bfc-4660-bbc7-a717e05df6ef:0`
+- members: 0  · contributors: 0  · consumers: 1  · conditions: 2  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0`
+- members: 0  · contributors: 0  · consumers: 2  · conditions: 2  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0`
+- members: 0  · contributors: 0  · consumers: 2  · conditions: 3  · feedback cycles: 0
+
+### gate:completeness:sac-cost:face:fdf7f144-56e4-4f88-b81a-b85473922355:0  (`gate`)
+- anchors: `gate:completeness:sac-cost:face:fdf7f144-56e4-4f88-b81a-b85473922355:0`
+- members: 0  · contributors: 0  · consumers: 2  · conditions: 3  · feedback cycles: 0
+
 ### gate:recruit-nonland-discard  (`gate`)
 - anchors: `gate:recruit-nonland-discard`
 - members: 0  · contributors: 1  · consumers: 1  · conditions: 1  · feedback cycles: 0
@@ -84,7 +136,7 @@
 
 ### graveyard reuse  (`zone_flow`)
 - anchors: `zone:graveyard`
-- members: 25  · contributors: 32  · consumers: 0  · conditions: 5  · feedback cycles: 0
+- members: 32  · contributors: 41  · consumers: 0  · conditions: 5  · feedback cycles: 0
 
 ### Hone/Equipment  (`hone_equipment`)
 - anchors: `counter:hone`, `rule:hone`, `rule:equip`, `keyword:equip`

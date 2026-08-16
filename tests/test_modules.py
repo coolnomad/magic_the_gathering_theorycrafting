@@ -42,7 +42,8 @@ def test_named_modules_present(mods):
 def test_every_module_is_a_grounded_subgraph(mods, edges):
     # subgraph edges resolve to the UNION of frozen + repair + legend + mechanism + equip layers
     edge_ids = {e["edge_id"] for e in edges}
-    for layer in ("repair_edges.jsonl", "legend_edges.jsonl", "mechanism_edges.jsonl", "equip_edges.jsonl"):
+    for layer in ("repair_edges.jsonl", "legend_edges.jsonl", "mechanism_edges.jsonl", "equip_edges.jsonl",
+                  "completeness_edges.jsonl"):
         p = GLOBAL / layer
         if p.exists():
             edge_ids |= {json.loads(l)["edge_id"] for l in p.read_text(encoding="utf-8").splitlines()}

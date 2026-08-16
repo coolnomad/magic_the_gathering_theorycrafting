@@ -135,7 +135,7 @@ class _Graph:
         # each node/edge's origin so repaired structures participate in modules too.
         self.nodes = {n["id"]: n for n in _load_dicts(repo / "data/graph_global/nodes.jsonl")}
         for layer in ("repair_nodes.jsonl", "legend_nodes.jsonl", "mechanism_nodes.jsonl",
-                      "equip_nodes.jsonl"):
+                      "equip_nodes.jsonl", "completeness_nodes.jsonl"):
             for n in _load_optional(repo / "data/graph_global" / layer):
                 self.nodes.setdefault(n["id"], n)
         self.edges = []
@@ -143,7 +143,8 @@ class _Graph:
             e.setdefault("origin", "phase4")
             self.edges.append(e)
         for layer, origin in (("repair_edges.jsonl", "graph_repair"), ("legend_edges.jsonl", "legend_rule"),
-                              ("mechanism_edges.jsonl", "mechanism_repair"), ("equip_edges.jsonl", "equip")):
+                              ("mechanism_edges.jsonl", "mechanism_repair"), ("equip_edges.jsonl", "equip"),
+                              ("completeness_edges.jsonl", "completeness")):
             for e in _load_optional(repo / "data/graph_global" / layer):
                 e.setdefault("origin", origin)
                 self.edges.append(e)

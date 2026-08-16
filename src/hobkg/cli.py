@@ -102,6 +102,13 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "reproject-equip":
         from . import equip
         print(json.dumps(equip.reproject(), indent=2))
+    elif cmd == "completeness":
+        from . import completeness
+        s = completeness.materialize(); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject-completeness":
+        from . import completeness
+        print(json.dumps(completeness.reproject(), indent=2))
     elif cmd == "query-card":
         from . import query
         print(query.query_card(argv[1]))
