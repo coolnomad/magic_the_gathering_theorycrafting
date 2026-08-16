@@ -88,7 +88,7 @@
 
 ### Hone/Equipment  (`hone_equipment`)
 - anchors: `counter:hone`, `rule:hone`, `rule:equip`, `keyword:equip`
-- members: 13  · contributors: 30  · consumers: 0  · conditions: 0  · feedback cycles: 0
+- members: 13  · contributors: 31  · consumers: 0  · conditions: 0  · feedback cycles: 0
 
 ### Landfall  (`landfall`)
 - anchors: `rule:landfall`, `keyword:landfall`
@@ -117,7 +117,7 @@
 
 ### token production (token:axe)  (`token_production`)
 - anchors: `token:axe`
-- members: 2  · contributors: 2  · consumers: 4  · conditions: 0  · feedback cycles: 0
+- members: 2  · contributors: 2  · consumers: 6  · conditions: 0  · feedback cycles: 0
 
 ### token production (token:bear)  (`token_production`)
 - anchors: `token:bear`

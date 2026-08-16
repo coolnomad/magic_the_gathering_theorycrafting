@@ -1,30 +1,30 @@
-"""Additive Equip attachment layer for "The Hobbit" Equipment cards.
+"""Additive Equip attachment layer for "The Hobbit" Equipment (rebuilt for pt5).
 
-The 12 Equipment card faces (those with `HAS_TYPE -> obj:subtype:equipment` that also
-have a face record; the `token:axe` Equipment has no face and is skipped) each print an
-Equip activated ability and, usually, continuous "equipped creature" effects. The frozen
-Phase 4 graph modelled the Equipment TYPE line but not the *attachment* mechanic: what the
-Equip ability does, what it costs, what target it binds, and how the equipped-creature
-bonuses route through that binding.
+Models the objective, directed capacity: *Equipment E can legally attach to creature C, and
+while E is attached to C, E's "equipped creature" effects apply to C.* NOT synergy. Distinguishes
+the capacity to Equip, the attachment action, the resulting attachment state, effects conditional
+on that state, and special automatic (ETB) attachment — see spec §Phase 2 Equip.
 
-This module materializes a small ADDITIVE layer
-(`data/graph_global/equip_{nodes,edges,conditions}.jsonl`, origin `equip`) — the frozen
-graph, the graph-repair layer, the legend layer and the mechanism layer are all untouched —
-then REPROJECTS it into `card_pair_projection_equip.jsonl` as faithful typed paths over the
-finite creature population (112 creature cards).
+Additive layer (`data/graph_global/equip_{nodes,edges,conditions}.jsonl`, origin `equip`); the
+frozen graph and every other layer are untouched. The reusable template binds the target creature
+C as a VARIABLE (one `state:attachment:E` / `obj:bound-creature:E` per Equipment):
 
-The reusable Equip template binds the target creature C as a VARIABLE (one
-`state:attachment:E` per Equipment, NOT one per pair):
+    card:E -HAS_FACE-> face:E -HAS_ABILITY-> ability:equip:E -HAS_COST-> cost:equip:E
+    face:E -REFERENCES_RULE-> rule:equip
+    ability:equip:E -CAUSES-> op:equip:E -REQUIRES-> obj:creature-you-control -HAS_TYPE-> obj:type:creature
+    op:equip:E -CAUSES-> state:attachment:E                       (attachment is the RESULT, uncond.)
+    face:E -HAS_ABILITY-> ability:equipped-bonus:E -CAUSES-> op:modify-equipped:E
+    op:modify-equipped:E -REQUIRES-> state:attachment:E ; -MODIFIES-> obj:bound-creature:E
+    obj:bound-creature:E -HAS_TYPE-> obj:type:creature            (binding: the bound C is a creature)
 
-    face:E  HAS_ABILITY -> ability:equip:E ; HAS_COST(on ability) -> cost:equip:E ;
-            REFERENCES_RULE -> rule:equip
-    ability:equip:E  CAUSES -> op:equip:E
-    op:equip:E  REQUIRES -> obj:creature-you-control
-    op:equip:E  CAUSES  -> state:attachment:E   (the bound attachment State)
-
-Every continuous "equipped creature" bonus (P/T modification, granted keyword/ability) and
-every automatic (ETB) attachment routes through the SAME `state:attachment:E` /
-`obj:bound-creature:E`, so a bonus is only ever expressed while the Equipment is attached.
+pt5 correctness properties, all self-checked in reproject() and gated by tests:
+  * every projected relation is a CONTINUOUS path (step[i].target == step[i+1].source),
+    grounded card:E ... card:C (path[0].source == source_card, path[-1].target == target_card);
+  * equipped-bonus / grant / auto-attach abilities each have an incoming face HAS_ABILITY;
+  * no operation REQUIRES the state it CAUSES (attachment is a result, not a precondition);
+  * the `token:axe` Equipment (no card face) gets primitive template coverage + creator projection;
+  * every equip node/edge carries exact Oracle-span provenance;
+  * every printed "equipped creature" clause is dispositioned (represented / ignored / unresolved).
 """
 
 from __future__ import annotations
@@ -45,33 +45,27 @@ OBJ_CREATURE_YOU_CONTROL = "obj:creature-you-control"
 OBJ_TYPE_CREATURE = "obj:type:creature"
 OBJ_SUBTYPE_WIZARD = "obj:subtype:wizard"
 OBJ_SUBTYPE_DWARF = "obj:subtype:dwarf"
+TOKEN_AXE = "token:axe"
+_CR_EQUIP = "CR 301.5 (Equipment) / 702.6 (Equip)"
 
-# shared conditions (same object for every Equipment)
 COND_TARGET_CONTROLLED = "cond:equip-target-controlled-by-activator"
 COND_SORCERY_TIMING = "cond:equip-sorcery-timing"
 COND_TARGET_IS_WIZARD = "cond:equip-target-is-wizard"
 COND_AUTO_ATTACH_TARGET_IS_DWARF = "cond:auto-attach-target-is-dwarf"
 
-# keyword abilities the equipped-creature line can grant (normalized lowercase tokens)
 _KEYWORDS = [
-    ("hexproof", "hexproof"), ("trample", "trample"), ("reach", "reach"),
-    ("menace", "menace"), ("prowess", "prowess"), ("flying", "flying"),
-    ("vigilance", "vigilance"), ("lifelink", "lifelink"), ("deathtouch", "deathtouch"),
-    ("first strike", "first strike"), ("double strike", "double strike"),
-    ("indestructible", "indestructible"), ("haste", "haste"),
-    ("can't be blocked", "can't be blocked"),
+    "hexproof", "trample", "reach", "menace", "prowess", "flying", "vigilance", "lifelink",
+    "deathtouch", "first strike", "double strike", "indestructible", "haste", "can't be blocked",
 ]
 
 
 def _card_of(nid: str):
-    m = _UUID.search(nid)
+    m = _UUID.search(nid or "")
     return "card:" + m.group(0) if m else None
 
 
 def _slug(name: str) -> str:
-    s = (name or "").lower()
-    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
-    return s
+    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
 
 
 def _mid(source: str, predicate: str, target: str) -> str:
@@ -82,70 +76,40 @@ class _G:
     def __init__(self, repo: Path):
         self.nodes = {n["id"]: n for n in _load_dicts(repo / "data/graph_global/nodes.jsonl")}
         self.edges = list(_load_dicts(repo / "data/graph_global/edges.jsonl"))
-        self.out, self.inc = defaultdict(list), defaultdict(list)
-        for e in self.edges:
-            self.out[e["source"]].append(e)
-            self.inc[e["target"]].append(e)
         self.faces = list(_load_dicts(repo / "data/normalized/faces.jsonl"))
         self.face_by_id = {f["id"]: f for f in self.faces}
         self.names = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
+        self.hasface = {e["target"]: e for e in self.edges if e["predicate"] == "HAS_FACE"}  # face -> edge
 
     def equipment_faces(self) -> list:
-        """The 12 Equipment CardFaces: HAS_TYPE -> obj:subtype:equipment AND has a face
-        record (skips token:axe, which has no face)."""
         ids = sorted({e["source"] for e in self.edges
                       if e["predicate"] == "HAS_TYPE" and e["target"] == "obj:subtype:equipment"
                       and e["source"] in self.face_by_id})
         return [self.face_by_id[i] for i in ids]
 
 
-def _node(nid: str, ntype: str, label: str, data: dict, note: str) -> dict:
-    return {"id": nid, "type": ntype, "label": label, "data": data,
-            "provenance": [{"source": "equip", "derivation": note}], "origin": "equip"}
-
-
-def _edge(source: str, predicate: str, target: str, note: str, **props) -> dict:
-    return {"edge_id": _mid(source, predicate, target), "source": source, "predicate": predicate,
-            "target": target, "provenance": [{"source": "equip", "derivation": note}],
-            "origin": "equip", **props}
-
-
 # --------------------------------------------------------------------------- #
-#  Oracle parsing                                                              #
+#  Oracle parsing (returns spans for provenance)                               #
 # --------------------------------------------------------------------------- #
 _JUNK_SEP = re.compile("[ —�]")
 
 
 def _clean(text: str) -> str:
-    # normalize stray separators glued to "Equip" (non-breaking space U+00A0, em dash
-    # U+2014, U+FFFD replacement char, e.g. "Equip<sep>{2}") to a plain space.
+    # normalize stray separators glued to "Equip" to a plain space, PRESERVING length/offsets
     return _JUNK_SEP.sub(" ", text or "")
 
 
 def _parse_equip_costs(oracle: str) -> list:
-    """Return the list of Equip cost modes, each a dict:
-        {mana_cost, additional_cost, restriction, alternative, raw}
-    Handles `Equip {N}`, `Equip {N}, Pay 2 life`, and restricted modes `Equip Wizard {1}`
-    alongside a plain `Equip {3}` (alternative modes)."""
     text = _clean(oracle)
     modes = []
-    # e.g. "Equip Wizard {1}", "Equip {2}, Pay 2 life", "Equip {3}"
     pat = re.compile(r"Equip(?:\s+([A-Za-z]+))?\s*(\{[^}]+\}(?:\{[^}]+\})*)((?:,\s*Pay\s+\d+\s+life)?)")
     for m in pat.finditer(text):
         restriction_word, mana, addl = m.group(1), m.group(2), m.group(3).strip()
-        # a bare "Equip {N} ({N}: Attach ...)" reminder repeats the cost; the regex only
-        # matches the printed "Equip {N}" (reminder text is inside parens, "{N}:" form).
-        restriction = None
-        if restriction_word and restriction_word.lower() != "pay":
-            restriction = restriction_word.lower()      # e.g. "wizard"
-        additional_cost = None
+        restriction = restriction_word.lower() if (restriction_word and restriction_word.lower() != "pay") else None
         am = re.search(r"Pay\s+(\d+)\s+life", addl)
-        if am:
-            additional_cost = {"kind": "pay_life", "amount": int(am.group(1))}
-        modes.append({"mana_cost": mana, "additional_cost": additional_cost,
-                      "restriction": restriction, "raw": m.group(0).strip()})
-    # order: the plain (unrestricted) mode first, restricted alternative modes after, so the
-    # "primary" equip ability id is stable regardless of print order.
+        additional_cost = {"kind": "pay_life", "amount": int(am.group(1))} if am else None
+        modes.append({"mana_cost": mana, "additional_cost": additional_cost, "restriction": restriction,
+                      "raw": m.group(0).strip(), "span": [m.start(), m.end()]})
     modes.sort(key=lambda d: (d["restriction"] is not None, d["restriction"] or "", d["mana_cost"]))
     for i, mode in enumerate(modes):
         mode["alternative"] = i > 0
@@ -153,57 +117,55 @@ def _parse_equip_costs(oracle: str) -> list:
 
 
 def _parse_pt(oracle: str):
-    """Return (power, toughness) strings like ('+2','+2') for 'Equipped creature gets +X/+Y',
-    or None."""
+    m = re.search(r"Equipped creature gets ([+\-]\d+)/([+\-]\d+)", _clean(oracle))
+    return (m.group(1), m.group(2), [m.start(), m.end()]) if m else None
+
+
+def _equipped_clauses(oracle: str) -> list:
+    """Every printed sentence that REFERS to the equipped creature (anywhere in the sentence,
+    not only those starting with 'Equipped creature'), with its span — so complex effects like
+    Glamdring's cost reduction and Orcrist's combat trigger are captured for disposition."""
     text = _clean(oracle)
-    m = re.search(r"Equipped creature gets ([+\-]\d+)/([+\-]\d+)", text)
-    return (m.group(1), m.group(2)) if m else None
+    out, pos = [], 0
+    for m in re.finditer(r"[^.]*equipped creature[^.]*\.", text, flags=re.IGNORECASE):
+        out.append({"text": m.group(0).strip(), "span": [m.start(), m.end()]})
+    return out
 
 
 def _parse_granted_keywords(oracle: str) -> list:
-    """Keywords/abilities the 'Equipped creature ... has <kw>' line grants."""
-    text = _clean(oracle).lower()
-    # only look at the "equipped creature ... has ..." clauses
-    granted = []
-    for sent in re.split(r"(?<=[.\n])", text):
-        if "equipped creature" not in sent or " has " not in sent and " and has " not in sent:
+    """(keyword, span) grants from 'Equipped creature ... has <kw>' clauses."""
+    out, seen = [], set()
+    for cl in _equipped_clauses(oracle):
+        low = cl["text"].lower()
+        if " has " not in low:
             continue
-        for token, label in _KEYWORDS:
-            if re.search(r"\b" + re.escape(token), sent):
-                granted.append(label)
-        # ward {N}
-        wm = re.search(r"ward \{(\d+)\}", sent)
-        if wm:
-            granted.append("ward {%s}" % wm.group(1))
-    # stable, de-duplicated
-    seen, out = set(), []
-    for g in granted:
-        if g not in seen:
-            seen.add(g)
-            out.append(g)
-    return sorted(out)
+        for kw in _KEYWORDS:
+            if re.search(r"\b" + re.escape(kw), low) and kw not in seen:
+                seen.add(kw)
+                out.append((kw, cl["span"]))
+        wm = re.search(r"ward \{(\d+)\}", low)
+        if wm and ("ward {%s}" % wm.group(1)) not in seen:
+            seen.add("ward {%s}" % wm.group(1))
+            out.append(("ward {%s}" % wm.group(1), cl["span"]))
+    return out
 
 
-# ETB-attach oracle signatures -> (kind description, target restriction condition/object)
 def _auto_attach_spec(oracle: str):
-    """If the Equipment attaches automatically on ETB, return a dict describing it, else None.
-    Distinct from the Equip activation (kind='automatic', trigger='etb')."""
     text = _clean(oracle).lower()
+    m = re.search(r"(attach [^.]*\.)", text)
+    span = [m.start(), m.end()] if m else None
     if "attach sting" in text and "target creature you control" in text:
-        return {"kind": "automatic", "trigger": "etb", "target": "up to one target creature you control",
-                "restriction_object": OBJ_CREATURE_YOU_CONTROL, "restriction_condition": None}
+        return {"target": "up to one target creature you control", "restriction_object": OBJ_CREATURE_YOU_CONTROL,
+                "restriction_condition": None, "span": span}
     if "create a 2/2" in text and "attach this equipment to it" in text:
-        return {"kind": "automatic", "trigger": "etb", "target": "the created 2/2 Dwarf token",
-                "restriction_object": OBJ_CREATURE_YOU_CONTROL, "restriction_condition": None,
-                "creates": "2/2 red Dwarf creature token"}
+        return {"target": "the created 2/2 Dwarf token", "restriction_object": OBJ_CREATURE_YOU_CONTROL,
+                "restriction_condition": None, "creates": "2/2 red Dwarf creature token", "span": span}
     if "amass goblins" in text and "attach this equipment to the amassed army" in text:
-        return {"kind": "automatic", "trigger": "etb", "target": "the amassed Goblin Army",
-                "restriction_object": OBJ_CREATURE_YOU_CONTROL, "restriction_condition": None,
-                "amass": "Goblins 1"}
+        return {"target": "the amassed Goblin Army", "restriction_object": OBJ_CREATURE_YOU_CONTROL,
+                "restriction_condition": None, "amass": "Goblins 1", "span": span}
     if "attach it to target dwarf you control" in text:
-        return {"kind": "automatic", "trigger": "etb", "target": "target Dwarf you control",
-                "restriction_object": OBJ_SUBTYPE_DWARF,
-                "restriction_condition": COND_AUTO_ATTACH_TARGET_IS_DWARF}
+        return {"target": "target Dwarf you control", "restriction_object": OBJ_SUBTYPE_DWARF,
+                "restriction_condition": COND_AUTO_ATTACH_TARGET_IS_DWARF, "span": span}
     return None
 
 
@@ -215,192 +177,225 @@ def materialize(repo: Path = REPO) -> dict:
     nodes: dict = {}
     edges: list = []
     conditions: dict = {}
+    dispositions: list = []                              # per equipped-creature clause
 
-    def add_cond(cid, executable, expression, human, note):
-        conditions.setdefault(cid, {
-            "condition_id": cid, "executable": executable, "expression": expression,
-            "human_readable": human,
-            "provenance": [{"source": "equip", "derivation": note}], "origin": "equip"})
+    def prov(face_id, span, text, note):
+        p = {"source": "equip", "rule_ref": _CR_EQUIP, "derivation": note}
+        if face_id:
+            p["face_id"] = face_id
+        if span and face_id:                             # a span is an offset into a face's Oracle
+            p["oracle_span"] = span
+        if text:
+            p["text"] = text
+        return p
 
-    # shared conditions (referenced on many CAN_ATTACH_TO relations)
-    add_cond(COND_TARGET_CONTROLLED, True,
-             {"op": "controls", "subject": "activator", "object": "attachment_target"},
-             "The Equip target must be a creature the activating player controls.",
-             "equip target controller restriction")
-    add_cond(COND_SORCERY_TIMING, True,
-             {"op": "timing", "restriction": "sorcery_speed"},
-             "Equip may be activated only any time you could cast a sorcery.",
-             "equip sorcery-speed timing restriction")
-    add_cond(COND_TARGET_IS_WIZARD, True,
-             {"op": "has_subtype", "subject": "attachment_target", "subtype": "wizard"},
-             "This alternative Equip mode may target only a Wizard creature you control.",
-             "Wizard's Staff alternative equip restriction")
-    add_cond(COND_AUTO_ATTACH_TARGET_IS_DWARF, True,
-             {"op": "has_subtype", "subject": "attachment_target", "subtype": "dwarf"},
-             "The automatic (ETB) attachment targets a Dwarf you control.",
-             "Dwarven Mattock auto-attach target restriction")
+    def node(nid, ntype, label, data, provs):
+        nodes.setdefault(nid, {"id": nid, "type": ntype, "label": label, "data": data,
+                               "provenance": provs, "origin": "equip"})
 
-    stats_cards = 0
-    for face in g.equipment_faces():
-        E = face["id"]
-        name = face.get("name") or E
-        slug = _slug(name)
-        oracle = face.get("oracle_text") or ""
-        stats_cards += 1
+    def edge(source, predicate, target, provs, **props):
+        edges.append({"edge_id": _mid(source, predicate, target), "source": source,
+                      "predicate": predicate, "target": target, "provenance": provs,
+                      "origin": "equip", **props})
 
-        # ---- the bound attachment State + the bound creature ObjectClass ----------------
-        state = f"state:attachment:{E}"
-        bound = f"obj:bound-creature:{E}"
+    def add_cond(cid, expression, human, note):
+        conditions.setdefault(cid, {"condition_id": cid, "executable": True, "expression": expression,
+                                    "human_readable": human,
+                                    "provenance": [{"source": "equip", "rule_ref": _CR_EQUIP, "derivation": note}],
+                                    "origin": "equip"})
+
+    add_cond(COND_TARGET_CONTROLLED, {"op": "controls", "subject": "activator", "object": "attachment_target"},
+             "The Equip target must be a creature the activating player controls.", "equip target controller")
+    add_cond(COND_SORCERY_TIMING, {"op": "timing", "restriction": "sorcery_speed"},
+             "Equip may be activated only any time you could cast a sorcery.", "equip sorcery timing")
+    add_cond(COND_TARGET_IS_WIZARD, {"op": "has_subtype", "subject": "attachment_target", "subtype": "wizard"},
+             "This alternative Equip mode may target only a Wizard creature you control.", "wizard equip restriction")
+    add_cond(COND_AUTO_ATTACH_TARGET_IS_DWARF, {"op": "has_subtype", "subject": "attachment_target", "subtype": "dwarf"},
+             "The automatic (ETB) attachment targets a Dwarf you control.", "mattock auto-attach restriction")
+
+    # shared binding edge: a controlled creature IS a creature (connects equip REQUIRES -> creature type)
+    node(OBJ_CREATURE_YOU_CONTROL, "ObjectClass", "creature you control",
+         {"type_kind": "role", "base_type": "creature"}, [prov(None, None, None, "equip target class")])
+    edge(OBJ_CREATURE_YOU_CONTROL, "HAS_TYPE", OBJ_TYPE_CREATURE,
+         [prov(None, None, None, "a creature you control is a creature (grounding binding)")])
+
+    def build_equip_template(host, host_kind, name, slug, oracle, face_id):
+        """Materialize the Equip template for a host that carries the Equipment (a card face E,
+        or the token:axe TokenSpec). `host` is the node the template hangs off (HAS_ABILITY source)."""
+        state = f"state:attachment:{host}"
+        bound = f"obj:bound-creature:{host}"
         cond_attached = f"cond:equipment-{slug}-attached"
-        nodes[state] = _node(
-            state, "State", f"{name} attached", {
-                "equipment": name, "equipment_face": E,
-                "attached_object": "bound C (variable creature)",
-                "controller_constraint": "target creature you control",
-                "timing": "sorcery"},
-            "the bound attachment state for this Equipment (one per Equipment, C is a variable)")
-        nodes[bound] = _node(
-            bound, "ObjectClass", f"creature equipped by {name}",
-            {"equipment": name, "equipment_face": E, "kind": "bound_creature_variable"},
-            "the (variable) creature bound by this Equipment's attachment")
-        add_cond(cond_attached, True,
-                 {"op": "attached", "equipment": E},
+        node(state, "State", f"{name} attached",
+             {"equipment": name, "equipment_host": host, "attached_object": "bound C (variable creature)",
+              "controller_constraint": "target creature you control", "timing": "sorcery"},
+             [prov(face_id, None, None, "bound attachment state (one per Equipment; C is a variable)")])
+        node(bound, "ObjectClass", f"creature equipped by {name}",
+             {"equipment": name, "kind": "bound_creature_variable"},
+             [prov(face_id, None, None, "the variable creature bound by this Equipment")])
+        # binding: the bound creature is a creature (grounds modify/grant paths to creature cards)
+        edge(bound, "HAS_TYPE", OBJ_TYPE_CREATURE,
+             [prov(face_id, None, None, "the equipped (bound) creature is a creature")])
+        add_cond(cond_attached, {"op": "attached", "equipment": host},
                  f"{name} is attached to the creature (the bound attachment state holds).",
-                 "per-equipment attachment state condition")
+                 "per-equipment attachment state")
 
-        # ---- the Equip activated ability(es) -------------------------------------------
-        modes = _parse_equip_costs(oracle)
-        if not modes:                                    # defensive; every Equipment prints one
-            modes = [{"mana_cost": None, "additional_cost": None, "restriction": None,
-                      "alternative": False, "raw": "Equip"}]
-        primary_op = None
+        modes = _parse_equip_costs(oracle) or [{"mana_cost": None, "additional_cost": None,
+                                                 "restriction": None, "alternative": False,
+                                                 "raw": "Equip", "span": None}]
         for mode in modes:
             alt = mode["alternative"]
             suffix = "equip-alt" if alt else "equip"
-            ability = f"ability:{suffix}:{E}"
-            cost = f"cost:{suffix}:{E}"
-            op = f"op:{suffix}:{E}"
-            if not alt:
-                primary_op = op
-
-            nodes[ability] = _node(
-                ability, "Ability", f"equip{' (alt)' if alt else ''}: {name}",
-                {"equipment": name, "mode": ("alternative" if alt else "primary"),
-                 "restriction": mode["restriction"], "keyword": "equip"},
-                "the Equip activated ability" + (" (alternative restricted mode)" if alt else ""))
-            nodes[cost] = _node(
-                cost, "Cost", f"equip cost: {mode['raw']}",
-                {"mana_cost": mode["mana_cost"], "additional_cost": mode["additional_cost"],
-                 "raw": mode["raw"], "alternative": alt}, "printed Equip cost (preserved verbatim)")
-            # target restriction object: alt mode may add a subtype restriction (e.g. Wizard)
+            ability, cost, op = f"ability:{suffix}:{host}", f"cost:{suffix}:{host}", f"op:{suffix}:{host}"
+            p_cost = [prov(face_id, mode.get("span"), mode["raw"], "printed Equip cost")]
+            node(ability, "Ability", f"equip{' (alt)' if alt else ''}: {name}",
+                 {"equipment": name, "mode": "alternative" if alt else "primary",
+                  "restriction": mode["restriction"], "keyword": "equip"}, p_cost)
+            node(cost, "Cost", f"equip cost: {mode['raw']}",
+                 {"mana_cost": mode["mana_cost"], "additional_cost": mode["additional_cost"],
+                  "raw": mode["raw"], "alternative": alt}, p_cost)
             req_obj = OBJ_CREATURE_YOU_CONTROL
             mode_conds = [COND_TARGET_CONTROLLED, COND_SORCERY_TIMING]
-            op_data = {"kind": "equip_activation", "equipment": name, "mode": ("alternative" if alt else "primary"),
-                       "timing": "sorcery", "attaches": state}
+            op_data = {"kind": "equip_activation", "mode": "alternative" if alt else "primary",
+                       "equipment": name, "timing": "sorcery", "attaches": state}
             if mode["restriction"] == "wizard":
-                req_obj = OBJ_SUBTYPE_WIZARD
-                mode_conds = [COND_TARGET_CONTROLLED, COND_SORCERY_TIMING, COND_TARGET_IS_WIZARD]
+                req_obj, mode_conds = OBJ_SUBTYPE_WIZARD, [COND_TARGET_CONTROLLED, COND_SORCERY_TIMING, COND_TARGET_IS_WIZARD]
                 op_data["target_restriction"] = "wizard"
-            nodes[op] = _node(op, "Operation", f"equip{' (alt)' if alt else ''} {name}", op_data,
-                              "the equip attachment operation for this mode")
+            node(op, "Operation", f"equip{' (alt)' if alt else ''} {name}", op_data,
+                 [prov(face_id, mode.get("span"), mode["raw"], "equip attachment operation")])
+            edge(host, "HAS_ABILITY", ability, [prov(face_id, mode.get("span"), mode["raw"], "the Equip activated ability")])
+            edge(ability, "HAS_COST", cost, p_cost)
+            # REFERENCES_RULE from the CardFace (spec convention) for cards; from the Ability for
+            # the token:axe TokenSpec (TokenSpec is not a valid REFERENCES_RULE source).
+            ref_source = host if host_kind == "face" else ability
+            edge(ref_source, "REFERENCES_RULE", RULE_EQUIP, [prov(face_id, mode.get("span"), "Equip", "Equip is a keyworded ability")])
+            edge(ability, "CAUSES", op, [prov(face_id, mode.get("span"), mode["raw"], "activating Equip performs attachment")])
+            edge(op, "REQUIRES", req_obj,
+                 [prov(face_id, mode.get("span"), mode["raw"], "equip target is a controlled creature"
+                       + (" that is a Wizard" if req_obj == OBJ_SUBTYPE_WIZARD else ""))],
+                 condition_ids=list(mode_conds))
+            # attachment is the RESULT of Equip — NOT conditioned on already being attached (no circular cond)
+            edge(op, "CAUSES", state, [prov(face_id, mode.get("span"), mode["raw"],
+                                            "resolving Equip attaches the Equipment to the bound creature")])
+        return state, bound, cond_attached
 
-            edges.append(_edge(E, "HAS_ABILITY", ability, "the Equipment's Equip activated ability"))
-            edges.append(_edge(ability, "HAS_COST", cost, "the printed Equip cost is a cost of the Equip ability"))
-            edges.append(_edge(E, "REFERENCES_RULE", RULE_EQUIP, "Equip is a keyworded activated ability"))
-            edges.append(_edge(ability, "CAUSES", op, "activating Equip performs the attachment operation"))
-            edges.append(_edge(op, "REQUIRES", req_obj,
-                               "the equip target is a creature the activator controls"
-                               + (" that is a Wizard" if req_obj == OBJ_SUBTYPE_WIZARD else ""),
-                               condition_ids=list(mode_conds)))
-            edges.append(_edge(op, "CAUSES", state,
-                               "resolving the Equip ability attaches the Equipment to the bound creature",
-                               condition_ids=[cond_attached]))
+    stats_cards = 0
+    for face in g.equipment_faces():
+        E, name = face["id"], (face.get("name") or face["id"])
+        slug, oracle = _slug(name), (face.get("oracle_text") or "")
+        stats_cards += 1
+        state, bound, cond_attached = build_equip_template(E, "face", name, slug, oracle, E)
 
-        # ---- automatic (ETB) attachment, DISTINCT from the equip activation -------------
+        # ---- automatic (ETB) attachment, DISTINCT from equip; wired to the face -----------
         auto = _auto_attach_spec(oracle)
         if auto:
-            aa_ability = f"ability:auto-attach:{E}"
-            aa_op = f"op:auto-attach:{E}"
-            nodes[aa_ability] = _node(
-                aa_ability, "Ability", f"auto-attach (ETB): {name}",
-                {"equipment": name, "kind": "automatic", "trigger": "etb"},
-                "the triggered ability that attaches this Equipment automatically on entry")
-            aa_data = {"kind": "automatic", "trigger": "etb", "equipment": name,
-                       "target": auto["target"], "attaches": state}
+            aa_ability, aa_op = f"ability:auto-attach:{E}", f"op:auto-attach:{E}"
+            node(aa_ability, "Ability", f"auto-attach (ETB): {name}",
+                 {"equipment": name, "kind": "automatic", "trigger": "etb"},
+                 [prov(E, auto.get("span"), None, "the ETB triggered ability that attaches automatically")])
+            aa_data = {"kind": "automatic", "trigger": "etb", "equipment": name, "target": auto["target"], "attaches": state}
             for k in ("creates", "amass"):
                 if auto.get(k):
                     aa_data[k] = auto[k]
-            nodes[aa_op] = _node(aa_op, "Operation", f"auto-attach {name}", aa_data,
-                                 "the automatic (ETB) attachment operation — NOT the equip activation")
-            aa_conds = [cond_attached]
-            if auto.get("restriction_condition"):
-                aa_conds = [cond_attached, auto["restriction_condition"]]
-            edges.append(_edge(aa_ability, "CAUSES", aa_op,
-                               "the ETB trigger performs the automatic attachment"))
-            edges.append(_edge(aa_op, "REQUIRES", auto["restriction_object"],
-                               "the automatic attachment binds a controlled creature"
-                               + (" that is a Dwarf" if auto["restriction_object"] == OBJ_SUBTYPE_DWARF else ""),
-                               condition_ids=list(aa_conds)))
-            edges.append(_edge(aa_op, "CAUSES", state,
-                               "the automatic (ETB) attachment reaches the SAME bound attachment state",
-                               condition_ids=[cond_attached]))
+            node(aa_op, "Operation", f"auto-attach {name}", aa_data,
+                 [prov(E, auto.get("span"), None, "the automatic (ETB) attachment operation — NOT the equip activation")])
+            # face HAS_ABILITY the auto-attach ability (was orphaned in the prior build)
+            edge(E, "HAS_ABILITY", aa_ability, [prov(E, auto.get("span"), None, "the ETB auto-attach ability")])
+            edge(aa_ability, "CAUSES", aa_op, [prov(E, auto.get("span"), None, "the ETB trigger performs the auto attachment")])
+            aa_conds = [c for c in [auto.get("restriction_condition")] if c]
+            edge(aa_op, "REQUIRES", auto["restriction_object"],
+                 [prov(E, auto.get("span"), None, "the auto attachment binds a controlled creature"
+                       + (" that is a Dwarf" if auto["restriction_object"] == OBJ_SUBTYPE_DWARF else ""))],
+                 **({"condition_ids": aa_conds} if aa_conds else {}))
+            # attachment is the RESULT — not conditioned on being attached (fixes the circular condition)
+            edge(aa_op, "CAUSES", state, [prov(E, auto.get("span"), None, "the auto attachment reaches the same bound state")])
 
-        # ---- continuous "equipped creature" P/T modification ----------------------------
+        # ---- continuous "equipped creature" P/T modification (face HAS_ABILITY) -----------
         pt = _parse_pt(oracle)
         if pt:
-            mod_ability = f"ability:equipped-bonus:{E}"
-            mod_op = f"op:modify-equipped:{E}"
-            nodes[mod_ability] = _node(
-                mod_ability, "Ability", f"equipped-creature bonus: {name}",
-                {"equipment": name, "kind": "static_pt_bonus"},
-                "the static ability granting the equipped creature a P/T bonus")
-            nodes[mod_op] = _node(
-                mod_op, "Operation", f"modify equipped creature: {name}",
-                {"kind": "modify_equipped", "equipment": name,
-                 "modification": {"power": pt[0], "toughness": pt[1]}},
-                "the operation applying the equipped-creature P/T modification")
-            edges.append(_edge(mod_ability, "CAUSES", mod_op, "the static bonus is applied by this operation"))
-            edges.append(_edge(mod_op, "REQUIRES", state,
-                               "the bonus applies only while the Equipment is attached",
-                               condition_ids=[cond_attached]))
-            edges.append(_edge(mod_op, "MODIFIES", bound,
-                               "modifies the bound (equipped) creature",
-                               modification={"power": pt[0], "toughness": pt[1]},
-                               condition_ids=[cond_attached]))
+            mab, mop = f"ability:equipped-bonus:{E}", f"op:modify-equipped:{E}"
+            span = pt[2]
+            node(mab, "Ability", f"equipped-creature bonus: {name}", {"equipment": name, "kind": "static_pt_bonus"},
+                 [prov(E, span, None, "static equipped-creature P/T bonus")])
+            node(mop, "Operation", f"modify equipped creature: {name}",
+                 {"kind": "modify_equipped", "equipment": name, "modification": {"power": pt[0], "toughness": pt[1]}},
+                 [prov(E, span, None, "applies the equipped-creature P/T modification")])
+            edge(E, "HAS_ABILITY", mab, [prov(E, span, None, "the equipped-creature bonus ability")])
+            edge(mab, "CAUSES", mop, [prov(E, span, None, "the static bonus is applied by this operation")])
+            edge(mop, "REQUIRES", state, [prov(E, span, None, "the bonus applies only while attached")],
+                 condition_ids=[cond_attached])
+            edge(mop, "MODIFIES", bound, [prov(E, span, None, "modifies the bound (equipped) creature")],
+                 modification={"power": pt[0], "toughness": pt[1]}, condition_ids=[cond_attached])
+            dispositions.append({"face": E, "equipment": name, "clause": "Equipped creature gets %s/%s" % (pt[0], pt[1]),
+                                 "disposition": "represented", "relation": "MODIFIES_WHEN_ATTACHED"})
 
-        # ---- continuous granted keywords/abilities --------------------------------------
+        # ---- continuous granted keywords/abilities (face HAS_ABILITY) ----------------------
         granted = _parse_granted_keywords(oracle)
         if granted:
-            grant_ability = f"ability:equipped-grant:{E}"
-            nodes[grant_ability] = _node(
-                grant_ability, "Ability", f"equipped-creature grants: {name}",
-                {"equipment": name, "kind": "static_grant", "granted": granted},
-                "the static ability granting the equipped creature keyword abilities")
-            edges.append(_edge(grant_ability, "CAUSES", f"op:grant-equipped:{E}",
-                               "the grant is applied by this operation"))
-            grant_op = f"op:grant-equipped:{E}"
-            nodes[grant_op] = _node(
-                grant_op, "Operation", f"grant to equipped creature: {name}",
-                {"kind": "grant_equipped", "equipment": name, "granted_abilities": granted},
-                "the operation granting the equipped-creature keyword abilities")
-            edges.append(_edge(grant_op, "REQUIRES", state,
-                               "the granted abilities apply only while attached",
-                               condition_ids=[cond_attached]))
-            edges.append(_edge(grant_op, "MODIFIES", bound,
-                               "grants keyword abilities to the bound (equipped) creature",
-                               granted_abilities=granted, condition_ids=[cond_attached]))
+            gab, gop = f"ability:equipped-grant:{E}", f"op:grant-equipped:{E}"
+            kws = [k for k, _ in granted]
+            gspan = granted[0][1]
+            node(gab, "Ability", f"equipped-creature grants: {name}", {"equipment": name, "kind": "static_grant", "granted": kws},
+                 [prov(E, gspan, None, "static equipped-creature keyword grant")])
+            node(gop, "Operation", f"grant to equipped creature: {name}",
+                 {"kind": "grant_equipped", "equipment": name, "granted_abilities": kws},
+                 [prov(E, gspan, None, "grants keyword abilities to the equipped creature")])
+            edge(E, "HAS_ABILITY", gab, [prov(E, gspan, None, "the equipped-creature grant ability")])
+            edge(gab, "CAUSES", gop, [prov(E, gspan, None, "the grant is applied by this operation")])
+            edge(gop, "REQUIRES", state, [prov(E, gspan, None, "the grants apply only while attached")],
+                 condition_ids=[cond_attached])
+            edge(gop, "MODIFIES", bound, [prov(E, gspan, None, "grants keyword abilities to the bound creature")],
+                 granted_abilities=kws, condition_ids=[cond_attached])
+            for k, sp in granted:
+                dispositions.append({"face": E, "equipment": name, "clause": "Equipped creature has %s" % k,
+                                     "disposition": "represented", "relation": "GRANTS_ABILITY_WHEN_ATTACHED"})
+
+        # ---- disposition every remaining "Equipped creature ..." clause -------------------
+        represented_spans = set()
+        if pt:
+            represented_spans.add(tuple(pt[2]))
+        for _, sp in granted:
+            represented_spans.add(tuple(sp))
+        for cl in _equipped_clauses(oracle):
+            if tuple(cl["span"]) in represented_spans:
+                continue
+            low = cl["text"].lower()
+            if re.search(r"gets [+\-]\d+/[+\-]\d+", low) or " has " in low:
+                continue                                 # already represented by a P/T or grant clause
+            dispositions.append({"face": E, "equipment": name, "clause": cl["text"],
+                                 "disposition": "deliberately_ignored",
+                                 "reason": "complex non-P/T, non-keyword equipped-creature effect (out of the "
+                                           "template's structured scope; recorded, not misrepresented)"})
+
+    # ---- token:axe (Equipment with no card face): primitive template coverage -------------
+    axe_creator_ops = [e for e in g.edges if e["predicate"] == "CREATES_OBJECT" and e["target"] == TOKEN_AXE]
+    axe_oracle = "Equipped creature gets +1/+0. Equip {2}"     # the Axe token's printed characteristics
+    if TOKEN_AXE in g.nodes or axe_creator_ops:
+        node(TOKEN_AXE, "TokenSpec", "Axe (Equipment token)", {"equipment": "Axe", "subtype": "equipment"},
+             [prov(None, None, None, "the Axe Equipment token created by Dáin Ironfoot")]) if TOKEN_AXE not in g.nodes else None
+        build_equip_template(TOKEN_AXE, "token", "Axe", "axe", axe_oracle, None)
+        pt = _parse_pt(axe_oracle)
+        state, bound = f"state:attachment:{TOKEN_AXE}", f"obj:bound-creature:{TOKEN_AXE}"
+        cond_attached = "cond:equipment-axe-attached"
+        mab, mop = f"ability:equipped-bonus:{TOKEN_AXE}", f"op:modify-equipped:{TOKEN_AXE}"
+        node(mab, "Ability", "equipped-creature bonus: Axe", {"equipment": "Axe", "kind": "static_pt_bonus"},
+             [prov(None, None, None, "Axe equipped-creature P/T bonus")])
+        node(mop, "Operation", "modify equipped creature: Axe",
+             {"kind": "modify_equipped", "equipment": "Axe", "modification": {"power": pt[0], "toughness": pt[1]}},
+             [prov(None, None, None, "applies the Axe P/T modification")])
+        edge(TOKEN_AXE, "HAS_ABILITY", mab, [prov(None, None, None, "the Axe equipped-creature bonus ability")])
+        edge(mab, "CAUSES", mop, [prov(None, None, None, "the static bonus is applied by this operation")])
+        edge(mop, "REQUIRES", state, [prov(None, None, None, "the bonus applies only while attached")], condition_ids=[cond_attached])
+        edge(mop, "MODIFIES", bound, [prov(None, None, None, "modifies the bound (equipped) creature")],
+             modification={"power": pt[0], "toughness": pt[1]}, condition_ids=[cond_attached])
+        dispositions.append({"face": TOKEN_AXE, "equipment": "Axe", "clause": "Equipped creature gets +1/+0",
+                             "disposition": "represented", "relation": "MODIFIES_WHEN_ATTACHED"})
 
     # ---- write + validate ---------------------------------------------------------------
     outdir = repo / "data" / "graph_global"
-    # drop null-valued props (e.g. condition_ids=None) so records stay clean/deterministic
-    cleaned = []
-    for e in edges:
-        cleaned.append({k: v for k, v in e.items() if v is not None})
     uniq = {}
-    for e in cleaned:
-        uniq.setdefault(e["edge_id"], e)
+    for e in edges:
+        uniq.setdefault(e["edge_id"], {k: v for k, v in e.items() if v is not None})
     edges = sorted(uniq.values(), key=lambda e: (e["source"], e["predicate"], e["target"]))
-
     with (outdir / "equip_nodes.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for n in sorted(nodes.values(), key=lambda n: n["id"]):
             fh.write(json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n")
@@ -410,20 +405,31 @@ def materialize(repo: Path = REPO) -> dict:
     with (outdir / "equip_conditions.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for c in sorted(conditions.values(), key=lambda c: c["condition_id"]):
             fh.write(json.dumps(c, ensure_ascii=False, sort_keys=True) + "\n")
+    with (outdir / "equip_dispositions.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for d in sorted(dispositions, key=lambda d: (d["face"], d["clause"])):
+            fh.write(json.dumps(d, ensure_ascii=False, sort_keys=True) + "\n")
 
     from .graph_repair import _validate_repair_layer
     violations = _validate_repair_layer(repo, g.nodes, nodes, edges)
-    defined = {c["condition_id"] for c in _load_dicts(repo / "data/graph_global/conditions.jsonl")}
-    defined |= set(conditions)
+    defined = {c["condition_id"] for c in _load_dicts(repo / "data/graph_global/conditions.jsonl")} | set(conditions)
     referenced = {c for e in edges for c in (e.get("condition_ids") or [])}
     unresolved = sorted(referenced - defined)
+    # structural: no operation REQUIRES the state it CAUSES
+    causes_state = {(e["source"], e["target"]) for e in edges if e["predicate"] == "CAUSES" and e["target"].startswith("state:")}
+    requires_state = {(e["source"], e["target"]) for e in edges if e["predicate"] == "REQUIRES" and e["target"].startswith("state:")}
+    circular = sorted(s for (s, t) in causes_state if (s, t) in requires_state)
+    # every equipped-bonus/grant/auto-attach ability has an incoming face/token HAS_ABILITY
+    has_ability_targets = {e["target"] for e in edges if e["predicate"] == "HAS_ABILITY"}
+    orphan_abilities = sorted(nid for nid, n in nodes.items() if n["type"] == "Ability" and nid not in has_ability_targets)
     return {"equip_cards": stats_cards, "equip_nodes": len(nodes), "equip_edges": len(edges),
-            "equip_conditions": len(conditions), "unresolved_conditions": unresolved,
-            "signature_violations": len(violations), "_violations": violations}
+            "equip_conditions": len(conditions), "equip_dispositions": len(dispositions),
+            "token_axe_covered": TOKEN_AXE in nodes or f"ability:equip:{TOKEN_AXE}" in nodes,
+            "unresolved_conditions": unresolved, "circular_attach_ops": circular,
+            "orphan_abilities": orphan_abilities, "signature_violations": len(violations), "_violations": violations}
 
 
 # --------------------------------------------------------------------------- #
-#  Reprojection: faithful typed paths over graph + equip layer                 #
+#  Reprojection: CONTINUOUS, card-to-card grounded typed paths                  #
 # --------------------------------------------------------------------------- #
 def reproject(repo: Path = REPO) -> dict:
     g = _G(repo)
@@ -432,154 +438,196 @@ def reproject(repo: Path = REPO) -> dict:
     all_edges = g.edges + eq_edges
     eq_ids = {e["edge_id"] for e in eq_edges}
     real_ids = {e["edge_id"] for e in g.edges}
+    index = {}
+    for e in all_edges:
+        index.setdefault((e["source"], e["predicate"], e["target"]), e)
 
-    def find(source=None, predicate=None, target=None, cond=None):
-        for e in all_edges:
-            if (source is None or e["source"] == source) and (predicate is None or e["predicate"] == predicate) \
-                    and (target is None or e["target"] == target):
-                if cond is not None and cond not in (e.get("condition_ids") or []):
-                    continue
-                return e
-        return None
+    def E(source, predicate, target):
+        return index.get((source, predicate, target))
 
-    # populations over the frozen graph
     def _pop(target):
         return sorted({c for e in g.edges if e["predicate"] == "HAS_TYPE" and e["target"] == target
                        for c in [_card_of(e["source"])] if c})
     creature_cards = _pop(OBJ_TYPE_CREATURE)
     wizard_cards = set(_pop(OBJ_SUBTYPE_WIZARD))
-    # HAS_TYPE edge per creature card (one representative), so the projected path is grounded
-    creature_htype = {}
+    # a representative HAS_TYPE edge + HAS_FACE edge per creature/wizard card (for grounded tails)
+    htype = defaultdict(dict)   # obj -> {card: edge}
     for e in g.edges:
-        if e["predicate"] == "HAS_TYPE" and e["target"] == OBJ_TYPE_CREATURE:
-            creature_htype.setdefault(_card_of(e["source"]), e)
-    wizard_htype = {}
+        if e["predicate"] == "HAS_TYPE" and e["target"] in (OBJ_TYPE_CREATURE, OBJ_SUBTYPE_WIZARD):
+            htype[e["target"]].setdefault(_card_of(e["source"]), e)
+    hasface = {}   # card -> HAS_FACE edge (card -> face)
     for e in g.edges:
-        if e["predicate"] == "HAS_TYPE" and e["target"] == OBJ_SUBTYPE_WIZARD:
-            wizard_htype.setdefault(_card_of(e["source"]), e)
+        if e["predicate"] == "HAS_FACE":
+            hasface.setdefault(_card_of(e["source"]), e)
 
     metaedges = []
 
     def emit(a_card, b_card, relation, steps, equip_cost, extra):
-        if not a_card or not b_card or a_card == b_card:
+        if not a_card or not b_card or a_card == b_card or any(s is None for s in steps):
             return
+        # CONTINUITY: adjacent steps must share the traversed endpoint
+        for x, y in zip(steps, steps[1:]):
+            if x["target"] != y["source"]:
+                return
         nodes_seq = [steps[0]["source"]] + [s["target"] for s in steps]
-        conds = sorted({c for s in steps for c in (s.get("condition_ids") or [])})
+        if _card_of(nodes_seq[0]) != a_card or _card_of(nodes_seq[-1]) != b_card:
+            return
+        conds = sorted({c for s in steps for c in (s.get("condition_ids") or [])} | set(extra.pop("_conds", [])))
         m = {"source_card": a_card, "target_card": b_card, "relation": relation, "origin": "equip",
              "path_kind": "grounded", "steps": steps, "primitive_path": nodes_seq,
-             "path_predicates": [s["predicate"] for s in steps],
-             "edge_ids": [s["edge_id"] for s in steps],
+             "path_predicates": [s["predicate"] for s in steps], "edge_ids": [s["edge_id"] for s in steps],
              "uses_equip_edges": [s["edge_id"] for s in steps if s["edge_id"] in eq_ids],
              "connecting_node": nodes_seq[1], "condition_ids": conds}
         if equip_cost is not None:
             m["equip_cost"] = equip_cost
-        if extra:
-            m.update(extra)
+        m.update(extra)
         metaedges.append(m)
 
+    def tail_to_creature(obj_class, c_card):
+        """The grounded tail obj_class -> face:C -> card:C (two reverse steps)."""
+        ht = htype[obj_class].get(c_card)
+        hf = hasface.get(c_card)
+        if not ht or not hf:
+            return None
+        return [project._step(ht, "reverse"), project._step(hf, "reverse")]
+
+    def can_attach(host, e_card, cost, mode, req_obj, suffix, pop_cards, cond_extra):
+        hf_e = hasface.get(e_card)
+        hab = E(host, "HAS_ABILITY", f"ability:{suffix}:{host}")
+        cau = E(f"ability:{suffix}:{host}", "CAUSES", f"op:{suffix}:{host}")
+        req = E(f"op:{suffix}:{host}", "REQUIRES", req_obj)
+        if not (hf_e and hab and cau and req):
+            return
+        head = [project._step(hf_e, "forward"), project._step(hab, "forward"),
+                project._step(cau, "forward"), project._step(req, "forward")]
+        # bridge from req_obj to the creature type if needed (obj:creature-you-control -> obj:type:creature)
+        bridge_obj = OBJ_TYPE_CREATURE if req_obj == OBJ_CREATURE_YOU_CONTROL else req_obj
+        if req_obj == OBJ_CREATURE_YOU_CONTROL:
+            b = E(OBJ_CREATURE_YOU_CONTROL, "HAS_TYPE", OBJ_TYPE_CREATURE)
+            if not b:
+                return
+            head.append(project._step(b, "forward"))
+        for c_card in pop_cards:
+            tail = tail_to_creature(bridge_obj, c_card)
+            if not tail:
+                continue
+            emit(e_card, c_card, "CAN_ATTACH_TO", head + tail, cost,
+                 {"equip_mode": mode, "_conds": cond_extra})
+
     for face in g.equipment_faces():
-        E = face["id"]
-        e_card = _card_of(E)
-        state = f"state:attachment:{E}"
-        bound = f"obj:bound-creature:{E}"
-        n_cost = eq_nodes.get(f"cost:equip:{E}", {}).get("data", {})
-        equip_cost = {"mana_cost": n_cost.get("mana_cost"), "additional_cost": n_cost.get("additional_cost"),
-                      "raw": n_cost.get("raw")}
+        host = face["id"]
+        e_card = _card_of(host)
+        cost_n = eq_nodes.get(f"cost:equip:{host}", {}).get("data", {})
+        cost = {"mana_cost": cost_n.get("mana_cost"), "additional_cost": cost_n.get("additional_cost"), "raw": cost_n.get("raw")}
+        alt_n = eq_nodes.get(f"cost:equip-alt:{host}", {}).get("data", {})
+        alt_cost = {"mana_cost": alt_n.get("mana_cost"), "additional_cost": alt_n.get("additional_cost"), "raw": alt_n.get("raw")}
 
-        # ---- CAN_ATTACH_TO (primary equip mode: any creature you control) ---------------
-        ab_equip = find(source=E, predicate="HAS_ABILITY", target=f"ability:equip:{E}")
-        causes = find(source=f"ability:equip:{E}", predicate="CAUSES", target=f"op:equip:{E}")
-        requires = find(source=f"op:equip:{E}", predicate="REQUIRES", target=OBJ_CREATURE_YOU_CONTROL)
-        if ab_equip and causes and requires:
+        can_attach(host, e_card, cost, "primary", OBJ_CREATURE_YOU_CONTROL, "equip",
+                   creature_cards, [COND_TARGET_CONTROLLED, COND_SORCERY_TIMING])
+        if E(host, "HAS_ABILITY", f"ability:equip-alt:{host}"):
+            can_attach(host, e_card, alt_cost, "alternative-wizard", OBJ_SUBTYPE_WIZARD, "equip-alt",
+                       sorted(wizard_cards), [COND_TARGET_CONTROLLED, COND_SORCERY_TIMING, COND_TARGET_IS_WIZARD])
+
+        # MODIFIES_WHEN_ATTACHED / GRANTS_ABILITY_WHEN_ATTACHED — the reviewer's grounded path:
+        # card:E -> face:E -> equip ability -> equip op -> ATTACHMENT STATE -> effect op ->
+        # bound creature -> creature type -> face:C -> card:C. The attachment state is ON the path.
+        bound, state = f"obj:bound-creature:{host}", f"state:attachment:{host}"
+        hf_e = hasface.get(e_card)
+        hab_equip = E(host, "HAS_ABILITY", f"ability:equip:{host}")
+        equip_cau = E(f"ability:equip:{host}", "CAUSES", f"op:equip:{host}")
+        equip_state = E(f"op:equip:{host}", "CAUSES", state)
+        bnd = E(bound, "HAS_TYPE", OBJ_TYPE_CREATURE)
+        for (opnode, relation) in ((f"op:modify-equipped:{host}", "MODIFIES_WHEN_ATTACHED"),
+                                   (f"op:grant-equipped:{host}", "GRANTS_ABILITY_WHEN_ATTACHED")):
+            req_state = E(opnode, "REQUIRES", state)
+            mod = E(opnode, "MODIFIES", bound)
+            if not (hf_e and hab_equip and equip_cau and equip_state and req_state and mod and bnd):
+                continue
+            head = [project._step(hf_e, "forward"), project._step(hab_equip, "forward"),
+                    project._step(equip_cau, "forward"), project._step(equip_state, "forward"),
+                    project._step(req_state, "reverse"), project._step(mod, "forward"), project._step(bnd, "forward")]
             for c_card in creature_cards:
-                htype = creature_htype.get(c_card)
-                if not htype:
+                tail = tail_to_creature(OBJ_TYPE_CREATURE, c_card)
+                if not tail:
                     continue
-                steps = [project._step(ab_equip, "forward"), project._step(causes, "forward"),
-                         project._step(requires, "forward"), project._step(htype, "reverse")]
-                emit(e_card, c_card, "CAN_ATTACH_TO", steps, equip_cost, {"equip_mode": "primary"})
+                if relation == "MODIFIES_WHEN_ATTACHED":
+                    emit(e_card, c_card, relation, head + tail, cost,
+                         {"modification": mod.get("modification"), "attachment_state": state, "bound_creature": bound})
+                else:
+                    for kw in (mod.get("granted_abilities") or []):
+                        emit(e_card, c_card, relation, head + tail, cost,
+                             {"granted_ability": kw, "attachment_state": state, "bound_creature": bound})
 
-        # ---- CAN_ATTACH_TO (Wizard's Staff alt mode: only Wizard creatures) -------------
-        ab_alt = find(source=E, predicate="HAS_ABILITY", target=f"ability:equip-alt:{E}")
-        causes_alt = find(source=f"ability:equip-alt:{E}", predicate="CAUSES", target=f"op:equip-alt:{E}")
-        req_alt = find(source=f"op:equip-alt:{E}", predicate="REQUIRES", target=OBJ_SUBTYPE_WIZARD)
-        if ab_alt and causes_alt and req_alt:
-            alt_cost_n = eq_nodes.get(f"cost:equip-alt:{E}", {}).get("data", {})
-            alt_cost = {"mana_cost": alt_cost_n.get("mana_cost"),
-                        "additional_cost": alt_cost_n.get("additional_cost"), "raw": alt_cost_n.get("raw")}
-            for c_card in sorted(wizard_cards):
-                htype = wizard_htype.get(c_card)
-                if not htype:
-                    continue
-                steps = [project._step(ab_alt, "forward"), project._step(causes_alt, "forward"),
-                         project._step(req_alt, "forward"), project._step(htype, "reverse")]
-                emit(e_card, c_card, "CAN_ATTACH_TO", steps, alt_cost, {"equip_mode": "alternative-wizard"})
-
-        # ---- MODIFIES_WHEN_ATTACHED (P/T modification through the attachment) ------------
-        mod = find(source=f"op:modify-equipped:{E}", predicate="MODIFIES", target=bound)
-        state_link = find(source=f"op:modify-equipped:{E}", predicate="REQUIRES", target=state)
-        if mod and state_link:
-            for c_card in creature_cards:
-                htype = creature_htype.get(c_card)
-                if not htype:
-                    continue
-                # path: attachment state <-REQUIRES- modify-op -MODIFIES-> bound-creature ; C is a creature
-                steps = [project._step(state_link, "reverse"), project._step(mod, "forward")]
-                emit(e_card, c_card, "MODIFIES_WHEN_ATTACHED", steps, equip_cost,
-                     {"modification": mod.get("modification"), "attachment_state": state,
-                      "bound_creature": bound})
-
-        # ---- GRANTS_ABILITY_WHEN_ATTACHED (keyword grants through the attachment) --------
-        grant = find(source=f"op:grant-equipped:{E}", predicate="MODIFIES", target=bound)
-        grant_state = find(source=f"op:grant-equipped:{E}", predicate="REQUIRES", target=state)
-        if grant and grant_state:
-            for kw in (grant.get("granted_abilities") or []):
-                for c_card in creature_cards:
-                    htype = creature_htype.get(c_card)
-                    if not htype:
-                        continue
-                    steps = [project._step(grant_state, "reverse"), project._step(grant, "forward")]
-                    emit(e_card, c_card, "GRANTS_ABILITY_WHEN_ATTACHED", steps, equip_cost,
-                         {"granted_ability": kw, "attachment_state": state, "bound_creature": bound})
+    # ---- token:axe: the CREATOR card can attach the created Axe to a creature -------------
+    axe_state_ok = f"op:equip:{TOKEN_AXE}" in eq_nodes
+    for ce in [e for e in g.edges if e["predicate"] == "CREATES_OBJECT" and e["target"] == TOKEN_AXE]:
+        creator_face = ce["source"]                       # an op on the creator's face
+        creator_card = _card_of(creator_face)
+        hf = hasface.get(creator_card)
+        if not (axe_state_ok and hf and creator_card):
+            continue
+        # creator card -> face -> ... -> op(create) -> token:axe -> equip ability -> op -> creature-you-control -> type -> C
+        cau_to_op = None
+        # find ability -CAUSES-> creator op, and face -HAS_ABILITY-> ability (frozen)
+        cause_edge = next((e for e in g.edges if e["predicate"] == "CAUSES" and e["target"] == creator_face), None)
+        face_node = re.match(r"(face:[0-9a-f-]+:\d+)", creator_face)
+        hab_creator = None
+        if cause_edge:
+            hab_creator = next((e for e in g.edges if e["predicate"] == "HAS_ABILITY"
+                                and e["target"] == cause_edge["source"]), None)
+        hab_equip = E(TOKEN_AXE, "HAS_ABILITY", f"ability:equip:{TOKEN_AXE}")
+        cau_equip = E(f"ability:equip:{TOKEN_AXE}", "CAUSES", f"op:equip:{TOKEN_AXE}")
+        req_equip = E(f"op:equip:{TOKEN_AXE}", "REQUIRES", OBJ_CREATURE_YOU_CONTROL)
+        bind = E(OBJ_CREATURE_YOU_CONTROL, "HAS_TYPE", OBJ_TYPE_CREATURE)
+        if not (cause_edge and hab_creator and hab_equip and cau_equip and req_equip and bind):
+            continue
+        head = [project._step(hf, "forward"), project._step(hab_creator, "forward"),
+                project._step(cause_edge, "forward"), project._step(ce, "forward"),
+                project._step(hab_equip, "forward"), project._step(cau_equip, "forward"),
+                project._step(req_equip, "forward"), project._step(bind, "forward")]
+        axe_cost_n = eq_nodes.get(f"cost:equip:{TOKEN_AXE}", {}).get("data", {})
+        axe_cost = {"mana_cost": axe_cost_n.get("mana_cost"), "additional_cost": axe_cost_n.get("additional_cost"),
+                    "raw": axe_cost_n.get("raw")}
+        for c_card in creature_cards:
+            tail = tail_to_creature(OBJ_TYPE_CREATURE, c_card)
+            if not tail:
+                continue
+            emit(creator_card, c_card, "CAN_ATTACH_TO", head + tail, axe_cost,
+                 {"equip_mode": "via-created-token:axe",
+                  "_conds": [COND_TARGET_CONTROLLED, COND_SORCERY_TIMING]})
 
     metaedges.sort(key=lambda m: (m["source_card"], m["target_card"], m["relation"],
-                                  m.get("granted_ability") or "", m["connecting_node"]))
-    with (repo / "data/graph_global/card_pair_projection_equip.jsonl").open(
-            "w", encoding="utf-8", newline="\n") as fh:
+                                  m.get("granted_ability") or "", m.get("equip_mode") or "", m["connecting_node"]))
+    with (repo / "data/graph_global/card_pair_projection_equip.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for m in metaedges:
             fh.write(json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n")
 
-    edges_resolve = all(s["edge_id"] in real_ids or s["edge_id"] in eq_ids
-                        for m in metaedges for s in m["steps"])
+    # SELF-CHECK gates (pt5): continuity, card-grounded endpoints, edge resolution
+    continuous = all(x["target"] == y["source"] for m in metaedges for x, y in zip(m["steps"], m["steps"][1:]))
+    grounded = all(_card_of(m["primitive_path"][0]) == m["source_card"]
+                   and _card_of(m["primitive_path"][-1]) == m["target_card"] for m in metaedges)
+    edges_resolve = all(s["edge_id"] in real_ids or s["edge_id"] in eq_ids for m in metaedges for s in m["steps"])
     by_rel = {}
     for m in metaedges:
         by_rel[m["relation"]] = by_rel.get(m["relation"], 0) + 1
-    _report(repo, g, metaedges, by_rel, edges_resolve)
-    return {"reprojected": len(metaedges), "by_relation": by_rel, "edges_resolve": edges_resolve}
+    _report(repo, g, metaedges, by_rel, continuous, grounded, edges_resolve)
+    return {"reprojected": len(metaedges), "by_relation": by_rel, "paths_continuous": continuous,
+            "paths_card_grounded": grounded, "edges_resolve": edges_resolve}
 
 
-def _report(repo, g, metaedges, by_rel, ok):
-    L = ["# HOB Equip Attachment Layer — Materialization + Reprojection", "",
+def _report(repo, g, metaedges, by_rel, continuous, grounded, ok):
+    L = ["# HOB Equip Attachment Layer — Materialization + Reprojection (pt5)", "",
          f"- **reprojected metaedges**: {len(metaedges)} (origin `equip`)",
          f"- **by relation**: {by_rel}",
-         f"- **all path edges resolve (frozen or equip layer)**: {ok}", "",
-         "## Sample relations (origin: equip)", ""]
-    shown = 0
-    for m in metaedges:
-        if shown >= 60:
-            L.append("- … (truncated)")
-            break
-        a = g.names.get(m["source_card"], m["source_card"])
-        b = g.names.get(m["target_card"], m["target_card"])
-        detail = ""
-        if m.get("modification"):
-            detail = f"  _(mod: {m['modification']})_"
-        elif m.get("granted_ability"):
-            detail = f"  _(grants: {m['granted_ability']})_"
-        elif m.get("equip_cost"):
-            detail = f"  _(cost: {m['equip_cost'].get('raw')})_"
-        conds = f"  _(cond: {', '.join(m['condition_ids'])})_" if m.get("condition_ids") else ""
-        L.append(f"- **{a} -> {b}** [{m['relation']}] via `{m['connecting_node']}` "
-                 f"— {' -> '.join(m['path_predicates'])}{detail}{conds}")
-        shown += 1
+         f"- **paths continuous (step joins connect)**: {continuous}",
+         f"- **paths card-grounded (card:E … card:C)**: {grounded}",
+         f"- **all path edges resolve**: {ok}", "", "## Sample relations", ""]
+    for m in metaedges[:60]:
+        a, b = g.names.get(m["source_card"], m["source_card"]), g.names.get(m["target_card"], m["target_card"])
+        detail = (f"  _(mod: {m['modification']})_" if m.get("modification")
+                  else f"  _(grants: {m['granted_ability']})_" if m.get("granted_ability")
+                  else f"  _(cost: {m.get('equip_cost', {}).get('raw')})_")
+        L.append(f"- **{a} -> {b}** [{m['relation']}] — {' -> '.join(m['path_predicates'])}{detail}")
+    if len(metaedges) > 60:
+        L.append("- … (truncated)")
     (repo / "reports" / "equip.md").write_text("\n".join(L) + "\n", encoding="utf-8")

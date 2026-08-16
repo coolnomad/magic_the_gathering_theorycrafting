@@ -232,9 +232,11 @@ def test_no_reverse_relation(erel):
     equip_cards = {eq._card_of(E) for E in _equipment_faces().values()}
     creatures = _creature_cards()
     for m in erel:
-        assert m["source_card"] in equip_cards          # Equipment always the source
-        # a creature-only card is never the source (Equipment are artifacts, not creatures)
-        assert m["source_card"] not in (creatures - equip_cards)
+        # the target is NEVER an Equipment (no reverse creature->Equipment relation)
+        assert m["target_card"] not in equip_cards
+        assert m["target_card"] in creatures
+        # the source is an Equipment, OR (for the Axe token) the card that CREATES the Axe
+        assert m["source_card"] in equip_cards or m.get("equip_mode") == "via-created-token:axe"
         assert m["source_card"] != m["target_card"]
 
 
@@ -250,9 +252,9 @@ def test_conditions_resolve(mat, econds, eedges):
     for cid in (eq.COND_TARGET_CONTROLLED, eq.COND_SORCERY_TIMING, eq.COND_TARGET_IS_WIZARD,
                 eq.COND_AUTO_ATTACH_TARGET_IS_DWARF):
         assert cid in econds
-    # a per-equipment attached condition exists for each Equipment
+    # a per-equipment attached condition exists for each Equipment (12 cards + the Axe token)
     per_eq = [c for c in econds if c.startswith("cond:equipment-") and c.endswith("-attached")]
-    assert len(per_eq) == 12
+    assert len(per_eq) == 13
 
 
 # ---- 13. deterministic ----------------------------------------------------------------
@@ -284,3 +286,89 @@ def test_mattock_auto_attach_requires_dwarf(eedges):
     reqs = [e for e in eedges if e["source"] == f"op:auto-attach:{E}" and e["predicate"] == "REQUIRES"]
     assert reqs and reqs[0]["target"] == "obj:subtype:dwarf"
     assert eq.COND_AUTO_ATTACH_TARGET_IS_DWARF in (reqs[0].get("condition_ids") or [])
+
+
+# ======================================================================================
+#  pt5 regressions — the defects the prior build shipped (path continuity was NOT tested)
+# ======================================================================================
+def test_pt5_every_path_is_continuous_and_card_grounded(erel, rep):
+    # THE pt5 defect: steps were concatenated, not connected (obj:creature-you-control !=
+    # obj:type:creature), and modify/grant paths reached neither card. Assert real continuity.
+    assert rep["paths_continuous"] and rep["paths_card_grounded"]
+    creatures = _creature_cards()
+    equip_cards = {eq._card_of(E) for E in _equipment_faces().values()}
+    for m in erel:
+        steps = m["steps"]
+        # (a) adjacent steps share the traversed endpoint
+        for a, b in zip(steps, steps[1:]):
+            assert a["target"] == b["source"], (
+                f"discontinuous join in {m['relation']} {m['source_card']}->{m['target_card']}: "
+                f"{a['target']} != {b['source']}")
+        # (b) primitive_path is exactly the traversed node sequence
+        assert m["primitive_path"] == [steps[0]["source"]] + [s["target"] for s in steps]
+        # (c) endpoints ARE the source/target cards (path[0] and path[-1] resolve to them)
+        assert eq._card_of(m["primitive_path"][0]) == m["source_card"]
+        assert eq._card_of(m["primitive_path"][-1]) == m["target_card"]
+        # (d) the target is genuinely a creature; the source is an Equipment or an Axe-creator
+        assert m["target_card"] in creatures
+        assert m["source_card"] in equip_cards or m.get("equip_mode") == "via-created-token:axe"
+
+
+def test_pt5_no_operation_requires_the_state_it_causes(mat, eedges):
+    # the prior build had the auto-attach op both CAUSE and be conditioned on being attached
+    assert mat["circular_attach_ops"] == []
+    causes = {(e["source"], e["target"]) for e in eedges if e["predicate"] == "CAUSES" and e["target"].startswith("state:")}
+    requires = {(e["source"], e["target"]) for e in eedges if e["predicate"] == "REQUIRES" and e["target"].startswith("state:")}
+    assert causes & requires == set()
+    # and the CAUSES-state edges are NOT conditioned on the attachment (attachment is the result)
+    for e in eedges:
+        if e["predicate"] == "CAUSES" and e["target"].startswith("state:attachment:"):
+            assert not any(c.endswith("-attached") for c in (e.get("condition_ids") or []))
+
+
+def test_pt5_no_orphan_equip_abilities(mat, eedges):
+    # every equip-layer Ability (equip, equipped-bonus, equipped-grant, auto-attach) must have
+    # an incoming HAS_ABILITY from its face/token (the prior build orphaned several)
+    assert mat["orphan_abilities"] == []
+    enodes = {n["id"]: n for n in _load_dicts(G / "equip_nodes.jsonl")}
+    has_ability = {e["target"] for e in eedges if e["predicate"] == "HAS_ABILITY"}
+    for nid, n in enodes.items():
+        if n["type"] == "Ability":
+            assert nid in has_ability, f"orphan ability {nid}"
+
+
+def test_pt5_token_axe_template_coverage(mat, enodes, eedges, erel):
+    # the Axe Equipment token (no card face) was skipped; it must get primitive template coverage
+    assert mat["token_axe_covered"]
+    assert f"ability:equip:{eq.TOKEN_AXE}" in enodes and f"state:attachment:{eq.TOKEN_AXE}" in enodes
+    # and its +1/+0 equipped bonus is represented
+    mod = enodes.get(f"op:modify-equipped:{eq.TOKEN_AXE}")
+    assert mod and mod["data"]["modification"] == {"power": "+1", "toughness": "+0"}
+    # the Axe's creator projects CAN_ATTACH_TO through the created token (grounded card->card)
+    via_axe = [m for m in erel if m.get("equip_mode") == "via-created-token:axe"]
+    assert via_axe
+    for m in via_axe:
+        assert eq.TOKEN_AXE in m["primitive_path"]
+
+
+def test_pt5_provenance_carries_oracle_spans(eedges):
+    # the spec requires exact provenance; equip edges carrying a printed cost/effect must cite
+    # the face and an Oracle span
+    spanned = [e for e in eedges if any(p.get("oracle_span") for p in e.get("provenance", []))]
+    assert len(spanned) >= 12                            # at least the per-Equipment equip costs
+    for e in spanned:
+        p = next(pp for pp in e["provenance"] if pp.get("oracle_span"))
+        assert p.get("face_id") and isinstance(p["oracle_span"], list) and len(p["oracle_span"]) == 2
+        assert "rule_ref" in p
+
+
+def test_pt5_every_equipped_clause_dispositioned():
+    # every printed "Equipped creature ..." clause is dispositioned (represented / ignored),
+    # not silently dropped
+    disp = list(_load_dicts(G / "equip_dispositions.jsonl"))
+    assert disp
+    for d in disp:
+        assert d["disposition"] in ("represented", "deliberately_ignored", "unresolved")
+    # the complex effects the review noted are recorded as deliberately_ignored, not missing
+    ignored_faces = {d["equipment"] for d in disp if d["disposition"] == "deliberately_ignored"}
+    assert {"Glamdring, Foe-hammer", "Orcrist, Goblin-cleaver"} <= ignored_faces

@@ -35,14 +35,14 @@ def test_coverage_reports_all_layers_and_union(cov):
     # frozen + repair + legend + mechanism + equip layers reported SEPARATELY and as a
     # deduplicated union (the completed graph, not just Phase 4).
     assert cov["edges_frozen"] == 2728 and cov["edges_repair"] == 9 and cov["edges_legend"] == 113
-    assert cov["edges_mechanism"] == 99 and cov["edges_equip"] == 131
-    assert cov["nodes_mechanism"] == 3 and cov["nodes_legend"] == 58 and cov["nodes_equip"] == 99
+    assert cov["edges_mechanism"] == 99 and cov["edges_equip"] == 173
+    assert cov["nodes_mechanism"] == 3 and cov["nodes_legend"] == 58 and cov["nodes_equip"] == 107
     assert cov["edges_union"] == (cov["edges_frozen"] + cov["edges_repair"] + cov["edges_legend"]
-                                  + cov["edges_mechanism"] + cov["edges_equip"]) == 3080
+                                  + cov["edges_mechanism"] + cov["edges_equip"]) == 3122
     assert cov["edges_by_origin"].get("graph_repair") == 9
     assert cov["edges_by_origin"].get("legend_rule") == 113   # legend layer in the origin counts
     assert cov["edges_by_origin"].get("mechanism_repair") == 99  # mechanism layer in the origin counts
-    assert cov["edges_by_origin"].get("equip") == 131        # equip layer in the origin counts
+    assert cov["edges_by_origin"].get("equip") == 173        # equip layer in the origin counts
     assert cov["edges_without_provenance"] == 0              # incl. every legend/mechanism/equip edge
     # abilities counted over the UNIFIED node set — the legend SBA ability must be included
     assert cov["abilities_by_kind"].get("state_based_action") == 1
