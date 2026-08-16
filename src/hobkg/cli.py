@@ -75,6 +75,12 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "modules":
         from . import modules
         print(json.dumps(modules.build_modules(), indent=2))
+    elif cmd == "coverage":
+        from . import coverage
+        print(json.dumps(coverage.coverage(), indent=2))
+    elif cmd == "gold-set":
+        from . import coverage
+        print(json.dumps(coverage.gold_set(), indent=2))
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2

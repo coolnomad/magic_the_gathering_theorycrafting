@@ -33,10 +33,24 @@ def _card_of(nid: str) -> str | None:
     return "card:" + m.group(0) if m else None
 
 
+def _load_optional(path: Path):
+    return list(_load_dicts(path)) if path.exists() else []
+
+
 class _Graph:
     def __init__(self, repo: Path):
+        # union the frozen Phase 4 graph with the (additive) graph-repair layer, keeping
+        # each node/edge's origin so repaired structures participate in modules too.
         self.nodes = {n["id"]: n for n in _load_dicts(repo / "data/graph_global/nodes.jsonl")}
-        self.edges = list(_load_dicts(repo / "data/graph_global/edges.jsonl"))
+        for n in _load_optional(repo / "data/graph_global/repair_nodes.jsonl"):
+            self.nodes.setdefault(n["id"], {**n, "origin": n.get("origin", "graph_repair")})
+        self.edges = []
+        for e in _load_dicts(repo / "data/graph_global/edges.jsonl"):
+            e.setdefault("origin", "phase4")
+            self.edges.append(e)
+        for e in _load_optional(repo / "data/graph_global/repair_edges.jsonl"):
+            e.setdefault("origin", "graph_repair")
+            self.edges.append(e)
         self.out = defaultdict(list)
         self.inc = defaultdict(list)
         for e in self.edges:
@@ -48,6 +62,31 @@ class _Graph:
             self.mech[m["mechanic"]].add(m["face_id"])
             self.mech_card[m["mechanic"]].add(m["card_id"])
         self.names = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
+
+    def upstream_cards(self, anchor: str, max_depth: int = 5) -> set:
+        """Cards reachable UPSTREAM of an anchor by walking reverse edges through
+        structural nodes (gates/rules/ops/states), recovering participants even when the
+        immediate producer is a card-less gate (e.g. gate:recruit-nonland-discard → soldier)."""
+        cards, seen, frontier = set(), {anchor}, [(anchor, 0)]
+        while frontier:
+            node, d = frontier.pop()
+            if d > max_depth:
+                continue
+            for e in self.inc.get(node, []):
+                src = e["source"]
+                c = _card_of(src)
+                if c:
+                    cards.add(c)
+                if src not in seen:
+                    seen.add(src)
+                    frontier.append((src, d + 1))
+            # gates/rules are also reached FROM cards via forward refs (card -> rule/gate)
+            if node.startswith(("rule:", "gate:")):
+                for e in self.out.get(node, []):
+                    c = _card_of(e["target"])
+                    if c:
+                        cards.add(c)
+        return cards
 
     def cards_with_mechanic(self, *mechanics) -> set:
         out = set()
@@ -149,16 +188,14 @@ def build_modules(repo: Path = REPO) -> dict:
     mods.append(_module(g, "module:graveyard-reuse", "graveyard reuse", "zone_flow",
                         ["zone:graveyard"], gy_members))
 
-    # --- token production: one module per token spec that a card creates ---
-    tok_creators = defaultdict(set)
-    for e in g.edges:
-        if e["predicate"] == "CREATES_OBJECT" and e["target"].startswith("token:"):
-            c = _card_of(e["source"])
-            if c:
-                tok_creators[e["target"]].add(c)
-    for tok in sorted(tok_creators):
+    # --- token production: a module for EVERY created token, recovering members by
+    # upstream traversal so gate-mediated creators (e.g. Recruit -> token:human-soldier
+    # via gate:recruit-nonland-discard) are included. ---
+    created_tokens = sorted({e["target"] for e in g.edges
+                             if e["predicate"] == "CREATES_OBJECT" and e["target"].startswith("token:")})
+    for tok in created_tokens:
         mods.append(_module(g, f"module:token:{tok.split(':')[-1]}", f"token production ({tok})",
-                            "token_production", [tok], tok_creators[tok]))
+                            "token_production", [tok], g.upstream_cards(tok)))
 
     # --- second-draw triggers: abilities that trigger on a draw event, flagged where a
     # "second"/"two or more" draw condition is present (the Master's-Councillors pattern) ---
@@ -176,6 +213,48 @@ def build_modules(repo: Path = REPO) -> dict:
     mods.append(_module(g, "module:second-draw", "second-draw triggers", "trigger",
                         [n for n in g.nodes if n.startswith("event:") and "draw" in n],
                         second or draw_triggered))
+
+    # --- generalized anchor discovery: any shared functional concept node that has BOTH a
+    # producer side and a consumer side and touches >=2 distinct cards is a structural hub.
+    # Recognized anchors get a curated label; the rest are labelled by their node kind. ---
+    _LABELS = {
+        "event:draw": "draw engine", "event:player-loses-life": "life-loss trigger",
+        "event:counters-placed": "counter-placement trigger",
+        "event:activate-creature-ability": "activated-ability trigger",
+        "event:enters_the_battlefield": "ETB trigger", "event:this-creature-enters": "ETB trigger",
+        "resource:mana": "mana base", "resource:card": "card advantage", "resource:life": "life swing",
+        "zone:graveyard": "graveyard reuse", "counter:+1/+1": "+1/+1 counters",
+        "state:enduring_story": "enduring story",
+    }
+    used = {a for m in mods for a in m["anchors"]}
+
+    def prod_cons(nid):
+        inc_c = {_card_of(e["source"]) for e in g.inc.get(nid, [])
+                 if e["predicate"] in ("PRODUCES", "CAUSES", "CREATES_OBJECT", "ADDS_COUNTER",
+                                       "MODIFIES", "REPLACES", "QUALIFIES_FOR", "CONTRIBUTES_TO")}
+        out_c = {_card_of(e["target"]) for e in g.out.get(nid, [])
+                 if e["predicate"] in ("TRIGGERS", "ENABLES", "COUNTS", "PRODUCES")}
+        con_c = {_card_of(e["source"]) for e in g.inc.get(nid, [])
+                 if e["predicate"] in ("CONSUMES", "REQUIRES", "SCALES_WITH", "HAS_TYPE")}
+        return inc_c - {None}, (out_c | con_c) - {None}
+
+    # object subtypes are functional anchors when an anthem MODIFIES them AND members carry
+    # the type (tribal / anthem structures, e.g. Thranduil MODIFIES obj:subtype:elf).
+    def _subtype_ok(nid):
+        return (nid.startswith("obj:subtype:")
+                and any(e["predicate"] == "MODIFIES" for e in g.inc.get(nid, []))
+                and any(e["predicate"] == "HAS_TYPE" for e in g.inc.get(nid, [])))
+
+    for nid in sorted(g.nodes):
+        if nid in used:
+            continue
+        if not (nid.startswith(("resource:", "event:", "state:", "counter:")) or _subtype_ok(nid)):
+            continue
+        producers, consumers = prod_cons(nid)
+        if len(producers | consumers) >= 2 and producers and consumers:
+            label = _LABELS.get(nid, f"shared {nid.split(':')[0]}: {nid}")
+            mods.append(_module(g, f"module:anchor:{nid}", label, f"discovered_{nid.split(':')[0]}",
+                                [nid], producers | consumers))
 
     mods = [m for m in mods if m["members"] or m["contributors"] or m["consumers"]]
     mods.sort(key=lambda m: m["module_id"])

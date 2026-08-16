@@ -40,7 +40,11 @@ def test_named_modules_present(mods):
 
 
 def test_every_module_is_a_grounded_subgraph(mods, edges):
+    # subgraph edges resolve to the UNION of frozen + repair-layer edges (Phase 6 v2)
+    rep = GLOBAL / "repair_edges.jsonl"
     edge_ids = {e["edge_id"] for e in edges}
+    if rep.exists():
+        edge_ids |= {json.loads(l)["edge_id"] for l in rep.read_text(encoding="utf-8").splitlines()}
     assert mods
     for m in mods.values():
         assert m["anchors"] and (m["members"] or m["contributors"] or m["consumers"])
@@ -112,3 +116,42 @@ def test_inv10_other_another_exclusions_present(edges):
     # "another"/"other" self-exclusion object classes exist (prevent false self-effects)
     objs = {e["target"] for e in edges if e["target"].startswith("obj:another")}
     assert objs
+
+
+def test_inv3_bard_modifies_recruit_draw_and_token_quantities(edges):
+    bard = "d05db2c1"
+    replaced = {e["target"] for e in edges if bard in e["source"] and e["predicate"] == "REPLACES"}
+    assert {"event:draw", "event:token_creation"} <= replaced   # draw AND token replacement
+
+
+def test_inv7_qualifying_artifact_token_installs_qualifying_object(edges):
+    # a Treasure token is an artifact (a Storied-qualifying object); creating one installs it
+    assert any(e["source"] == "token:treasure" and e["predicate"] == "HAS_TYPE"
+               and e["target"] == "obj:type:artifact" for e in edges)
+    assert any(e["predicate"] == "CREATES_OBJECT" and e["target"] == "token:treasure" for e in edges)
+
+
+# --- Phase 6 v2: repair-layer union + full token coverage + discovery -------
+def test_repair_layer_is_unioned_into_modules(mods):
+    # the graph-repair structures must participate in Phase 6 modules
+    by_label = {m["label"]: m for m in mods.values()}
+    life = by_label["life-loss trigger"]["members"]
+    assert any("514b451b" in c for c in life)                # Gollum (repaired CAUSES)
+    elf = next(m for m in mods.values() if m["anchors"] == ["obj:subtype:elf"])
+    assert any("f6771d32" in c for c in elf["members"])      # Thranduil (repaired MODIFIES)
+
+
+def test_every_created_token_has_a_module(mods, edges):
+    created = {e["target"] for e in edges if e["predicate"] == "CREATES_OBJECT"
+              and e["target"].startswith("token:")}
+    covered = {a for m in mods.values() if m["kind"] == "token_production" for a in m["anchors"]}
+    assert created <= covered                                # incl. gate-mediated token:human-soldier
+    soldier = next(m for m in mods.values() if m["anchors"] == ["token:human-soldier"])
+    assert soldier["stats"]["members"] == 10                 # recovered upstream through the gate
+
+
+def test_generalized_discovery_ran(mods):
+    discovered = [m for m in mods.values() if m["kind"].startswith("discovered_")]
+    assert len(discovered) >= 5
+    labels = {m["label"] for m in discovered}
+    assert {"life-loss trigger", "counter-placement trigger", "activated-ability trigger"} <= labels

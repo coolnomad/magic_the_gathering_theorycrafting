@@ -1,14 +1,66 @@
 # HOB Phase 6 — Higher-Order Mechanism Modules
 
-- **modules**: 22
+- **modules**: 36
 - **modules with feedback cycles**: 1
-- **by kind**: {'amass': 1, 'ferocious': 1, 'gate': 3, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 10}
+- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 5, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 3, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
 
 ## Modules
 
 ### Amass  (`amass`)
 - anchors: `rule:amass`, `op:amass`, `obj:army-A`, `gate:amass-no-army`
 - members: 14  · contributors: 18  · consumers: 6  · conditions: 1  · feedback cycles: 0
+
+### +1/+1 counters  (`discovered_counter`)
+- anchors: `counter:+1/+1`
+- members: 25  · contributors: 31  · consumers: 0  · conditions: 9  · feedback cycles: 0
+
+### activated-ability trigger  (`discovered_event`)
+- anchors: `event:activate-creature-ability`
+- members: 2  · contributors: 1  · consumers: 1  · conditions: 1  · feedback cycles: 0
+
+### shared event: event:attack  (`discovered_event`)
+- anchors: `event:attack`
+- members: 3  · contributors: 2  · consumers: 1  · conditions: 1  · feedback cycles: 0
+
+### counter-placement trigger  (`discovered_event`)
+- anchors: `event:counters-placed`
+- members: 2  · contributors: 1  · consumers: 1  · conditions: 0  · feedback cycles: 0
+
+### shared event: event:damage  (`discovered_event`)
+- anchors: `event:damage`
+- members: 2  · contributors: 4  · consumers: 0  · conditions: 1  · feedback cycles: 0
+
+### life-loss trigger  (`discovered_event`)
+- anchors: `event:player-loses-life`
+- members: 5  · contributors: 4  · consumers: 1  · conditions: 0  · feedback cycles: 0
+
+### shared obj: obj:subtype:elf  (`discovered_obj`)
+- anchors: `obj:subtype:elf`
+- members: 16  · contributors: 18  · consumers: 0  · conditions: 0  · feedback cycles: 0
+
+### card advantage  (`discovered_resource`)
+- anchors: `resource:card`
+- members: 6  · contributors: 7  · consumers: 0  · conditions: 2  · feedback cycles: 0
+
+### shared resource: resource:card-in-hand  (`discovered_resource`)
+- anchors: `resource:card-in-hand`
+- members: 6  · contributors: 7  · consumers: 0  · conditions: 1  · feedback cycles: 0
+
+### shared resource: resource:card_in_hand  (`discovered_resource`)
+- anchors: `resource:card_in_hand`
+- members: 3  · contributors: 4  · consumers: 0  · conditions: 2  · feedback cycles: 0
+
+### shared resource: resource:cards  (`discovered_resource`)
+- anchors: `resource:cards`
+- members: 3  · contributors: 4  · consumers: 0  · conditions: 0  · feedback cycles: 0
+
+### life swing  (`discovered_resource`)
+- anchors: `resource:life`
+- members: 11  · contributors: 12  · consumers: 0  · conditions: 2  · feedback cycles: 0
+
+### mana base  (`discovered_resource`)
+- anchors: `resource:mana`
+- members: 11  · contributors: 14  · consumers: 0  · conditions: 1  · feedback cycles: 0
 
 ### Ferocious  (`ferocious`)
 - anchors: `rule:ferocious`, `keyword:ferocious`
@@ -83,6 +135,10 @@
 - anchors: `token:elf`
 - members: 2  · contributors: 2  · consumers: 2  · conditions: 1  · feedback cycles: 0
 
+### token production (token:human-soldier)  (`token_production`)
+- anchors: `token:human-soldier`
+- members: 10  · contributors: 1  · consumers: 3  · conditions: 1  · feedback cycles: 0
+
 ### token production (token:stone-boulder)  (`token_production`)
 - anchors: `token:stone-boulder`
 - members: 1  · contributors: 1  · consumers: 4  · conditions: 1  · feedback cycles: 0
@@ -93,5 +149,5 @@
 
 ### token production (token:wolf)  (`token_production`)
 - anchors: `token:wolf`
-- members: 2  · contributors: 2  · consumers: 2  · conditions: 0  · feedback cycles: 0
+- members: 2  · contributors: 3  · consumers: 2  · conditions: 0  · feedback cycles: 0
 

@@ -2940,3 +2940,47 @@ Updated the project-status memory accordingly. Just point me at whichever you'd 
 
 ### [2026-08-16 08:59] USER
 proceed to Phase 6
+
+### [2026-08-16 09:15] ASSISTANT
+Starting Phase 6 â€” higher-order mechanism assembly. Let me read the spec's Phase 6 section in full.
+
+Phase 6 builds formal module views (subgraphs) around structural anchors â€” gates, rules, shared resources/states/tokens â€” with contributors, consumers, conditions, and feedback cycles. Let me inspect the available anchors (gates, rules, keyword/mechanic nodes) to design the module builders.
+
+Anchors are clear (3 gates, 10 rules, key concept nodes). Let me build the Phase 6 module engine â€” formal subgraph views around each anchor with contributors, consumers, conditions, and feedback cycles.
+
+Let me clean up the second-draw block and the dead Adventure entry, then wire the CLI:
+
+Modules built (20), but Amass and Ferocious are missing from the output, and no feedback cycles detected (Storied's `enduring_story PERSISTS_AS` self-loop should count). Let me check.
+
+Amass and Ferocious *are* present (22 modules; the earlier output was truncated). The feedback-cycle miss is a self-loop bug â€” `enduring_story PERSISTS_AS enduring_story` is a length-1 cycle that my `len(path) >= 2` guard skips. Let me fix that.
+
+22 modules, Storied's `enduring_story` persistence cycle detected. Let me verify the key modules (Recruit, Storied, Amass) capture the right structure, then write the semantic-invariant tests.
+
+The modules capture the right structure. Now let me write the Phase 6 tests â€” module structure plus the spec's semantic invariants (the graph-testable ones).
+
+Invariant 5 revealed the subtlety: some faces have parallel `QUALIFIES_FOR` edges (Phase 2 + LLM provenance variants), which my test conflated with type double-counting. The *actual* invariant is that a permanent matching two counted types contributes **one entity**, not two. Let me test that correctly.
+
+148 tests pass. Let me record Phase 6 in the lab notebook and commit.
+
+Pushed â€” `9996ac7`. **Phase 6 v1 (higher-order mechanism assembly) is in.**
+
+## Phase 6 â€” mechanism modules
+
+`src/hobkg/modules.py` groups primitive edges around structural **anchors** (not triple-enumeration) into **22 formal, labelled subgraph modules**, each with `anchors / members / contributors (upstream) / consumers (downstream) / conditions / feedback_cycles / subgraph_edge_ids`:
+
+- **3 per-gate modules** (the spec's `mechanism_modules(graph)`) â€” `gate:storied` (74 contributors via `QUALIFIES_FOR`, 17 consumers via `COUNTS`/`ENABLES`/`PRODUCES`), recruit, amass.
+- **8 named mechanic modules** â€” Recruit, Storied, Amass, Ferocious, Landfall, Hone/Equipment, Saga, plus graveyard-reuse and second-draw triggers.
+- **10 token-production modules** â€” one per created TokenSpec (treasure, dwarf, wolf, elf, â€¦).
+
+The **Storied** module surfaces a real feedback cycle: `enduring_story PERSISTS_AS enduring_story` (the persistence loop). Deterministic byte-identical rebuild.
+
+**Semantic-invariant tests** (the graph-testable subset of the spec's list): Recruit soldier conditional on nonland discard (#1), Storied counts exactly 3 classes (#4), a legendary-artifact counts **once** not twice (#5 â€” verified as contributor-set == qualifier-set, deduping the parallel Phase2/LLM `QUALIFIES_FOR` provenance variants), enduring-story persistence (#6), all 17 Adventures have 2 distinct faces (#8), other/another exclusions (#10). **148 tests pass** (+13).
+
+Two things I want to flag for your review:
+1. **Deliberately deferred** (need runtime/pair reasoning or are separate deliverables): the remaining spec invariants #2/#3/#7/#11/#12, the full **coverage report** (spec Â§Coverage report), and the **manual gold-set** stratified review (spec Â§Manual gold set).
+2. This is presented as **v1** for review before I extend to those.
+
+This completes the deterministic build pipeline (Phases 1â€“6). When you're ready, natural next steps are: the **coverage report + remaining semantic invariants**, the **manual gold-set** review, or the earlier-flagged **Dwarf/Equipment/noncreature-cast** audit-repair round. Holding for your direction.
+
+### [2026-08-16 09:21] USER
+read hob-kg-phase6-review-pt1.md

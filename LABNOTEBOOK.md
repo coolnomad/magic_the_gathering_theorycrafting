@@ -998,3 +998,21 @@ With the user's go-ahead, built Phase 6 (spec §Phase 6): discover higher-order 
 **Deferred (Phase 6 follow-ups / spec):** the remaining spec semantic invariants that need runtime/pair reasoning (#2 Recruit↔Master's-Councillors second-draw-only, #3 Bard modifies Recruit draw+token quantities, #7 qualifying-token install, #11 legend-rule state constraints, #12 self-pair object identity); the full coverage report (spec §Coverage report); and the manual gold-set stratified review (spec §Manual gold set). Presenting v1 for review.
 
 Refs: `docs/hob-knowledge-graph-build-spec.md` (§Phase 6, §Semantic invariants); `src/hobkg/modules.py`; `tests/test_modules.py`; `data/graph_global/mechanism_modules.jsonl`; `reports/mechanism_modules.md`
+
+---
+
+## [2026-08-16 22:30] CORRECTION — Phase 6 v2: repair union, full token coverage, discovery, coverage + gold set
+
+Reviewer (`docs/hob-kg-phase6-review-pt1.md`) kept v1 open on three gaps + two completion requirements. All five addressed:
+
+1. **Repair layer unioned.** `_Graph` now assembles over frozen nodes/edges + `repair_{nodes,edges}.jsonl`, tagging each edge `origin` (phase4 / graph_repair). The repaired structures now participate: **life-loss trigger** (Gollum/Reverent/Rage/Sackville → Master, via the repaired CAUSES `event:player-loses-life`), **counter-placement trigger** (Great Ugly → Great Goblin), **activated-ability trigger** (Gandalf → Elrond), **Wolf** module (Head + Chief Warg's Company via repaired REQUIRES), and an **obj:subtype:elf** module carrying Thranduil's repaired anthem `MODIFIES` + the 16 Elves.
+2. **Full token coverage.** A module for EVERY `CREATES_OBJECT → token:*` target (11, incl. `token:human-soldier`), with members recovered by UPSTREAM traversal (`upstream_cards`) through gates/rules — so gate-mediated production (Recruit → soldier via `gate:recruit-nonland-discard`, no card UUID) recovers all 10 Recruit cards.
+3. **Generalized anchor discovery.** Beyond gates, discover a module for any shared resource/event/state/counter/object-subtype anchor with BOTH a producer and consumer side and ≥2 distinct cards; recognized anchors get curated labels (draw engine, life-loss trigger, mana base, +1/+1 counters, enduring story, …), others by node kind. **12 discovered modules**; **36 modules total.**
+4. **Remaining semantic invariants** (graph-testable): added #3 (Bard REPLACES both `event:draw` AND `event:token_creation` — modifies Recruit's draw + token quantities) and #7 (a created Treasure token `HAS_TYPE obj:type:artifact`, installing a Storied-qualifying object). Not representable in the static graph and left as honest notes: #2 (Recruit↔Master's-Councillors second-draw-only — needs runtime scope), #11 (legend-rule state constraints — not modelled as edges), #12 (self-pair object identity — carried by the projection `self_pair` flag, already tested).
+5. **Coverage report + gold set** (`src/hobkg/coverage.py`; `python -m hobkg.cli coverage` / `gold-set`): `reports/coverage.md` + `coverage.json` (193/210 parsed; 2,728 edges, 0 provenance gaps; abilities by kind; edges by predicate+origin; 5,278 pair relations by type; 80 multi-relation pairs; 666 gate-mediated; 4,513 infra-only; 112 cards with no non-infra outgoing, 176 incoming). `reports/gold_set.md` + `gold_set.jsonl` — stratified hand-review sample matching the spec: Recruit 10, Storied 9, Adventures 17, **Sagas 8** (by subtype, not the absent "Saga" mechanic), replacement 6, multi-token 1, null 20, self 10, multi-edge 20.
+
+157 tests pass (+9 v2: repair-union, per-token coverage incl. gate-mediated soldier=10, discovery ran, inv#3, inv#7, coverage core numbers, gold-set strata). Deterministic.
+
+**Note (reviewer, future capability — out of scope):** a separate *capability projection* to derive features like "removal count" and connect them to deck outcomes is not part of Phase 6; recorded for later. Structures still absent (noncreature-cast→Noisemaker, Dwarf/Equipment→Dáin's Company) lack the primitive producer/consumer edges and need the flagged fresh audit/repair round, not discovery.
+
+Refs: `docs/hob-kg-phase6-review-pt1.md`; `src/hobkg/{modules,coverage}.py`; `tests/{test_modules,test_coverage}.py`; `data/graph_global/{mechanism_modules,coverage,gold_set}.*`; `reports/{mechanism_modules,coverage,gold_set}.md`
