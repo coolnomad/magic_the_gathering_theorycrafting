@@ -1,7 +1,7 @@
 # HOB Full-Spec Completion — Mechanism Repair + Reprojection
 
-- **reprojected metaedges**: 356 (origin `mechanism_repair`)
-- **by relation**: {'ENABLES_TRIGGER': 292, 'SUPPLIES_RESOURCE': 64}
+- **reprojected metaedges**: 392 (origin `mechanism_repair`)
+- **by relation**: {'ENABLES_TRIGGER': 328, 'SUPPLIES_RESOURCE': 64}
 - **all path edges resolve (frozen or mechanism layer)**: True
 
 ## Relations (origin: mechanism_repair)
@@ -13,8 +13,11 @@
 - **Nori, Teller of Tales → Dáin's Company** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
 - **The Arkenstone // Seek the Heart → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **The Arkenstone // Seek the Heart → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **The Arkenstone // Seek the Heart → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:09f09d0a-6054-4545-b81e-0295773cc5f0:0:a2` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **The Arkenstone // Seek the Heart → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **The Arkenstone // Seek the Heart → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **The Arkenstone // Seek the Heart → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:09f09d0a-6054-4545-b81e-0295773cc5f0:0:a2` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **The Arkenstone // Seek the Heart → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:09f09d0a-6054-4545-b81e-0295773cc5f0:0:a2` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **The Arkenstone // Seek the Heart → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **The Arkenstone // Seek the Heart → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Balin, Loremaster → Kíli the Resourceful** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
@@ -47,10 +50,13 @@
 - **Settle the Wreckage → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **My Precious // Allure of Power → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **My Precious // Allure of Power → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **My Precious // Allure of Power → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:2e728381-6db0-4c66-883d-82d718fef833:1:allure-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **My Precious // Allure of Power → Kíli the Resourceful** [SUPPLIES_RESOURCE] via `obj:subtype:equipment` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
 - **My Precious // Allure of Power → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **My Precious // Allure of Power → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **My Precious // Allure of Power → Dáin's Company** [SUPPLIES_RESOURCE] via `obj:subtype:equipment` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
+- **My Precious // Allure of Power → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:2e728381-6db0-4c66-883d-82d718fef833:1:allure-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **My Precious // Allure of Power → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:2e728381-6db0-4c66-883d-82d718fef833:1:allure-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **My Precious // Allure of Power → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **My Precious // Allure of Power → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Wizard's Staff → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
@@ -93,13 +99,22 @@
 - **Bilbo's Deadly Slice → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Bilbo's Deadly Slice → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Bilbo's Deadly Slice → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Uncover the Moon-Letters → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:4c67359d-5590-4eb0-827e-b411967ee238:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Uncover the Moon-Letters → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Uncover the Moon-Letters → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:4c67359d-5590-4eb0-827e-b411967ee238:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Uncover the Moon-Letters → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:4c67359d-5590-4eb0-827e-b411967ee238:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Uncover the Moon-Letters → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Supper for Spiders → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Supper for Spiders → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Supper for Spiders → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Gollum, Riddle Master → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:514b451b-814d-45fb-a2ba-8fe6f0bdad60:0:gollum-rm-opponent-cast-trigger` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Gollum, Riddle Master → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:514b451b-814d-45fb-a2ba-8fe6f0bdad60:0:gollum-rm-opponent-cast-trigger` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Gollum, Riddle Master → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:514b451b-814d-45fb-a2ba-8fe6f0bdad60:0:gollum-rm-opponent-cast-trigger` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Plunder the Trollshaws → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Plunder the Trollshaws → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:526f520e-b4bb-4215-9c6b-afc298744f06:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Plunder the Trollshaws → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Plunder the Trollshaws → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:526f520e-b4bb-4215-9c6b-afc298744f06:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Plunder the Trollshaws → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:526f520e-b4bb-4215-9c6b-afc298744f06:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Plunder the Trollshaws → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Last Light of Durin's Day → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Last Light of Durin's Day → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
@@ -145,7 +160,10 @@
 - **Fateful Discovery → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Fateful Discovery → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Key to the Side-Door → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Key to the Side-Door → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:76c036df-44f5-4021-b7fc-656147351341:0:key-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Key to the Side-Door → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Key to the Side-Door → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:76c036df-44f5-4021-b7fc-656147351341:0:key-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Key to the Side-Door → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:76c036df-44f5-4021-b7fc-656147351341:0:key-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Key to the Side-Door → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Riddles in the Dark → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Riddles in the Dark → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
@@ -173,23 +191,35 @@
 - **Gathering of Darkness → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Gathering of Darkness → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Reverent Howl → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Reverent Howl → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:86214b4c-a3ad-4372-b5fe-8f742a7a3d4c:0:reverent-mode1-draw-drain` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Reverent Howl → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Reverent Howl → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:86214b4c-a3ad-4372-b5fe-8f742a7a3d4c:0:reverent-mode1-draw-drain` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Reverent Howl → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:86214b4c-a3ad-4372-b5fe-8f742a7a3d4c:0:reverent-mode1-draw-drain` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Reverent Howl → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Old Fat Spider → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:8790f842-e842-4bed-adf4-5b3cc5fd68a9:0:spider-targeted-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Old Fat Spider → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:8790f842-e842-4bed-adf4-5b3cc5fd68a9:0:spider-targeted-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Old Fat Spider → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:8790f842-e842-4bed-adf4-5b3cc5fd68a9:0:spider-targeted-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **The Master of Lake-town → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:89c3c81b-8960-4f79-b2ec-f13560058071:0:master-dies-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **The Master of Lake-town → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:89c3c81b-8960-4f79-b2ec-f13560058071:0:master-dies-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **The Master of Lake-town → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:89c3c81b-8960-4f79-b2ec-f13560058071:0:master-dies-draw` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Bofur, Reliable Guardian // Concerted Care → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Bofur, Reliable Guardian // Concerted Care → Kíli the Resourceful** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
 - **Bofur, Reliable Guardian // Concerted Care → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Bofur, Reliable Guardian // Concerted Care → Dáin's Company** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
 - **Bofur, Reliable Guardian // Concerted Care → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Rage into the Valley → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Rage into the Valley → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:8c7641b6-3a6c-4441-a98c-3b5d61d91f76:0:rage-draw-loselife` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Rage into the Valley → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Rage into the Valley → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:8c7641b6-3a6c-4441-a98c-3b5d61d91f76:0:rage-draw-loselife` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Rage into the Valley → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:8c7641b6-3a6c-4441-a98c-3b5d61d91f76:0:rage-draw-loselife` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Rage into the Valley → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Dwarven Provisioner → Kíli the Resourceful** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
 - **Dwarven Provisioner → Dáin's Company** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
 - **Thrór's Map → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Thrór's Map → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:925cacdc-6d09-4fbd-9258-9f0539da180c:0:throrsmap-loot` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Thrór's Map → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **Thrór's Map → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:925cacdc-6d09-4fbd-9258-9f0539da180c:0:throrsmap-loot` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Thrór's Map → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:925cacdc-6d09-4fbd-9258-9f0539da180c:0:throrsmap-loot` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Thrór's Map → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Bombur, Gentle Dreamer → Kíli the Resourceful** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
 - **Bombur, Gentle Dreamer → Dáin's Company** [SUPPLIES_RESOURCE] via `obj:subtype:dwarf` — HAS_TYPE → REQUIRES → CAUSES → HAS_ABILITY
@@ -226,6 +256,9 @@
 - **Long Lake Nuisance → Lakeshore Apothecary** [ENABLES_TRIGGER] via `op:face:a833fdf1-db0c-4846-8452-d3b2059c2355:0:recruit` — HAS_ABILITY → INSTANTIATES → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Long Lake Nuisance → Master's Councillors** [ENABLES_TRIGGER] via `op:face:a833fdf1-db0c-4846-8452-d3b2059c2355:0:recruit` — HAS_ABILITY → INSTANTIATES → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Long Lake Nuisance → Bard the Bowman** [ENABLES_TRIGGER] via `op:face:a833fdf1-db0c-4846-8452-d3b2059c2355:0:recruit` — HAS_ABILITY → INSTANTIATES → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Azog, Moria's Ruin → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:a8b018a7-0350-4ee0-9582-8d391018bdee:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Azog, Moria's Ruin → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:a8b018a7-0350-4ee0-9582-8d391018bdee:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **Azog, Moria's Ruin → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:a8b018a7-0350-4ee0-9582-8d391018bdee:0:a1` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Burn, Burn, Tree and Fern → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Burn, Burn, Tree and Fern → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Burn, Burn, Tree and Fern → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
@@ -321,6 +354,9 @@
 - **Down in the Valley → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Down in the Valley → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Down in the Valley → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
+- **The Sackville-Bagginses → Lakeshore Apothecary** [ENABLES_TRIGGER] via `ability:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0:sackville-etb-sac` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **The Sackville-Bagginses → Master's Councillors** [ENABLES_TRIGGER] via `ability:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0:sackville-etb-sac` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
+- **The Sackville-Bagginses → Bard the Bowman** [ENABLES_TRIGGER] via `ability:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0:sackville-etb-sac` — HAS_ABILITY → CAUSES → PRODUCES → SATISFIES → PRODUCES → TRIGGERS  _(cond: cond:draw-is-second-this-turn)_
 - **Old Fat Spider Can't See Me → Uncover the Moon-Letters** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Old Fat Spider Can't See Me → Bothersome Noisemaker** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS
 - **Old Fat Spider Can't See Me → Gandalf, Goblins' Bane // Flameshape** [ENABLES_TRIGGER] via `op:cast-noncreature-spell` — HAS_ABILITY → PRODUCES → TRIGGERS

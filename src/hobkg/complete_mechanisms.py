@@ -42,6 +42,11 @@ _FACE = re.compile(r"face:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
 
 # canonical "a card was drawn" events (the genuine draw event nodes in the frozen graph)
 DRAW_EVENTS = {"event:draw", "event:card-drawn"}
+# a genuine "draw a card" op produces one of these outputs. The frozen graph fragmented draws
+# across several output nodes; ALL of them feed the turn draw-count (gold-set review: ~26 real
+# drawers were previously missed because their draw produced resource:card* / obj:draw, not the
+# canonical event). Tutors ("reveal ... put it into your hand") are EXCLUDED — see draw_ops.
+DRAW_OUTPUTS = DRAW_EVENTS | {"resource:card", "resource:cards", "resource:card_in_hand", "obj:draw"}
 # the fragmented second-draw payoff events (Bard the Bowman / Lakeshore Apothecary / Councillors)
 SECOND_DRAW_EVENTS = ["event:draw-second-card", "event:draw-second-card-each-turn",
                       "event:draw_second_card_each_turn"]
@@ -136,9 +141,11 @@ def materialize(repo: Path = REPO) -> dict:
                                 "transition": {"previous": 1, "increment": 1, "new": 2},
                                 "emit": "once_on_transition_to_2", "output_events": SECOND_DRAW_EVENTS},
                                "fires once when the draw count transitions 1 -> 2 (the SECOND draw)")
+    # genuine draw operations feed the count; EXCLUDE the Kíli / Dáin's-Company
+    # "reveal a Dwarf or Equipment card, put it into your hand" TUTOR (a look-and-take, not a draw)
     draw_ops = sorted({e["source"] for e in g.edges
-                       if e["predicate"] in ("PRODUCES", "CAUSES") and e["target"] in DRAW_EVENTS
-                       and e["source"].startswith("op:")})
+                       if e["predicate"] in ("PRODUCES", "CAUSES") and e["target"] in DRAW_OUTPUTS
+                       and e["source"].startswith("op:") and "dwarf_or_equipment" not in e["source"]})
     for op in draw_ops:
         edges.append(_edge(op, "PRODUCES", STATE_COUNT, "each draw increments the turn draw count",
                            quantity=1))

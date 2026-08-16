@@ -26,7 +26,7 @@
     "equip": 173,
     "graph_repair": 9,
     "legend_rule": 113,
-    "mechanism_repair": 99,
+    "mechanism_repair": 111,
     "phase4": 2728
   },
   "edges_by_predicate": {
@@ -51,7 +51,7 @@
     "MOVES_TO": 89,
     "PERSISTS_AS": 2,
     "PREVENTS": 9,
-    "PRODUCES": 74,
+    "PRODUCES": 86,
     "QUALIFIES_FOR": 78,
     "REFERENCES_RULE": 102,
     "REMOVES_COUNTER": 1,
@@ -64,10 +64,10 @@
   "edges_equip": 173,
   "edges_frozen": 2728,
   "edges_legend": 113,
-  "edges_mechanism": 99,
+  "edges_mechanism": 111,
   "edges_repair": 9,
-  "edges_total": 3122,
-  "edges_union": 3122,
+  "edges_total": 3134,
+  "edges_union": 3134,
   "edges_without_provenance": 0,
   "faces_parsed": 210,
   "gate_mediated_relations": 666,
@@ -88,8 +88,8 @@
   "relations_audited": 3,
   "relations_equip": 3250,
   "relations_mechanical": 5278,
-  "relations_mechanism": 356,
+  "relations_mechanism": 392,
   "relations_repaired": 8,
-  "relations_union": 8895,
+  "relations_union": 8931,
   "unresolved_oracle_records": 16
 }

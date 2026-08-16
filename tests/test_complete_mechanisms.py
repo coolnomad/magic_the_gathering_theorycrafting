@@ -39,7 +39,7 @@ def _name_to_card():
 def test_layer_is_additive_and_signature_valid(mat):
     # 0 predicate-signature violations against the same table as the frozen graph
     assert mat["signature_violations"] == 0
-    assert mat["mechanism_nodes"] == 3 and mat["mechanism_edges"] == 99
+    assert mat["mechanism_nodes"] == 3 and mat["mechanism_edges"] == 111
     # frozen Phase 4 graph is untouched by materialization
     edges = list(_load_dicts(G / "edges.jsonl"))
     assert not any(e.get("origin") == "mechanism_repair" for e in edges)
@@ -69,6 +69,21 @@ def test_second_draw_gate_is_transition_not_persistent(mat):
     assert gate["transition"] == {"previous": 1, "increment": 1, "new": 2}
     state = nodes[cm.STATE_COUNT]["data"]
     assert state["reset"] == "start_of_controllers_turn"
+
+
+def test_second_draw_canonicalized_all_genuine_drawers(mat, mrel):
+    # gold-set follow-up: ALL genuine card-draw ops feed the counter (not just the 4 producing
+    # the canonical draw event), so previously-missed drawers enable the second-draw payoffs —
+    # but the Kíli / Dáin's-Company "reveal ... put into hand" TUTOR is correctly excluded.
+    assert mat["draw_ops_wired"] >= 15
+    n2c = {c["name"]: c["id"] for c in _load_dicts(REPO / "data/normalized/cards.jsonl")}
+    mc = n2c["Master's Councillors"]
+    enablers = {m["source_card"] for m in mrel if m["target_card"] == mc}
+    # previously-missing genuine drawers now enable Councillors
+    for name in ("Gollum, Riddle Master", "Azog, Moria's Ruin", "Key to the Side-Door"):
+        assert n2c[name] in enablers, f"{name} should now be a second-draw enabler"
+    # the tutor is NOT an enabler (it does not draw)
+    assert n2c["Kíli the Resourceful"] not in enablers
 
 
 def test_second_draw_condition_resolves(mat):

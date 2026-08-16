@@ -35,7 +35,7 @@ Structural checks: **111/111 pass**.
 - [pass] Well-Worn Spatula → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'SUPPLIES_RESOURCE'])_
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER'])_
-- [pass] My Precious // Allure of Power → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
+- [pass] My Precious // Allure of Power → Lakeshore Apothecary  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] The Black Arrow → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Well-Worn Spatula → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'MODIFIES_WHEN_ATTACHED'])_
