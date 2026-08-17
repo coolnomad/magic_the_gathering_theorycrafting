@@ -23,7 +23,7 @@ Total items: **128** across 9 strata. ⚠ = an item the sub-agent pass already f
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 2. The Arkenstone // Seek the Heart
 **The Arkenstone** — Legendary Artifact  ({5})
@@ -36,7 +36,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 3. Great Ugly-Looking Goblin // Clap! Snap!
 **Great Ugly-Looking Goblin** — Creature — Goblin Soldier  ({5}{B})
@@ -48,7 +48,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 4. Glamdring, Foe-hammer // Gleam of Death
 **Glamdring, Foe-hammer** — Legendary Artifact — Equipment  ({2})
@@ -61,7 +61,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 5. Beorn, Reluctant Host // Till and Tend
 **Beorn, Reluctant Host** — Legendary Creature — Human Bear Shapeshifter  ({4}{G})
@@ -73,7 +73,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 6. My Precious // Allure of Power
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -87,7 +87,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 7. Most Decrepit Old Bird // Speak Secrets
 **Most Decrepit Old Bird** — Creature — Bird  ({U})
@@ -100,7 +100,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 8. An Unexpected Party // At the Door
 **An Unexpected Party** — Enchantment  ({2}{W}{W})
@@ -113,7 +113,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 9. Glóin the Mighty // Easy Pickings
 **Glóin the Mighty** — Legendary Creature — Dwarf Warrior  ({3}{R})
@@ -125,7 +125,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 10. Velvetwing Butterflies // Gaze in Wonder
 **Velvetwing Butterflies** — Creature — Insect  ({2}{W})
@@ -137,7 +137,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 11. Bofur, Reliable Guardian // Concerted Care
 **Bofur, Reliable Guardian** — Legendary Creature — Dwarf Scout  ({W})
@@ -149,7 +149,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 12. Bilbo, Luckwearer // Burglar's Plot
 **Bilbo, Luckwearer** — Legendary Creature — Halfling Rogue  ({1}{U})
@@ -162,7 +162,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 13. Lake-town Mariners // Gone Fishing
 **Lake-town Mariners** — Creature — Human Citizen  ({4}{U}{U})
@@ -175,7 +175,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 14. Gandalf, Goblins' Bane // Flameshape
 **Gandalf, Goblins' Bane** — Legendary Creature — Avatar Wizard  ({2}{R})
@@ -187,7 +187,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 15. Thranduil, Sindarin Liege // Silvan Rally
 **Thranduil, Sindarin Liege** — Legendary Creature — Elf Noble  ({2}{G/U}{G/U})
@@ -200,7 +200,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 16. Bilbo Baggins, Burglar // Take a Glance
 **Bilbo Baggins, Burglar** — Legendary Creature — Halfling Rogue  ({2}{U})
@@ -212,7 +212,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 17. Smaug, the Great Calamity // Spew Flame
 **Smaug, the Great Calamity** — Legendary Creature — Dragon  ({5}{R}{R})
@@ -224,7 +224,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** exactly two face nodes
 _Rule:_ CR 715 (Adventurer cards)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `multi_edge_pairs`  (47 items)
@@ -247,7 +247,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Glamdring, Foe-hammer // Gleam of Death** —`CONTRIBUTES_TO_GATE`→ **Balin, Loremaster**: the source permanent counts toward a threshold the target's ability defines (e.g. the target's Storied).  _(HOB Storied; CR 607; layer: mechanical)_
 - **Glamdring, Foe-hammer // Gleam of Death** —`CAN_ATTACH_TO`→ **Balin, Loremaster**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:**  This relationship is valid for the permanent side of Glamdring, Foe-hammer // Gleam of Death
 
 ### 19. My Precious // Allure of Power × Balin, Loremaster
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -269,7 +269,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Balin, Loremaster** —`SATISFIES_SACRIFICE_COST`→ **My Precious // Allure of Power**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED']; the full 7-layer graph also projects ['SATISFIES_SACRIFICE_COST'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** The relationships are correct for the relevant faces of My Precious // Allure of Power
 
 ### 20. Orcrist, Goblin-cleaver × Balin, Loremaster
 **Orcrist, Goblin-cleaver** — Legendary Artifact — Equipment  ({3})
@@ -288,7 +288,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Orcrist, Goblin-cleaver** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Balin, Loremaster**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **Orcrist, Goblin-cleaver** —`MODIFIES_WHEN_ATTACHED`→ **Balin, Loremaster**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 21. Orcrist, Goblin-cleaver × Kíli the Resourceful
 **Orcrist, Goblin-cleaver** — Legendary Artifact — Equipment  ({3})
@@ -309,7 +309,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Orcrist, Goblin-cleaver** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Kíli the Resourceful**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **Orcrist, Goblin-cleaver** —`MODIFIES_WHEN_ATTACHED`→ **Kíli the Resourceful**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 22. The Black Arrow × Balin, Loremaster
 **The Black Arrow** — Legendary Artifact — Equipment  ({3})
@@ -328,7 +328,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Black Arrow** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Balin, Loremaster**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **The Black Arrow** —`MODIFIES_WHEN_ATTACHED`→ **Balin, Loremaster**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 23. The Black Arrow × Kíli the Resourceful
 **The Black Arrow** — Legendary Artifact — Equipment  ({3})
@@ -349,7 +349,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Black Arrow** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Kíli the Resourceful**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **The Black Arrow** —`MODIFIES_WHEN_ATTACHED`→ **Kíli the Resourceful**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 24. My Precious // Allure of Power × Kíli the Resourceful
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -373,7 +373,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Kíli the Resourceful** —`SATISFIES_SACRIFICE_COST`→ **My Precious // Allure of Power**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SUPPLIES_RESOURCE']; the full 7-layer graph also projects ['SATISFIES_SACRIFICE_COST'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 25. Well-Worn Spatula × Balin, Loremaster
 **Well-Worn Spatula** — Artifact — Equipment  ({1})
@@ -390,7 +390,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Well-Worn Spatula** —`CAN_ATTACH_TO`→ **Balin, Loremaster**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 - **Well-Worn Spatula** —`MODIFIES_WHEN_ATTACHED`→ **Balin, Loremaster**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 26. Well-Worn Spatula × Kíli the Resourceful
 **Well-Worn Spatula** — Artifact — Equipment  ({1})
@@ -409,7 +409,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Well-Worn Spatula** —`CAN_ATTACH_TO`→ **Kíli the Resourceful**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 - **Well-Worn Spatula** —`MODIFIES_WHEN_ATTACHED`→ **Kíli the Resourceful**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 27. Glamdring, Foe-hammer // Gleam of Death × Kíli the Resourceful
 **Glamdring, Foe-hammer** — Legendary Artifact — Equipment  ({2})
@@ -429,7 +429,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Glamdring, Foe-hammer // Gleam of Death** —`SUPPLIES_RESOURCE`→ **Kíli the Resourceful**: the source supplies a resource (mana / token / counter / a triggering entry) the target uses.  _(CR 106/107/122; layer: mechanism)_
 - **Glamdring, Foe-hammer // Gleam of Death** —`CAN_ATTACH_TO`→ **Kíli the Resourceful**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 28. Glamdring, Foe-hammer // Gleam of Death × Bothersome Noisemaker
 **Glamdring, Foe-hammer** — Legendary Artifact — Equipment  ({2})
@@ -446,7 +446,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Glamdring, Foe-hammer // Gleam of Death** —`ENABLES_TRIGGER`→ **Bothersome Noisemaker**: the source's effect can satisfy the condition that triggers the target's ability.  _(CR 603; layer: mechanism)_
 - **Glamdring, Foe-hammer // Gleam of Death** —`CAN_ATTACH_TO`→ **Bothersome Noisemaker**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 29. My Precious // Allure of Power × Rhovanion Rampager
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -468,7 +468,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Rhovanion Rampager** —`SATISFIES_SACRIFICE_COST`→ **My Precious // Allure of Power**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED']; the full 7-layer graph also projects ['SATISFIES_SACRIFICE_COST'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 30. Orcrist, Goblin-cleaver × Belladonna Took
 **Orcrist, Goblin-cleaver** — Legendary Artifact — Equipment  ({3})
@@ -486,7 +486,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Orcrist, Goblin-cleaver** —`MODIFIES_WHEN_ATTACHED`→ **Belladonna Took**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 - **Orcrist, Goblin-cleaver** —`ENABLES_TRIGGER`→ **Belladonna Took**: the source's effect can satisfy the condition that triggers the target's ability.  _(CR 603; layer: completeness)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 31. The Black Arrow × Bothersome Noisemaker
 **The Black Arrow** — Legendary Artifact — Equipment  ({3})
@@ -504,7 +504,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Black Arrow** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Bothersome Noisemaker**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **The Black Arrow** —`MODIFIES_WHEN_ATTACHED`→ **Bothersome Noisemaker**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 32. Well-Worn Spatula × Bothersome Noisemaker
 **Well-Worn Spatula** — Artifact — Equipment  ({1})
@@ -520,7 +520,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Well-Worn Spatula** —`CAN_ATTACH_TO`→ **Bothersome Noisemaker**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 - **Well-Worn Spatula** —`MODIFIES_WHEN_ATTACHED`→ **Bothersome Noisemaker**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 33. My Precious // Allure of Power × Belladonna Took
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -540,7 +540,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Belladonna Took** —`SATISFIES_SACRIFICE_COST`→ **My Precious // Allure of Power**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED']; the full 7-layer graph also projects ['SATISFIES_SACRIFICE_COST'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 34. Orcrist, Goblin-cleaver × The Sackville-Bagginses
 **Orcrist, Goblin-cleaver** — Legendary Artifact — Equipment  ({3})
@@ -562,7 +562,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Sackville-Bagginses** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **Orcrist, Goblin-cleaver**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'IS_ELIGIBLE_SACRIFICE_TARGET', 'MODIFIES_WHEN_ATTACHED']; the full 7-layer graph also projects ['SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 35. Orcrist, Goblin-cleaver × Rhovanion Rampager
 **Orcrist, Goblin-cleaver** — Legendary Artifact — Equipment  ({3})
@@ -580,7 +580,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Orcrist, Goblin-cleaver** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Rhovanion Rampager**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **Orcrist, Goblin-cleaver** —`MODIFIES_WHEN_ATTACHED`→ **Rhovanion Rampager**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 36. Orcrist, Goblin-cleaver × Gollum the Abandoned
 **Orcrist, Goblin-cleaver** — Legendary Artifact — Equipment  ({3})
@@ -602,7 +602,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Gollum the Abandoned** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **Orcrist, Goblin-cleaver**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST']; the full 7-layer graph also projects ['SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 37. Orcrist, Goblin-cleaver × Dáin's Company
 **Orcrist, Goblin-cleaver** — Legendary Artifact — Equipment  ({3})
@@ -621,7 +621,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Orcrist, Goblin-cleaver** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Dáin's Company**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **Orcrist, Goblin-cleaver** —`MODIFIES_WHEN_ATTACHED`→ **Dáin's Company**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 38. My Precious // Allure of Power × The Sackville-Bagginses
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -645,7 +645,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Sackville-Bagginses** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **My Precious // Allure of Power**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'IS_ELIGIBLE_SACRIFICE_TARGET']; the full 7-layer graph also projects ['INFRASTRUCTURE_CASTING', 'SACRIFICE_TERMINATES_ATTACHMENT', 'SATISFIES_SACRIFICE_COST'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 39. The Black Arrow × The Sackville-Bagginses
 **The Black Arrow** — Legendary Artifact — Equipment  ({3})
@@ -667,7 +667,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Sackville-Bagginses** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **The Black Arrow**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'IS_ELIGIBLE_SACRIFICE_TARGET', 'MODIFIES_WHEN_ATTACHED']; the full 7-layer graph also projects ['INFRASTRUCTURE_CASTING', 'SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 40. The Black Arrow × Rhovanion Rampager
 **The Black Arrow** — Legendary Artifact — Equipment  ({3})
@@ -685,7 +685,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Black Arrow** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Rhovanion Rampager**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **The Black Arrow** —`MODIFIES_WHEN_ATTACHED`→ **Rhovanion Rampager**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 41. The Black Arrow × Gollum the Abandoned
 **The Black Arrow** — Legendary Artifact — Equipment  ({3})
@@ -707,7 +707,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Gollum the Abandoned** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **The Black Arrow**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST']; the full 7-layer graph also projects ['SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 42. The Black Arrow × Dáin's Company
 **The Black Arrow** — Legendary Artifact — Equipment  ({3})
@@ -726,7 +726,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Black Arrow** —`GRANTS_ABILITY_WHEN_ATTACHED`→ **Dáin's Company**: while attached, the source Equipment grants the target an ability/keyword.  _(CR 301.5c; layer: equip)_
 - **The Black Arrow** —`MODIFIES_WHEN_ATTACHED`→ **Dáin's Company**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 43. My Precious // Allure of Power × Gollum the Abandoned
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -750,7 +750,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Gollum the Abandoned** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **My Precious // Allure of Power**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST']; the full 7-layer graph also projects ['SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 44. My Precious // Allure of Power × Dáin's Company
 **My Precious** — Legendary Artifact — Equipment  ({3})
@@ -772,7 +772,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Dáin's Company** —`SATISFIES_SACRIFICE_COST`→ **My Precious // Allure of Power**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SUPPLIES_RESOURCE']; the full 7-layer graph also projects ['SATISFIES_SACRIFICE_COST'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 45. Glamdring, Foe-hammer // Gleam of Death × The Sackville-Bagginses
 **Glamdring, Foe-hammer** — Legendary Artifact — Equipment  ({2})
@@ -793,7 +793,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Sackville-Bagginses** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **Glamdring, Foe-hammer // Gleam of Death**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'IS_ELIGIBLE_SACRIFICE_TARGET']; the full 7-layer graph also projects ['INFRASTRUCTURE_CASTING', 'SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 46. Well-Worn Spatula × The Sackville-Bagginses
 **Well-Worn Spatula** — Artifact — Equipment  ({1})
@@ -813,7 +813,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Sackville-Bagginses** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **Well-Worn Spatula**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'IS_ELIGIBLE_SACRIFICE_TARGET', 'MODIFIES_WHEN_ATTACHED']; the full 7-layer graph also projects ['INFRASTRUCTURE_CASTING', 'SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 47. Well-Worn Spatula × Rhovanion Rampager
 **Well-Worn Spatula** — Artifact — Equipment  ({1})
@@ -829,7 +829,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Well-Worn Spatula** —`CAN_ATTACH_TO`→ **Rhovanion Rampager**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 - **Well-Worn Spatula** —`MODIFIES_WHEN_ATTACHED`→ **Rhovanion Rampager**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 48. Well-Worn Spatula × Gollum the Abandoned
 **Well-Worn Spatula** — Artifact — Equipment  ({1})
@@ -849,7 +849,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Gollum the Abandoned** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **Well-Worn Spatula**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST']; the full 7-layer graph also projects ['SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 49. Well-Worn Spatula × Dáin's Company
 **Well-Worn Spatula** — Artifact — Equipment  ({1})
@@ -866,7 +866,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Well-Worn Spatula** —`CAN_ATTACH_TO`→ **Dáin's Company**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 - **Well-Worn Spatula** —`MODIFIES_WHEN_ATTACHED`→ **Dáin's Company**: while attached, the source Equipment modifies the target's P/T or characteristics.  _(CR 301.5c; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 50. Glamdring, Foe-hammer // Gleam of Death × Gollum the Abandoned
 **Glamdring, Foe-hammer** — Legendary Artifact — Equipment  ({2})
@@ -887,7 +887,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Gollum the Abandoned** —`SACRIFICE_TERMINATES_ATTACHMENT`→ **Glamdring, Foe-hammer // Gleam of Death**: sacrificing the source (the host creature) ends the target Equipment's attachment.  _(CR 701.21, 704.5q; layer: lifecycle)_
 > _(the frozen gold item tested the subset ['CAN_ATTACH_TO', 'SATISFIES_SACRIFICE_COST']; the full 7-layer graph also projects ['SACRIFICE_TERMINATES_ATTACHMENT'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 51. Glamdring, Foe-hammer // Gleam of Death × Dáin's Company
 **Glamdring, Foe-hammer** — Legendary Artifact — Equipment  ({2})
@@ -905,7 +905,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Glamdring, Foe-hammer // Gleam of Death** —`SUPPLIES_RESOURCE`→ **Dáin's Company**: the source supplies a resource (mana / token / counter / a triggering entry) the target uses.  _(CR 106/107/122; layer: mechanism)_
 - **Glamdring, Foe-hammer // Gleam of Death** —`CAN_ATTACH_TO`→ **Dáin's Company**: the source Equipment can legally attach to the target permanent.  _(CR 301.5, 701.3; layer: equip)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 52. Smaug, Wicked Worm × Balin, Loremaster
 **Smaug, Wicked Worm** — Legendary Creature — Dragon  ({3}{B}{R})
@@ -921,7 +921,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Smaug, Wicked Worm** —`CONTRIBUTES_TO_GATE`→ **Balin, Loremaster**: the source permanent counts toward a threshold the target's ability defines (e.g. the target's Storied).  _(HOB Storied; CR 607; layer: mechanical)_
 - **Smaug, Wicked Worm** —`INFRASTRUCTURE_CASTING`→ **Balin, Loremaster**: the source supplies casting infrastructure (mana / cost reduction) the target spell can use.  _(CR 601, 118; layer: mechanical)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 53. Dori, Bearer of Friends × Kíli the Resourceful
 **Dori, Bearer of Friends** — Legendary Creature — Dwarf Warrior  ({2}{R})
@@ -938,7 +938,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Dori, Bearer of Friends** —`INFRASTRUCTURE_CASTING`→ **Kíli the Resourceful**: the source supplies casting infrastructure (mana / cost reduction) the target spell can use.  _(CR 601, 118; layer: mechanical)_
 - **Dori, Bearer of Friends** —`SUPPLIES_RESOURCE`→ **Kíli the Resourceful**: the source supplies a resource (mana / token / counter / a triggering entry) the target uses.  _(CR 106/107/122; layer: mechanism)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 54. Nori, Teller of Tales × Kíli the Resourceful  ⚠
 **Nori, Teller of Tales** — Legendary Creature — Dwarf Bard  ({1}{R/W})
@@ -954,7 +954,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Nori, Teller of Tales** —`SUPPLIES_RESOURCE`→ **Kíli the Resourceful**: the source supplies a resource (mana / token / counter / a triggering entry) the target uses.  _(CR 106/107/122; layer: mechanism)_
 > ⚠ **sub-agent MINOR: Nori → Kíli SUPPLIES_RESOURCE may be better typed ENABLES_TRIGGER**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Yes ENABLES_TRIGGER is a better type. There's a difference between a card consuming something like Sackville Baginses sacrificing a treasure and being triggered. Kili is listening for a dward entering event but doesn't consume the dwarf. Accepting this then means we'll need to identify triggers vs costs and change the edge types of the triggers.
 
 ### 55. Bejeweled Warg × Belladonna Took
 **Bejeweled Warg** — Creature — Wolf  ({1}{G})
@@ -970,7 +970,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Bejeweled Warg** —`INFRASTRUCTURE_CASTING`→ **Belladonna Took**: the source supplies casting infrastructure (mana / cost reduction) the target spell can use.  _(CR 601, 118; layer: mechanical)_
 - **Bejeweled Warg** —`ENABLES_TRIGGER`→ **Belladonna Took**: the source's effect can satisfy the condition that triggers the target's ability.  _(CR 603; layer: completeness)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 56. The Sackville-Bagginses × Rhovanion Rampager
 **The Sackville-Bagginses** — Legendary Creature — Halfling Citizen  ({1}{B})
@@ -987,7 +987,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **The Sackville-Bagginses** —`IS_ELIGIBLE_SACRIFICE_TARGET`→ **Rhovanion Rampager**: the source is a legal object that the target's sacrifice cost/effect could sacrifice.  _(CR 701.21; layer: completeness)_
 - **Rhovanion Rampager** —`IS_ELIGIBLE_SACRIFICE_TARGET`→ **The Sackville-Bagginses**: the source is a legal object that the target's sacrifice cost/effect could sacrifice.  _(CR 701.21; layer: completeness)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 57. Tom, Bert, and William × Rhovanion Rampager
 **Tom, Bert, and William** — Legendary Creature — Troll  ({3}{B}{G})
@@ -1004,7 +1004,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Rhovanion Rampager** —`SATISFIES_SACRIFICE_COST`→ **Tom, Bert, and William**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['ENABLES_TRIGGER', 'IS_ELIGIBLE_SACRIFICE_TARGET']; the full 7-layer graph also projects ['SATISFIES_SACRIFICE_COST'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 58. Plunder the Trollshaws × Uncover the Moon-Letters
 **Plunder the Trollshaws** — Instant  ({1}{U})
@@ -1018,7 +1018,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Plunder the Trollshaws** —`SUPPLIES_RESOURCE`→ **Uncover the Moon-Letters**: the source supplies a resource (mana / token / counter / a triggering entry) the target uses.  _(CR 106/107/122; layer: mechanical)_
 - **Plunder the Trollshaws** —`ENABLES_TRIGGER`→ **Uncover the Moon-Letters**: the source's effect can satisfy the condition that triggers the target's ability.  _(CR 603; layer: mechanism)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** We should remove the SUPPLIES_RESOURCE edge here. Casing the spell triggers the enchantment. It doesn't consume the spell.
 
 ### 59. Bejeweled Warg × Rhovanion Rampager
 **Bejeweled Warg** — Creature — Wolf  ({1}{G})
@@ -1035,7 +1035,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Bejeweled Warg** —`INFRASTRUCTURE_CASTING`→ **Rhovanion Rampager**: the source supplies casting infrastructure (mana / cost reduction) the target spell can use.  _(CR 601, 118; layer: mechanical)_
 - **Bejeweled Warg** —`IS_ELIGIBLE_SACRIFICE_TARGET`→ **Rhovanion Rampager**: the source is a legal object that the target's sacrifice cost/effect could sacrifice.  _(CR 701.21; layer: completeness)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 60. The Sackville-Bagginses × Glamdring, Foe-hammer // Gleam of Death
 **The Sackville-Bagginses** — Legendary Creature — Halfling Citizen  ({1}{B})
@@ -1056,7 +1056,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Glamdring, Foe-hammer // Gleam of Death** —`IS_ELIGIBLE_SACRIFICE_TARGET`→ **The Sackville-Bagginses**: the source is a legal object that the target's sacrifice cost/effect could sacrifice.  _(CR 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['INFRASTRUCTURE_CASTING', 'SACRIFICE_TERMINATES_ATTACHMENT']; the full 7-layer graph also projects ['CAN_ATTACH_TO', 'IS_ELIGIBLE_SACRIFICE_TARGET'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 61. The Sackville-Bagginses × My Precious // Allure of Power
 **The Sackville-Bagginses** — Legendary Creature — Halfling Citizen  ({1}{B})
@@ -1080,7 +1080,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **My Precious // Allure of Power** —`IS_ELIGIBLE_SACRIFICE_TARGET`→ **The Sackville-Bagginses**: the source is a legal object that the target's sacrifice cost/effect could sacrifice.  _(CR 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['INFRASTRUCTURE_CASTING', 'SACRIFICE_TERMINATES_ATTACHMENT', 'SATISFIES_SACRIFICE_COST']; the full 7-layer graph also projects ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'IS_ELIGIBLE_SACRIFICE_TARGET'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 62. Bejeweled Warg × Tom, Bert, and William
 **Bejeweled Warg** — Creature — Wolf  ({1}{G})
@@ -1097,7 +1097,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Bejeweled Warg** —`INFRASTRUCTURE_CASTING`→ **Tom, Bert, and William**: the source supplies casting infrastructure (mana / cost reduction) the target spell can use.  _(CR 601, 118; layer: mechanical)_
 - **Bejeweled Warg** —`SATISFIES_SACRIFICE_COST`→ **Tom, Bert, and William**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 63. Dori, Bearer of Friends × Dáin's Company
 **Dori, Bearer of Friends** — Legendary Creature — Dwarf Warrior  ({2}{R})
@@ -1112,7 +1112,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **Dori, Bearer of Friends** —`INFRASTRUCTURE_CASTING`→ **Dáin's Company**: the source supplies casting infrastructure (mana / cost reduction) the target spell can use.  _(CR 601, 118; layer: mechanical)_
 - **Dori, Bearer of Friends** —`SUPPLIES_RESOURCE`→ **Dáin's Company**: the source supplies a resource (mana / token / counter / a triggering entry) the target uses.  _(CR 106/107/122; layer: mechanism)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 64. Gollum the Abandoned × My Precious // Allure of Power
 **Gollum the Abandoned** — Legendary Creature — Halfling Horror  ({1}{B})
@@ -1136,7 +1136,7 @@ _Rule:_ CR 715 (Adventurer cards)
 - **My Precious // Allure of Power** —`SATISFIES_SACRIFICE_COST`→ **Gollum the Abandoned**: the source can be sacrificed to pay the target's sacrifice cost.  _(CR 118, 701.21; layer: completeness)_
 > _(the frozen gold item tested the subset ['SACRIFICE_TERMINATES_ATTACHMENT', 'SATISFIES_SACRIFICE_COST']; the full 7-layer graph also projects ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED'] between this pair — all are shown above and audited.)_
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `multi_token_or_type`  (1 items)
@@ -1151,7 +1151,7 @@ _Rule:_ CR 715 (Adventurer cards)
 **Graph claim:** creates >=2 token types
 _Rule:_ CR 111 (tokens)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `null_pairs`  (20 items)
@@ -1174,7 +1174,7 @@ _Rule:_ CR 111 (tokens)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED sacrifice-outlet → dies-trigger relation**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** The Arkenstone modifies Rhovanion Rampager's P/T when it is in play. In fact it modifies all creatures the controller of Arkenstone controls.
 
 ### 67. Belladonna Took × Gollum, Silent Slinker // Meager Meal  ⚠
 **Belladonna Took** — Legendary Creature — Halfling Citizen  ({1}{W})
@@ -1190,7 +1190,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED token-enters trigger (creator → payoff)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Meager Meal adds a +1/+1 counter to Belladonna Took (and any legal target creature) thereby modifying its P/T. There is no token so the lack of token relationship is correct.
 
 ### 68. Gollum, Silent Slinker // Meager Meal × Belladonna Took  ⚠
 **Gollum, Silent Slinker** — Legendary Creature — Halfling Horror  ({3}{B})
@@ -1206,7 +1206,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED token-enters trigger (creator → payoff)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Same as 67 - Meager Meal modifies Belladonna Took's P/T
 
 ### 69. Nori, Teller of Tales × Belladonna Took  ⚠
 **Nori, Teller of Tales** — Legendary Creature — Dwarf Bard  ({1}{R/W})
@@ -1219,7 +1219,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED token-enters trigger (creator → payoff)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Nori does not create a token, there is no token payoff to fix.
 
 ### 70. Bejeweled Warg × Hobbit Hole
 **Bejeweled Warg** — Creature — Wolf  ({1}{G})
@@ -1235,7 +1235,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** no relation in any of the 3 projection layers
 _Rule:_ n/a (completeness check)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 71. Head of the Hunt × Gollum, Silent Slinker // Meager Meal
 **Head of the Hunt** — Creature — Wolf  ({2}{B}{B})
@@ -1251,7 +1251,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** no relation in any of the 3 projection layers
 _Rule:_ n/a (completeness check)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Same as 67 and 68, Meager Meal can modify Head of the Hunt P/T with an edge like ADDS_COUNTER operation
 
 ### 72. The Arkenstone // Seek the Heart × Rhovanion Rampager  ⚠
 **The Arkenstone** — Legendary Artifact  ({5})
@@ -1269,7 +1269,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED sacrifice-outlet → dies-trigger relation**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Same as the reverse pair - The Arkenstone modifies the P/T of all creatures.
 
 ### 73. Balin, Loremaster × Head of the Hunt
 **Balin, Loremaster** — Legendary Creature — Dwarf Bard  ({3}{R}{R})
@@ -1283,7 +1283,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** no relation in any of the 3 projection layers
 _Rule:_ n/a (completeness check)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 74. Tom, Bert, and William × The Arkenstone // Seek the Heart
 **Tom, Bert, and William** — Legendary Creature — Troll  ({3}{B}{G})
@@ -1300,7 +1300,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** no relation in any of the 3 projection layers
 _Rule:_ n/a (completeness check)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Seek the Heart can find Tom, Bert, and William if it is in the deck so the creature is a resource supplied to the Seek the Heart side. Then the Arkenstone modifies the creature's P/T when in play.
 
 ### 75. Lake-town Toymaker × Belladonna Took  ⚠
 **Lake-town Toymaker** — Creature — Human Artificer  ({3}{W})
@@ -1313,7 +1313,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED token-enters trigger (creator → payoff)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Lake-town Toymaker can modify Belladonna Took (and any other creature you control) and grant an ability.
 
 ### 76. Silvan Reveler × Belladonna Took  ⚠
 **Silvan Reveler** — Creature — Elf Citizen  ({2}{G}{U})
@@ -1327,7 +1327,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED token-enters trigger (creator → payoff)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Neither card generates tokens.
 
 ### 77. Uneasy Partings × Rhovanion Rampager  ⚠
 **Uneasy Partings** — Instant  ({3}{U})
@@ -1342,7 +1342,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED sacrifice-outlet → dies-trigger relation**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Uneasy Partings does not kill Rhovanion Rampager
 
 ### 78. The Eagles Are Coming! × Rhovanion Rampager  ⚠
 **The Eagles Are Coming!** — Instant  ({1}{W})
@@ -1357,7 +1357,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED sacrifice-outlet → dies-trigger relation**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** The Eagles Are Coming! does not kill the Rampager.
 
 ### 79. Hobbit Hole × Rhovanion Rampager  ⚠
 **Hobbit Hole** — Land
@@ -1372,7 +1372,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED sacrifice-outlet → dies-trigger relation**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 80. Gnashing of Teeth × Rhovanion Rampager  ⚠
 **Gnashing of Teeth** — Sorcery  ({1}{B}{B})
@@ -1388,7 +1388,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED sacrifice-outlet → dies-trigger relation**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** The Gnashing of Teeth has a replacement effect preventing the dies trigger from happening. The -1/-1 can kill the rampager but not from a 1:1 interaction.
 
 ### 81. Smaug, Wicked Worm × Hobbit Hole
 **Smaug, Wicked Worm** — Legendary Creature — Dragon  ({3}{B}{R})
@@ -1403,7 +1403,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** no relation in any of the 3 projection layers
 _Rule:_ n/a (completeness check)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 82. Great Ugly-Looking Goblin // Clap! Snap! × Belladonna Took  ⚠
 **Great Ugly-Looking Goblin** — Creature — Goblin Soldier  ({5}{B})
@@ -1419,7 +1419,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED token-enters trigger (creator → payoff)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Clap! Snap! creates a token if no token already exists, this will trigger Belladonna Took.
 
 ### 83. Glamdring, Foe-hammer // Gleam of Death × The Arkenstone // Seek the Heart
 **Glamdring, Foe-hammer** — Legendary Artifact — Equipment  ({2})
@@ -1439,7 +1439,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** no relation in any of the 3 projection layers
 _Rule:_ n/a (completeness check)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 84. Beorn, Reluctant Host // Till and Tend × Belladonna Took  ⚠
 **Beorn, Reluctant Host** — Legendary Creature — Human Bear Shapeshifter  ({4}{G})
@@ -1455,7 +1455,7 @@ _Rule:_ n/a (completeness check)
 _Rule:_ n/a (completeness check)
 > ⚠ **sub-agent MAJOR: this 'null' pair may hide a MISSED token-enters trigger (creator → payoff)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Beorn does not create a token. 
 
 ### 85. Woodland Weavemaster × Hobbit Hole
 **Woodland Weavemaster** — Creature — Elf Druid  ({1}{G})
@@ -1470,7 +1470,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** no relation in any of the 3 projection layers
 _Rule:_ n/a (completeness check)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `recruit`  (10 items)
@@ -1487,7 +1487,7 @@ _Rule:_ n/a (completeness check)
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 87. Bard's Company
 **Bard's Company** — Creature — Human Citizen  ({2}{W}{U})
@@ -1498,7 +1498,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 88. Esgaroth Garrison
 **Esgaroth Garrison** — Creature — Human Soldier  ({4}{W})
@@ -1508,7 +1508,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 89. The Queen of Dale
 **The Queen of Dale** — Legendary Creature — Human Noble  ({1}{W})
@@ -1517,7 +1517,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 90. Long Lake Nuisance
 **Long Lake Nuisance** — Creature — Bird  ({3}{U})
@@ -1527,7 +1527,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 91. Patient Instructor
 **Patient Instructor** — Creature — Human Citizen  ({2}{W/U})
@@ -1537,7 +1537,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 92. Lake-town Lookout
 **Lake-town Lookout** — Creature — Human Scout  ({W})
@@ -1546,7 +1546,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 93. Great Gilded Boat
 **Great Gilded Boat** — Artifact — Vehicle  ({2}{U})
@@ -1556,7 +1556,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 94. Celebrate the Mountain-king
 **Celebrate the Mountain-king** — Enchantment  ({3}{W})
@@ -1566,7 +1566,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 95. Sound the Trumpets
 **Sound the Trumpets** — Instant  ({1}{U}{U})
@@ -1575,7 +1575,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** references rule:recruit
 _Rule:_ HOB set mechanic: Recruit
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `replacement_effects`  (6 items)
@@ -1590,7 +1590,7 @@ _Rule:_ HOB set mechanic: Recruit
 **Graph claim:** has a REPLACES edge
 _Rule:_ CR 614/616
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 97. Gnashing of Teeth
 **Gnashing of Teeth** — Sorcery  ({1}{B}{B})
@@ -1601,7 +1601,7 @@ _Rule:_ CR 614/616
 **Graph claim:** has a REPLACES edge
 _Rule:_ CR 614/616
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 98. Bilbo, Thief in the Night
 **Bilbo, Thief in the Night** — Legendary Creature — Halfling Rogue  ({1}{U})
@@ -1611,7 +1611,7 @@ _Rule:_ CR 614/616
 **Graph claim:** has a REPLACES edge
 _Rule:_ CR 614/616
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 99. Pinecone Strike
 **Pinecone Strike** — Instant  ({1}{R})
@@ -1622,7 +1622,7 @@ _Rule:_ CR 614/616
 **Graph claim:** has a REPLACES edge
 _Rule:_ CR 614/616
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 100. Bard, King of Dale
 **Bard, King of Dale** — Legendary Creature — Human Noble Archer  ({4}{W}{U})
@@ -1633,7 +1633,7 @@ _Rule:_ CR 614/616
 **Graph claim:** has a REPLACES edge
 _Rule:_ CR 614/616
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 101. Thranduil's Decree
 **Thranduil's Decree** — Instant  ({4}{U}{U})
@@ -1642,7 +1642,7 @@ _Rule:_ CR 614/616
 **Graph claim:** has a REPLACES edge
 _Rule:_ CR 614/616
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `sagas`  (8 items)
@@ -1659,7 +1659,7 @@ _Rule:_ CR 614/616
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 103. Roads Go Ever, Ever On
 **Roads Go Ever, Ever On** — Enchantment — Saga  ({1}{W})
@@ -1671,7 +1671,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 104. Burn, Burn, Tree and Fern
 **Burn, Burn, Tree and Fern** — Enchantment — Saga  ({3}{R})
@@ -1683,7 +1683,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 105. Roll-Roll-Roll-Roll
 **Roll-Roll-Roll-Roll** — Enchantment — Saga  ({2}{U})
@@ -1693,7 +1693,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 106. The Misty Mountains Cold
 **The Misty Mountains Cold** — Enchantment — Saga  ({2}{R})
@@ -1703,7 +1703,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 107. Down, Down to Goblin-town
 **Down, Down to Goblin-town** — Enchantment — Saga  ({2}{B})
@@ -1715,7 +1715,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 108. Down in the Valley
 **Down in the Valley** — Enchantment — Saga  ({2}{G})
@@ -1727,7 +1727,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 109. Old Fat Spider Can't See Me
 **Old Fat Spider Can't See Me** — Enchantment — Saga  ({2}{U})
@@ -1739,7 +1739,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** has a lore-counter chapter structure (REFERENCES rule:saga or lore counter)
 _Rule:_ CR 714 (Sagas)
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `self_pairs`  (10 items)
@@ -1762,7 +1762,7 @@ _Rule:_ CR 714 (Sagas)
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 111. Head of the Hunt × Head of the Hunt
 **Head of the Hunt** — Creature — Wolf  ({2}{B}{B})
@@ -1776,7 +1776,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[x] wrong`  `[ ] unsure`   **Notes:** Head of the Hunt doesn't trigger itself. It requires the creature to be under an opponent's control when it dies.
 
 ### 112. Balin, Loremaster × Balin, Loremaster
 **Balin, Loremaster** — Legendary Creature — Dwarf Bard  ({3}{R}{R})
@@ -1790,7 +1790,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Balin contributes to his own count toward storied gate and triggers his own ability.
 
 ### 113. Smaug, Wicked Worm × Smaug, Wicked Worm
 **Smaug, Wicked Worm** — Legendary Creature — Dragon  ({3}{B}{R})
@@ -1806,7 +1806,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Smaug, Wicked Worm's entering triggers the effect.
 
 ### 114. Woodland Weavemaster × Woodland Weavemaster
 **Woodland Weavemaster** — Creature — Elf Druid  ({1}{G})
@@ -1822,7 +1822,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[ ] correct`  `[ ] wrong`  `[x] unsure`   **Notes:** It P/T triggered ability requires a separate elf card to enter. It can be another copy of Woodland Weavemaster but it won't trigger itself on entering. Its mana ability is self-referential though. So in that respect it's correct.
 
 ### 115. Uncover the Moon-Letters × Uncover the Moon-Letters
 **Uncover the Moon-Letters** — Enchantment  ({3}{U})
@@ -1834,7 +1834,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[x] unsure`   **Notes:** It is a an effect triggered by another spell being cast. A second copy of the moon-letters will trigger the first - so in that respect the self pair is correct.
 
 ### 116. Dori, Bearer of Friends × Dori, Bearer of Friends
 **Dori, Bearer of Friends** — Legendary Creature — Dwarf Warrior  ({2}{R})
@@ -1848,7 +1848,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Dori is triggered by its own ETB
 
 ### 117. Dáin, Lord of the Iron Hills × Dáin, Lord of the Iron Hills
 **Dáin, Lord of the Iron Hills** — Legendary Creature — Dwarf Noble  ({1}{W})
@@ -1864,7 +1864,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 118. Ori, Keeper of Songs × Ori, Keeper of Songs
 **Ori, Keeper of Songs** — Legendary Creature — Dwarf Bard  ({2}{W})
@@ -1878,7 +1878,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 119. Long-Bodied Grey Dog × Long-Bodied Grey Dog
 **Long-Bodied Grey Dog** — Creature — Dog  ({3})
@@ -1894,7 +1894,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** reflexive self-effect not routed through an 'another/other' class
 _Rule:_ CR 109.5 / 'another'
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ---
 ## Stratum: `storied`  (9 items)
@@ -1909,7 +1909,7 @@ _Rule:_ CR 109.5 / 'another'
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 121. Dáin, Lord of the Iron Hills
 **Dáin, Lord of the Iron Hills** — Legendary Creature — Dwarf Noble  ({1}{W})
@@ -1920,7 +1920,7 @@ _Rule:_ HOB set mechanic: Storied
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 122. Ori, Keeper of Songs
 **Ori, Keeper of Songs** — Legendary Creature — Dwarf Bard  ({2}{W})
@@ -1930,7 +1930,7 @@ _Rule:_ HOB set mechanic: Storied
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 123. Kíli the Resourceful
 **Kíli the Resourceful** — Legendary Creature — Dwarf Scout  ({1}{W})
@@ -1941,7 +1941,7 @@ _Rule:_ HOB set mechanic: Storied
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 124. Bombur, Gentle Dreamer
 **Bombur, Gentle Dreamer** — Legendary Creature — Dwarf Bard  ({2}{R})
@@ -1951,7 +1951,7 @@ _Rule:_ HOB set mechanic: Storied
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 125. Óin the Brave  ⚠
 **Óin the Brave** — Legendary Creature — Dwarf Warrior  ({1}{R})
@@ -1963,7 +1963,7 @@ _Rule:_ HOB set mechanic: Storied
 _Rule:_ HOB set mechanic: Storied
 > ⚠ **sub-agent MINOR: possible spurious QUALIFIES_FOR gate:storied edge (self-double-count?)**
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** Legendary creatures qualify for their own storied gates.
 
 ### 126. Bifur, Melodic Rider
 **Bifur, Melodic Rider** — Legendary Creature — Dwarf Bard  ({4}{R/W}{R/W})
@@ -1974,7 +1974,7 @@ _Rule:_ HOB set mechanic: Storied
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 127. Thorin Oakenshield
 **Thorin Oakenshield** — Legendary Creature — Dwarf Noble  ({R}{W})
@@ -1985,7 +1985,7 @@ _Rule:_ HOB set mechanic: Storied
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 
 ### 128. Fíli the Pathfinder
 **Fíli the Pathfinder** — Legendary Creature — Dwarf Scout  ({3}{W})
@@ -1996,5 +1996,5 @@ _Rule:_ HOB set mechanic: Storied
 **Graph claim:** qualifies for gate:storied
 _Rule:_ HOB set mechanic: Storied
 
-**Verdict:** `[ ] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
+**Verdict:** `[x] correct`  `[ ] wrong`  `[ ] unsure`   **Notes:** 
 

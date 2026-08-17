@@ -1482,3 +1482,21 @@ Key correctness decisions: (1) for the 47 multi-edge pairs, the worksheet render
 Status: instrument delivered; awaiting the user's adjudicated verdicts. Next: record verdicts into `human_audit_items.jsonl`, then act on any confirmed errors (note: some flagged fixes touch the FROZEN Phase-4 graph — e.g. Óin's storied edge — and would need a sanctioned corrective re-freeze).
 
 Refs: `tools/build_human_audit.py`; `reports/human_audit_worksheet.md`; `data/review/human_audit_items.jsonl`; `data/graph_global/{structural_validation_set,pair_index}.jsonl`; `reports/manual_gold_set_review.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] RESULT — independent HUMAN semantic validation of the frozen HOB graph (the acceptance step)
+
+The project owner (external human) adjudicated all 128 gold-set items in `reports/human_audit_worksheet.md` against printed Oracle text + CR. Verdicts recorded verbatim in `data/review/human_audit_verdicts.jsonl`; analysis in `reports/human_audit_findings.md`. **This is the formal acceptance step that [[phase4-frozen]] said was the only thing remaining.**
+
+**Result: 116 correct / 10 wrong / 2 nuanced-unsure.** No relation was directionally backwards; no *wrong assertion* in the Adventures/Recruit/Sagas/Storied/Replacement/multi-token strata. All 10 "wrong" are **missed relations (false negatives)** or **loose edge typing**, plus one false self-edge — i.e. things to ADD or retype, not asserted mechanisms to retract. Two prior sub-agent concerns were **rejected by the human**: Óin #125 (legendary qualifies for its own storied gate — the "spurious storied edge" is correct), and the Belladonna "null" pairs mostly hide P/T modifications, not the token trigger the sub-agent guessed.
+
+**Findings (4 classes, owner-adjudicated):**
+1. **`SUPPLIES_RESOURCE` used for a TRIGGER, not consumption** — owner's principle (#54): a card *consuming* fodder (Sackville sacrificing a Treasure) is not the same edge as being *triggered* (Kíli listening for a Dwarf entering — it doesn't consume the Dwarf). #58 Plunder→Uncover the Moon-Letters is outright wrong ("remove SUPPLIES_RESOURCE; casting triggers the enchantment, doesn't consume the spell"); #54 Nori→Kíli is "correct but ENABLES_TRIGGER is the better type." → mechanism-layer edge-typing pass: split trigger vs cost across all `SUPPLIES_RESOURCE` edges.
+2. **Missed-relation families (false negatives)** — (a) anthem P/T mods: The Arkenstone "Creatures you control get +1/+1" → `MODIFIES` every creature (#66/#72/#74); (b) targeted +1/+1 counters: Meager Meal / Lake-town Toymaker → `ADDS_COUNTER`/`MODIFIES` a target creature (#67/#68/#71/#75); (c) token creation → token-enters trigger: Clap! Snap! (Amass) → `ENABLES_TRIGGER` Belladonna Took (#82); plus a tutor relation (Seek the Heart can find Tom, #74). → a scoped additive repair round (like pt4).
+3. **False self-reflexive edge** — #111 Head of the Hunt does NOT trigger itself (needs the creature under an opponent's control on death). If the edge is in the FROZEN mechanical projection, removal is a sanctioned corrective re-freeze.
+4. **Coarse self-pair reflexivity (nuanced)** — #114 Woodland Weavemaster (mana ability self-referential, but P/T ability needs a *separate* Elf) and #115 Uncover the Moon-Letters (a second copy triggers the first) are "correct in part"; the `self_pairs` label conflates genuine statics with triggers-on-a-copy. Low-priority precision note.
+
+**Acceptance:** the frozen HOB graph PASSES independent human validation on the designed gold set — zero directional errors, zero wrong assertions in the structural strata; the 12 non-correct items are a bounded, characterized backlog of additions + one correction. **Disposition of each class awaits the owner's go-ahead** (Class 3 / any frozen-graph edit needs a sanctioned corrective re-freeze; Classes 1–2 are additive layers). Instrument + verdicts + findings committed.
+
+Refs: `reports/human_audit_findings.md`; `data/review/human_audit_verdicts.jsonl`; `reports/human_audit_worksheet.md`; [[phase4-frozen]]
