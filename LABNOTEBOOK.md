@@ -1615,3 +1615,17 @@ Review `docs/hob_effect_semantics_repair_instructions_PHASE2_review_pt1.md` acce
 Destruction results unchanged (10 effects → 603 pairs; Bilbo/Stir→creatures, Warg→flyers, Stone→power≥4, Pinecone→artifact token specs, Giant's Boulder→permanents, Thorin modal, Azog self-pair). **283 tests pass.** Frozen artifacts byte-identical. Now genuinely a general schema + destruction vertical slice; ready for the remaining targeted-object families (Phase 3), on go-ahead.
 
 Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_destroy.py`; `reports/{effect_semantics,effect_census}.md`; `data/graph_global/{effect_destroy,card_pair_projection_effect}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE2_review_pt1.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] CORRECTION — Effect-semantics Phase 2b: condition taxonomy + two stronger tests (review PHASE2 pt2)
+
+Review pt2 accepted the Phase 2a targeting/selector/projection/provenance/destruction work but flagged one semantic defect to fix BEFORE the draw/discard/sacrifice families (which are full of ordinary `if`s): `condition()` labelled every `If …` as `intervening_if`. In MTG an **intervening-if** is part of a TRIGGER clause ("Whenever X, if Y, do Z" — Y gates triggering/resolution); an ordinary `If …` instruction evaluated during resolution is a **conditional_effect**. The Black Arrow ("If a Dragon is dealt damage this way, destroy it") is the latter, not an intervening-if.
+
+- **Taxonomy fixed** (`effect_schema.condition`): `intervening_if` only when the `if` sits inside a trigger clause (`when|whenever|at the beginning of … , if …`); otherwise `conditional_effect`. Verified: Black Arrow → `conditional_effect`; "At the beginning of combat, if you control a creature, …" → `intervening_if`; "If you controlled that creature, draw a card." → `conditional_effect` (the exact Azog-style case the reviewer warned would be mislabelled).
+- **Machine-interpretable condition** for the bound pronoun case: The Black Arrow now carries `condition: {kind: conditional_effect, predicate: "dealt_damage_this_way", object_var: "obj0", required_subtype: "dragon"}` (enriched from its antecedent binding) — the condition itself is interpretable, not just `kind`.
+- **Two stronger tests** (the reviewer's gaps): (1) mass destruction — synthetic "Destroy each creature" → `targeted:false`, `affects_each:true`, quantifier `each`; (2) real multimode aggregation — `build_effects(faces=…, write=False)` on a synthetic two-mode modal destroyer proves a flyer target gets ONE pair with TWO distinct-mode `supports`, while a nonflyer gets one. `build_effects` now accepts synthetic `faces`/`tokens` + `write=False` so projection is unit-testable.
+
+Destruction results unchanged (10 effects / 603 pairs). **286 tests pass** (+3). Frozen artifacts byte-identical. Condition typing is now correct set-wide before it propagates into the resource/zone families — clears the way for Phase 3.
+
+Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_destroy.py`; `data/graph_global/effect_destroy.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE2_review_pt2.md`; [[phase4-frozen]]

@@ -145,6 +145,47 @@ def test_multimode_extraction_and_supports_aggregation():
     assert all("effect_id" in sup and "mode" in sup for p in pairs for sup in p["supports"])
 
 
+def test_condition_taxonomy_conditional_vs_intervening_if():
+    # review pt2b: an `If …` resolution instruction is a conditional_effect, NOT an intervening_if
+    _, _, _, _, structured = _setup()
+    ba = next(s for s in structured if s["name"] == "The Black Arrow")
+    c = ba["condition"]
+    assert c["kind"] == "conditional_effect" and c.get("predicate") == "dealt_damage_this_way"
+    assert c["object_var"] == "obj0" and c["required_subtype"] == "dragon"
+    # intervening_if only when the `if` sits inside a trigger clause
+    assert sch.condition("At the beginning of combat, if you control a creature, put a counter.")["kind"] == "intervening_if"
+    assert sch.condition("If you controlled that creature, draw a card.")["kind"] == "conditional_effect"
+    assert sch.condition("Draw a card.") is None
+
+
+def test_mass_destruction_each_is_nontargeted():
+    # review pt2b: `Destroy each creature` -> nontargeted, mass, quantifier 'each'
+    effs = es._destroy_effects({"id": "face:m:0", "name": "M", "oracle_text": "Destroy each creature."})
+    assert len(effs) == 1
+    e = effs[0]
+    assert e["targeted"] is False and e["affects_each"] is True
+    assert e["selector"]["quantifier"] == "each"
+
+
+def test_two_modes_aggregate_two_supports_on_one_pair():
+    # review pt2b: a modal source destroying overlapping targets in two modes -> ONE pair, TWO supports
+    faces = [
+        {"id": "face:mod:0", "card_id": "card:mod", "name": "Modal",
+         "oracle_text": "Choose one —\n• Destroy target creature.\n• Destroy target creature with flying."},
+        {"id": "face:fly:0", "card_id": "card:fly", "name": "Flyer",
+         "oracle_text": "Flying", "type_line": {"types": ["Creature"]}, "power": "2"},
+        {"id": "face:plain:0", "card_id": "card:plain", "name": "Plain",
+         "oracle_text": "", "type_line": {"types": ["Creature"]}, "power": "2"},
+    ]
+    res = es.build_effects(faces=faces, tokens=[], write=False)
+    pairs = {(p["source_card"], p["target_card"]): p for p in res["_pairs"]}
+    flyer = pairs[("card:mod", "card:fly")]
+    assert len(flyer["supports"]) == 2                       # both modes hit the flyer
+    assert {s["mode"]["index"] for s in flyer["supports"]} == {0, 1}
+    plain = pairs[("card:mod", "card:plain")]
+    assert len(plain["supports"]) == 1                       # only the "any creature" mode hits a nonflyer
+
+
 def test_effect_layer_composed_into_pair_index():
     _setup(); coverage.pair_index()
     n2c = {}

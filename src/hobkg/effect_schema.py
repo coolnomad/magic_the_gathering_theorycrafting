@@ -109,14 +109,24 @@ def duration(text: str):
 
 
 def condition(text: str):
+    """Classify a clause's condition. CRUCIAL taxonomy (review pt2b): an `intervening_if` is part of a
+    TRIGGER clause ("Whenever X, if Y, do Z" — Y gates whether the ability triggers/resolves); an
+    ordinary `If …` instruction evaluated during resolution is a `conditional_effect`. Misusing
+    intervening_if would mislabel the many ordinary `if`s in later families."""
     low = text.lower()
     if re.search(r"\bif this spell was cast from a graveyard\b|\bcast from a graveyard\b", low):
         return {"kind": "cast_from_graveyard"}
     if re.search(r"\bif this spell was kicked\b|\bkicker\b", low):
         return {"kind": "kicker"}
-    if re.match(r"\s*if\b", low) or re.search(r",\s*if\b", low):
-        return {"kind": "intervening_if"}
-    return None
+    if not re.search(r"\bif\b", low):
+        return None
+    # intervening-if only when the `if` sits inside a triggered-ability trigger clause
+    trigger = re.match(r"\s*(?:when|whenever|at the beginning of)\b", low)
+    inter = bool(trigger and re.search(r",\s*if\b", low))
+    cond = {"kind": "intervening_if" if inter else "conditional_effect"}
+    if "dealt damage this way" in low:
+        cond["predicate"] = "dealt_damage_this_way"
+    return cond
 
 
 _EFFECT_REQUIRED = ("effect_id", "op", "relation", "participant", "selector", "mode", "targeted")

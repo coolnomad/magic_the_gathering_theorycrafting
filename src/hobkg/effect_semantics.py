@@ -251,10 +251,15 @@ def _destroy_effects(face: dict):
             if excl:
                 sel["exclusions"] = sorted(set(sel["exclusions"]) | {excl.strip().lower()})
             span0 = text.find(m.group(0))
+            cond = _sch.condition(sentence)
+            if binding and cond and cond.get("kind") == "conditional_effect":
+                # make the condition itself machine-interpretable, tied to the bound antecedent object
+                cond = {**cond, "object_var": binding["var"],
+                        "required_subtype": (binding["restriction"]["subtypes"] or [None])[0]}
             rec = {"effect_id": f"{face['id']}#DESTROY#{idx}", "op": "DESTROY", "relation": "CAN_DESTROY",
                    "participant": _sch.participant(sentence), "selector": sel,
                    "mode": {"kind": kind, "index": br["index"]},
-                   "condition": _sch.condition(sentence), "duration": _sch.duration(sentence),
+                   "condition": cond, "duration": _sch.duration(sentence),
                    "optional": bool(qty) or "may destroy" in sentence.lower(),
                    "targeted": sel["targeted"], "affects_each": sel["affects_each"],
                    "attempt": True,                          # destruction is an ATTEMPT (indestructible can stop it)
@@ -266,12 +271,13 @@ def _destroy_effects(face: dict):
     return out
 
 
-def build_effects(repo: Path = REPO) -> dict:
+def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dict:
     """Extract + project the destruction family (Phase 2). Structured facts → effect_destroy.jsonl;
-    deterministic card-pair projection → card_pair_projection_effect.jsonl (origin effect_semantics)."""
+    deterministic card-pair projection → card_pair_projection_effect.jsonl (origin effect_semantics).
+    `faces`/`tokens` may be supplied (synthetic) and `write=False` to exercise projection in tests."""
     repo = Path(repo)
-    faces = _load_dicts(repo / "data/normalized/faces.jsonl")
-    tokens = _load_dicts(repo / "data/normalized/tokens.jsonl")
+    faces = faces if faces is not None else _load_dicts(repo / "data/normalized/faces.jsonl")
+    tokens = tokens if tokens is not None else _load_dicts(repo / "data/normalized/tokens.jsonl")
     by_card = {}
     for f in faces:
         by_card.setdefault(f["card_id"], []).append(f)
@@ -302,6 +308,8 @@ def build_effects(repo: Path = REPO) -> dict:
                     agg[key]["supports"].append(support)
     pairs = sorted(agg.values(), key=lambda p: (p["source_card"], p["target_card"], p["relation"]))
     assert not errors, f"effect schema violations: {errors[:5]}"
+    if not write:
+        return {"_structured": structured, "_pairs": pairs}
     G = repo / "data" / "graph_global"
     _writej(G / "effect_destroy.jsonl", sorted(structured, key=lambda r: r["effect_id"]))
     _writej(G / "card_pair_projection_effect.jsonl", pairs)
