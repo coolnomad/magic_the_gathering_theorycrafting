@@ -26,10 +26,18 @@ for the full build-phase status.
 ## Status
 - **ALL named build phases (0–6) are FROZEN** (Phase 6 accepted at `9cac50a`); the reviewer's
   **full-spec** re-scope AND all **completeness** families (gold-set + pt4/pt5/pt6) are now built.
-  Reviews resolved through **pt6** (Equip path accepted); the completeness batch (`526bbb0`) awaits review.
-  Only **independent human semantic validation** remains for full-spec acceptance.
-- **218 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
+  Reviews resolved through **pt7** (completeness batch accepted for deck-space analysis; cost/effect
+  naming split + the **executability tier** — lifecycle state-transitions + explicit OR gate — built).
+  Only **independent human semantic validation** + pt7 item 4 (portable sacrifice-clause extraction,
+  awaiting a go-ahead) remain.
+- **226 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
   conditions}.jsonl`) and Phase 5 projections are byte-stable; ALL other layers are purely additive.
+- **Schema extension (recorded):** `assemble.GLOBAL_SIGNATURES` gained `TERMINATES`
+  (`{Op,Event,State}→State`) and `HAS_ALTERNATIVE` (`Gate→{Gate,Cost,Op}`) for the lifecycle layer.
+- **7th (primitives-only) layer:** `lifecycle_{nodes,edges}.jsonl` (16/54) — per equip attachment
+  state an executable `op:leave-battlefield:H` (MOVES_FROM battlefield / MOVES_TO graveyard /
+  TERMINATES the attachment state / REFERENCES the general leave-battlefield invariant), and Stir's
+  explicit `gate:or-cost` (sacrifice OR pay {4}). CLI: `lifecycle`. Union now **3,289 edges**.
 - Card-pair layer = **6 separate tiers**: `card_pair_projection.jsonl` (5,278 mechanical),
   `_audit.jsonl` (3 llm_audit), `_repaired.jsonl` (8 graph_repair), `_mechanism.jsonl`
   (392 mechanism_repair — second-draw [all genuine drawers] / Dwarf-Equipment / noncreature-cast),
