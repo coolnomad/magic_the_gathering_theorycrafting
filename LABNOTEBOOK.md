@@ -1354,3 +1354,21 @@ Reviewer (`docs/hob-kg-phase6-review-pt11.md`): **"The implemented pt10 scope is
 **State at this checkpoint:** all reviews pt1–pt11 resolved; 7 additive projection tiers over the frozen Phase 4 graph; coverage union 3,306 edges / ~10,000 relations, 0 provenance gaps, all conditions resolve; 230 tests pass, deterministic; frozen Phase 4 + Phase 5 byte-untouched. The mechanistic possibility graph (what A can do to/with B under the rules, expandable to grounded primitive paths with provenance, and — for sacrifice/attachment — executable transitions) is complete and internally consistent for HOB; the open items above are capability/portability/human-review extensions, not gaps in the accepted graph.
 
 Refs: `docs/hob-kg-phase6-review-pt11.md`
+
+---
+
+## [2026-08-17 22:30] DECISION — HOB analytical reference implementation FROZEN (at `8201109`)
+
+Reviewer confirmed the disposition and endorsed freezing: *"I would freeze the current HOB graph as the analytical reference implementation."* One framing qualification accepted: "complete and internally consistent for HOB" is true **for the scoped analytical product** — rules-defined card-to-card possibilities, grounded primitive paths, deck-space projection, sacrifice eligibility + event typing, Equipment attachment + termination, Stir's alternative-cost execution — and does **not** mean every Oracle clause is fully executable, every activation restriction/payoff is modeled, or independent semantic acceptance is complete (those boundaries were stated alongside the claim).
+
+**The HOB mechanistic knowledge graph is FROZEN as the analytical reference implementation at `8201109`.** All reviews **pt1–pt11 resolved**. Deliverables (frozen Phase 4 graph + 7 additive, origin-tagged, signature-valid, provenance-bearing projection tiers):
+- Phase 0–6 pipeline (normalize → templates → LLM-via-subagents extraction → assemble → project → audit → repair → modules), all previously frozen.
+- Card-pair projection tiers: mechanical (5,278) · llm_audit (3) · graph_repair (8) · mechanism_repair (392: second-draw / Dwarf-Equipment / noncreature-cast) · equip (3,250: attachment) · completeness (1,041: token-entry / sac→dies / sacrifice-fodder cost-vs-eligible) · lifecycle (60: executable sacrifice→attachment-termination).
+- Unified `coverage.json` = **3,306 edges / ~10,000 relations, 0 provenance gaps, conditions_all_resolve**; `pair_index.jsonl` = 37,249 pairs × 7 layers; `mechanism_modules.jsonl` (38); `structural_validation_set.jsonl`; query CLI (`query-card`/`-pair`/`-mechanism`, all 7 layers). Schema-extension predicates recorded: `TERMINATES`, `HAS_ALTERNATIVE`, `CAN_UNDERGO`. **230 tests pass, deterministic.**
+
+**Two forward tracks (reviewer's framing), NOT part of the frozen analytical reference:**
+- **Formal acceptance step:** independent **human semantic validation** (the manual gold-set adjudication) — the one remaining acceptance step for the existing specification; only a human can perform it.
+- **Next product-development step:** **portability** — extract the reusable engine from HOB and replace HOB-specific catalogues/patches (e.g. the hand-authored `SAC_OUTLETS` dict) with **deterministic mechanical extraction, declarative set configuration, reusable rule templates, and LLM escalation for ambiguous clauses** (cf. `docs/portability_plan.md`). Per the plan, the correct first move is engine extraction + a small vertical slice from a second set, NOT processing another whole set.
+- Deferred (only if action-level simulation becomes a near-term goal): per-card activation timing + payoff wiring (Snowslope-style), across the sacrifice outlets.
+
+Refs: reviewer freeze endorsement (post-pt11); `docs/portability_plan.md`; HEAD `8201109`

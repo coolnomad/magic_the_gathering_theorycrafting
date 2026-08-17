@@ -24,12 +24,16 @@ approval prompts), `phase3-llm-via-subagents.md`, `provenance-rigor.md`; and `ph
 for the full build-phase status.
 
 ## Status
-- **ALL named build phases (0–6) are FROZEN** (Phase 6 accepted at `9cac50a`); the reviewer's
-  **full-spec** re-scope AND all **completeness** families (gold-set + pt4/pt5/pt6) are now built.
-  Reviews resolved through **pt7** (completeness batch accepted for deck-space analysis; cost/effect
-  naming split + the **executability tier** — lifecycle state-transitions + explicit OR gate — built).
-  Only **independent human semantic validation** + pt7 item 4 (portable sacrifice-clause extraction,
-  awaiting a go-ahead) remain.
+- **The HOB graph is FROZEN as the analytical reference implementation (at `8201109`).** ALL reviews
+  **pt1–pt11 are resolved** (pt11 = clean bill of health, no blocking defect). Phases 0–6 + the
+  full-spec re-scope + all completeness families + the executability (lifecycle) tier are built.
+- **Two forward tracks, NOT part of the frozen analytical reference (each needs a go-ahead):**
+  (a) **independent human semantic validation** — the one formal acceptance step for the existing
+  spec (only a human can do it); (b) **portability** — extract the reusable engine + replace
+  HOB-specific catalogues/patches (e.g. hand-authored `SAC_OUTLETS`) with deterministic extraction,
+  declarative config, reusable rule templates, LLM escalation (`docs/portability_plan.md`; start with
+  engine extraction + a small vertical slice, not another whole set). Deferred unless action-level
+  simulation becomes near-term: per-card activation timing + payoff wiring (Snowslope-style).
 - **227 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
   conditions}.jsonl`) and Phase 5 projections are byte-stable; ALL other layers are purely additive.
 - **Schema extension (recorded):** `assemble.GLOBAL_SIGNATURES` gained `TERMINATES`

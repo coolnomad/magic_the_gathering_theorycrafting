@@ -4272,3 +4272,61 @@ These are substantial per-card modeling efforts, so â€” per the review rhyt
 
 ### [2026-08-16 23:56] USER
 read hob-kg-phase6-review-pt11.md next. major blockers are handled now.
+
+### [2026-08-16 23:58] ASSISTANT
+pt11 is a **clean bill of health** â€” no blocking defect. It confirms every pt10 correction (Stir OR gate sole causal parent, no residual direct edge, sacrifice/pay branch semantics, both projections traverse the gate, Allure `:1` face, CR 701.21, 118.8/601.2, and the tests). It explicitly states the boundary: sacrifice eligibility, artifact-vs-creature consequences, attachment termination, and Stir's alternative payment are all **correct**; what remains is *modeling the complete abilities around those sacrifices* (per-card activation timing + payoffs) and portable extraction â€” all explicit future work, "not repairing the sacrifice relationships again."
+
+There's no code change to make. Let me record the acceptance in the append-only notebook and refresh the continuity anchors.
+
+Let me refresh the memory to reflect the pt11 acceptance, then commit.
+
+Recorded and pushed (`8201109`). pt11 required no code change â€” it's a **clean bill of health**.
+
+## Where things stand
+pt11 confirms the sacrifice/lifecycle machinery is **structurally correct with no blocking defect**, and states the boundary plainly:
+
+| Aspect | Status |
+|---|---|
+| Sacrifice eligibility | âœ… correct |
+| Artifact-vs-creature event consequences | âœ… correct |
+| Equipment attachment termination | âœ… correct |
+| Stir's alternative (OR) payment | âœ… correct |
+| Full per-card ability execution | â¸ deferred (not a defect) |
+
+All reviews **pt1â€“pt11 are resolved**. The graph is **7 additive projection tiers** over the frozen Phase 4 base â€” union **3,306 edges / ~10,000 relations, 0 provenance gaps, all conditions resolve**; **230 tests pass**, deterministic; frozen Phase 4 + Phase 5 byte-untouched. The mechanistic possibility graph (what A can do to/with B under the rules, expandable to grounded primitive paths with provenance, and â€” for sacrifice/attachment â€” executable transitions) is complete and internally consistent for HOB.
+
+## What remains â€” all optional extensions, each needs a go-ahead (none is a blocker)
+1. **Per-card activation timing** â€” e.g. Snowslope's "only during your turn, once each turn" (controller-turn condition + per-turn activation counter with increment/reset).
+2. **Per-card payoff wiring** â€” e.g. Snowslope's "exile top card â†’ play-permission â†’ expires"; and the other outlets' payoffs/timing.
+3. **Portable sacrifice-clause extraction** â€” replace the hand-authored `SAC_OUTLETS` dict (the reusable set-agnostic harness, `docs/portability_plan.md`).
+4. **Independent human semantic validation** â€” the manual gold-set adjudication (only you can do it).
+
+You noted the major blockers are handled â€” agreed, and pt11 backs that up. I've committed the acceptance record and left the four extensions untouched pending your direction. Happy to take on any of them (activation-timing + payoffs, the portability harness, or supporting your human review), or to hold here.
+
+### [2026-08-17 00:01] USER
+YesΓÇöClaudeΓÇÖs disposition is appropriate and matches my review.
+
+The only wording I would qualify is:
+
+> ΓÇ£The mechanistic possibility graph ΓÇª is complete and internally consistent for HOB.ΓÇ¥
+
+That is true for the scoped product:
+
+* rules-defined card-to-card possibilities;
+* grounded primitive paths;
+* deck-space projection;
+* sacrifice eligibility and event typing;
+* Equipment attachment and termination;
+* StirΓÇÖs alternative-cost execution.
+
+It does not mean:
+
+* every Oracle clause is fully executable;
+* every activation restriction and payoff is modeled;
+* independent semantic acceptance is complete.
+
+Those boundaries are stated immediately afterward, so this is framing rather than a substantive problem.
+
+I would freeze the current HOB graph as the analytical reference implementation. Further Snowslope-style timing and payoff work should happen only if action-level simulation is now a near-term goal. Otherwise, the logical next engineering task is portability: replace HOB-specific catalogues and patches with deterministic extraction, declarative configuration, reusable rule templates, and LLM escalation for ambiguous clauses.
+
+Independent human validation remains the one formal acceptance step for the existing specification; the portability harness is the next product-development step.
