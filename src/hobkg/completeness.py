@@ -461,8 +461,14 @@ def reproject(repo: Path = REPO) -> dict:
                      "or_pay": spec.get("or_pay"), "outlet_kind": spec.get("kind")}
             if face_p in equipment_faces:
                 extra["terminates_attachment"] = True
+            # pt7: distinguish a MANDATORY sacrifice COST (activated/additional-cast cost — the
+            # permanent is genuine fodder a deck needs) from an OPTIONAL sacrifice EFFECT
+            # ("you may sacrifice ..." on resolution — merely an eligible target, not required).
+            relation = ("SATISFIES_SACRIFICE_COST"
+                        if spec.get("kind") in ("activated_cost", "additional_cast_cost")
+                        else "IS_ELIGIBLE_SACRIFICE_TARGET")
             before = len(metaedges)
-            emit(p_card, b_card, "SATISFIES_SACRIFICE_COST", steps, extra)
+            emit(p_card, b_card, relation, steps, extra)
             fam4_reprojected += (len(metaedges) - before)
 
     metaedges.sort(key=lambda m: (m["source_card"], m["target_card"], m["relation"],

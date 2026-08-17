@@ -2,7 +2,7 @@
 
 *NOT an independent human gold set: these are deterministic structural assertions against the same graph. Human reviewers still adjudicate semantics and may override.*
 
-Structural checks: **119/119 pass**.
+Structural checks: **125/125 pass**.
 
 ## adventures — 17/17 pass
 - [pass] Gollum, Silent Slinker // Meager Meal  _(expect: exactly two face nodes)_
@@ -23,7 +23,7 @@ Structural checks: **119/119 pass**.
 - [pass] Bilbo Baggins, Burglar // Take a Glance  _(expect: exactly two face nodes)_
 - [pass] Smaug, the Great Calamity // Spew Flame  _(expect: exactly two face nodes)_
 
-## multi_edge_pairs — 38/38 pass
+## multi_edge_pairs — 44/44 pass
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE'])_
 - [pass] My Precious // Allure of Power → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
@@ -40,20 +40,20 @@ Structural checks: **119/119 pass**.
 - [pass] The Black Arrow → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Well-Worn Spatula → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] My Precious // Allure of Power → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
+- [pass] Orcrist, Goblin-cleaver → The Sackville-Bagginses  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'IS_ELIGIBLE_SACRIFICE_TARGET', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] Orcrist, Goblin-cleaver → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] My Precious // Allure of Power → The Sackville-Bagginses  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'IS_ELIGIBLE_SACRIFICE_TARGET'])_
+- [pass] The Black Arrow → The Sackville-Bagginses  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'IS_ELIGIBLE_SACRIFICE_TARGET', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] The Black Arrow → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] The Black Arrow → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] The Black Arrow → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
 - [pass] My Precious // Allure of Power → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
 - [pass] My Precious // Allure of Power → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
+- [pass] Glamdring, Foe-hammer // Gleam of Death → The Sackville-Bagginses  _(expect: relation combination ['CAN_ATTACH_TO', 'IS_ELIGIBLE_SACRIFICE_TARGET'])_
+- [pass] Well-Worn Spatula → The Sackville-Bagginses  _(expect: relation combination ['CAN_ATTACH_TO', 'IS_ELIGIBLE_SACRIFICE_TARGET', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Well-Worn Spatula → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED'])_
-- [pass] Well-Worn Spatula → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_
-- [pass] Well-Worn Spatula → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
-- [pass] Glamdring, Foe-hammer // Gleam of Death → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'SATISFIES_SACRIFICE_COST'])_
-- [pass] Glamdring, Foe-hammer // Gleam of Death → Dáin's Company  _(expect: relation combination ['CAN_ATTACH_TO', 'SUPPLIES_RESOURCE'])_
-- [pass] Smaug, Wicked Worm → Balin, Loremaster  _(expect: relation combination ['CONTRIBUTES_TO_GATE', 'INFRASTRUCTURE_CASTING'])_
 
 ## multi_token_or_type — 1/1 pass
 - [pass] The Misty Mountains Cold  _(expect: creates >=2 token types)_

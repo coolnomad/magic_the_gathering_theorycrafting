@@ -1243,3 +1243,20 @@ Built the remaining three completeness families as one new additive layer `src/h
 **All four completeness families the gold-set + pt5/pt6 reviews surfaced are now closed** (second-draw drawers; token-entry triggers; sac-outlet→dies; permanent-consumption/sacrifice-fodder). New projection-relation vocabulary (`SATISFIES_SACRIFICE_COST`, and the token-entry/sac→dies `ENABLES_TRIGGER` uses) recorded as the completeness layer's schema extension.
 
 Refs: `src/hobkg/completeness.py`; `tests/test_completeness.py`; `src/hobkg/{coverage,modules,query,cli}.py` (6th-layer integration); `data/graph_global/{completeness_nodes,completeness_edges,completeness_conditions,card_pair_projection_completeness}.jsonl`; `reports/completeness.md`
+
+---
+
+## [2026-08-17 11:00] CORRECTION + DECISION — pt7: sacrifice cost-vs-effect naming split; executability/portability tier scoped
+
+Reviewer (`docs/hob-kg-phase6-review-pt7.md`) checked through `a51b832`: **"the requested Crude Bent Blade relationship is now represented correctly for deck-space analysis"** — completeness batch accepted for its analytical purpose (Crude→Stir/Snowslope grounded+directed, all three previously-identified families addressed, Equipment disposition reclassification correct). Four items raised, all framed as a HIGHER "executable / portable" bar beyond the accepted analytical representation.
+
+**(done) Item 3 — cost-vs-effect naming split.** The `SAC_OUTLETS` catalogue mixed mandatory sacrifice COSTS (Stir Up Trouble, Snowslope Hunter, Tom Bert & William, Gollum the Abandoned, Stone-Giant, Allure of Power — activated/additional-cast costs) with OPTIONAL sacrifice EFFECTS ("you may sacrifice …" on resolution: Rhovanion, Bolg, Sackville). Calling all of them `SATISFIES_SACRIFICE_COST` wrongly implies a deck must supply fodder for the optional ones. The catalogue already carried a `kind` field, so reproject now emits **`SATISFIES_SACRIFICE_COST`** for `activated_cost`/`additional_cast_cost` and **`IS_ELIGIBLE_SACRIFICE_TARGET`** for `effect`. Result: 980 fam4 metaedges split into 629 cost + 351 eligible-target; the six cost outlets vs three optional-effect outlets are cleanly separated (Crude→Stir/Snowslope stay costs). **219 tests pass** (+1 split regression); deterministic; frozen graph byte-untouched.
+
+**(scoped, NOT built — presented for the user's decision) Items 1, 2, 4 — the executability + portability tier:**
+1. **Lifecycle state-transitions.** `terminates_attachment: true` is pair metadata, not an executable primitive; a simulator can't run the change. Needs a general invariant — *when permanent P leaves the battlefield (e.g. sacrificed), terminate every attachment state hosted by P and every continuous effect requiring it* — as real `MOVES_FROM battlefield` / `MOVES_TO graveyard` / a `TERMINATES` transition (a schema extension).
+2. **Explicit OR gate.** Stir's "sacrifice an artifact or creature OR pay {4}" is stored as `or_pay` gate data, not modeled as an explicit OR-gate with two branches. Adequate for feature extraction, not for autonomous execution.
+4. **Portable sacrifice-clause extraction.** The `SAC_OUTLETS` catalogue is a hand-authored dict of 9 HOB face-ids with `oracle_span: null`. For the reusable harness (cf. `docs/portability_plan.md`) the engine should MECHANICALLY detect sacrifice clauses (accepted types / cost-vs-effect / `another` / optionality / OR-payment / timing / exact span), LLM only for ambiguous cases — no set-specific hardcoding.
+
+These three are a coherent, larger goal (an executable state-transition model + a portable extraction harness) distinct from the accepted analytical graph, so — per the per-phase review rhythm — they are **presented for a go-ahead** rather than auto-built.
+
+Refs: `docs/hob-kg-phase6-review-pt7.md`; `src/hobkg/completeness.py` (cost/effect relation split); `tests/test_completeness.py`; `data/graph_global/card_pair_projection_completeness.jsonl`

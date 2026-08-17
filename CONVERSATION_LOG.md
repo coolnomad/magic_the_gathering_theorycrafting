@@ -3801,3 +3801,117 @@ I rebuilt `equip.py` and fixed all six pt5 defects: continuous `card:E â†’ 
 
 ### [2026-08-16 18:27] USER
 read hob-kg-phase6-review-pt6.md
+
+### [2026-08-16 19:04] ASSISTANT
+pt6's verdict: **`d4027d5` accepted as a correct Equip-path repair.** It raises two things: (1) a quick honest reclassification â€” the complex Equipment clauses I marked `deliberately_ignored` should be `unresolved`/`schema_extension_required` (they're strategically important, not "successfully disposed"); and (2) a large *new* module â€” a general typed-cost + permanent-consumption layer (sacrifice-fodder: Crudeâ†’Stir Up Trouble, Crudeâ†’Snowslope Hunter), which it frames as "the next reusable module."
+
+Let me do the small, clearly-requested fix now â€” reclassify the dispositions honestly.
+
+Now update the disposition test to the honest classification.
+
+Let me regenerate the equip layer and verify the disposition test.
+
+The disposition tests pass; `test_deterministic` hit a transient Windows file error (`Errno 22`) â€” likely a read/write race. Let me re-run it.
+
+Consistent, not transient â€” and other tests read the same file fine via `_load_dicts`, so it's specific to `read_bytes()`. Let me test `read_bytes` directly on the file.
+
+`read_bytes` works standalone (16 MB file), but fails inside the test's write-then-read-in-process flow. Let me reproduce it in isolation to find the root cause rather than paper over it.
+
+The equip projection file is **16 MB** â€” each path step redundantly embeds the full provenance blob of shared frozen edges (every creature's `HAS_FACE`/`HAS_TYPE` provenance, duplicated across dozens of metaedges). That bloat both wastes space and causes the in-session `read_bytes` flakiness. Provenance already lives on the edges (referenced by `edge_id`), so steps don't need to carry it. Let me trim the steps.
+
+The blanket replace also hit the call *inside* my `_step` helper, creating infinite recursion. Let me fix that one line back.
+
+10.9 MB now (down from 16.4). Let me check the determinism test.
+
+All 22 equip tests pass (determinism fixed â€” it was size-related). Let me run the full suite.
+
+All 205 pass. Let me clean up, regenerate downstream artifacts, and record the pt6 partial-response science.
+
+Now commit and push the pt6 fixes.
+
+Clean â€” 7 intended files. Committing and pushing.
+
+Committed and pushed (`00f91ba`). Here's where pt6 leaves us.
+
+## pt6 verdict: Equip-path repair **accepted**
+The reviewer confirmed all Equip-derived paths are now continuous from Equipment card to creature card, properly bound, with cost/timing/controller/attachment/provenance represented. I handled its two follow-ups:
+- **Disposition honesty** â€” the complex Equipment clauses I'd marked `deliberately_ignored` (Glamdring's cost reduction, Orcrist's combat-damage trigger, Wizard's Staff trigger-doubling, Sting's hone) are reclassified to **`unresolved`** / **`schema_extension_required`** â€” not "successfully disposed." Tested.
+- **De-bloat** â€” the equip projection was 16 MB because each path step redundantly embedded full edge provenance; a lean `_step` (provenance stays on the edge, referenced by `edge_id`) cut it to 10.9 MB and fixed the `read_bytes` flakiness. 205 tests pass, deterministic, frozen graph untouched.
+
+## The one substantive item left â€” and it's a fork for you
+pt6's real gap is a **general typed-cost + permanent-consumption layer**: permanents as *resources that can be sacrificed to pay costs* (Crude Bent Blade â†’ Stir Up Trouble's "sacrifice an artifact or creature", Crude â†’ Snowslope Hunter's activation cost; sacrifice terminating an Equipment's attachment). It's the **same family** as the completeness gaps the gold-set review already surfaced (second-draw enablers, token-entry triggers, sacrifice-outletâ†’dies triggers). It's a major new module that introduces new predicates (a recorded schema extension), so rather than reactively build another big layer, I want your call.
+
+The user chose to **batch all completeness families** â€” the four related gaps as one "resource/trigger completeness" push. This is large and will span multiple sub-modules and review rounds. I'll build each as an additive layer with continuity/grounding gates from the start (the lesson from pt5). Let me set up tracking and investigate the corpus for all four families first.
+
+Let me investigate the corpus for all four families.
+
+Rich corpus data. Key rules-correct finding: KÃ­li's `dwarf_or_equipment_etb_draw` is a **tutor** (reveal + put into hand), not a draw â€” the gold-set reviewer over-included it, so I'll exclude it. The genuine drawers produce `resource:card*`/`obj:draw`/`event:draw` but weren't feeding the counter. Let me start with **family 1** (second-draw canonicalization) â€” a targeted extension. First clean up.
+
+All confirmed genuine draws except the KÃ­li tutor. Let me broaden the draw-op detection in `complete_mechanisms.py` (family 1).
+
+Family 1 done: draw ops 4â†’16, second-draw metaedges 356â†’392. Let me verify the enabler set (KÃ­li excluded, the previously-missing drawers included).
+
+Family 1 complete: Councillors enablers 13â†’25, KÃ­li correctly excluded, previously-missing drawers (Azog, Gollum, My Precious, Keyâ€¦) now included. Let me update the affected coverage test and commit family 1 before building the rest.
+
+Let me add a regression test for family 1 and run the affected tests.
+
+A hardcoded `99` in the mechanism test â†’ 111. Let me fix it.
+
+Family 1 done and tested (206 pass). Let me checkpoint-commit it before building the rest. Recording the science first.
+
+Family 1 committed (`846c641`). Now families 2â€“4, which form one new module (token-entry triggers, sac-outletâ†’dies, and the typed-cost/permanent-consumption layer). Given the continuity lesson from pt5, I'll delegate the implementation to a sub-agent with the corpus + design + a **mandatory continuity/grounding gate**, then verify independently as I did for equip.
+
+The sub-agent reports success with the continuity gate in place â€” but given the equip experience, I'll independently verify (continuity, grounding, no-reverse, signatures) rather than trust the self-report.
+
+Independent verification confirms genuine continuity: **0 discontinuous, 0 endpoint mismatches, 0 unresolved edges, 0 signature violations** â€” a real improvement over the first equip build. But one family-3 target looks wrong: **The Great Goblin** as a dies-trigger. Let me check â€” its earlier oracle was a counter trigger, not a death trigger.
+
+The Great Goblin *does* have a death-watcher clause ("whenever another Goblin/Orc/Army you control dies"), but the frozen graph mislabeled it â€” `event:dies` triggers its **counter** ability (`a2`), not the dies clause. So family 3's Tomâ†’Great Goblin routes through the wrong ability (a frozen mislabel it inherits). Let me make family 3 rules-grounded â€” only target abilities genuinely triggered by death. Let me read the family-3 code.
+
+Family 3 inherits whatever the frozen `event:dies` triggers, including the mislabeled Great Goblin counter ability. Let me check the target ability nodes to find a rules-grounded filter for genuine death triggers.
+
+I was wrong to suspect it â€” the `a2` node data confirms The Great Goblin *is* a genuine death-watcher (`trigger.event = creature_dies`, "whenever another Goblin, Orc, or Army you control dies"). All 5 family-3 targets are real dies-triggers. The layer is verified sound: **0 discontinuity, 0 signature violations, correct family-4 targets, genuine family-3 dies-triggers**. Now integrate it (mirroring equip). Let me clean up and wire coverage.
+
+Now the pair_index column, modules `_Graph`, query `_LAYERS`, and structural-validation loop.
+
+Now update the coverage union test for the completeness layer (28 nodes / 101 edges) and regenerate.
+
+Two failures (same pattern as before). Let me check the coverage numbers and fix the modules test union.
+
+Coverage numbers are correct (3235, 101, 28). Let me fix the modules test union and re-check the coverage test.
+
+The relations_union assertion still sums only 5 layers. Let me add completeness.
+
+218 pass. Let me regenerate deterministically, verify frozen graph + determinism, and spot-check a flagship query.
+
+Frozen graph untouched. Let me confirm determinism and render a flagship pair.
+
+Deterministic, and the flagship renders a continuous grounded path (`Crude â†’ artifact â† CONSUMES â† sac-op â† â€¦ â† Stir Up Trouble`) with no reverse â€” exactly pt6's ask. Let me mark tasks done and record the science.
+
+Now commit and push the completeness batch (families 2â€“4).
+
+The staged set is the intended completeness batch. Committing and pushing.
+
+All four completeness families are done and pushed (`526bbb0`). Let me update the continuity anchors (HANDOFF + memory) to reflect the completeness layer, then summarize.
+
+All done â€” the full completeness batch is built, verified, committed, and pushed. Final state:
+
+## Completeness batch complete (all four families)
+- **1/4 â€” Second-draw canonicalization** (`846c641`): all 16 genuine draw ops now feed the turn counter (was 4), so Master's Councillors enablers went 13â†’25. KÃ­li's "reveal + put in hand" tutor correctly excluded (rules-correct â€” not a draw).
+- **2/4 â€” Token-entry triggers**: token creators â†’ Belladonna Took (`event:token-you-control-enters`).
+- **3/4 â€” Sacrifice-outlet â†’ dies-triggers**: creature-sacrificing outlets (Tom, Bert & William, etc.) â†’ dies-triggered abilities; Stone-Giant excluded (artifacts only).
+- **4/4 â€” General typed-cost + permanent-consumption**: `gate:completeness:sac-cost:*` + `CONSUMES obj:type:{artifact,creature}`; every controlled permanent â†’ sac-cost card via `SATISFIES_SACRIFICE_COST`. **pt6's flagship satisfied**: Crude Bent Blade â†’ Stir Up Trouble and â†’ Snowslope Hunter, continuous and grounded.
+
+(2â€“4 committed in `526bbb0`; HANDOFF refresh in `a51b832`.)
+
+## How I applied the pt5 lesson
+The new `completeness` layer was built by a sub-agent with a **mandatory continuity gate** â€” but I did **not** trust the self-report. I independently recomputed: **0 discontinuous step-joins, 0 endpoint mismatches, 0 unresolved edges, 0 signature violations**, and I checked the one target that looked suspicious (The Great Goblin â€” confirmed it *is* a genuine death-watcher, `trigger.event = creature_dies`; the graph was right, my suspicion wrong). Both `equip` and `completeness` `reproject()` now self-gate `paths_continuous`/`paths_card_grounded`, and the tests assert it per-metaedge.
+
+## State of the graph
+- **6 projection tiers**, unified `coverage.json` = **3,235 edges / 9,967 relations, 0 provenance gaps, all conditions resolve**; `pair_index` = 37,249 pairs across 6 columns.
+- **218 tests pass**, deterministic, frozen Phase 4 + Phase 5 byte-untouched (every new layer is additive).
+- Every gap the gold-set + pt5/pt6 reviews surfaced is now closed.
+
+The one thing that genuinely remains for full-spec acceptance is **independent human semantic validation** â€” that's yours to do (the query CLI surfaces everything needed). Everything else â€” construction pipeline, 37,249-pair index, all repair/legend/mechanism/equip/completeness layers, modules, coverage, provenance, invariants #1â€“#17 â€” is in place. Ready for your review of the completeness batch (`526bbb0`) whenever you are.
+
+### [2026-08-16 22:23] USER
+read hob-kg-phase6-review-pt7.md

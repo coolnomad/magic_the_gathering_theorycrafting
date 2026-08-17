@@ -187,21 +187,42 @@ def test_family4_crude_bent_blade_satisfies_sac_costs(crel):
 
 
 def test_family4_no_reverse_relation(crel):
-    # target of SATISFIES_SACRIFICE_COST is ALWAYS a sac-cost card; source ALWAYS a permanent
+    # target of a sacrifice relation is ALWAYS a sac-outlet card; source ALWAYS a permanent
     sac_cards = set()
     names = _card_names()
     for fid in comp.SAC_OUTLETS:
         sac_cards.add(comp._card_of(fid))
     permanents = _permanent_cards("obj:type:artifact") | _permanent_cards("obj:type:creature")
-    fam4 = [m for m in crel if m["relation"] == "SATISFIES_SACRIFICE_COST"]
+    fam4 = [m for m in crel if m["relation"] in ("SATISFIES_SACRIFICE_COST", "IS_ELIGIBLE_SACRIFICE_TARGET")]
     assert fam4
     for m in fam4:
-        assert m["target_card"] in sac_cards, f"target {names.get(m['target_card'])} not a sac-cost card"
+        assert m["target_card"] in sac_cards, f"target {names.get(m['target_card'])} not a sac-outlet card"
         assert m["source_card"] in permanents, "source is not a controlled permanent"
         # the sacrificed type is one the outlet accepts, and the path consumes that type
         assert m["sacrificed_type"] in ("artifact", "creature")
         cls = comp.OBJ_TYPE_ARTIFACT if m["sacrificed_type"] == "artifact" else comp.OBJ_TYPE_CREATURE
         assert cls in m["primitive_path"]
+
+
+def test_family4_cost_vs_effect_distinction(crel):
+    # pt7: a MANDATORY sacrifice cost (activated / additional-cast cost) -> SATISFIES_SACRIFICE_COST;
+    # an OPTIONAL "you may sacrifice" effect -> IS_ELIGIBLE_SACRIFICE_TARGET (NOT a cost, so a deck
+    # analysis must not count these as requiring fodder).
+    n = {v: k for k, v in _card_names().items()}
+    cost_targets = {m["target_card"] for m in crel if m["relation"] == "SATISFIES_SACRIFICE_COST"}
+    elig_targets = {m["target_card"] for m in crel if m["relation"] == "IS_ELIGIBLE_SACRIFICE_TARGET"}
+    # optional-effect outlets are eligible-targets, never costs
+    for name in ("Bolg of the North", "Rhovanion Rampager", "The Sackville-Bagginses"):
+        assert n[name] in elig_targets and n[name] not in cost_targets, f"{name} must be optional (effect)"
+    # genuine cost outlets are costs, never eligible-only
+    for name in ("Stir Up Trouble", "Snowslope Hunter", "Tom, Bert, and William"):
+        assert n[name] in cost_targets and n[name] not in elig_targets, f"{name} must be a real cost"
+    # each relation is consistent with its metaedges' outlet_kind
+    for m in crel:
+        if m["relation"] == "IS_ELIGIBLE_SACRIFICE_TARGET":
+            assert m.get("outlet_kind") == "effect"
+        elif m["relation"] == "SATISFIES_SACRIFICE_COST":
+            assert m.get("outlet_kind") in ("activated_cost", "additional_cast_cost")
 
 
 def test_family4_gate_carries_cost_alternatives(cnodes):
