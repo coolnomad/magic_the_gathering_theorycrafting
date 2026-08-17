@@ -116,6 +116,9 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "sac-extract":
         from . import sac_extract
         print(json.dumps(sac_extract.report(), indent=2))
+    elif cmd == "sac-schema":
+        from . import sac_schema
+        print(json.dumps(sac_schema.report(), indent=2))
     elif cmd == "reproject-lifecycle":
         from . import lifecycle
         print(json.dumps(lifecycle.reproject(), indent=2))
