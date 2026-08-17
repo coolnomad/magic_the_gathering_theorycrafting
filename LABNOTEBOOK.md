@@ -1517,3 +1517,18 @@ Owner directive after the human audit: full repair round, but **"represent each 
 Every "wrong" verdict re-verified resolved in `pair_index.jsonl` (Arkenstone→Rhovanion/Tom MODIFIES; Meager Meal→Belladonna ADDS_COUNTER; Clap! Snap!→Belladonna ENABLES_TRIGGER; reverse/non-eligible pairs stay empty). **Frozen core `edges.jsonl` byte-identical** (asserted by test). **259 tests pass** (+5). This layer is additive + reversible + fully provenance-tagged to the human audit.
 
 Refs: `src/hobkg/audit_repair.py`; `src/hobkg/coverage.py` (pair_index suppression + audit_repair column); `tests/test_audit_repair.py`; `reports/human_audit_findings.md`; `data/graph_global/{card_pair_projection_audit_repair,audit_repair_suppressions,audit_repair_edges,audit_repair_nodes}.jsonl`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] EXTEND — generalize audit_repair Class 2 to ALL anthem/pump cards (source detection)
+
+Owner: "generalize Class 2 to all anthem/pump cards." The original layer grounded the three P/T mechanisms in the three *audited* anchor cards; this generalizes the SOURCE side — every HOB card whose Oracle text matches the mechanism is now a source (detected by pattern, never enumerated by hand).
+
+First enumerated all 79 faces mentioning a P/T pump or `+1/+1` counter and classified them, so the patterns could be verified before wiring. Three conservative, GENERAL detectors (`src/hobkg/audit_repair.py` `_RE_ANTHEM`/`_RE_PUMP`/`_RE_COUNTER`), deliberately excluding the non-general forms: equipment ("Equipped creature …" — already the equip layer's `MODIFIES_WHEN_ATTACHED`), self-pumps ("This creature …" — a self-pair, not cross-card), tribal anthems ("Other Elves/Bears …", "of the chosen type" — Thranduil's is already in graph_repair), and Amass ("… on an Army you control" — a token/Army mechanism). Verified the exact matched source lists:
+- **anthem (5)** → `MODIFIES obj:creature-you-control`: The Arkenstone, Bard's Company, Dwarven Provisioner, Fíli the Pathfinder, Thorin's Last Stand.
+- **targeted-pump (4)** → `MODIFIES obj:target-creature`: Lake-town Toymaker, Reverent Howl, Roads Go Ever, Ever On, Smaug's Fury.
+- **targeted-counter (11)** → `ADDS_COUNTER obj:target-creature`: Meager Meal, Moment of Glory, Duskwatch Hunter, Troll Negotiations, Warg Tactics, Beorn's Hospitality, Bard the Bowman, Bifur, Dancing from Dark to Dawn, Thranduil's Company, The Mountain-king's Return.
+
+Each matching face gets its own canonical object-class edge (grounded in that face's Oracle text); every eligible creature is derived as a pair (deduped by (src,tgt,relation); self-pairs skipped). The tutor/token-enter/tribal-entry mechanisms are unchanged (they are not anthem/pump). **23 class edges (was 6) → 2,359 derived generic pairs (was 462)**; MODIFIES 1004 (anthem 557 + pump 447), ADDS_COUNTER 1227, SUPPLIES_RESOURCE 48, ENABLES_TRIGGER 80. pair_index nonempty 8082 → **9856**; all additions stay `generic:true` / `origin:audit_repair` in the filterable `audit_repair` column; frozen core untouched. **260 tests pass** (+1: asserts the 5/4/11 detected source counts and that a non-audited anthem card — Bard's Company, Dwarven Provisioner — is now a source).
+
+Refs: `src/hobkg/audit_repair.py`; `tests/test_audit_repair.py`; `reports/human_audit_findings.md`; `data/graph_global/{card_pair_projection_audit_repair,audit_repair_edges}.jsonl`; [[phase4-frozen]]

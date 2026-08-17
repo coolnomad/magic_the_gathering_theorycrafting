@@ -90,21 +90,33 @@ class _Cards:
 # --------------------------------------------------------------------------- #
 #  The corrections, grounded in the responsible card's ability (not in pairs)   #
 # --------------------------------------------------------------------------- #
-# ADD/RETYPE: (slug, anchor_card, side, predicate, class_node, eligibility, note, items, retype)
-#   side='targets' → anchor is the SOURCE, derive eligible target cards.
-#   side='sources' → anchor is the TARGET, derive eligible source cards.
-#   retype=(relation, layer) → also suppress this relation on every derived pair (a mis-typed edge).
-_ADDS = [
-    ("arkenstone-anthem", "The Arkenstone", "targets", "MODIFIES", "obj:creature-you-control",
-     "creatures", "Static anthem: 'Creatures you control get +1/+1' modifies every creature you control.",
-     [66, 72, 74], None),
-    ("meager-meal-counter", "Meager Meal", "targets", "ADDS_COUNTER", "obj:target-creature",
-     "creatures", "'Put a +1/+1 counter on up to one target creature' can modify any creature.",
-     [67, 68, 71], None),
-    ("lake-town-toymaker-pump", "Lake-town Toymaker", "targets", "MODIFIES",
-     "obj:another-target-creature-you-control", "creatures",
-     "'another target creature you control gets +3/+0 and gains first strike' modifies a creature.",
-     [75], None),
+import re
+
+# DERIVED P/T mechanisms (Class 2, GENERALIZED): every card whose Oracle text matches the pattern is
+# a source — no hand-picked list. Restricted to the GENERAL 'any creature' forms; equipment
+# ('Equipped creature …', handled by the equip layer), self-pumps ('This creature …'), tribal anthems
+# ('Other Elves/Bears …', partly in graph_repair) and Amass ('… on an Army') are excluded by the
+# patterns. target=every creature (a targeted/your-controlled creature can be any creature).
+_RE_ANTHEM = re.compile(r"\b(?:other )?creatures you control get \+\d+/\+\d+", re.I)
+_RE_PUMP = re.compile(r"\btarget creature(?: you control| an opponent controls)?[^.]*?\bgets? \+\d+/\+\d+", re.I)
+_RE_COUNTER = re.compile(r"\+1/\+1 counter(?:s)? on (?:up to \w+ |two |three |x |a )?(?:other )?"
+                         r"target creature(?: you control)?\b", re.I)
+# (slug, regex, predicate, class_node, note, {audited_source_name: [items]})
+_DERIVED = [
+    ("anthem", _RE_ANTHEM, "MODIFIES", "obj:creature-you-control",
+     "Static/mass anthem: 'creatures you control get +N/+N' modifies every creature you control.",
+     {"The Arkenstone": [66, 72, 74]}),
+    ("targeted-pump", _RE_PUMP, "MODIFIES", "obj:target-creature",
+     "Targeted pump: 'target creature … gets +N/+N' modifies a creature.",
+     {"Lake-town Toymaker": [75]}),
+    ("targeted-counter", _RE_COUNTER, "ADDS_COUNTER", "obj:target-creature",
+     "Targeted +1/+1 counter: 'put a +1/+1 counter on target creature'.",
+     {"Meager Meal": [67, 68, 71]}),
+]
+
+# ANCHORED specific-card mechanisms (NOT anthem/pump; unchanged):
+# (slug, anchor_card, side, predicate, class_node, eligibility, note, items, retype)
+_ANCHORED = [
     ("seek-the-heart-tutor", "Seek the Heart", "targets", "SUPPLIES_RESOURCE",
      "obj:legendary-creature-card", "legendary_creatures",
      "Tutor: 'Search your library for a legendary creature card' supplies that creature.",
@@ -138,27 +150,46 @@ def materialize(repo: Path = REPO) -> dict:
                 "dwarves_or_equipment": C.dwarves_or_equipment(), "token_makers": C.token_makers()}
 
     nodes, edges, pairs, suppressions = [], [], [], []
-    for slug, anchor, side, pred, class_node, elig, note, items, retype in _ADDS:
+    seen = set()
+
+    def add_pair(s, t, rel, slug, prov, retype=None):
+        if s == t or (s, t, rel) in seen:                  # no self-pair; dedupe across mechanisms
+            return
+        seen.add((s, t, rel))
+        pairs.append({"source_card": s, "target_card": t, "relation": rel, "self_pair": False,
+                      "generic": True, "class_edge": slug, "origin": "audit_repair", "provenance": [prov]})
+        if retype:                                         # the new relation REPLACES a mis-typed one
+            suppressions.append({"source_card": s, "target_card": t, "relation": retype[0],
+                                 "layer": retype[1], "reason": f"retyped to {rel} by {slug}",
+                                 "audit_items": prov.get("audit_items")})
+
+    creatures = eligible["creatures"]
+    # DERIVED P/T mechanisms — every matching card is a source (Class 2 generalized to all anthem/pump)
+    for slug, regex, pred, class_node, note, audited in _DERIVED:
+        nodes.append({"id": class_node, "kind": class_node.split(":")[0], "origin": "audit_repair"})
+        for f in sorted(C.faces, key=lambda x: x["id"]):
+            if not regex.search(f.get("oracle_text") or ""):
+                continue
+            prov = {"source": AUDIT + " · Class 2 generalization (all anthem/pump)", "mechanism": slug,
+                    "note": note, "anchor_face": f["id"], "audit_items": audited.get(f["name"])}
+            edges.append({"id": _sid(slug, f["id"], pred, class_node), "source": f["id"],
+                          "predicate": pred, "target": class_node, "origin": "audit_repair",
+                          "generic": True, "provenance": [prov]})
+            for cid in sorted(creatures):
+                add_pair(f["card_id"], cid, pred, slug, prov)
+
+    # ANCHORED specific-card mechanisms (tutor / token-enter / tribal-entry)
+    for slug, anchor, side, pred, class_node, elig, note, items, retype in _ANCHORED:
         anchor_face = C.face_id(anchor)
         anchor_card = C.card_of_name(anchor)
         nodes.append({"id": class_node, "kind": class_node.split(":")[0], "origin": "audit_repair"})
         prov = {"source": AUDIT, "audit_items": items, "note": note, "anchor_face": anchor_face}
-        # canonical class edge (grounded once, at the object-class level)
         e_src, e_tgt = (anchor_face, class_node) if side == "targets" else (class_node, anchor_face)
         edges.append({"id": _sid(slug, e_src, pred, e_tgt), "source": e_src, "predicate": pred,
                       "target": e_tgt, "origin": "audit_repair", "generic": True, "provenance": [prov]})
-        # derive eligible card pairs mechanically
         for cid in sorted(eligible[elig]):
-            if cid == anchor_card:
-                continue                                   # no self-pair from a class expansion
             s, t = (anchor_card, cid) if side == "targets" else (cid, anchor_card)
-            pairs.append({"source_card": s, "target_card": t, "relation": pred, "self_pair": False,
-                          "generic": True, "class_edge": slug, "origin": "audit_repair",
-                          "provenance": [prov]})
-            if retype:                                     # the new relation REPLACES a mis-typed one
-                suppressions.append({"source_card": s, "target_card": t, "relation": retype[0],
-                                     "layer": retype[1], "reason": f"retyped to {pred} by {slug}",
-                                     "audit_items": items})
+            add_pair(s, t, pred, slug, prov, retype)
 
     for src, tgt, rel, layer, note, items in _SUPPRESS:
         suppressions.append({"source_card": C.card_of_name(src), "target_card": C.card_of_name(tgt),

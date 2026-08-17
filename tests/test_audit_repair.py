@@ -25,16 +25,34 @@ def _pair_index():
 
 def test_materialize_is_object_class_and_generic():
     s = audit_repair.materialize()
-    assert s["class_edges"] == 6                      # one canonical edge per corrected mechanism
-    assert s["derived_pairs"] == 462 and s["suppressions"] == 34
+    # Class 2 generalized to ALL anthem/pump cards: 5 anthem + 4 pump + 11 counter + 3 anchored
+    assert s["class_edges"] == 23
+    assert s["derived_pairs"] == 2359 and s["suppressions"] == 34
     pairs = _load_dicts(G / "card_pair_projection_audit_repair.jsonl")
     assert pairs and all(p["generic"] and p["origin"] == "audit_repair" for p in pairs)
     assert all(not p["self_pair"] for p in pairs)     # a class expansion never yields a self-pair
     # counts follow eligibility, not a hand-picked pair list
     from collections import Counter
     by = Counter(p["relation"] for p in pairs)
-    assert by["MODIFIES"] == 223 and by["ADDS_COUNTER"] == 111
+    assert by["MODIFIES"] == 1004 and by["ADDS_COUNTER"] == 1227
     assert by["SUPPLIES_RESOURCE"] == 48 and by["ENABLES_TRIGGER"] == 80
+
+
+def test_class2_generalized_to_all_matching_cards_not_just_audited():
+    audit_repair.materialize()
+    pairs = _load_dicts(G / "card_pair_projection_audit_repair.jsonl")
+    n2c = _n2c()
+    srcs = {}
+    for p in pairs:
+        srcs.setdefault(p["class_edge"], set()).add(p["source_card"])
+    # every card whose Oracle matches the mechanism is a source (detected, not enumerated by hand)
+    assert len(srcs["anthem"]) == 5 and len(srcs["targeted-pump"]) == 4
+    assert len(srcs["targeted-counter"]) == 11
+    # a NON-audited anthem card (Bard's Company) is now a source, proving generalization
+    assert n2c["Bard's Company"] in srcs["anthem"]
+    assert n2c["Dwarven Provisioner"] in srcs["anthem"]
+    # the originally-audited anchors are still covered
+    assert n2c["The Arkenstone"] in srcs["anthem"] and n2c["Meager Meal"] in srcs["targeted-counter"]
 
 
 def test_suppressions_remove_the_wrong_relations():

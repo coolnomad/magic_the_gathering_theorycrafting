@@ -1,6 +1,5 @@
 {"id": "obj:creature-you-control", "kind": "obj", "origin": "audit_repair"}
 {"id": "obj:target-creature", "kind": "obj", "origin": "audit_repair"}
-{"id": "obj:another-target-creature-you-control", "kind": "obj", "origin": "audit_repair"}
 {"id": "obj:legendary-creature-card", "kind": "obj", "origin": "audit_repair"}
 {"id": "event:token-you-control-enters", "kind": "event", "origin": "audit_repair"}
 {"id": "event:another-dwarf-or-equipment-enters", "kind": "event", "origin": "audit_repair"}

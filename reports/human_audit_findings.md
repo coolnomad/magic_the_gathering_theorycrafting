@@ -83,11 +83,19 @@ own `audit_repair` column of `pair_index.jsonl`, so the object-class expansions 
   Resourceful (32 derived) and **suppresses** the mechanism-layer `SUPPLIES_RESOURCE` it replaces;
   Plunder → Uncover's coincidental `SUPPLIES_RESOURCE` is **suppressed** (the real cast-trigger
   `ENABLES_TRIGGER` was already present in the mechanism layer).
-- **Class 2** — add: `MODIFIES obj:creature-you-control` (Arkenstone anthem → 112 creatures);
-  `ADDS_COUNTER obj:target-creature` (Meager Meal → creatures); `MODIFIES` (Lake-town Toymaker →
-  creatures); `SUPPLIES_RESOURCE obj:legendary-creature-card` (Seek the Heart tutor → 48 legendary
-  creatures); `ENABLES_TRIGGER event:token-you-control-enters` (48 token-makers → Belladonna Took).
-  6 class edges → **462 derived generic pairs**.
+- **Class 2** — add, **generalized to ALL anthem/pump cards** (sources detected by Oracle pattern,
+  not the three audited anchors): `MODIFIES obj:creature-you-control` for the **5** mass-anthem cards
+  ("creatures you control get +N/+N": The Arkenstone, Bard's Company, Dwarven Provisioner, Fíli the
+  Pathfinder, Thorin's Last Stand); `MODIFIES obj:target-creature` for the **4** targeted-pump cards
+  (Lake-town Toymaker, Reverent Howl, Roads Go Ever, Ever On, Smaug's Fury); `ADDS_COUNTER
+  obj:target-creature` for the **11** targeted-+1/+1-counter cards (Meager Meal, Moment of Glory,
+  Duskwatch Hunter, Troll Negotiations, Warg Tactics, Beorn's Hospitality, Bard the Bowman, Bifur,
+  Dancing from Dark to Dawn, Thranduil's Company, The Mountain-king's Return). Equipment
+  ("Equipped creature …"), self-pumps ("This creature …"), tribal anthems ("Other Elves …", partly
+  in graph_repair) and Amass ("… on an Army") are excluded by the patterns. Plus the two anchored
+  mechanisms: tutor `SUPPLIES_RESOURCE` (Seek the Heart → 48 legendary creatures) and token-enter
+  `ENABLES_TRIGGER` (48 token-makers → Belladonna Took). **23 class edges → 2,359 derived generic
+  pairs.**
 - **Class 3** — suppress: the false `ENABLES_TRIGGER` self-loop on Head of the Hunt.
 - **Class 4** — precision note (no graph change): the `self_pairs` reflexivity label conflates a
   genuine self-referential static (e.g. Woodland Weavemaster's mana ability, #114) with an effect that
