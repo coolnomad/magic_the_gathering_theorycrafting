@@ -1468,3 +1468,17 @@ Net: this commit changed the parser (subtype field, `non-` guard) and the evalua
 Remaining measured backlog (unchanged targets, now with corrected baselines): subtype-fodder DETECTION (Quina, pinned); distinguish sacrifice-as-consequence / reminder text from outlets (the 4 FP faces); read "other" as `another` (Sephiroth OWA); don't treat "When you do" as a trigger (Eden); propagate modal trigger context to all options (Gaius clauses 1–2).
 
 Refs: `src/hobkg/sac_schema.py`; `tools/build_fin_fixture.py`; `tests/{test_sac_schema.py,test_sac_setwide.py}`; `tests/fixtures/fin_sacrifice_setwide.jsonl`; `reports/sac_schema_portability.md`; `docs/hob_portability_review_pt2.md`; [[tracer-bullet-portability]]
+
+---
+
+## [2026-08-17] METHOD — build the HUMAN HOB audit packet (the final acceptance instrument)
+
+The one remaining formal acceptance step for the frozen HOB graph ([[phase4-frozen]]) is **independent human semantic validation**. The prior five-adversarial-sub-agent pass (`reports/manual_gold_set_review.md`) explicitly states it is NOT a substitute for an external human's final adjudication. The user (the external human) asked to do that audit now, choosing a **full worksheet** they adjudicate offline. So this step builds the *instrument*, not another AI review — the honest human/agent distinction the recent portability reviews hammered.
+
+**`tools/build_human_audit.py`** (deterministic; reads only frozen inputs) → **`reports/human_audit_worksheet.md`** (128 gold-set items across 9 strata) + **`data/review/human_audit_items.jsonl`** (one structured row per item, for recording verdicts later). Each item renders: the card(s)' PRINTED Oracle text (from `data/normalized/faces.jsonl`), the graph's claim in plain English, the relevant CR anchor, and a `[ ] correct / [ ] wrong / [ ] unsure` + Notes field.
+
+Key correctness decisions: (1) for the 47 multi-edge pairs, the worksheet renders the **actual directed edges** looked up from `data/graph_global/pair_index.jsonl` (source→target), never assuming the gold item's name order is the edge direction — I verified each relation's true orientation against the frozen projection (e.g. sacrifice-fodder relations point fodder→outlet; `CONTRIBUTES_TO_GATE` points contributor→gate-owner; an earlier gloss had it backwards and was fixed). (2) The full 7-layer projection asserts MORE relations per pair than the original gold `relation_combination` subset (later completeness/lifecycle layers add real cross-layer claims like a creature `SATISFIES_SACRIFICE_COST` of an adventure's "sacrifice a creature"); all are shown and audited, with an informational note. (3) The **15 items the sub-agent pass flagged are marked ⚠** and pre-annotated (Óin's possible spurious `QUALIFIES_FOR gate:storied`; the missed token-enters payoff links to Belladonna Took; the missed sacrifice-outlet→dies-trigger links to Rhovanion Rampager; the Nori→Kíli `SUPPLIES_RESOURCE` vs `ENABLES_TRIGGER` label) so the human looks closely.
+
+Status: instrument delivered; awaiting the user's adjudicated verdicts. Next: record verdicts into `human_audit_items.jsonl`, then act on any confirmed errors (note: some flagged fixes touch the FROZEN Phase-4 graph — e.g. Óin's storied edge — and would need a sanctioned corrective re-freeze).
+
+Refs: `tools/build_human_audit.py`; `reports/human_audit_worksheet.md`; `data/review/human_audit_items.jsonl`; `data/graph_global/{structural_validation_set,pair_index}.jsonl`; `reports/manual_gold_set_review.md`; [[phase4-frozen]]
