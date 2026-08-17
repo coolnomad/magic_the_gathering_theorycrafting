@@ -1580,3 +1580,18 @@ Review `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt1.md` acce
 Every census row stays `pending_structuring`. **274 tests pass.** Frozen artifacts byte-identical (manifest + pinned-digest tests green). Phase 2 (destruction) unaffected; next is Phase 3 (remaining targeted-object effects), on go-ahead.
 
 Refs: `src/hobkg/effect_semantics.py` (clause-level census, 32 families); `tests/{test_effect_census.py,test_frozen_manifest.py}`; `reports/effect_census.md`; `data/graph_global/effect_census.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt1.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] CORRECTION — Effect-semantics Phase 1.2: complete clause ledger (review PHASE1 pt2)
+
+Review `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt2.md` accepted the pt1 corrections but flagged one remaining completeness hole: the census only emitted clauses with a detector match, so a material effect lacking a family (e.g. Iron Hills Stalwart's attachment, Glóin the Mighty's mana production) vanished — making the eventual "every material clause got a disposition" claim un-auditable. Fixed here (census only; no projection; frozen core byte-identical).
+
+1. **Emit EVERY segmented clause.** `census()` now writes a row for every `(ability, mode)` clause, including those with **zero detected families** — `families: []`, `disposition: "pending_classification"` (matched clauses keep `pending_structuring`). An undetected effect (or a future detector gap) is now recorded, not silently dropped, and can't hide inside a paragraph that matched another family.
+2. **Added `attachment` + `mana_production` families** (34 total), with all-clause emission as the durable safeguard against future omissions. Verified: Iron Hills Stalwart's "attach target Equipment … to … target creature" → `attachment`; Glóin's "add {R}{R}" → `mana_production`.
+3. **Removed the 260-char `clause_text` truncation** — full text stored (longest = Bolg of the North, 378 chars).
+4. **Regression + coverage tests** (`tests/test_effect_census.py`): Iron Hills Stalwart attach + Glóin mana clauses present; zero-family clauses are `pending_classification`; `clause_text` untruncated; and **every nonempty Oracle paragraph on all 210 faces maps to a clause span** (gate #6) — the sole face with no clause is Ordinary Bear (empty Oracle, a French-vanilla creature; a recorded, legitimate exception).
+
+Census now: **408 clauses / 209 faces** (326 with a family, **82 zero-family pending_classification**), 34 families, 163 multi-family. **277 tests pass.** Frozen artifacts byte-identical (manifest + pinned-digest green). Per the reviewer this makes Phase 1 genuinely complete; Phase 2 (destruction) unaffected. Next: Phase 3 (remaining targeted-object effects), on go-ahead.
+
+Refs: `src/hobkg/effect_semantics.py` (all-clause emission, 34 families, full clause_text); `tests/test_effect_census.py`; `reports/effect_census.md`; `data/graph_global/effect_census.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt2.md`; [[phase4-frozen]]

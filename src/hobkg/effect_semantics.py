@@ -69,6 +69,8 @@ _FAMILIES = [
     ("delayed", r"\bat the beginning of the next\b|\buntil your next\b|\bwhen you do\b|"
      r"\bthen (?:exile|sacrifice|return) (?:it|that|them)\b|\bat the beginning of your next\b", "lifecycle (delayed sac)"),
     ("replacement", r"\bwould\b[^.]*?\binstead\b|\benters with\b|\bas [^.]{1,45} enters\b", "legend_rule (SBA)"),
+    ("attachment", r"\battach(?:es|ed|ing)?\b|\bequip\b", "equip layer"),
+    ("mana_production", r"\badds?\b[^.]*?(?:\{[WUBRGCXSP0-9/]+\}|\bmana\b)", "infrastructure/mechanism (mana)"),
 ]
 _FAMILIES = [(n, re.compile(p, re.I), c) for n, p, c in _FAMILIES]
 
@@ -150,17 +152,18 @@ def census(repo: Path = REPO) -> dict:
                     g["matches"].append({"family": family, "match_span": abspan, "snippet": m.group(0)[:60],
                                          "sentence_index": c["sentence_index"],
                                          "in_reminder": _in_reminder(abspan, rem)})
+        # emit EVERY segmented clause, even with zero detected families (review pt2): an undetected
+        # material effect (attachment, mana, or a future gap) is then recorded, not silently dropped.
         for (ai, mi), g in sorted(groups.items(), key=lambda kv: (kv[0][0], kv[0][1] if kv[0][1] is not None else -1)):
-            if not g["matches"]:
-                continue
             fams = sorted({m["family"] for m in g["matches"]})
             clause_id = f"{f['id']}#a{ai}" + (f".m{mi}" if mi is not None else "")
             rows.append({"clause_id": clause_id, "face_id": f["id"], "name": f["name"],
                          "ability_index": ai, "mode_kind": g["mode_kind"], "mode_index": mi,
-                         "clause_span": [g["start"], g["end"]], "clause_text": text[g["start"]:g["end"]].strip()[:260],
+                         "clause_span": [g["start"], g["end"]],
+                         "clause_text": text[g["start"]:g["end"]].strip(),   # FULL text, not truncated
                          "families": fams, "matches": sorted(g["matches"], key=lambda m: m["match_span"]),
                          "clause_in_reminder": _in_reminder([g["start"], g["end"]], rem),
-                         "disposition": "pending_structuring"})
+                         "disposition": "pending_structuring" if fams else "pending_classification"})
     out = repo / "data" / "graph_global" / "effect_census.jsonl"
     with out.open("w", encoding="utf-8", newline="\n") as fh:
         for r in rows:
@@ -176,8 +179,11 @@ def census(repo: Path = REPO) -> dict:
         summary.append({"family": family, "faces_with_candidate": len(real_faces),
                         "reminder_only_faces": len(rem_only), "clauses": len(fam_clauses),
                         "heuristic_reference": _HEURISTIC.get(family), "prior_coverage": cov})
-    _write_report(repo, summary, len({r["face_id"] for r in rows}), len(faces), len(rows))
-    return {"faces": len(faces), "clauses_with_candidate": len(rows),
+    matched = sum(1 for r in rows if r["families"])
+    unclassified = len(rows) - matched
+    _write_report(repo, summary, len({r["face_id"] for r in rows}), len(faces), len(rows), unclassified)
+    return {"faces": len(faces), "total_clauses": len(rows), "clauses_with_family": matched,
+            "clauses_pending_classification": unclassified,
             "faces_with_any_candidate": len({r["face_id"] for r in rows}),
             "families": len(_FAMILIES), "multi_family_clauses": sum(1 for r in rows if len(r["families"]) > 1),
             "summary": summary}
@@ -309,16 +315,18 @@ def _writej(path: Path, rows: list):
             fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
 
 
-def _write_report(repo, summary, faces_with_any, total_faces, total_clauses):
-    L = ["# HOB effect-family census (Phase 1.1 — clause-level completeness ledger)", "",
+def _write_report(repo, summary, faces_with_any, total_faces, total_clauses, unclassified):
+    L = ["# HOB effect-family census (Phase 1.2 — complete clause ledger)", "",
          "Deterministic scan of **all Oracle text on all faces** (permanents included), grouped into "
-         "semantic **clauses** (one row per clause, carrying `clause_span`, per-family `match_span`s, "
-         "ability/mode/sentence indices, and every family detected in the clause). Detectors are broad "
-         "CANDIDATE catchers; reminder-text hits are flagged, not removed. Every clause's disposition "
-         "is `pending_structuring` until its phase adjudicates it. Heuristic reference counts are from "
-         "the instructions and are NOT acceptance values.", "",
-         f"- faces scanned: **{total_faces}**  · faces with ≥1 candidate: **{faces_with_any}**  · "
-         f"candidate clauses: **{total_clauses}**", "",
+         "semantic **clauses** (one row per (ability, mode) clause, carrying `clause_span` + full "
+         "`clause_text`, per-family `match_span`s, ability/mode/sentence indices, and every family "
+         "detected). **EVERY segmented clause is emitted, even with zero detected families** "
+         "(`families: []`, `disposition: pending_classification`) so no material effect can be dropped "
+         "for lack of a detector. Detectors are broad CANDIDATE catchers; reminder-text hits are "
+         "flagged, not removed. Heuristic reference counts are from the instructions and are NOT "
+         "acceptance values.", "",
+         f"- faces scanned: **{total_faces}**  · faces with a clause: **{faces_with_any}**  · "
+         f"total clauses: **{total_clauses}**  · zero-family (pending_classification): **{unclassified}**", "",
          "| family | faces w/ candidate | reminder-only | clauses | heuristic ref | prior-layer coverage |",
          "|---|---:|---:|---:|---:|---|"]
     for s in summary:

@@ -1,8 +1,8 @@
-# HOB effect-family census (Phase 1.1 — clause-level completeness ledger)
+# HOB effect-family census (Phase 1.2 — complete clause ledger)
 
-Deterministic scan of **all Oracle text on all faces** (permanents included), grouped into semantic **clauses** (one row per clause, carrying `clause_span`, per-family `match_span`s, ability/mode/sentence indices, and every family detected in the clause). Detectors are broad CANDIDATE catchers; reminder-text hits are flagged, not removed. Every clause's disposition is `pending_structuring` until its phase adjudicates it. Heuristic reference counts are from the instructions and are NOT acceptance values.
+Deterministic scan of **all Oracle text on all faces** (permanents included), grouped into semantic **clauses** (one row per (ability, mode) clause, carrying `clause_span` + full `clause_text`, per-family `match_span`s, ability/mode/sentence indices, and every family detected). **EVERY segmented clause is emitted, even with zero detected families** (`families: []`, `disposition: pending_classification`) so no material effect can be dropped for lack of a detector. Detectors are broad CANDIDATE catchers; reminder-text hits are flagged, not removed. Heuristic reference counts are from the instructions and are NOT acceptance values.
 
-- faces scanned: **210**  · faces with ≥1 candidate: **196**  · candidate clauses: **294**
+- faces scanned: **210**  · faces with a clause: **209**  · total clauses: **408**  · zero-family (pending_classification): **82**
 
 | family | faces w/ candidate | reminder-only | clauses | heuristic ref | prior-layer coverage |
 |---|---:|---:|---:|---:|---|
@@ -38,6 +38,8 @@ Deterministic scan of **all Oracle text on all faces** (permanents included), gr
 | `restriction` | 13 | 5 | 18 | — | — |
 | `delayed` | 7 | 3 | 10 | — | lifecycle (delayed sac) |
 | `replacement` | 7 | 8 | 16 | — | legend_rule (SBA) |
+| `attachment` | 20 | 0 | 25 | — | equip layer |
+| `mana_production` | 12 | 11 | 23 | — | infrastructure/mechanism (mana) |
 
 All dispositions are `pending_structuring`; see `docs/hob_effect_semantics_repair_instructions.md` for the required dispositions and the per-family structuring plan. A clause may list several families (e.g. Warg Tactics mode-1 carries `add_counter` + `grant_ability`) so it is adjudicated once, consistently.
 
