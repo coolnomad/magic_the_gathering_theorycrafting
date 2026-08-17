@@ -1500,3 +1500,20 @@ The project owner (external human) adjudicated all 128 gold-set items in `report
 **Acceptance:** the frozen HOB graph PASSES independent human validation on the designed gold set — zero directional errors, zero wrong assertions in the structural strata; the 12 non-correct items are a bounded, characterized backlog of additions + one correction. **Disposition of each class awaits the owner's go-ahead** (Class 3 / any frozen-graph edit needs a sanctioned corrective re-freeze; Classes 1–2 are additive layers). Instrument + verdicts + findings committed.
 
 Refs: `reports/human_audit_findings.md`; `data/review/human_audit_verdicts.jsonl`; `reports/human_audit_worksheet.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] BUILD — `audit_repair` layer: apply the human-audit corrections (all 4 classes) additively
+
+Owner directive after the human audit: full repair round, but **"represent each mechanism once at the object-class level and derive all eligible card pairs mechanically. Mark the projections as generic object-class expansions and make them filterable. Do not add audited-pair special cases. The frozen core remains untouched."** Investigation confirmed the affected relations are all **projection/classification-level** (0 `SUPPLIES_RESOURCE` edges exist in the frozen core; the mis-labels come from `project.py`/mechanism-layer path classification), so a new additive layer — not a core edit — is the right instrument.
+
+**`src/hobkg/audit_repair.py`** (`python -m hobkg.cli audit-repair`): 6 canonical object-class edges (each grounded in the responsible card's Oracle text + the audit item), from which eligible card pairs are derived by **card characteristics** (types/subtypes/supertypes/oracle), never by hard-coding a pair. Emits `audit_repair_{nodes,edges}.jsonl`, `card_pair_projection_audit_repair.jsonl` (462 derived pairs, each `generic:true` / `origin:audit_repair`), and `audit_repair_suppressions.jsonl` (34). `coverage.pair_index` now applies suppressions across layers and adds a filterable `audit_repair` column.
+
+- **Class 1 (retype):** `kili-tribal-entry` → `ENABLES_TRIGGER` for every Dwarf/Equipment → Kíli the Resourceful (32 derived from subtypes), and suppresses the mechanism-layer `SUPPLIES_RESOURCE` it replaces (#54); Plunder→Uncover coincidental `SUPPLIES_RESOURCE` suppressed — the real cast-trigger `ENABLES_TRIGGER` was already in the mechanism layer (#58). This encodes the owner's principle: a card *consuming* fodder (a cost) ≠ a card being *triggered* (no consumption).
+- **Class 2 (add):** anthem `MODIFIES obj:creature-you-control` (Arkenstone → 112 creatures); targeted `ADDS_COUNTER obj:target-creature` (Meager Meal); targeted `MODIFIES` (Lake-town Toymaker); tutor `SUPPLIES_RESOURCE obj:legendary-creature-card` (Seek the Heart → 48 legendary creatures); token-enter `ENABLES_TRIGGER event:token-you-control-enters` (48 token-makers → Belladonna Took). Counts follow eligibility (MODIFIES 223 = 112+111; ENABLES_TRIGGER 80 = 48+32).
+- **Class 3 (suppress):** the false `ENABLES_TRIGGER` self-loop on Head of the Hunt (#111) — the token trigger fires from an opponent's creature, not from itself.
+- **Class 4 (note only):** `self_pairs` reflexivity conflates genuine reflexive statics with triggers-on-a-copy (#114/#115); documented in `reports/human_audit_findings.md` for a future self-pair split.
+
+Every "wrong" verdict re-verified resolved in `pair_index.jsonl` (Arkenstone→Rhovanion/Tom MODIFIES; Meager Meal→Belladonna ADDS_COUNTER; Clap! Snap!→Belladonna ENABLES_TRIGGER; reverse/non-eligible pairs stay empty). **Frozen core `edges.jsonl` byte-identical** (asserted by test). **259 tests pass** (+5). This layer is additive + reversible + fully provenance-tagged to the human audit.
+
+Refs: `src/hobkg/audit_repair.py`; `src/hobkg/coverage.py` (pair_index suppression + audit_repair column); `tests/test_audit_repair.py`; `reports/human_audit_findings.md`; `data/graph_global/{card_pair_projection_audit_repair,audit_repair_suppressions,audit_repair_edges,audit_repair_nodes}.jsonl`; [[phase4-frozen]]

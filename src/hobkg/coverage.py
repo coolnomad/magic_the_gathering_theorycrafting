@@ -207,35 +207,38 @@ def pair_index(repo: Path = REPO) -> dict:
     its mechanical, audited, repaired, and mechanism-repair relations (empty pairs included)."""
     G = repo / "data" / "graph_global"
     cards = sorted(c["id"] for c in _load_dicts(repo / "data/normalized/cards.jsonl"))
-    mech, aud, rep, mch, eqp, cmp, lif = (defaultdict(list) for _ in range(7))
-    for m in _load_dicts(G / "card_pair_projection.jsonl"):
-        mech[(m["source_card"], m["target_card"])].append(m["relation"])
-    for m in _opt(G / "card_pair_projection_audit.jsonl"):
-        aud[(m["source_card"], m["target_card"])].append(m["relation"])
-    for m in _opt(G / "card_pair_projection_repaired.jsonl"):
-        rep[(m["source_card"], m["target_card"])].append(m["relation"])
-    for m in _opt(G / "card_pair_projection_mechanism.jsonl"):
-        mch[(m["source_card"], m["target_card"])].append(m["relation"])
-    for m in _opt(G / "card_pair_projection_equip.jsonl"):
-        eqp[(m["source_card"], m["target_card"])].append(m["relation"])
-    for m in _opt(G / "card_pair_projection_completeness.jsonl"):
-        cmp[(m["source_card"], m["target_card"])].append(m["relation"])
-    for m in _opt(G / "card_pair_projection_lifecycle.jsonl"):
-        lif[(m["source_card"], m["target_card"])].append(m["relation"])
+    # audit_repair suppressions: (layer, source, target, relation) to drop (human-audit corrections)
+    suppress = {(s["layer"], s["source_card"], s["target_card"], s["relation"])
+                for s in _opt(G / "audit_repair_suppressions.jsonl")}
+    layers = {"mechanical": "card_pair_projection.jsonl", "audited": "card_pair_projection_audit.jsonl",
+              "repaired": "card_pair_projection_repaired.jsonl", "mechanism": "card_pair_projection_mechanism.jsonl",
+              "equip": "card_pair_projection_equip.jsonl", "completeness": "card_pair_projection_completeness.jsonl",
+              "lifecycle": "card_pair_projection_lifecycle.jsonl",
+              "audit_repair": "card_pair_projection_audit_repair.jsonl"}
+    data = {k: defaultdict(list) for k in layers}
+    n_suppressed = 0
+    for lay, fn in layers.items():
+        rows = _load_dicts(G / fn) if lay == "mechanical" else _opt(G / fn)
+        for m in rows:
+            if (lay, m["source_card"], m["target_card"], m["relation"]) in suppress:
+                n_suppressed += 1
+                continue                                   # human audit retracted/retyped this relation
+            data[lay][(m["source_card"], m["target_card"])].append(m["relation"])
+    order = ["mechanical", "audited", "repaired", "mechanism", "equip", "completeness", "lifecycle",
+             "audit_repair"]
     n, nonempty = 0, 0
     with (G / "pair_index.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for a in cards:
             for b in cards:
-                mr, ar, rr, cr, er, pr, lr = (sorted(d[(a, b)]) for d in (mech, aud, rep, mch, eqp, cmp, lif))
-                total = len(mr) + len(ar) + len(rr) + len(cr) + len(er) + len(pr) + len(lr)
+                rels = {lay: sorted(data[lay][(a, b)]) for lay in order}
+                total = sum(len(v) for v in rels.values())          # audit_repair rows are generic + filterable
                 n += 1
                 nonempty += 1 if total else 0
-                fh.write(json.dumps({"source_card": a, "target_card": b, "self_pair": a == b,
-                                     "mechanical": mr, "audited": ar, "repaired": rr, "mechanism": cr,
-                                     "equip": er, "completeness": pr, "lifecycle": lr,
-                                     "total_relations": total}, sort_keys=True) + "\n")
+                rec = {"source_card": a, "target_card": b, "self_pair": a == b,
+                       "total_relations": total, **rels}
+                fh.write(json.dumps(rec, sort_keys=True) + "\n")
     return {"pair_records": n, "possible_ordered_pairs": len(cards) ** 2,
-            "nonempty_pairs": nonempty, "empty_pairs": n - nonempty}
+            "nonempty_pairs": nonempty, "empty_pairs": n - nonempty, "suppressed": n_suppressed}
 
 
 def structural_validation_set(repo: Path = REPO) -> dict:

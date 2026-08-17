@@ -70,6 +70,33 @@ is a sanctioned corrective re-freeze (needs go-ahead).
 - **#77, #78, #79, #80** — Rhovanion null pairs confirmed; **#80 Gnashing of Teeth** has a replacement
   effect that *prevents* the dies-trigger — correctly null.
 
+## Resolution — additive `audit_repair` layer (`src/hobkg/audit_repair.py`)
+
+All corrections were applied as a new additive layer that **does not touch the frozen core graph**
+(nodes/edges/conditions stay byte-stable; a test asserts it). Each corrected mechanism is represented
+**once at the object-class level** (a canonical class edge grounded in the responsible card's Oracle
+text), and every eligible card pair is **derived mechanically from card characteristics** — no audited
+pair is hard-coded. Derived pairs are tagged `generic:true` / `origin:audit_repair` and land in their
+own `audit_repair` column of `pair_index.jsonl`, so the object-class expansions are **filterable**.
+
+- **Class 1** — retype: `kili-tribal-entry` adds `ENABLES_TRIGGER` for all Dwarf/Equipment → Kíli the
+  Resourceful (32 derived) and **suppresses** the mechanism-layer `SUPPLIES_RESOURCE` it replaces;
+  Plunder → Uncover's coincidental `SUPPLIES_RESOURCE` is **suppressed** (the real cast-trigger
+  `ENABLES_TRIGGER` was already present in the mechanism layer).
+- **Class 2** — add: `MODIFIES obj:creature-you-control` (Arkenstone anthem → 112 creatures);
+  `ADDS_COUNTER obj:target-creature` (Meager Meal → creatures); `MODIFIES` (Lake-town Toymaker →
+  creatures); `SUPPLIES_RESOURCE obj:legendary-creature-card` (Seek the Heart tutor → 48 legendary
+  creatures); `ENABLES_TRIGGER event:token-you-control-enters` (48 token-makers → Belladonna Took).
+  6 class edges → **462 derived generic pairs**.
+- **Class 3** — suppress: the false `ENABLES_TRIGGER` self-loop on Head of the Hunt.
+- **Class 4** — precision note (no graph change): the `self_pairs` reflexivity label conflates a
+  genuine self-referential static (e.g. Woodland Weavemaster's mana ability, #114) with an effect that
+  only triggers on a *second copy* (Woodland Weavemaster's P/T ability; Uncover the Moon-Letters, #115).
+  A future self-pair projection could split "reflexive-static" from "triggers-on-a-copy"; recorded here.
+
+Every "wrong" verdict is resolved and re-verified in `pair_index.jsonl`; frozen core untouched;
+259 tests pass.
+
 ## Acceptance status
 The frozen HOB graph **passes independent human semantic validation** on the designed gold set: 116/128
 correct, zero directional errors, zero wrong assertions in the structural strata. The 12 non-correct
