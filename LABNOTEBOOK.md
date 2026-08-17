@@ -1595,3 +1595,23 @@ Review `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt2.md` acce
 Census now: **408 clauses / 209 faces** (326 with a family, **82 zero-family pending_classification**), 34 families, 163 multi-family. **277 tests pass.** Frozen artifacts byte-identical (manifest + pinned-digest green). Per the reviewer this makes Phase 1 genuinely complete; Phase 2 (destruction) unaffected. Next: Phase 3 (remaining targeted-object effects), on go-ahead.
 
 Refs: `src/hobkg/effect_semantics.py` (all-clause emission, 34 families, full clause_text); `tests/test_effect_census.py`; `reports/effect_census.md`; `data/graph_global/effect_census.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt2.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] CORRECTION — Effect-semantics Phase 2a: fix targeting + complete the schema (review PHASE2 pt1)
+
+Review `docs/hob_effect_semantics_repair_instructions_PHASE2_review_pt1.md` accepted the destruction projection results but required a Phase 2a correction (one blocking bug + schema gaps) before building further families. All 9 items done; existing destruction projections preserved; frozen core byte-identical.
+
+1. **BLOCKING — targeting fixed.** `_DESTROY_RE` consumed `target` before `selector()` computed `"target" in low`, so all 10 effects were `targeted:false`. Now the regex captures the `target|each|all` keyword and passes `targeted`/`quantifier` into `selector()`. All nine explicit-target destroys are `targeted:true`; The Black Arrow's conditional `destroy it` is `targeted:false` (acts on the antecedent); `each/all` would be nontargeted `affects_each`.
+2. **Negative tests** for targeted / nontargeted / mass.
+3. **Schema completed** (`effect_schema.py`): selector gained `supertypes`, `owner`, `zone`, `quantifier`, `affects_each`; added `participant()`, `duration()`, `condition()` resolvers and a `validate_effect()` validator. Each destroy effect is now a validated record with `effect_id`, `participant`, `mode:{kind,index}` (object, not bare strings), `condition`, `duration`, `optional`, `attempt:true` + `zone_transition:{battlefield→graveyard, guaranteed:false}` (distinguishing an ATTEMPT from a guaranteed zone move), and `binding`.
+4. **Supertypes** populated in the selector AND enforced conjunctively in `matches_card`/`matches_token` (removes the stale doc claim).
+5. **Pronoun binding to antecedent:** The Black Arrow's `destroy it` now carries `binding:{kind:antecedent, var:obj0, via:"dealt damage this way", restriction:{subtypes:[dragon]}}` with `selector.var == binding.var` — it destroys the SAME object dealt damage, not a generic Dragon.
+6. **Supports aggregation:** pair projection no longer skips duplicate `(src,tgt,relation)`; it keeps one pair but AGGREGATES all supporting effects/modes in a `supports[]` list (effect_id + mode + span), so alternate mechanisms/provenance are never discarded. (Multimode extraction unit-tested on a synthetic two-mode destroy.)
+7. **OR vs AND type matching:** `matches_card`/`matches_token` use `any()` when `or_types` (disjunction, "artifact or enchantment") and `all()` otherwise (conjunction, "artifact creature" needs both).
+8. **Tests** for schema validation, cross-effect binding, multimode/supports aggregation, and type conjunction (`tests/test_effect_destroy.py`, now 13 tests).
+9. **Stale report sentence corrected:** the census report no longer claims all dispositions are `pending_structuring` (zero-family clauses are `pending_classification`).
+
+Destruction results unchanged (10 effects → 603 pairs; Bilbo/Stir→creatures, Warg→flyers, Stone→power≥4, Pinecone→artifact token specs, Giant's Boulder→permanents, Thorin modal, Azog self-pair). **283 tests pass.** Frozen artifacts byte-identical. Now genuinely a general schema + destruction vertical slice; ready for the remaining targeted-object families (Phase 3), on go-ahead.
+
+Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_destroy.py`; `reports/{effect_semantics,effect_census}.md`; `data/graph_global/{effect_destroy,card_pair_projection_effect}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE2_review_pt1.md`; [[phase4-frozen]]

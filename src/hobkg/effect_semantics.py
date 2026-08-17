@@ -196,7 +196,9 @@ from . import effect_schema as _sch  # noqa: E402
 
 _BULLET = "•"
 _PRONOUNS = {"it", "them", "that creature", "those", "that permanent", "it instead"}
-_DESTROY_RE = re.compile(r"destroys?\s+(?:up to (\w+)\s+)?(other\s+|another\s+)?(?:target\s+)?(.+)", re.I)
+# groups: (1) up-to N, (2) other/another, (3) target|each|all quantifier keyword, (4) object phrase
+_DESTROY_RE = re.compile(
+    r"destroys?\s+(?:up to (\w+)\s+)?(other\s+|another\s+)?(target|each|all)?\s*(.+)", re.I)
 
 
 def _modes(text: str):
@@ -217,32 +219,50 @@ def _blank_reminders(text: str) -> str:
 
 
 def _destroy_effects(face: dict):
-    """Structured DESTROY effects on a face (mode-aware, reminder-free), each with a resolved selector."""
+    """Structured, validated DESTROY effect records on a face (mode-aware, reminder-free): each carries
+    a resolved selector, participant, mode object, condition, duration, targeting/quantifier, and — for
+    a pronoun — a binding to its antecedent object variable (The Black Arrow destroys the same Dragon)."""
     text = _blank_reminders(face.get("oracle_text") or "")
     kind, branches = _modes(text)
     out = []
+    idx = 0
     for br in branches:
         for sentence in br["text"].split("."):
             m = _DESTROY_RE.search(sentence)
             if not m:
                 continue
-            qty, excl, phrase = m.group(1), m.group(2), m.group(3).strip()
-            if phrase.lower().strip() in _PRONOUNS or phrase.lower().startswith(("it ", "them ")):
-                sel = _sch.selector(sentence[:m.start()])   # pronoun: resolve to the sentence's antecedent
-                sel["targeted"] = False
+            qty, excl, qword, phrase = m.group(1), m.group(2), (m.group(3) or "").lower(), m.group(4).strip()
+            pronoun = phrase.lower().strip() in _PRONOUNS or phrase.lower().startswith(("it ", "them "))
+            binding = None
+            if pronoun:
+                # conditional consequence bound to the ANTECEDENT object (not independently targeted)
+                ante = sentence[:m.start()]
+                sel = _sch.selector(ante, var="obj0", targeted=False, quantifier=None)
+                via = "dealt damage this way" if "dealt damage" in ante.lower() else "prior effect"
+                binding = {"kind": "antecedent", "var": "obj0", "via": via,
+                           "restriction": {"subtypes": sel["subtypes"], "card_types": sel["card_types"]}}
             else:
-                sel = _sch.selector(phrase)
+                quant = ("each" if qword == "each" else "all" if qword == "all"
+                         else f"up_to_{_sch._NUM.get((qty or '').lower(), qty)}" if qty
+                         else "target" if qword == "target" else None)
+                sel = _sch.selector(phrase, var="obj0", targeted=(qword == "target"), quantifier=quant)
             if not (sel["card_types"] or sel["subtypes"] or sel["generic_permanent"]):
-                continue                                    # not a real object selector (e.g. "destroy it" w/ no antecedent)
-            if qty:
-                sel["quantity"] = f"up_to_{_sch._NUM.get(qty.lower(), qty.lower())}"
+                continue                                    # not a real object selector
             if excl:
                 sel["exclusions"] = sorted(set(sel["exclusions"]) | {excl.strip().lower()})
             span0 = text.find(m.group(0))
-            out.append({"op": "DESTROY", "relation": "CAN_DESTROY", "selector": sel,
-                        "mode_kind": kind, "mode_index": br["index"], "affects_each": False,
-                        "clause": m.group(0).strip()[:120],
-                        "oracle_span": [span0, span0 + len(m.group(0))] if span0 >= 0 else None})
+            rec = {"effect_id": f"{face['id']}#DESTROY#{idx}", "op": "DESTROY", "relation": "CAN_DESTROY",
+                   "participant": _sch.participant(sentence), "selector": sel,
+                   "mode": {"kind": kind, "index": br["index"]},
+                   "condition": _sch.condition(sentence), "duration": _sch.duration(sentence),
+                   "optional": bool(qty) or "may destroy" in sentence.lower(),
+                   "targeted": sel["targeted"], "affects_each": sel["affects_each"],
+                   "attempt": True,                          # destruction is an ATTEMPT (indestructible can stop it)
+                   "zone_transition": {"from": "battlefield", "to": "graveyard", "guaranteed": False},
+                   "binding": binding, "clause": m.group(0).strip(),
+                   "oracle_span": [span0, span0 + len(m.group(0))] if span0 >= 0 else None}
+            idx += 1
+            out.append(rec)
     return out
 
 
@@ -257,55 +277,64 @@ def build_effects(repo: Path = REPO) -> dict:
         by_card.setdefault(f["card_id"], []).append(f)
     cards = sorted(by_card)
 
-    structured, pairs = [], []
-    seen = set()
+    structured, errors = [], []
+    agg = {}                                                # (src,tgt,relation) -> aggregated pair with `supports`
     for f in sorted(faces, key=lambda x: x["id"]):
         for eff in _destroy_effects(f):
+            errors += [f"{eff['effect_id']}: {e}" for e in _sch.validate_effect(eff)]
             sel = eff["selector"]
-            prov = {"face_id": f["id"], "name": f["name"], "oracle_span": eff["oracle_span"],
-                    "clause": eff["clause"], "rule": "effect_semantics.destroy", "layer": "effect_semantics",
-                    "mode_kind": eff["mode_kind"], "mode_index": eff["mode_index"]}
+            support = {"effect_id": eff["effect_id"], "mode": eff["mode"], "clause": eff["clause"],
+                       "oracle_span": eff["oracle_span"], "targeted": eff["targeted"],
+                       "face_id": f["id"], "name": f["name"]}
             elig_tokens = sorted(t["id"] for t in tokens if _sch.matches_token(sel, t))
             structured.append({**eff, "face_id": f["id"], "card": f["card_id"], "name": f["name"],
-                               "eligible_token_specs": elig_tokens, "provenance": prov})
+                               "eligible_token_specs": elig_tokens,
+                               "provenance": {**support, "rule": "effect_semantics.destroy",
+                                              "layer": "effect_semantics"}})
             src = f["card_id"]
             for tgt in cards:
                 if any(_sch.matches_card(sel, cf) for cf in by_card[tgt]):
                     key = (src, tgt, "CAN_DESTROY")
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    pairs.append({"source_card": src, "target_card": tgt, "relation": "CAN_DESTROY",
-                                  "self_pair": src == tgt, "generic": True, "origin": "effect_semantics",
-                                  "family": "destroy", "provenance": [prov]})
+                    if key not in agg:                      # unique pair, but AGGREGATE all supporting effects/modes
+                        agg[key] = {"source_card": src, "target_card": tgt, "relation": "CAN_DESTROY",
+                                    "self_pair": src == tgt, "generic": True, "origin": "effect_semantics",
+                                    "family": "destroy", "supports": []}
+                    agg[key]["supports"].append(support)
+    pairs = sorted(agg.values(), key=lambda p: (p["source_card"], p["target_card"], p["relation"]))
+    assert not errors, f"effect schema violations: {errors[:5]}"
     G = repo / "data" / "graph_global"
-    _writej(G / "effect_destroy.jsonl", sorted(structured, key=lambda r: (r["face_id"], r["mode_index"])))
-    _writej(G / "card_pair_projection_effect.jsonl",
-            sorted(pairs, key=lambda p: (p["source_card"], p["target_card"], p["relation"])))
+    _writej(G / "effect_destroy.jsonl", sorted(structured, key=lambda r: r["effect_id"]))
+    _writej(G / "card_pair_projection_effect.jsonl", pairs)
     _effects_report(repo, structured, pairs)
     return {"faces_with_destroy": len({s["face_id"] for s in structured}),
             "destroy_effects": len(structured), "destroy_pairs": len(pairs)}
 
 
 def _effects_report(repo, structured, pairs):
-    L = ["# Effect-semantics — structured effects (Phase 2)", "",
-         "Additive `effect_semantics` layer over the frozen reference. Family delivered this phase: "
-         "**targeted destruction** (`CAN_DESTROY`). Structured facts carry a resolved selector, mode, "
-         "and Oracle-span provenance; deterministic projection fans each targeted destroy to every "
-         "eligible card (and records eligible token specs). Frozen core untouched.", "",
+    L = ["# Effect-semantics — structured effects (Phase 2a)", "",
+         "Additive `effect_semantics` layer over the frozen reference. Family: **targeted destruction** "
+         "(`CAN_DESTROY`). Each effect is a validated record (selector + participant + mode + condition "
+         "+ duration + targeting/quantifier + pronoun binding + attempt/zone-transition + Oracle-span "
+         "provenance); deterministic projection fans each targeted destroy to every eligible card, "
+         "**aggregating all supporting effects/modes per pair** (`supports`). Frozen core untouched.", "",
          f"- destroy effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  "
          f"· CAN_DESTROY pairs: **{len(pairs)}**", "",
-         "| card | mode | selector | eligible cards | token specs |", "|---|---|---|---:|---:|"]
+         "| card | targeted | mode | selector | eligible cards | token specs |",
+         "|---|---|---|---|---:|---:|"]
     npairs = {}
     for p in pairs:
         npairs[p["source_card"]] = npairs.get(p["source_card"], 0) + 1
     for s in sorted(structured, key=lambda r: r["name"]):
         sel = s["selector"]
-        desc = "/".join(sel["card_types"]) or (",".join(sel["subtypes"]) or ("permanent" if sel["generic_permanent"] else "?"))
+        desc = ("&".join(sel["card_types"]) if not sel["or_types"] else "|".join(sel["card_types"])) \
+            or (",".join(sel["subtypes"]) or ("permanent" if sel["generic_permanent"] else "?"))
+        if sel["supertypes"]:
+            desc = "+".join(sel["supertypes"]) + " " + desc
         for k, v in sel["predicates"].items():
-            desc += f" [{k}{'' if v is True else '≥'+str(v)}]"
-        mode = f"{s['mode_kind']}#{s['mode_index']}" if s["mode_kind"] else "—"
-        L.append(f"| {s['name']} | {mode} | {desc} | {npairs.get(s['card'], 0)} | {len(s['eligible_token_specs'])} |")
+            desc += f" [{k}{'' if v is True else '≥' + str(v)}]"
+        mode = f"{s['mode']['kind']}#{s['mode']['index']}" if s["mode"]["kind"] else "—"
+        L.append(f"| {s['name']} | {'yes' if s['targeted'] else 'no'} | {mode} | {desc} | "
+                 f"{npairs.get(s['card'], 0)} | {len(s['eligible_token_specs'])} |")
     (repo / "reports" / "effect_semantics.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
@@ -333,8 +362,11 @@ def _write_report(repo, summary, faces_with_any, total_faces, total_clauses, unc
         L.append(f"| `{s['family']}` | {s['faces_with_candidate']} | {s['reminder_only_faces']} | "
                  f"{s['clauses']} | {s['heuristic_reference'] if s['heuristic_reference'] is not None else '—'} "
                  f"| {s['prior_coverage']} |")
-    L += ["", "All dispositions are `pending_structuring`; see "
-          "`docs/hob_effect_semantics_repair_instructions.md` for the required dispositions and the "
-          "per-family structuring plan. A clause may list several families (e.g. Warg Tactics mode-1 "
-          "carries `add_counter` + `grant_ability`) so it is adjudicated once, consistently.", ""]
+    L += ["", "Dispositions: clauses with a detected family are `pending_structuring`; clauses with "
+          "none are `pending_classification` (recorded, not dropped). Both await their phase's "
+          "adjudication (structured/projected · structured/not-projected · already represented by "
+          "another layer · intrinsic/reminder ignored · unresolved). See "
+          "`docs/hob_effect_semantics_repair_instructions.md`. A clause may list several families "
+          "(e.g. Warg Tactics mode-1 carries `add_counter` + `grant_ability`) so it is adjudicated "
+          "once, consistently.", ""]
     (repo / "reports" / "effect_census.md").write_text("\n".join(L) + "\n", encoding="utf-8")

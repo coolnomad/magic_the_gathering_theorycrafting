@@ -17,22 +17,37 @@ import re
 PERMANENT_TYPES = ["artifact", "creature", "enchantment", "planeswalker", "land", "battle"]
 _TYPES_RE = re.compile(r"\b(" + "|".join(PERMANENT_TYPES + ["permanent"]) + r")s?\b", re.I)
 _SUBTYPE_RE = re.compile(r"(?<!non-)\b([A-Z][a-z]{2,})\b")
+_SUPERTYPES = ["legendary", "basic", "snow", "world"]
+_SUPER_RE = re.compile(r"\b(" + "|".join(_SUPERTYPES) + r")\b", re.I)
 _NUM = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
 
 
-def selector(phrase: str, var: str = "x") -> dict:
-    """Parse a post-'target'/'destroy' object phrase into a structured selector."""
+def selector(phrase: str, var: str = "x", targeted=None, quantifier=None) -> dict:
+    """Parse a post-'target'/'destroy' object phrase into a structured selector. `targeted` /
+    `quantifier` can be passed by the caller when the governing verb already consumed 'target'/'each'
+    /'all' (e.g. `_DESTROY_RE` strips 'target' before this sees the phrase)."""
     p = phrase.strip().rstrip(".")
     low = p.lower()
     types = sorted({m.group(1).lower() for m in _TYPES_RE.finditer(low)})
     generic_permanent = "permanent" in types
     types = [t for t in types if t != "permanent"]
+    # OR vs AND: "artifact or enchantment" is a disjunction; "artifact creature" (adjacent, no 'or')
+    # is a conjunction requiring BOTH types.
     or_types = bool(re.search(r"\b" + _TYPES_RE.pattern + r"\s+or\s+" + _TYPES_RE.pattern, low)) and len(types) >= 2
-    # subtypes are Title-Case in the ORIGINAL phrase (not lowercased)
-    subtypes = sorted({m.group(1).lower() for m in _SUBTYPE_RE.finditer(p)})
+    supertypes = sorted({m.group(1).lower() for m in _SUPER_RE.finditer(low)})
+    # subtypes are Title-Case in the ORIGINAL phrase (not lowercased), minus supertype words
+    subtypes = sorted({m.group(1).lower() for m in _SUBTYPE_RE.finditer(p)} - set(_SUPERTYPES))
     controller = "you" if "you control" in low else ("opponent" if re.search(r"opponent(?:s)? control|an opponent controls", low) else "any")
-    m = re.search(r"up to (\w+)", low)
-    quantity = f"up_to_{_NUM.get(m.group(1), m.group(1))}" if m else 1
+    owner = "you" if "you own" in low else ("opponent" if "opponent owns" in low else None)
+    zone = _zone(low)
+    if quantifier is None:
+        if re.search(r"\beach\b", low):
+            quantifier = "each"
+        elif re.search(r"\ball\b", low):
+            quantifier = "all"
+        else:
+            um = re.search(r"up to (\w+)", low)
+            quantifier = (f"up_to_{_NUM.get(um.group(1), um.group(1))}" if um else ("target" if "target" in low else None))
     exclusions = [w for w in ("other", "another") if re.search(r"\b" + w + r"\b", low)]
     preds = {}
     if re.search(r"\bwith flying\b|\bflying\b", low):
@@ -44,9 +59,85 @@ def selector(phrase: str, var: str = "x") -> dict:
         preds["token"] = True
     if re.search(r"\bnontoken\b", low):
         preds["nontoken"] = True
-    return {"card_types": types, "or_types": or_types, "subtypes": subtypes,
-            "generic_permanent": generic_permanent, "controller": controller, "quantity": quantity,
-            "exclusions": sorted(exclusions), "predicates": preds, "targeted": "target" in low, "var": var}
+    is_target = ("target" in low) if targeted is None else bool(targeted)
+    mass = quantifier in ("each", "all")
+    return {"card_types": types, "or_types": or_types, "subtypes": subtypes, "supertypes": supertypes,
+            "generic_permanent": generic_permanent, "controller": controller, "owner": owner,
+            "zone": zone, "quantifier": quantifier, "exclusions": sorted(exclusions),
+            "predicates": preds, "targeted": is_target, "affects_each": mass, "var": var}
+
+
+def _zone(low: str) -> str:
+    if "graveyard" in low:
+        return "graveyard"
+    if "in exile" in low or "from exile" in low:
+        return "exile"
+    if "in your hand" in low or "from your hand" in low:
+        return "hand"
+    if "library" in low:
+        return "library"
+    return "battlefield"                                    # permanents default to the battlefield
+
+
+def participant(phrase: str) -> str:
+    """Resolve the participant a clause acts on/through."""
+    low = phrase.lower()
+    if re.search(r"\beach opponent\b", low):
+        return "each_opponent"
+    if re.search(r"\beach player\b", low):
+        return "each_player"
+    if re.search(r"\btarget opponent\b", low):
+        return "target_opponent"
+    if re.search(r"\btarget player\b", low):
+        return "target_player"
+    if re.search(r"\bits controller\b|\bthat player\b", low):
+        return "controller"
+    if re.search(r"\bits owner\b|\bthat card's owner\b", low):
+        return "owner"
+    return "you"
+
+
+def duration(text: str):
+    low = text.lower()
+    if "until end of turn" in low:
+        return "until_end_of_turn"
+    if "until your next turn" in low:
+        return "until_your_next_turn"
+    if "this turn" in low:
+        return "this_turn"
+    return None
+
+
+def condition(text: str):
+    low = text.lower()
+    if re.search(r"\bif this spell was cast from a graveyard\b|\bcast from a graveyard\b", low):
+        return {"kind": "cast_from_graveyard"}
+    if re.search(r"\bif this spell was kicked\b|\bkicker\b", low):
+        return {"kind": "kicker"}
+    if re.match(r"\s*if\b", low) or re.search(r",\s*if\b", low):
+        return {"kind": "intervening_if"}
+    return None
+
+
+_EFFECT_REQUIRED = ("effect_id", "op", "relation", "participant", "selector", "mode", "targeted")
+
+
+def validate_effect(rec: dict) -> list:
+    """Return a list of schema violations for an effect record (empty = valid)."""
+    errs = []
+    for k in _EFFECT_REQUIRED:
+        if k not in rec:
+            errs.append(f"missing {k}")
+    sel = rec.get("selector") or {}
+    for k in ("card_types", "or_types", "subtypes", "supertypes", "quantifier", "targeted", "var"):
+        if k not in sel:
+            errs.append(f"selector missing {k}")
+    mode = rec.get("mode")
+    if not isinstance(mode, dict) or "kind" not in mode or "index" not in mode:
+        errs.append("mode must be {kind, index}")
+    if rec.get("targeted") not in (True, False):
+        errs.append("targeted must be boolean")
+    return errs
 
 
 # --------------------------------------------------------------------------- #
@@ -80,6 +171,15 @@ def _face_types(face):
             "supertypes": [t.lower() for t in tl.get("supertypes", [])]}
 
 
+def _type_ok(sel, obj_types):
+    """OR when or_types (disjunction: 'artifact or enchantment'); AND otherwise (conjunction:
+    'artifact creature' requires BOTH)."""
+    cts = sel["card_types"]
+    if not cts:
+        return True
+    return any(ct in obj_types for ct in cts) if sel.get("or_types") else all(ct in obj_types for ct in cts)
+
+
 def matches_card(sel: dict, face: dict) -> bool:
     t = _face_types(face)
     if not t["types"]:
@@ -87,7 +187,7 @@ def matches_card(sel: dict, face: dict) -> bool:
     if sel["predicates"].get("token") and not sel["predicates"].get("nontoken"):
         return False                                       # a nontoken CARD cannot be a 'token' target
     if sel["card_types"]:
-        if not any(ct in t["types"] for ct in sel["card_types"]):
+        if not _type_ok(sel, set(t["types"])):
             return False
     elif not sel["generic_permanent"] and not sel["subtypes"]:
         return False                                       # need SOME type/subtype constraint to match a card
@@ -95,6 +195,8 @@ def matches_card(sel: dict, face: dict) -> bool:
         return False
     if sel["subtypes"] and not (set(sel["subtypes"]) & set(t["subtypes"])):
         return False
+    if sel.get("supertypes") and not (set(sel["supertypes"]) <= set(t["supertypes"])):
+        return False                                       # supertypes are conjunctive (e.g. legendary)
     if sel["predicates"].get("flying") and not _kw(face, "flying"):
         return False
     pg = sel["predicates"].get("power_ge")
@@ -109,11 +211,13 @@ def matches_token(sel: dict, tok: dict) -> bool:
     subs = [t.lower() for t in tl.get("subtypes", [])]
     if sel["predicates"].get("nontoken"):
         return False
-    if sel["card_types"] and not any(ct in types for ct in sel["card_types"]):
+    if sel["card_types"] and not _type_ok(sel, set(types)):
         return False
     if sel["generic_permanent"] and not (set(types) & set(PERMANENT_TYPES)):
         return False
     if sel["subtypes"] and not (set(sel["subtypes"]) & set(subs)):
+        return False
+    if sel.get("supertypes") and not (set(sel["supertypes"]) <= set(t.lower() for t in tl.get("supertypes", []))):
         return False
     if sel["predicates"].get("flying") and "flying" not in [k.lower() for k in (tok.get("keywords") or [])]:
         return False

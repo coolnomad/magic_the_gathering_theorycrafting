@@ -41,5 +41,5 @@ Deterministic scan of **all Oracle text on all faces** (permanents included), gr
 | `attachment` | 20 | 0 | 25 | — | equip layer |
 | `mana_production` | 12 | 11 | 23 | — | infrastructure/mechanism (mana) |
 
-All dispositions are `pending_structuring`; see `docs/hob_effect_semantics_repair_instructions.md` for the required dispositions and the per-family structuring plan. A clause may list several families (e.g. Warg Tactics mode-1 carries `add_counter` + `grant_ability`) so it is adjudicated once, consistently.
+Dispositions: clauses with a detected family are `pending_structuring`; clauses with none are `pending_classification` (recorded, not dropped). Both await their phase's adjudication (structured/projected · structured/not-projected · already represented by another layer · intrinsic/reminder ignored · unresolved). See `docs/hob_effect_semantics_repair_instructions.md`. A clause may list several families (e.g. Warg Tactics mode-1 carries `add_counter` + `grant_ability`) so it is adjudicated once, consistently.
 
