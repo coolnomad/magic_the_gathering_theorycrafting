@@ -21,42 +21,62 @@ from pathlib import Path
 
 from .pipeline import REPO, _load_dicts
 
-# (family, detector, note on prior-layer coverage). Detectors are deliberately broad CANDIDATE
-# catchers — adjudication/structuring happens in later phases; false positives are expected and
-# flagged (reminder text is marked, not removed).
+# (family, detector, prior-layer coverage). Detectors are broad CANDIDATE catchers — adjudication
+# happens in later phases; false positives are expected. Expanded (review PHASE1 pt1 finding 2) to
+# cover EVERY required effect family so the completeness ledger omits none.
 _FAMILIES = [
-    ("draw", re.compile(r"\bdraws?\b[^.]*?\bcards?\b", re.I), "mechanism layer (second-draw gate)"),
-    ("discard", re.compile(r"\bdiscards?\b", re.I), "—"),
-    ("sacrifice", re.compile(r"\bsacrifices?\b", re.I), "sac_schema + completeness/lifecycle"),
-    ("exile", re.compile(r"\bexiles?\b", re.I), "—"),
-    ("mill", re.compile(r"\bmills?\b[^.]*?\bcard|\bmills?\b", re.I), "—"),
-    ("return_move", re.compile(r"\breturns?\b[^.]*?\b(hand|battlefield|graveyard|library)\b", re.I), "—"),
-    ("tutor_search", re.compile(r"\bsearch(?:es)?\b[^.]*?\blibrary\b", re.I), "audit_repair (Seek the Heart tutor)"),
-    ("token_create", re.compile(r"\bcreate[s]?\b[^.]*?\btokens?\b", re.I), "audit_repair (token-enter)"),
-    ("amass", re.compile(r"\bamass\b", re.I), "—"),
-    ("life", re.compile(r"\b(?:gain|lose|pay)s?\b[^.]*?\blife\b", re.I), "—"),
-    ("counterspell", re.compile(r"\bcounter target\b", re.I), "—"),
-    ("play_cast_permission", re.compile(r"\bmay (?:play|cast)\b", re.I), "—"),
-    ("deal_damage", re.compile(r"\bdeals?\b[^.]*?\bdamage\b", re.I), "—"),
-    ("destroy", re.compile(r"\bdestroys?\b", re.I), "—"),
-    ("tap_untap", re.compile(r"\b(?:taps?|untaps?)\b", re.I), "—"),
-    ("add_counter", re.compile(r"\bput[s]?\b[^.]*?\bcounters?\b|\+1/\+1 counter", re.I),
-     "audit_repair (targeted-counter)"),
-    ("modify_pt", re.compile(r"gets? [+\-]\d+/[+\-]\d+", re.I), "audit_repair (anthem/pump) + equip"),
-    ("grant_ability", re.compile(
-        r"\b(?:gains?|has|have)\b[^.]*?\b(?:flying|trample|vigilance|lifelink|deathtouch|menace|reach|"
-        r"haste|hexproof|indestructible|first strike|double strike|ward|protection|prowess|defender)\b",
-        re.I), "equip (granted-when-attached)"),
-    ("fight", re.compile(r"\bfights?\b", re.I), "—"),
-    ("prevent", re.compile(r"\bprevents?\b", re.I), "—"),
-    ("control_change", re.compile(r"\bgains? control\b", re.I), "—"),
-    ("type_change", re.compile(r"\bbecomes?\b[^.]*?\bin addition\b", re.I), "—"),
+    ("draw", r"\bdraws?\b[^.]*?\bcards?\b", "mechanism (second-draw gate)"),
+    ("discard", r"\bdiscards?\b", "—"),
+    ("sacrifice", r"\bsacrifices?\b", "sac_schema + completeness/lifecycle"),
+    ("exile", r"\bexiles?\b", "—"),
+    ("mill", r"\bmills?\b", "—"),
+    ("return_move", r"\breturns?\b[^.]*?\b(?:hand|battlefield|graveyard|library)\b", "—"),
+    ("tutor_search", r"\bsearch(?:es)?\b[^.]*?\blibrary\b", "audit_repair (tutor)"),
+    ("token_create", r"\bcreate[s]?\b[^.]*?\btokens?\b", "audit_repair (token-enter)"),
+    ("amass", r"\bamass\b", "—"),
+    ("life", r"\b(?:gain|lose|pay)s?\b[^.]*?\blife\b", "—"),
+    ("counterspell", r"\bcounter target\b", "—"),
+    ("play_cast_permission",
+     r"\bmay (?:play|cast)\b|\bplay (?:that|those|the exiled|an additional|this|it|them)\b|"
+     r"\bcast (?:it|that|those|the exiled|them)\b|mana of any (?:type|color) can be spent", "—"),
+    ("deal_damage", r"\bdeals?\b[^.]*?\bdamage\b", "effect_semantics (Phase 3 planned)"),
+    ("destroy", r"\bdestroys?\b", "effect_semantics (CAN_DESTROY)"),
+    ("tap_untap", r"\b(?:taps?|untaps?)\b", "—"),
+    ("add_counter", r"\bput[s]?\b[^.]*?\bcounters?\b|\+1/\+1 counter|\bamass\b", "audit_repair (targeted-counter)"),
+    ("remove_counter", r"\bremove[s]?\b[^.]*?\bcounters?\b", "—"),
+    ("modify_pt", r"gets? [+\-][\dXx]+/[+\-][\dXx]+", "audit_repair (anthem/pump) + equip"),
+    ("set_switch_pt",
+     r"base power and toughness|power and toughness (?:are|is|becomes)|switch(?:es)? its power and toughness",
+     "—"),
+    ("grant_ability",
+     r"\b(?:gains?|has|have)\b[^.]*?\b(?:flying|trample|vigilance|lifelink|deathtouch|menace|reach|haste|"
+     r"hexproof|indestructible|first strike|double strike|ward|protection|prowess|defender|shroud)\b|"
+     r"\bgains? \"", "equip (granted-when-attached)"),
+    ("remove_ability", r"\bloses? (?:all abilities|flying|trample|vigilance|lifelink|deathtouch|menace|"
+     r"reach|haste|hexproof|indestructible|first strike|double strike|ward|defender)\b", "—"),
+    ("fight", r"\bfights?\b", "—"),
+    ("prevent", r"\bprevents?\b", "—"),
+    ("control_change", r"\b(?:gains?|exchange[s]?) control\b|\byou control (?:that|it|those) \w+", "—"),
+    ("type_change",
+     r"\bbecomes?\b[^.]*?\b(?:artifact|creature|enchantment|land)\b|\bin addition to its other types\b", "—"),
+    ("scry_look_reveal", r"\b(?:scry|surveil)\b|\blook at the top\b|\breveal(?:s|ed)?\b", "—"),
+    ("copy", r"\bcop(?:y|ies|ied)\b", "—"),
+    ("cost_modification", r"\bcosts? \{|\bcosts?\b[^.]*?\b(?:less|more)\b|\bwithout paying\b", "infrastructure_casting"),
+    ("additional_land", r"\badditional land\b", "—"),
+    ("restriction",
+     r"\bcan't (?:attack|block|be blocked|be the target|be countered|cast)\b|\battacks? (?:each combat )?if able\b|"
+     r"\bmust (?:attack|be blocked)\b|\bdoesn't untap\b|\bdon't untap\b", "—"),
+    ("delayed", r"\bat the beginning of the next\b|\buntil your next\b|\bwhen you do\b|"
+     r"\bthen (?:exile|sacrifice|return) (?:it|that|them)\b|\bat the beginning of your next\b", "lifecycle (delayed sac)"),
+    ("replacement", r"\bwould\b[^.]*?\binstead\b|\benters with\b|\bas [^.]{1,45} enters\b", "legend_rule (SBA)"),
 ]
+_FAMILIES = [(n, re.compile(p, re.I), c) for n, p, c in _FAMILIES]
 
 # heuristic reference counts from the instructions (starting points, NOT acceptance values)
 _HEURISTIC = {"draw": 53, "discard": 25, "sacrifice": 34, "exile": 33, "mill": 6, "return_move": 13,
               "tutor_search": 10, "token_create": 46, "life": 22, "counterspell": 3,
               "play_cast_permission": 23}
+_BULLET_CHAR = "•"
 
 
 def _reminder_spans(text: str):
@@ -67,38 +87,100 @@ def _in_reminder(span, spans):
     return any(s <= span[0] and span[1] <= e for s, e in spans)
 
 
+def _segment(text: str):
+    """Split a face's Oracle text into semantic CLAUSES with stable indices and absolute spans:
+    (ability_index, mode_index, sentence_index, start, end, clause_text). Ability = newline paragraph;
+    a `Choose one` paragraph opens a modal block whose subsequent `•`-bulleted paragraphs get mode
+    indices; sentences split on '.'. Offsets stay aligned (single-char '\\n'/bullet separators)."""
+    out = []
+    pos = 0
+    mode_kind = None
+    mode_counter = None
+    for ai, para in enumerate(text.split("\n")):
+        p_start = pos
+        pos += len(para) + 1                               # +1 for the '\n'
+        low = para.lower()
+        if "choose one" in low:
+            mode_kind = "choose_one_or_both" if "choose one or both" in low else "choose_one"
+            mode_counter = -1
+            cur_mode = None
+        elif para.strip().startswith(_BULLET_CHAR):
+            mode_counter = (mode_counter if mode_counter is not None else -1) + 1
+            cur_mode = mode_counter
+        else:
+            mode_kind, mode_counter, cur_mode = None, None, None
+        if not para.strip():
+            continue
+        si = 0
+        for sm in re.finditer(r"[^.]*\.|[^.]+$", para):
+            stext = sm.group(0)
+            if not stext.strip():
+                continue
+            out.append({"ability_index": ai, "mode_kind": mode_kind, "mode_index": cur_mode,
+                        "sentence_index": si, "start": p_start + sm.start(), "end": p_start + sm.end(),
+                        "text": stext})
+            si += 1
+    return out
+
+
 def census(repo: Path = REPO) -> dict:
+    """Clause-level completeness ledger (review PHASE1 pt1 finding 1): one row per semantic CLAUSE,
+    carrying stable clause_id, clause_span + per-family match_span(s), ability/mode/sentence indices,
+    and ALL families detected in that clause. Every row stays `pending_structuring` until its phase
+    adjudicates it. No card-name branching; reminder-text clauses/matches flagged, not dropped."""
     repo = Path(repo)
     faces = _load_dicts(repo / "data/normalized/faces.jsonl")
     rows = []
     for f in sorted(faces, key=lambda x: x["id"]):
         text = f.get("oracle_text") or ""
         rem = _reminder_spans(text)
-        for family, rx, _cov in _FAMILIES:
-            for m in rx.finditer(text):
-                span = [m.start(), m.end()]
-                rows.append({"face_id": f["id"], "name": f["name"], "family": family,
-                             "snippet": m.group(0)[:80], "oracle_span": span,
-                             "in_reminder": _in_reminder(span, rem),
-                             "disposition": "pending_structuring"})
+        # group sentences into one CLAUSE per (ability, mode) so a modal branch / paragraph is
+        # adjudicated ONCE, consistently (review pt1 finding 1); sentence detail kept per-match.
+        groups = {}
+        for c in _segment(text):
+            key = (c["ability_index"], c["mode_index"])
+            g = groups.setdefault(key, {"ability_index": c["ability_index"], "mode_kind": c["mode_kind"],
+                                        "mode_index": c["mode_index"], "start": c["start"], "end": c["end"],
+                                        "matches": []})
+            g["start"] = min(g["start"], c["start"])
+            g["end"] = max(g["end"], c["end"])
+            for family, rx, _cov in _FAMILIES:
+                for m in rx.finditer(c["text"]):
+                    abspan = [c["start"] + m.start(), c["start"] + m.end()]
+                    g["matches"].append({"family": family, "match_span": abspan, "snippet": m.group(0)[:60],
+                                         "sentence_index": c["sentence_index"],
+                                         "in_reminder": _in_reminder(abspan, rem)})
+        for (ai, mi), g in sorted(groups.items(), key=lambda kv: (kv[0][0], kv[0][1] if kv[0][1] is not None else -1)):
+            if not g["matches"]:
+                continue
+            fams = sorted({m["family"] for m in g["matches"]})
+            clause_id = f"{f['id']}#a{ai}" + (f".m{mi}" if mi is not None else "")
+            rows.append({"clause_id": clause_id, "face_id": f["id"], "name": f["name"],
+                         "ability_index": ai, "mode_kind": g["mode_kind"], "mode_index": mi,
+                         "clause_span": [g["start"], g["end"]], "clause_text": text[g["start"]:g["end"]].strip()[:260],
+                         "families": fams, "matches": sorted(g["matches"], key=lambda m: m["match_span"]),
+                         "clause_in_reminder": _in_reminder([g["start"], g["end"]], rem),
+                         "disposition": "pending_structuring"})
     out = repo / "data" / "graph_global" / "effect_census.jsonl"
     with out.open("w", encoding="utf-8", newline="\n") as fh:
         for r in rows:
             fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
 
-    # per-family summary: faces with >=1 non-reminder candidate (the meaningful count)
+    # per-family summary: clauses with a NON-reminder match of the family (the meaningful count)
     summary = []
     for family, _rx, cov in _FAMILIES:
-        fam_rows = [r for r in rows if r["family"] == family]
-        real = {r["face_id"] for r in fam_rows if not r["in_reminder"]}
-        reminder_only = {r["face_id"] for r in fam_rows} - real
-        summary.append({"family": family, "faces_with_candidate": len(real),
-                        "reminder_only_faces": len(reminder_only), "total_clauses": len(fam_rows),
+        fam_clauses = [r for r in rows if family in r["families"]]
+        real_faces = {r["face_id"] for r in fam_clauses
+                      if any(m["family"] == family and not m["in_reminder"] for m in r["matches"])}
+        rem_only = {r["face_id"] for r in fam_clauses} - real_faces
+        summary.append({"family": family, "faces_with_candidate": len(real_faces),
+                        "reminder_only_faces": len(rem_only), "clauses": len(fam_clauses),
                         "heuristic_reference": _HEURISTIC.get(family), "prior_coverage": cov})
-    _write_report(repo, summary, len({r["face_id"] for r in rows}), len(faces))
-    return {"faces": len(faces), "candidate_clauses": len(rows),
+    _write_report(repo, summary, len({r["face_id"] for r in rows}), len(faces), len(rows))
+    return {"faces": len(faces), "clauses_with_candidate": len(rows),
             "faces_with_any_candidate": len({r["face_id"] for r in rows}),
-            "families": len(_FAMILIES), "summary": summary}
+            "families": len(_FAMILIES), "multi_family_clauses": sum(1 for r in rows if len(r["families"]) > 1),
+            "summary": summary}
 
 
 # --------------------------------------------------------------------------- #
@@ -227,21 +309,24 @@ def _writej(path: Path, rows: list):
             fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
 
 
-def _write_report(repo, summary, faces_with_any, total_faces):
-    L = ["# HOB effect-family census (Phase 1 — deterministic candidate detection)", "",
-         "Deterministic scan of **all Oracle text on all faces** (permanents included). Each family's "
-         "detector is a broad CANDIDATE catcher; reminder-text hits are flagged (`reminder_only`), not "
-         "removed. Every candidate's disposition is `pending_structuring` — later phases replace it "
-         "with structured / not-projected / ignored / unresolved. Heuristic reference counts are from "
+def _write_report(repo, summary, faces_with_any, total_faces, total_clauses):
+    L = ["# HOB effect-family census (Phase 1.1 — clause-level completeness ledger)", "",
+         "Deterministic scan of **all Oracle text on all faces** (permanents included), grouped into "
+         "semantic **clauses** (one row per clause, carrying `clause_span`, per-family `match_span`s, "
+         "ability/mode/sentence indices, and every family detected in the clause). Detectors are broad "
+         "CANDIDATE catchers; reminder-text hits are flagged, not removed. Every clause's disposition "
+         "is `pending_structuring` until its phase adjudicates it. Heuristic reference counts are from "
          "the instructions and are NOT acceptance values.", "",
-         f"- faces scanned: **{total_faces}**  · faces with ≥1 candidate: **{faces_with_any}**", "",
+         f"- faces scanned: **{total_faces}**  · faces with ≥1 candidate: **{faces_with_any}**  · "
+         f"candidate clauses: **{total_clauses}**", "",
          "| family | faces w/ candidate | reminder-only | clauses | heuristic ref | prior-layer coverage |",
          "|---|---:|---:|---:|---:|---|"]
     for s in summary:
         L.append(f"| `{s['family']}` | {s['faces_with_candidate']} | {s['reminder_only_faces']} | "
-                 f"{s['total_clauses']} | {s['heuristic_reference'] if s['heuristic_reference'] is not None else '—'} "
+                 f"{s['clauses']} | {s['heuristic_reference'] if s['heuristic_reference'] is not None else '—'} "
                  f"| {s['prior_coverage']} |")
-    L += ["", "All dispositions are `pending_structuring` at Phase 1; see "
+    L += ["", "All dispositions are `pending_structuring`; see "
           "`docs/hob_effect_semantics_repair_instructions.md` for the required dispositions and the "
-          "per-family structuring plan.", ""]
+          "per-family structuring plan. A clause may list several families (e.g. Warg Tactics mode-1 "
+          "carries `add_counter` + `grant_ability`) so it is adjudicated once, consistently.", ""]
     (repo / "reports" / "effect_census.md").write_text("\n".join(L) + "\n", encoding="utf-8")

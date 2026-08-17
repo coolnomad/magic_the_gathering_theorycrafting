@@ -1564,3 +1564,19 @@ Sequence steps 2–3 (schema + first targeted-object family), committed at the p
 **272 tests pass** (+7). Frozen artifacts byte-identical (manifest test green). Next phase (on go-ahead): the rest of the targeted-object effects (damage/counters/PT/grants/tap/prevent/fight/type-control) — Warg mode-1 counter+grant, Reverent Howl / Pinecone damage modes, Troll Negotiations fight, etc.
 
 Refs: `src/hobkg/{effect_schema,effect_semantics,coverage,cli}.py`; `tests/test_effect_destroy.py`; `reports/effect_semantics.md`; `data/graph_global/{effect_destroy,card_pair_projection_effect}.jsonl`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] CORRECTION — Effect-semantics Phase 1.1: census promoted to a clause-level ledger (review PHASE1 pt1)
+
+Review `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt1.md` accepted Phase 1 as a sound scaffold but required three fixes before the schema depends on the census. Applied here as a separate correction to the CENSUS only (no pair projection — the Phase-2 destroy work is untouched; frozen core byte-identical).
+
+**Finding 1 — clause-level, not keyword fragments.** `census()` now groups detector hits into one row per **(ability, mode) clause** (review's example: Warg Tactics mode-1 is ONE clause carrying `add_counter` + `grant_ability` + `restriction`, full text "Put a +1/+1 counter… It gains trample and hexproof… (can't be targeted)"). Each row carries a stable `clause_id` (`<face>#a<ability>[.m<mode>]`), `clause_span` + `clause_text`, ability/mode indices, all `families` in the clause, and per-match `match_span` + `sentence_index` + `in_reminder` (renamed from the old bare `oracle_span`). `_segment()` splits Oracle into abilities (newline paragraphs) → modal branches (`Choose one` opens a block; `•`-bulleted paragraphs get mode indices) → sentences, with offsets preserved. So a clause is adjudicated once, consistently. Verified: Reverent Howl mode-0 = `{draw, life}` (same target player), Settle the Wreckage = `{exile, tutor_search}`.
+
+**Finding 2 — cover every required family.** Expanded 22 → **32** families, adding the previously-omitted ones: `scry_look_reveal`, `copy`, `cost_modification`, `additional_land`, `restriction`, `remove_ability`, `set_switch_pt`, `remove_counter`, `delayed`, `replacement` (distinct family), and broadened `modify_pt` (variable `+X/+X`), `grant_ability` (quoted/non-keyword grants), `type_change`, `control_change`, `play_cast_permission` (beyond the exact "may play/cast"). **294 candidate clauses across 196 faces, 157 multi-family.** So the completeness ledger no longer systematically omits whole families (Phase 7 can honestly claim every material clause got a disposition).
+
+**Finding 3 — stronger freeze guard.** The manifest itself is now PINNED by digest (`MANIFEST_DIGEST` in `tests/test_frozen_manifest.py`), defeating the "edit artifact + regenerate manifest" bypass; changing it is a sanctioned re-freeze that must be logged. Documented the protected set = the CORE graph (`data/graph/{nodes,edges,conditions,gates}` + `data/graph_global/{nodes,edges,conditions}`); the additive projection tiers are DERIVED/regenerable, not byte-frozen. Manifest coverage test now checks all 7.
+
+Every census row stays `pending_structuring`. **274 tests pass.** Frozen artifacts byte-identical (manifest + pinned-digest tests green). Phase 2 (destruction) unaffected; next is Phase 3 (remaining targeted-object effects), on go-ahead.
+
+Refs: `src/hobkg/effect_semantics.py` (clause-level census, 32 families); `tests/{test_effect_census.py,test_frozen_manifest.py}`; `reports/effect_census.md`; `data/graph_global/effect_census.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE1_review_pt1.md`; [[phase4-frozen]]

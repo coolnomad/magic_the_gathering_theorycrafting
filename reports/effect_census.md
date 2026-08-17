@@ -1,33 +1,43 @@
-# HOB effect-family census (Phase 1 — deterministic candidate detection)
+# HOB effect-family census (Phase 1.1 — clause-level completeness ledger)
 
-Deterministic scan of **all Oracle text on all faces** (permanents included). Each family's detector is a broad CANDIDATE catcher; reminder-text hits are flagged (`reminder_only`), not removed. Every candidate's disposition is `pending_structuring` — later phases replace it with structured / not-projected / ignored / unresolved. Heuristic reference counts are from the instructions and are NOT acceptance values.
+Deterministic scan of **all Oracle text on all faces** (permanents included), grouped into semantic **clauses** (one row per clause, carrying `clause_span`, per-family `match_span`s, ability/mode/sentence indices, and every family detected in the clause). Detectors are broad CANDIDATE catchers; reminder-text hits are flagged, not removed. Every clause's disposition is `pending_structuring` until its phase adjudicates it. Heuristic reference counts are from the instructions and are NOT acceptance values.
 
-- faces scanned: **210**  · faces with ≥1 candidate: **179**
+- faces scanned: **210**  · faces with ≥1 candidate: **196**  · candidate clauses: **294**
 
 | family | faces w/ candidate | reminder-only | clauses | heuristic ref | prior-layer coverage |
 |---|---:|---:|---:|---:|---|
-| `draw` | 37 | 10 | 50 | 53 | mechanism layer (second-draw gate) |
-| `discard` | 13 | 12 | 26 | 25 | — |
-| `sacrifice` | 23 | 11 | 37 | 34 | sac_schema + completeness/lifecycle |
-| `exile` | 17 | 16 | 46 | 33 | — |
+| `draw` | 37 | 10 | 48 | 53 | mechanism (second-draw gate) |
+| `discard` | 13 | 12 | 25 | 25 | — |
+| `sacrifice` | 23 | 11 | 36 | 34 | sac_schema + completeness/lifecycle |
+| `exile` | 17 | 16 | 33 | 33 | — |
 | `mill` | 6 | 0 | 6 | 6 | — |
 | `return_move` | 13 | 0 | 13 | 13 | — |
-| `tutor_search` | 11 | 0 | 14 | 10 | audit_repair (Seek the Heart tutor) |
-| `token_create` | 23 | 23 | 47 | 46 | audit_repair (token-enter) |
-| `amass` | 13 | 1 | 17 | — | — |
-| `life` | 22 | 0 | 24 | 22 | — |
+| `tutor_search` | 11 | 0 | 13 | 10 | audit_repair (tutor) |
+| `token_create` | 23 | 23 | 46 | 46 | audit_repair (token-enter) |
+| `amass` | 13 | 1 | 14 | — | — |
+| `life` | 22 | 0 | 22 | 22 | — |
 | `counterspell` | 3 | 0 | 3 | 3 | — |
-| `play_cast_permission` | 10 | 15 | 26 | 23 | — |
-| `deal_damage` | 19 | 1 | 20 | — | — |
-| `destroy` | 10 | 0 | 12 | — | — |
-| `tap_untap` | 8 | 1 | 13 | — | — |
-| `add_counter` | 33 | 11 | 46 | — | audit_repair (targeted-counter) |
+| `play_cast_permission` | 12 | 15 | 27 | 23 | — |
+| `deal_damage` | 19 | 1 | 20 | — | effect_semantics (Phase 3 planned) |
+| `destroy` | 10 | 0 | 11 | — | effect_semantics (CAN_DESTROY) |
+| `tap_untap` | 8 | 1 | 11 | — | — |
+| `add_counter` | 45 | 1 | 47 | — | audit_repair (targeted-counter) |
+| `remove_counter` | 1 | 0 | 1 | — | — |
 | `modify_pt` | 40 | 1 | 42 | — | audit_repair (anthem/pump) + equip |
-| `grant_ability` | 27 | 0 | 27 | — | equip (granted-when-attached) |
+| `set_switch_pt` | 4 | 0 | 4 | — | — |
+| `grant_ability` | 28 | 0 | 29 | — | equip (granted-when-attached) |
+| `remove_ability` | 1 | 0 | 1 | — | — |
 | `fight` | 1 | 0 | 1 | — | — |
 | `prevent` | 1 | 0 | 1 | — | — |
-| `control_change` | 0 | 0 | 0 | — | — |
-| `type_change` | 3 | 0 | 3 | — | — |
+| `control_change` | 1 | 0 | 1 | — | — |
+| `type_change` | 4 | 1 | 5 | — | — |
+| `scry_look_reveal` | 16 | 3 | 19 | — | — |
+| `copy` | 1 | 0 | 1 | — | — |
+| `cost_modification` | 10 | 1 | 11 | — | infrastructure_casting |
+| `additional_land` | 2 | 0 | 2 | — | — |
+| `restriction` | 13 | 5 | 18 | — | — |
+| `delayed` | 7 | 3 | 10 | — | lifecycle (delayed sac) |
+| `replacement` | 7 | 8 | 16 | — | legend_rule (SBA) |
 
-All dispositions are `pending_structuring` at Phase 1; see `docs/hob_effect_semantics_repair_instructions.md` for the required dispositions and the per-family structuring plan.
+All dispositions are `pending_structuring`; see `docs/hob_effect_semantics_repair_instructions.md` for the required dispositions and the per-family structuring plan. A clause may list several families (e.g. Warg Tactics mode-1 carries `add_counter` + `grant_ability`) so it is adjudicated once, consistently.
 
