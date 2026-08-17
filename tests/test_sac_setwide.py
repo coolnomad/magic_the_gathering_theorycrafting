@@ -44,25 +44,44 @@ def test_setwide_detection_precision_recall():
     assert set(sw["fp_faces"]) == {"Sleep Magic", "Undercity Dire Rat", "Tellah, Great Sage", "Magic Pot"}
 
 
-def test_setwide_clause_exact_is_primary_metric():
+def test_setwide_clause_precision_recall_f1_is_primary_metric():
     sw = sx.run_setwide()
-    assert sw["clause_exact"] == 25 and sw["clause_total"] == 28   # primary metric
-    assert sw["clause_exact_rate"] == 0.8929
-    assert sw["field_accuracy"] == 0.9541                          # secondary/diagnostic (inflated)
+    # clause exact-match PENALISES surplus predictions (review pt2 #1): matched / predicted / expected
+    assert sw["clause_matched"] == 25 and sw["clause_expected"] == 30 and sw["clause_predicted"] == 33
+    assert sw["clause_precision"] == 0.7576 and sw["clause_recall"] == 0.8333 and sw["clause_f1"] == 0.7937
+    # a face is fully exact only with EQUAL predicted/expected counts and all aligned clauses matched
+    assert sw["faces_exact"] == 42 and sw["outlets"] == 27 and sw["outlet_faces_exact"] == 23
+    assert sw["field_accuracy"] == 0.9533                          # secondary/diagnostic (inflated)
 
 
-def test_setwide_known_imperfect_clauses_are_pinned():
+def test_setwide_known_imperfect_faces_are_pinned():
     sw = sx.run_setwide()
-    # each imperfect face is a genuine, documented parser limit (backlog), not an adjudication slip
+    # each imperfect OUTLET face is a genuine, documented parser limit (backlog), not an adjudication slip
     assert set(sw["imperfect"]) == {
-        "Sleep Magic",                 # imperative self-sac 'sacrifice this Aura' -> cost_context unsupported
+        "Gaius van Baelsar",           # modal trigger context not propagated to 2nd/3rd option
         "Sephiroth, One-Winged Angel", # 'any number of OTHER creatures' -> 'other' not read as another
-        "Undercity Dire Rat",          # Treasure reminder text parsed as an outlet
-        "Quina, Qu Gourmet",           # subtype 'Frog' fodder not detected
-        "Tellah, Great Sage",          # self-sac consequence parsed as an outlet
-        "Magic Pot",                   # Treasure reminder text parsed as an outlet
+        "Quina, Qu Gourmet",           # subtype 'Frog' fodder not detected (pinned until a parser commit)
         "Eden, Seat of the Sanctum",   # 'When you do' in an activated ability misread as a trigger
     }
+
+
+def test_setwide_gaius_has_three_modal_clauses():
+    # review pt2 #2: Gaius's three modal options are real printed clauses, not over-extraction
+    cases = {c["name"]: c for c in _load_dicts(REPO / FIX)}
+    g = cases["Gaius van Baelsar"]
+    exp = g["expected"]["clauses"]
+    assert len(exp) == 3
+    assert [c["sel_qualifiers"] for c in exp] == [["token"], ["nontoken"], []]
+    assert exp[2]["sel_card_types"] == ["enchantment"]
+    got = sx.extract_all(g["oracle_text"], g["name"])
+    assert len(got) == 3                                            # parser emits all three
+
+
+def test_setwide_quina_subtype_is_annotated():
+    # review pt2 #3: even though detection is (still) missed, the gold record preserves the subtype
+    cases = {c["name"]: c for c in _load_dicts(REPO / FIX)}
+    q = cases["Quina, Qu Gourmet"]["expected"]["clauses"][0]
+    assert q["sel_subtypes"] == ["frog"] and q["sel_card_types"] == []
 
 
 def test_setwide_parser_is_frozen_multiclause_supported():

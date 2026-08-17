@@ -109,11 +109,23 @@ def test_setwide_runner_contract():
     # present it exposes the primary metrics, otherwise it is explicitly pending.
     sw = sx.run_setwide()
     if sw.get("available"):
-        for k in ("precision", "recall", "clause_exact", "clause_total", "field_accuracy"):
+        for k in ("precision", "recall", "clause_precision", "clause_recall", "clause_f1",
+                  "clause_predicted", "faces_exact", "field_accuracy"):
             assert k in sw
-        assert 0.0 <= sw["precision"] <= 1.0 and 0.0 <= sw["recall"] <= 1.0
+        assert 0.0 <= sw["clause_precision"] <= 1.0 and 0.0 <= sw["clause_f1"] <= 1.0
     else:
         assert sw == {"available": False}
+
+
+def test_subtype_is_represented_but_quina_stays_pinned():
+    # subtypes are a scored field now; the parser captures them WHEN a card type is also present…
+    assert "sel_subtypes" in sx.SCORED_FIELDS
+    r = sx.parse_structured("Sacrifice a Goblin creature: Draw.", "X")
+    assert r["selector"]["subtypes"] == ["goblin"]
+    # …but bare subtype fodder ("a Frog") is still not DETECTED — Quina remains the frozen miss.
+    assert sx.parse_structured("{2}, Sacrifice a Frog: Draw.", "Quina") is None
+    # a "non-God" qualifier does not leak "God" as a subtype
+    assert sx.parse_structured("Each player sacrifices a non-God creature.", "X")["selector"]["subtypes"] == []
 
 
 def test_report_written():

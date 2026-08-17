@@ -47,8 +47,12 @@ _MANA_RE = re.compile(r"(\{[^}]+\})")
 _OR_PAY_RE = re.compile(r"\bor pay\s+((?:\{[^}]+\})+)", re.IGNORECASE)
 
 SCORED_FIELDS = ("is_outlet", "cost_context", "actor", "ability_context", "modal",
-                 "sel_card_types", "sel_or_types", "sel_supertypes", "sel_qualifiers",
+                 "sel_card_types", "sel_subtypes", "sel_or_types", "sel_supertypes", "sel_qualifiers",
                  "sel_self", "sel_another", "sel_quantity", "cost", "restriction_timing")
+# creature/permanent subtypes are printed Title-Case in Oracle text (Frog, Goblin, Dwarf, …);
+# card types and supertypes are lower-case there, so a Title-Case fodder token is a subtype — except
+# when it is part of a "non-<Type>" qualifier (e.g. "non-God"), which is captured as a qualifier.
+_SUBTYPE_RE = re.compile(r"(?<!non-)\b([A-Z][a-z]{2,})\b")
 
 
 # --------------------------------------------------------------------------- #
@@ -77,6 +81,7 @@ def _selector(phrase: str, card_name: str) -> dict:
     or_types = bool(re.search(r"\b" + _TYPE_RE.pattern + r"\s+or\s+" + _TYPE_RE.pattern + r"\b", p, re.IGNORECASE)) \
         and len(types) >= 2
     supertypes = sorted({s.group(1).lower() for s in _SUPER_RE.finditer(p)})
+    subtypes = sorted({m.group(1).lower() for m in _SUBTYPE_RE.finditer(p)} - set(_SUPERTYPES))
     quals = sorted({q.group(1).lower() for q in _QUALIFIER_RE.finditer(p) if q.group(1).lower() not in types})
     another = bool(re.search(r"\banother\b", low))
     short = card_name.split(",")[0].split(" //")[0].strip().lower()
@@ -87,11 +92,13 @@ def _selector(phrase: str, card_name: str) -> dict:
     if is_self:
         # a self-sacrifice targets THIS specific object; the type word in "this creature" is
         # incidental, not a selector constraint (cf. "Sacrifice <cardname>" naming no type at all).
-        types, or_types = [], False
+        # its card name may be Title-Case, so drop subtypes too.
+        types, or_types, subtypes = [], False, []
         if qty is None:
             qty = 1                                        # a named/self sacrifice is exactly one object
-    return {"card_types": types, "or_types": or_types, "supertypes": supertypes, "qualifiers": quals,
-            "self": is_self, "another": another, "generic_permanent": generic, "quantity": qty}
+    return {"card_types": types, "or_types": or_types, "supertypes": supertypes, "subtypes": subtypes,
+            "qualifiers": quals, "self": is_self, "another": another, "generic_permanent": generic,
+            "quantity": qty}
 
 
 _TRIG_MAP = {"enters": "etb", "attacks": "attack", "dies": "dies"}
@@ -154,9 +161,10 @@ def _cost(clause: str, context: str, selector: dict) -> object:
 
 def _sel_sig(sel: dict) -> dict:
     """Compact, canonical selector signature carried on a sacrifice cost atom."""
-    return {"card_types": sorted(sel.get("card_types") or []), "or_types": bool(sel.get("or_types")),
-            "supertypes": sorted(sel.get("supertypes") or []), "qualifiers": sorted(sel.get("qualifiers") or []),
-            "self": bool(sel.get("self")), "another": bool(sel.get("another")), "quantity": sel.get("quantity")}
+    return {"card_types": sorted(sel.get("card_types") or []), "subtypes": sorted(sel.get("subtypes") or []),
+            "or_types": bool(sel.get("or_types")), "supertypes": sorted(sel.get("supertypes") or []),
+            "qualifiers": sorted(sel.get("qualifiers") or []), "self": bool(sel.get("self")),
+            "another": bool(sel.get("another")), "quantity": sel.get("quantity")}
 
 
 def extract_all(oracle: str, card_name: str = "") -> list[dict]:
@@ -228,6 +236,7 @@ def _flatten(rec: dict | None) -> dict:
     return {"is_outlet": rec.get("is_outlet", True), "cost_context": rec.get("cost_context"),
             "actor": rec.get("actor"), "ability_context": rec.get("ability_context"),
             "modal": rec.get("modal", False), "sel_card_types": sorted(s.get("card_types") or []),
+            "sel_subtypes": sorted(s.get("subtypes") or []),
             "sel_or_types": s.get("or_types", False), "sel_supertypes": sorted(s.get("supertypes") or []),
             "sel_qualifiers": sorted(s.get("qualifiers") or []), "sel_self": s.get("self", False),
             "sel_another": s.get("another", False), "sel_quantity": s.get("quantity"),
@@ -292,11 +301,14 @@ def _clause_exact(expected_clause: dict, got_clause: dict | None) -> bool:
 
 
 def run_setwide(repo=None, fixture="tests/fixtures/fin_sacrifice_setwide.jsonl") -> dict:
-    """Set-wide evaluation over EVERY adjudicated FIN face containing 'sacrif' (review pt1 #1). Reports
-    face-level detection precision/recall (outlet vs non-outlet), clause-level exact match (the
-    PRIMARY metric — review pt1 metric note), and per-field micro accuracy (secondary/diagnostic).
-    The parser is frozen; this fixture is adjudicated separately. Returns {available: False} until the
-    fixture exists (so the parser can be committed and frozen BEFORE the unseen fixture is added)."""
+    """Set-wide evaluation over EVERY adjudicated FIN face containing 'sacrif'. Reports face-level
+    detection precision/recall (outlet vs non-outlet) and, at CLAUSE level, exact-match precision /
+    recall / F1 — where surplus predicted clauses are penalised (review pt2 #1): a matched clause is
+    an exact-field match of a predicted clause to its aligned expected clause; precision divides by
+    ALL predicted clauses, recall by all expected clauses. A face is fully exact only if predicted
+    and expected clause counts are EQUAL and every aligned clause matches. Per-field micro accuracy
+    is secondary/diagnostic. Parser is frozen; the fixture is adjudicated separately. Returns
+    {available: False} until the fixture exists."""
     from .pipeline import REPO, _load_dicts
     repo = repo or REPO
     path = repo / fixture
@@ -304,9 +316,11 @@ def run_setwide(repo=None, fixture="tests/fixtures/fin_sacrifice_setwide.jsonl")
         return {"available": False}
     cases = list(_load_dicts(path))
     tp = fp = fn = tn = 0
-    clause_exact = clause_total = 0
+    clause_matched = clause_expected = clause_predicted = 0
     field_ok = field_tot = 0
+    n_outlets = 0
     fp_faces, fn_faces, imperfect = [], [], []
+    faces_exact = outlet_faces_exact = 0
     for c in cases:
         exp_clauses = (c["expected"].get("clauses") or [])
         got = sorted(extract_all(c["oracle_text"], c.get("name", "")),
@@ -316,28 +330,41 @@ def run_setwide(repo=None, fixture="tests/fixtures/fin_sacrifice_setwide.jsonl")
         fp += (not exp_pos) and got_pos
         fn += exp_pos and (not got_pos)
         tn += (not exp_pos) and (not got_pos)
+        n_outlets += int(exp_pos)
         if got_pos and not exp_pos:
             fp_faces.append(c["name"])
         if exp_pos and not got_pos:
             fn_faces.append(c["name"])
-        clause_total += len(exp_clauses)
-        face_perfect = (exp_pos == got_pos)
-        for i, ec in enumerate(exp_clauses):                # align by text order (near-all faces = 1 clause)
+        clause_expected += len(exp_clauses)
+        clause_predicted += len(got)
+        face_matched = 0
+        for i, ec in enumerate(exp_clauses):                # align by text order
             gc = got[i] if i < len(got) else None
             ok = _clause_exact(ec, gc)
-            clause_exact += int(ok)
+            clause_matched += int(ok)
+            face_matched += int(ok)
             sc = score(ec, gc)
             field_ok += sc["fields_ok"]
             field_tot += sc["fields_total"]
-            face_perfect = face_perfect and ok
-        if not face_perfect:
-            imperfect.append(c["name"])
+        # fully exact face: equal predicted/expected counts AND every aligned clause matched (pt2 #1)
+        face_exact = (len(got) == len(exp_clauses)) and (face_matched == len(exp_clauses))
+        faces_exact += int(face_exact)
+        if exp_pos:
+            outlet_faces_exact += int(face_exact)
+            if not face_exact:
+                imperfect.append(c["name"])
     prec = tp / (tp + fp) if (tp + fp) else 1.0
     rec = tp / (tp + fn) if (tp + fn) else 1.0
-    return {"available": True, "faces": len(cases), "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+    cp = clause_matched / clause_predicted if clause_predicted else 1.0
+    cr = clause_matched / clause_expected if clause_expected else 1.0
+    cf1 = (2 * cp * cr / (cp + cr)) if (cp + cr) else 0.0
+    return {"available": True, "faces": len(cases), "outlets": n_outlets,
+            "tp": tp, "fp": fp, "fn": fn, "tn": tn,
             "precision": round(prec, 4), "recall": round(rec, 4),
-            "clause_exact": clause_exact, "clause_total": clause_total,
-            "clause_exact_rate": round(clause_exact / clause_total, 4) if clause_total else 0.0,
+            "clause_matched": clause_matched, "clause_expected": clause_expected,
+            "clause_predicted": clause_predicted,
+            "clause_precision": round(cp, 4), "clause_recall": round(cr, 4), "clause_f1": round(cf1, 4),
+            "faces_exact": faces_exact, "outlet_faces_exact": outlet_faces_exact,
             "field_ok": field_ok, "field_total": field_tot,
             "field_accuracy": round(field_ok / field_tot, 4) if field_tot else 0.0,
             "fp_faces": fp_faces, "fn_faces": fn_faces, "imperfect": imperfect}
@@ -375,21 +402,28 @@ def report(repo=None) -> dict:
          "gold set** (review pt1 #5).", ""]
     if sw.get("available"):
         L += ["## PRIMARY — set-wide FIN evaluation (every face containing “sacrif”)", "",
-              "Detection is over ALL adjudicated FIN faces; clause-level exact match is the primary "
-              "quality metric (per-field micro accuracy is secondary — it is inflated by easy default "
-              "fields such as `modal=False` / empty lists / `restriction_timing=None`).", "",
-              f"- faces adjudicated: **{sw['faces']}**  (TP {sw['tp']} · FP {sw['fp']} · FN {sw['fn']} · TN {sw['tn']})",
-              f"- **detection precision {sw['precision']:.1%} · recall {sw['recall']:.1%}** (outlet vs non-outlet)",
-              f"- **clause-level exact match: {sw['clause_exact']}/{sw['clause_total']} = "
-              f"{sw['clause_exact_rate']:.1%}**  ← primary",
+              "Detection is over ALL adjudicated FIN faces. Clause-level exact match is the primary "
+              "quality metric and **penalises surplus predicted clauses** (review pt2 #1): precision = "
+              "matched / predicted, recall = matched / expected. A face is fully exact only when its "
+              "predicted and expected clause counts are equal and every aligned clause matches. "
+              "Per-field micro accuracy is secondary — inflated by easy defaults (`modal=False`, empty "
+              "lists, `restriction_timing=None`).", "",
+              f"- faces: **{sw['faces']}** ({sw['outlets']} outlet / {sw['faces'] - sw['outlets']} non-outlet)  "
+              f"· detection **precision {sw['precision']:.1%} · recall {sw['recall']:.1%}** "
+              f"(TP {sw['tp']} · FP {sw['fp']} · FN {sw['fn']} · TN {sw['tn']})",
+              f"- **clause exact-match: precision {sw['clause_matched']}/{sw['clause_predicted']} = "
+              f"{sw['clause_precision']:.1%}  ·  recall {sw['clause_matched']}/{sw['clause_expected']} = "
+              f"{sw['clause_recall']:.1%}  ·  F1 {sw['clause_f1']:.1%}**  ← primary",
+              f"- fully-exact faces: **{sw['faces_exact']}/{sw['faces']}**  "
+              f"(outlet faces: **{sw['outlet_faces_exact']}/{sw['outlets']}**)",
               f"- per-field micro accuracy: {sw['field_ok']}/{sw['field_total']} = {sw['field_accuracy']:.1%} "
               "(secondary/diagnostic)"]
         if sw["fp_faces"]:
             L.append(f"- false-positive faces (parser saw an outlet, adjudication did not): {sw['fp_faces']}")
         if sw["fn_faces"]:
-            L.append(f"- false-negative faces (adjudicated outlet the parser missed): {sw['fn_faces']}")
+            L.append(f"- false-negative faces (adjudicated outlet the parser missed — pinned): {sw['fn_faces']}")
         if sw["imperfect"]:
-            L.append(f"- faces with any clause/field error: {sw['imperfect']}")
+            L.append(f"- outlet faces not fully exact: {sw['imperfect']}")
         L.append("")
     else:
         L += ["## PRIMARY — set-wide FIN evaluation", "",

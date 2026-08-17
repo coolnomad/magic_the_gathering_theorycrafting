@@ -21,9 +21,11 @@ OUT_HELD = REPO / "tests/fixtures/fin_sacrifice_heldout.jsonl"
 OUT_SETWIDE = REPO / "tests/fixtures/fin_sacrifice_setwide.jsonl"
 
 
-def sel(card_types=(), or_types=False, supertypes=(), qualifiers=(), self=False, another=False, quantity=1):
-    return {"card_types": list(card_types), "or_types": or_types, "supertypes": list(supertypes),
-            "qualifiers": list(qualifiers), "self": self, "another": another, "quantity": quantity}
+def sel(card_types=(), subtypes=(), or_types=False, supertypes=(), qualifiers=(),
+        self=False, another=False, quantity=1):
+    return {"card_types": list(card_types), "subtypes": list(subtypes), "or_types": or_types,
+            "supertypes": list(supertypes), "qualifiers": list(qualifiers), "self": self,
+            "another": another, "quantity": quantity}
 
 
 def cost(*branches):
@@ -38,8 +40,9 @@ def _expand(meta):
     s = meta["selector"]
     exp = {"is_outlet": True, "cost_context": meta["cost_context"], "actor": meta["actor"],
            "ability_context": meta["ability_context"], "modal": meta.get("modal", False),
-           "sel_card_types": sorted(s["card_types"]), "sel_or_types": s["or_types"],
-           "sel_supertypes": sorted(s["supertypes"]), "sel_qualifiers": sorted(s["qualifiers"]),
+           "sel_card_types": sorted(s["card_types"]), "sel_subtypes": sorted(s.get("subtypes", [])),
+           "sel_or_types": s["or_types"], "sel_supertypes": sorted(s["supertypes"]),
+           "sel_qualifiers": sorted(s["qualifiers"]),
            "sel_self": s["self"], "sel_another": s["another"], "sel_quantity": s["quantity"],
            "restriction_timing": meta.get("restriction_timing")}
     c = meta.get("cost")
@@ -175,9 +178,13 @@ SETWIDE = [
          cost([("pay", "{3}"), "SAC"])))),                                      # Ahriman
     ("688fcf8a-0a44-416a-8086-83acf9a6fe69", None,
      O(C("resolution_effect", "target_opponent", "resolution", sel(card_types=["creature"])))),  # Cornered
-    ("a4ee8ba5-6a79-4652-b2a4-a3dae804bc28", None,
+    ("a4ee8ba5-6a79-4652-b2a4-a3dae804bc28", None,                              # Gaius — 3 modal options (pt2 #2)
      O(C("resolution_effect", "each_player", "triggered_etb",
-         sel(card_types=["creature"], qualifiers=["token"]), modal=True))),     # Gaius (modal)
+         sel(card_types=["creature"], qualifiers=["token"]), modal=True),
+       C("resolution_effect", "each_player", "triggered_etb",
+         sel(card_types=["creature"], qualifiers=["nontoken"]), modal=True),
+       C("resolution_effect", "each_player", "triggered_etb",
+         sel(card_types=["enchantment"]), modal=True))),
     ("4ec91fe8-b3da-47fa-b45e-94b62a260aba", "Braska's Final Aeon",
      O(C("resolution_effect", "each_opponent", "resolution", sel(card_types=["creature"], quantity=2)))),  # Braska
     ("f9d25b34-990d-416c-aef7-1b5a73f19dd4", None,
@@ -212,8 +219,9 @@ SETWIDE = [
     ("d0e5cbd4-401b-4456-80bf-d90beadfd1f8", None, NON),                        # Summon: G.F. Cerberus
     ("c6c73092-5195-4bdc-b039-a699f6e297b2", None, NON),                        # Summon: G.F. Ifrit
     ("0f503360-216a-4629-89b2-d32072850aef", "Summon: Esper Maduin", NON),      # Saga timer
-    ("4f352b5e-9731-4a8e-b872-db5d3bf32211", None,
-     O(C("activated_ability", "you", "activated", sel(quantity=1), cost([("pay", "{2}"), "SAC"])))),  # Quina — subtype 'Frog'
+    ("4f352b5e-9731-4a8e-b872-db5d3bf32211", None,                              # Quina — subtype 'Frog' (pt2 #3)
+     O(C("activated_ability", "you", "activated", sel(subtypes=["frog"], quantity=1),
+         cost([("pay", "{2}"), "SAC"])))),
     ("32eb192b-de6b-4814-8077-628d343d014e", None, NON),                        # Summon: Fat Chocobo
     ("93feb9d5-d004-4598-a448-b3488c869c05", None, NON),                        # Summon: Fenrir
     ("5ce6ea96-7293-496d-b9c8-8ed6d6109a4d", None, NON),                        # Summon: Titan

@@ -1450,3 +1450,21 @@ Commit B of the review pt1 slice. The parser was frozen in Commit A (`a042bc3`);
 **Measured backlog for the next slice** (all now quantified against real adjudicated FIN text): subtype fodder selectors (recall); distinguish sacrifice-as-consequence / reminder text from real outlets (precision); read "other" as `another`; don't treat "When you do" as a trigger; represent modal edicts as one clause with alternative fodder. **251 tests pass** (+5). Frozen HOB data/graph layers untouched.
 
 Refs: `tests/fixtures/fin_sacrifice_setwide.jsonl`; `tests/test_sac_setwide.py`; `tools/build_fin_fixture.py`; `reports/sac_schema_portability.md`; `data/raw/fin/scryfall_fin.json`; `docs/hob_portability_review_pt1.md`; frozen parser `a042bc3`; [[tracer-bullet-portability]]
+
+---
+
+## [2026-08-17] EXPERIMENT — review pt2: correct the set-wide clause metric (surplus penalty, Gaius gold, subtypes)
+
+Review `docs/hob_portability_review_pt2.md` accepted the freeze/evaluate design and the parser (`a042bc3`) and the set-wide framework (`817cd0b`), but required an evaluation-correction commit before accepting the reported performance. Three defects, all fixed here:
+
+**1. Clause exact-match ignored surplus predictions.** The old `25/28 = 89.3%` scored only expected clauses; extra predictions weren't penalised and `face_perfect` didn't require equal counts. `run_setwide` now reports clause-level **precision = matched/predicted, recall = matched/expected, F1**, and a face is fully-exact only when predicted and expected clause counts are EQUAL and every aligned clause matches. Corrected numbers (parser's clause behaviour unchanged): **clause precision 25/33 = 75.8%, recall 25/30 = 83.3%, F1 79.4%; fully-exact faces 42/50; fully-exact outlet faces 23/27** — matches the reviewer's independent recomputation.
+
+**2. Gaius van Baelsar gold annotation was wrong.** Its three modal options (creature token / nontoken creature / enchantment) are real printed clauses, not over-extraction. Re-annotated as three linked modal alternatives (pt2's option a). This raised `clause_expected` 28→30. The parser emits all three; clause 0 (adjacent to the "choose one" intro) matches, but clauses 1–2 miss `ability_context` (`resolution` vs `triggered_etb`) — a genuine, now-surfaced limit: the modal trigger context isn't propagated to the 2nd/3rd option. Gaius is now correctly an imperfect outlet face, not a source of phantom over-extraction.
+
+**3. Subtypes were absent from the schema.** Added `sel_subtypes` to the selector output, the sacrifice-atom signature (`_sel_sig`), `SCORED_FIELDS`, the scorer/`_flatten`, and the fixture. Detection heuristic: a Title-Case fodder token is a subtype (card types/supertypes print lower-case), with a `(?<!non-)` guard so "non-God" stays a qualifier and does not leak `god` as a subtype (caught + fixed when the field was added — Zodiark). Per pt2, **Quina stays pinned as the frozen parser's known false negative**: subtype detection was NOT added to the outlet gate (`card_types|self|generic_permanent`), so "Sacrifice a Frog" is still undetected; its gold record now nonetheless preserves `sel_subtypes:["frog"]`. The parser DOES capture subtypes when a card type co-occurs ("Goblin creature" → `goblin`), unit-tested.
+
+Net: this commit changed the parser (subtype field, `non-` guard) and the evaluation (surplus penalty, P/R/F1, strict face-exact) and the gold (Gaius). All changes either add honest strictness (lower the clause score from an inflated 89.3% recall to 75.8% precision / 79.4% F1) or fix an adjudication error; none tunes the parser to inflate. DEV 11/11 and HELD-OUT 6/6 unchanged. **254 tests pass** (+3). Frozen HOB data/graph layers untouched.
+
+Remaining measured backlog (unchanged targets, now with corrected baselines): subtype-fodder DETECTION (Quina, pinned); distinguish sacrifice-as-consequence / reminder text from outlets (the 4 FP faces); read "other" as `another` (Sephiroth OWA); don't treat "When you do" as a trigger (Eden); propagate modal trigger context to all options (Gaius clauses 1–2).
+
+Refs: `src/hobkg/sac_schema.py`; `tools/build_fin_fixture.py`; `tests/{test_sac_schema.py,test_sac_setwide.py}`; `tests/fixtures/fin_sacrifice_setwide.jsonl`; `reports/sac_schema_portability.md`; `docs/hob_portability_review_pt2.md`; [[tracer-bullet-portability]]
