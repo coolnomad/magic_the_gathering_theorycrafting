@@ -126,6 +126,9 @@ def main(argv: list[str] | None = None) -> int:
         from . import effect_semantics
         s = effect_semantics.census(); s.pop("summary", None)
         print(json.dumps(s, indent=2))
+    elif cmd == "effect-build":
+        from . import effect_semantics
+        print(json.dumps(effect_semantics.build_effects(), indent=2))
     elif cmd == "reproject-lifecycle":
         from . import lifecycle
         print(json.dumps(lifecycle.reproject(), indent=2))

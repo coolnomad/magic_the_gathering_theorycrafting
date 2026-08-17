@@ -214,7 +214,8 @@ def pair_index(repo: Path = REPO) -> dict:
               "repaired": "card_pair_projection_repaired.jsonl", "mechanism": "card_pair_projection_mechanism.jsonl",
               "equip": "card_pair_projection_equip.jsonl", "completeness": "card_pair_projection_completeness.jsonl",
               "lifecycle": "card_pair_projection_lifecycle.jsonl",
-              "audit_repair": "card_pair_projection_audit_repair.jsonl"}
+              "audit_repair": "card_pair_projection_audit_repair.jsonl",
+              "effect_semantics": "card_pair_projection_effect.jsonl"}
     data = {k: defaultdict(list) for k in layers}
     n_suppressed = 0
     for lay, fn in layers.items():
@@ -225,7 +226,7 @@ def pair_index(repo: Path = REPO) -> dict:
                 continue                                   # human audit retracted/retyped this relation
             data[lay][(m["source_card"], m["target_card"])].append(m["relation"])
     order = ["mechanical", "audited", "repaired", "mechanism", "equip", "completeness", "lifecycle",
-             "audit_repair"]
+             "audit_repair", "effect_semantics"]
     n, nonempty = 0, 0
     with (G / "pair_index.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for a in cards:

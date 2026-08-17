@@ -1548,3 +1548,19 @@ New spec `docs/hob_effect_semantics_repair_instructions.md`: a systematic ADDITI
 **265 tests pass** (+5). Frozen artifacts byte-identical (asserted). Next: Phase 2 (selector/mode/effect schema) + begin the targeted-object effect family, on go-ahead.
 
 Refs: `docs/hob_effect_semantics_repair_instructions.md`; `src/hobkg/effect_semantics.py`; `data/graph_global/{frozen_manifest.json,effect_census.jsonl}`; `reports/effect_census.md`; `tests/{test_frozen_manifest.py,test_effect_census.py}`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] BUILD — Effect-semantics Phase 2: structured schema + first family (targeted destruction)
+
+Sequence steps 2–3 (schema + first targeted-object family), committed at the phase boundary for review.
+
+**Schema (`src/hobkg/effect_schema.py`):** a structured `selector` (card_types / or_types / subtypes / supertypes / controller / quantity / exclusions / predicates{flying, power_ge, token, nontoken} / targeted / stable var), parsed from a target phrase with NO card-name branching, plus deterministic eligibility resolvers `matches_card` / `matches_token`. Design points honoring the instructions: **controller is participant metadata, not a card-eligibility filter** (any creature can be yours or an opponent's — Meager Meal must not be restricted); a `token` predicate matches token SPECS, never nontoken cards; power is parsed from the string field (`"2"`, `"*"`→None); `flying` uses a keyword detector that ignores grant/reference contexts ("gains/with flying").
+
+**First family — targeted destruction (`CAN_DESTROY`)** in `effect_semantics.build_effects` (`cli effect-build`). Mode-aware (`Choose one` / `Choose one or both`, split on the `•` bullet; each branch structured separately, never flattened), reminder-text blanked before extraction (offsets preserved) so Stone by Sunlight's `(… effects that say "destroy" don't destroy it)` is NOT a false positive. Pronoun antecedents resolved (The Black Arrow "destroy **it**" → the Dragon dealt damage → subtype `dragon`). Structured facts → `effect_destroy.jsonl` (selector + mode + Oracle-span provenance + eligible token specs); deterministic card-pair projection → `card_pair_projection_effect.jsonl` (origin `effect_semantics`), composed into `pair_index` as a distinct `effect_semantics` column.
+
+**10 destroy effects → 603 CAN_DESTROY pairs.** All mandated regression/negatives pass (`tests/test_effect_destroy.py`): Bilbo's Deadly Slice & Stir Up Trouble → all 112 creatures; Warg Tactics mode-0 → only the 12 flyers (NEGATIVE: no nonflyer); Stone by Sunlight mode-0 → only the 32 power≥4 creatures (NEGATIVE: no reminder false positive); Pinecone Strike token-mode → 0 nontoken artifact cards but does point at artifact token specs (NEGATIVE); Giant's Boulder → all 163 permanents; Thorin's Last Stand → modal artifact|enchantment (38); Azog `up to one other` keeps the card self-pair (a second copy is a legal target — "another" excludes the object, not the card identity). Determinism + composed-into-pair-index asserted.
+
+**272 tests pass** (+7). Frozen artifacts byte-identical (manifest test green). Next phase (on go-ahead): the rest of the targeted-object effects (damage/counters/PT/grants/tap/prevent/fight/type-control) — Warg mode-1 counter+grant, Reverent Howl / Pinecone damage modes, Troll Negotiations fight, etc.
+
+Refs: `src/hobkg/{effect_schema,effect_semantics,coverage,cli}.py`; `tests/test_effect_destroy.py`; `reports/effect_semantics.md`; `data/graph_global/{effect_destroy,card_pair_projection_effect}.jsonl`; [[phase4-frozen]]
