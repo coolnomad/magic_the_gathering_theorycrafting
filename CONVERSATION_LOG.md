@@ -4015,3 +4015,61 @@ Ready when you are.
 
 ### [2026-08-16 23:01] USER
 read hob-kg-phase6-review-pt8.md
+
+### [2026-08-16 23:15] ASSISTANT
+pt8 is sharp and correct â€” same connectivity failure class as pt5. It **accepts the schema additions and primitive structures but rejects `21a5933` as completing executability**: the pieces exist but aren't wired into an executable traversal. Specifically: (1) the sacrifice op doesn't reach the leave-transition (Crude's leave-op has zero incoming edges); (2) the OR gate is orphaned (zero incoming edges); (3) "leave battlefield" is wrongly hardcoded to graveyard; (4) `CR 603.6e` is the wrong rule; (5) the tests check existence, not **reachability from the consuming card**.
+
+Let me set up tracking and rewrite the lifecycle layer to be a connected, reachable, executable traversal â€” with a reachability gate this time.
+
+Let me gather the exact completeness ability/op ids and CONSUMES edges I need to wire the traversal.
+
+I have all the pieces. Let me rewrite `lifecycle.py` as a connected, reachable, executable layer â€” cause-specific sacrifice transition, wired OR gate, corrected CR provenance, plus a reprojection that emits the bound `consumer â†’ sac-op â†’ P â†’ P-sacrifice-transition â†’ TERMINATES attachment` traversal with a continuity gate.
+
+Now wire the `reproject-lifecycle` CLI command and run both.
+
+Now 60 executable traversals, all continuous/grounded/reaching-termination, 13 connected sacrifice ops (incoming + full chain), OR gate wired. Let me independently verify the connectivity pt8 flagged.
+
+All pt8 connectivity fixes verified: **0 orphan sacrifice ops, OR gate has incoming REQUIRES, 0 discontinuous/bad-endpoint paths**, and the flagship `Stir/Snowslope sacrifices Crude â†’ â€¦ â†’ TERMINATES Crude's attachment` is a full continuous traversal â€” exactly pt8's decisive test. Let me clean up and integrate the lifecycle projection as a 7th tier.
+
+Now update the coverage test (lifecycle edges 54â†’68, union 3303, relations_lifecycle) and rewrite the lifecycle tests for the renamed ops + reachability.
+
+Now rewrite the lifecycle tests for the renamed ops + the pt8 reachability tests.
+
+226 pass; the one failure is the known Windows `read_bytes [Errno 22]` flake on the ~11 MB equip projection under full-suite contention (unrelated to my change). Let me confirm it passes in isolation, then harden that determinism test so it stops flaking.
+
+Transient confirmed. Let me harden the equip determinism test (chunked read instead of one large `read_bytes`) so this flake stops recurring.
+
+The `[Errno 22]` is at file-**open** under full-suite handle pressure (not the read) â€” an environmental Windows flake on the large equip file; the layer is deterministic (passes in isolation). Let me make `_filehash` retry on the transient OSError.
+
+227 pass. Let me mark the tasks done, verify determinism + frozen graph, and render the flagship executable traversal.
+
+The query renders the exact executable traversal pt8 required: `Stir â†’ sac-op â†’ CONSUMES â†’ Crude â†’ op:sacrifice:Crude â†’ TERMINATES â†’ Crude's attachment`, and the reverse shows the completeness cost relation. Frozen graph untouched. Let me record the correction and commit.
+
+While the push completes, let me refresh the HANDOFF lifecycle facts.
+
+The pt8 commit+push completed. Let me confirm and push the HANDOFF update.
+
+pt8 resolved, committed (`c87fbdb`), and pushed; HANDOFF refreshed (`765541c`).
+
+## pt8 verdict and correction
+pt8 **accepted the schema additions and primitive structures but rejected `21a5933`** as completing executability â€” the pieces existed but were **disconnected** (the same pt5 failure class): Crude's leave-op and the OR gate each had **zero incoming edges**, so "sacrifice Crude â†’ attachment ends" was four facts, not a traversal. My earlier "a simulator can now execute this" claim was too strong, and pt8 was right to catch it.
+
+I rewrote `lifecycle.py` to **wire the primitives into an executable, reachable mechanism**, fixing all five points:
+1. **Connected sacrifice transition** â€” `op:leave-battlefield` â†’ cause-specific `op:sacrifice:H` (battlefieldâ†’graveyard), each now with an incoming `H HAS_ABILITY op:sacrifice:H` edge (13/13 connected). *(pt8 #1, #3)*
+2. **OR gate wired** â€” `ability:completeness:sac:{stir} REQUIRES gate:or-cost:{stir}` gives it an incoming edge; it `HAS_ALTERNATIVE` the sacrifice gate + explicit `cost:pay:{4}`. *(pt8 #2)*
+3. **Corrected rules** â€” dropped `603.6e`; now `CR 701.3d / 400.7 / 611.3b / 301.5 / 704.5n`. *(pt8 #4)*
+4. **Executable reprojection** â€” 60 `SACRIFICE_TERMINATES_ATTACHMENT` bound traversals: `card:O â†’ sac-op â†’ CONSUMES artifact â† HAS_TYPE â† face:P â†’ op:sacrifice:P â†’ TERMINATES state:attachment:P`. *(pt8 #5)*
+5. **Reachability tests** â€” now assert the continuous bound path from the consuming card to the termination, not just node existence.
+
+**Independently verified** (not self-certified): 0 orphan sacrifice ops, 0 discontinuous joins, 0 bad endpoints, OR gate reachable. The flagship renders end-to-end: **Stir Up Trouble / Snowslope Hunter sacrifice Crude Bent Blade â†’ terminates its attachment (and +2/+1)**.
+
+Integrated as the **7th projection tier** (coverage union **3,303 edges**, pair-index 7th column, query, structural). **227 tests pass**, deterministic, frozen Phase 4 + Phase 5 byte-untouched. (Also hardened the equip determinism test against a Windows large-file `read_bytes` flake.)
+
+## Still open (each needs a go-ahead)
+1. **pt8 item / pt7 item 4** â€” portable mechanical sacrifice-clause extraction (replace the hand-authored `SAC_OUTLETS` dict); the reusable-harness direction.
+2. **Independent human semantic validation** â€” the manual gold-set adjudication only you can do.
+
+Ready for your review of `c87fbdb` or direction on the portability work.
+
+### [2026-08-16 23:24] USER
+read hob-kg-phase6-review-pt9.md

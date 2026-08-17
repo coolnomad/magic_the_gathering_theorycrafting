@@ -36,7 +36,8 @@ import re
 from pathlib import Path
 
 from . import project
-from .completeness import SAC_OUTLETS, OBJ_TYPE_ARTIFACT, OBJ_TYPE_CREATURE
+from .completeness import (SAC_OUTLETS, OBJ_TYPE_ARTIFACT, OBJ_TYPE_CREATURE,
+                           COND_OR_SACRIFICE, COND_OR_PAY)
 from .pipeline import REPO, _load_dicts
 
 _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
@@ -104,8 +105,10 @@ def materialize(repo: Path = REPO) -> dict:
              {"kind": "sacrifice", "cause": "sacrifice", "equipment": name, "host": host,
               "from_zone": "battlefield", "to_zone": "graveyard", "terminates": state},
              "cause-specific sacrifice transition (battlefield -> graveyard)")
-        # the incoming edge pt8 required: the permanent hosts this sacrifice transition
-        edge(host, "HAS_ABILITY", op, "the Equipment can be sacrificed (hosts its sacrifice transition)")
+        # the incoming edge pt8 required, with the pt9 semantic-clean predicate: the permanent CAN
+        # UNDERGO this sacrifice transition (it is a transition the object undergoes, not an ability
+        # it possesses).
+        edge(host, "CAN_UNDERGO", op, "the permanent can undergo the sacrifice transition")
         edge(op, "MOVES_FROM", ZONE_BATTLEFIELD, "sacrifice moves the permanent off the battlefield")
         edge(op, "MOVES_TO", ZONE_GRAVEYARD, "the sacrificed permanent goes to its owner's graveyard")
         edge(op, "TERMINATES", state, "sacrificing the Equipment ends its attachment state (and its bonus)")
@@ -124,16 +127,31 @@ def materialize(repo: Path = REPO) -> dict:
         fid = re.search(r"face:[0-9a-f-]+:\d+", gid).group(0)
         or_gate = f"gate:or-cost:{fid}"
         pay_cost = f"cost:pay:{or_pay}"
+        pay_op = f"op:pay:{fid}"
         sac_ability = f"ability:completeness:sac:{fid}"
+        sac_op = f"op:completeness:sac:{fid}"
+        # a MUTUALLY-EXCLUSIVE OR gate: exactly one branch executes (pt9)
         node(or_gate, "Gate", f"OR cost: sacrifice or pay {or_pay}",
-             {"gate_type": "or", "branches": ["sacrifice", "pay"], "pay": or_pay, "sacrifice_branch": gid},
-             "explicit OR cost gate: sacrifice OR pay")
+             {"gate_type": "or", "mutually_exclusive": True, "branches": ["sacrifice", "pay"],
+              "pay": or_pay, "sacrifice_branch": sac_op, "pay_branch": pay_op,
+              "sacrifice_condition": COND_OR_SACRIFICE, "pay_condition": COND_OR_PAY},
+             "explicit mutually-exclusive OR cost gate: sacrifice OR pay")
         node(pay_cost, "Cost", f"pay {or_pay}", {"mana_cost": or_pay, "kind": "mana"},
              "the pay-mana alternative of the OR cost")
-        # WIRING (pt8 #2): the outlet's additional-cost ability REQUIRES the OR gate -> gate is reachable
+        node(pay_op, "Operation", f"pay {or_pay} (OR alternative)",
+             {"kind": "pay_mana", "mana_cost": or_pay, "consumes_permanent": False},
+             "the pay-mana branch execution — consumes NO permanent, terminates NO attachment")
+        # WIRING (pt8 #2): the additional-cost ability REQUIRES the OR gate -> gate is reachable
         edge(sac_ability, "REQUIRES", or_gate, "the additional cost is satisfied via the sacrifice-or-pay OR gate")
-        edge(or_gate, "HAS_ALTERNATIVE", gid, "the sacrifice branch of the OR cost")
-        edge(or_gate, "HAS_ALTERNATIVE", pay_cost, "the pay-mana branch of the OR cost")
+        edge(pay_op, "HAS_COST", pay_cost, "the pay branch pays the mana cost")
+        # pt9: the OR gate CAUSES each branch's execution, each gated by its (mutually exclusive)
+        # branch condition — so only the CHOSEN branch executes.
+        edge(or_gate, "HAS_ALTERNATIVE", sac_op, "the sacrifice branch → executes the sacrifice operation")
+        edge(or_gate, "HAS_ALTERNATIVE", pay_op, "the pay branch → executes the pay operation")
+        edge(or_gate, "CAUSES", sac_op, "executing the sacrifice branch performs the sacrifice",
+             condition_ids=[COND_OR_SACRIFICE])
+        edge(or_gate, "CAUSES", pay_op, "executing the pay branch pays {4} — no sacrifice",
+             condition_ids=[COND_OR_PAY])
 
     # ---- write + validate ----------------------------------------------------------------
     uniq = {}
@@ -235,7 +253,7 @@ def reproject(repo: Path = REPO) -> dict:
             # bind the fodder P to each Equipment host of the accepted type + run its sacrifice transition
             for host in equipment_hosts:
                 ht = htype.get(cls, {}).get(host)
-                sacrifice = Ed(host, "HAS_ABILITY", f"op:sacrifice:{host}")
+                sacrifice = Ed(host, "CAN_UNDERGO", f"op:sacrifice:{host}")
                 terminates = Ed(f"op:sacrifice:{host}", "TERMINATES", f"state:attachment:{host}")
                 if not (ht and sacrifice and terminates):
                     continue

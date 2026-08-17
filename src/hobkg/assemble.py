@@ -102,6 +102,9 @@ GLOBAL_SIGNATURES = {
     # REQUIRES chain, the continuous effects needing them); an OR cost gate has alternative satisfiers.
     "TERMINATES": ({"Operation", "Event", "State"}, {"State"}),
     "HAS_ALTERNATIVE": ({"Gate"}, {"Gate", "Cost", "Operation"}),
+    # a permanent CAN_UNDERGO a lifecycle transition (e.g. being sacrificed) — semantically cleaner
+    # than overloading HAS_ABILITY for a transition the object does not "possess" as an ability.
+    "CAN_UNDERGO": ({"CardFace", "TokenSpec", "ObjectClass"}, {"Operation"}),
 }
 
 # actor predicates whose CardFace/Ability subject must be reified onto an Operation.

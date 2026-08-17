@@ -121,6 +121,11 @@ SAC_OUTLETS = {
 COND_SAC_CONTROLLED = "cond:completeness-sac-controlled"
 COND_SAC_ON_BATTLEFIELD = "cond:completeness-sac-on-battlefield"
 COND_SAC_ANOTHER = "cond:completeness-sac-another"
+# pt9: for an OR additional cost (Stir's "sacrifice ... OR pay {4}") the sacrifice executes ONLY when
+# the sacrifice branch is chosen — mutually exclusive with the pay branch. So a simulator executing
+# the pay branch does not reach the sacrifice op / consume a permanent / terminate an attachment.
+COND_OR_SACRIFICE = "cond:completeness-or-sacrifice-branch-chosen"
+COND_OR_PAY = "cond:completeness-or-pay-branch-chosen"
 
 
 def _card_of(nid):
@@ -230,6 +235,14 @@ def materialize(repo: Path = REPO) -> dict:
              "The sacrificed permanent must be one the activating player controls.", "sacrifice controller")
     add_cond(COND_SAC_ON_BATTLEFIELD, {"op": "in_zone", "subject": "sacrificed_permanent", "zone": "battlefield"},
              "Only a permanent on the battlefield can be sacrificed.", "sacrifice battlefield zone")
+    add_cond(COND_OR_SACRIFICE, {"op": "branch_chosen", "or_gate": "additional_cost", "branch": "sacrifice",
+                                 "mutually_exclusive_with": COND_OR_PAY},
+             "The sacrifice branch of the OR additional cost was chosen (mutually exclusive with paying).",
+             "OR additional cost — sacrifice branch")
+    add_cond(COND_OR_PAY, {"op": "branch_chosen", "or_gate": "additional_cost", "branch": "pay",
+                           "mutually_exclusive_with": COND_OR_SACRIFICE},
+             "The pay branch of the OR additional cost was chosen (mutually exclusive with sacrificing).",
+             "OR additional cost — pay branch")
     add_cond(COND_SAC_ANOTHER, {"op": "distinct", "left": "sacrificed_permanent", "right": "source_permanent"},
              "The sacrificed permanent must be ANOTHER permanent (not the source itself).", "sacrifice another")
 
@@ -253,7 +266,12 @@ def materialize(repo: Path = REPO) -> dict:
              {"kind": "sacrifice", "accepts": accepts, "another": spec["another"],
               "or_pay": spec["or_pay"], "destination": "graveyard"}, p)
         edges.append(_edge(fid, "HAS_ABILITY", ability, p))
-        edges.append(_edge(ability, "CAUSES", op, p))
+        # pt9: for an OR additional cost the sacrifice executes ONLY on the sacrifice branch (so the
+        # pay branch does not reach the sacrifice). Non-OR outlets sacrifice unconditionally.
+        if spec.get("or_pay"):
+            edges.append(_edge(ability, "CAUSES", op, p, condition_ids=[COND_OR_SACRIFICE]))
+        else:
+            edges.append(_edge(ability, "CAUSES", op, p))
         # typed cost gate (FAMILY 4): alternatives = accepted types, `another`, `or_pay`
         node(gate, "Gate", f"sacrifice cost: {name}",
              {"gate_type": "typed_sacrifice_cost", "alternatives": accepts, "another": spec["another"],

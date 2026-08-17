@@ -45,22 +45,27 @@ for the full build-phase status.
 - **pt5/pt8 LESSON (reinforced):** validate every projected path as a real, REACHABLE traversal
   (`step[i].target == step[i+1].source`, endpoints resolve to the cards, and — for lifecycle — the
   path reaches the claimed termination). Node existence ≠ executable connectivity.
-- Card-pair layer = **6 separate tiers**: `card_pair_projection.jsonl` (5,278 mechanical),
+- Card-pair layer = **7 separate tiers**: `card_pair_projection.jsonl` (5,278 mechanical),
   `_audit.jsonl` (3 llm_audit), `_repaired.jsonl` (8 graph_repair), `_mechanism.jsonl`
   (392 mechanism_repair — second-draw [all genuine drawers] / Dwarf-Equipment / noncreature-cast),
   `_equip.jsonl` (3,250 equip — continuous card→creature CAN_ATTACH_TO / MODIFIES_WHEN_ATTACHED /
   GRANTS_ABILITY_WHEN_ATTACHED), `_completeness.jsonl` (1,036 — token-entry ENABLES_TRIGGER /
-  sac-outlet→dies ENABLES_TRIGGER / permanent-consumption SATISFIES_SACRIFICE_COST).
+  sac-outlet→dies ENABLES_TRIGGER / permanent-consumption SATISFIES_SACRIFICE_COST / IS_ELIGIBLE_SACRIFICE_TARGET),
+  `_lifecycle.jsonl` (60 — executable SACRIFICE_TERMINATES_ATTACHMENT traversals).
 - Additive graph layers (all origin-tagged, signature-valid, provenance-bearing): `legend_*` (58/113,
   CR 704.5j SBA); `mechanism_*` (3/111: `state:cards-drawn-this-turn` + `gate:second-draw` transition
   gate + `op:cast-noncreature-spell`); `equip_*` (107/173/16: per-Equipment `ability:equip:E`→
   `op:equip:E`→`state:attachment:E`, bound-creature effects via `obj:bound-creature:E HAS_TYPE creature`,
   ETB auto-attach distinct, `token:axe` covered, clause dispositions); `completeness_*` (28/101/3:
   `event:token-you-control-enters`, sac ops CAUSE death events, `gate:completeness:sac-cost:*` +
-  `CONSUMES obj:type:{artifact,creature}`). Unified `coverage.json` = **3,235 edges / 9,967 relations,
+  `CONSUMES obj:type:{artifact,creature}`); `lifecycle_*` (17/71: cause-specific `op:sacrifice:H`
+  reached via `CAN_UNDERGO`, `TERMINATES state:attachment:H`, and Stir's mutually-exclusive
+  `gate:or-cost` — sacrifice branch gated by `cond:…-or-sacrifice-branch-chosen`, pay branch by
+  `…-or-pay-branch-chosen`). Unified `coverage.json` = **3,306 edges / ~10,000 relations,
   0 provenance gaps, conditions_all_resolve=true**; `mechanism_modules.jsonl` (38 modules);
-  `pair_index.jsonl` (37,249 pairs, 6 layers/columns); `structural_validation_set.jsonl`.
-  `DEFERRED_INVARIANTS` empty; spec invariants #1–#17 modeled.
+  `pair_index.jsonl` (37,249 pairs, 7 layers/columns); `structural_validation_set.jsonl`.
+  `DEFERRED_INVARIANTS` empty; spec invariants #1–#17 modeled; schema extension predicates
+  `TERMINATES` / `HAS_ALTERNATIVE` / `CAN_UNDERGO` recorded.
 - **KEY LESSON (pt5):** a projected path must be validated as a real TRAVERSAL —
   `step[i].target == step[i+1].source` and `path[0]/path[-1]` resolve to the source/target cards —
   NOT just as a set of existing edges. `equip`/`completeness` `reproject()` self-gate this
@@ -68,10 +73,11 @@ for the full build-phase status.
   new reprojection layer the same way.
 - **Query CLI** (`src/hobkg/query.py`): `query-card` / `query-pair` / `query-mechanism` — any pair
   shows relation, direction, conditions, intermediate nodes, provenance, and inference origin
-  across all 6 layers.
+  across all 7 layers.
 - **Build order for a full regen:** `assemble` → `project` → (audit) → `graph-repair`/`reproject` →
   `complete-mechanisms`/`reproject-mechanisms` → `equip`/`reproject-equip` →
-  `completeness`/`reproject-completeness` → `modules` → `coverage` → `pair-index` → `structural-validation`.
+  `completeness`/`reproject-completeness` → `lifecycle`/`reproject-lifecycle` → `modules` →
+  `coverage` → `pair-index` → `structural-validation`.
 
 ## Remaining work for full-spec acceptance
 1. **Independent human semantic validation** — the ONLY open item; a *human* hand-reviews a

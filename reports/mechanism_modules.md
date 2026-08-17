@@ -112,7 +112,7 @@
 
 ### gate:completeness:sac-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0  (`gate`)
 - anchors: `gate:completeness:sac-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0`
-- members: 1  · contributors: 1  · consumers: 2  · conditions: 2  · feedback cycles: 0
+- members: 0  · contributors: 0  · consumers: 2  · conditions: 2  · feedback cycles: 0
 
 ### gate:completeness:sac-cost:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0  (`gate`)
 - anchors: `gate:completeness:sac-cost:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0`
@@ -124,7 +124,7 @@
 
 ### gate:or-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0  (`gate`)
 - anchors: `gate:or-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0`
-- members: 1  · contributors: 1  · consumers: 2  · conditions: 0  · feedback cycles: 0
+- members: 1  · contributors: 1  · consumers: 4  · conditions: 2  · feedback cycles: 0
 
 ### gate:recruit-nonland-discard  (`gate`)
 - anchors: `gate:recruit-nonland-discard`

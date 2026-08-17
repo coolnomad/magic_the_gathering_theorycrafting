@@ -1299,3 +1299,19 @@ Rewrote `src/hobkg/lifecycle.py` to WIRE the primitives into an executable mecha
 **pt8 remaining:** portable mechanical sacrifice-clause extraction (still the hand-authored `SAC_OUTLETS` dict) — awaiting a separate go-ahead.
 
 Refs: `docs/hob-kg-phase6-review-pt8.md`; `src/hobkg/{lifecycle,coverage,query,cli}.py`; `tests/{test_lifecycle,test_equip,test_coverage}.py`; `data/graph_global/{lifecycle_nodes,lifecycle_edges,card_pair_projection_lifecycle}.jsonl`; `reports/lifecycle.md`
+
+---
+
+## [2026-08-17 17:00] CORRECTION — pt9: Stir OR gate made executably EXCLUSIVE; CAN_UNDERGO predicate; stale-HANDOFF fix
+
+Reviewer (`docs/hob-kg-phase6-review-pt9.md`) accepted the sacrifice-to-attachment-termination repair (the principal Crude/Snowslope/Stir connectivity failure is closed — continuous, card-grounded, reachability-tested). One substantive issue + two smaller ones, all fixed.
+
+1. **Stir's OR cost is now executably mutually-exclusive (pt9 main).** The defect: `ability:completeness:sac:{stir}` **unconditionally** `CAUSES` the sacrifice op, so choosing the `pay {4}` branch still reached the sacrifice — the alternatives were reachable but did not govern exclusive execution. Fix: two mutually-exclusive branch conditions `cond:completeness-or-{sacrifice,pay}-branch-chosen` (each `mutually_exclusive_with` the other). The completeness `ability CAUSES op:sac` edge is now gated by `or-sacrifice-branch-chosen` **for OR-cost outlets only** (non-OR outlets sacrifice unconditionally). The lifecycle OR gate is `mutually_exclusive`, `HAS_ALTERNATIVE` its two branch OPERATIONS, and `CAUSES` each branch gated by its condition: sacrifice branch → `op:completeness:sac` (or-sacrifice), pay branch → a new `op:pay:{stir}` (or-pay) that `HAS_COST cost:pay:{4}` and **CONSUMES nothing / TERMINATES nothing**. Independently verified: BOTH CAUSES into the Stir sac op are gated by or-sacrifice; the pay op is gated by or-pay and consumes/terminates nothing; so executing the pay branch reaches no sacrifice, no consumption, no attachment termination — exactly pt9's decisive regression (now a test).
+2. **`CAN_UNDERGO` predicate (pt9 #2).** Replaced the semantically-loose `CardFace HAS_ABILITY op:sacrifice:H` (a transition is not an ability the object "possesses") with a new **`CAN_UNDERGO`** (`{CardFace,TokenSpec,ObjectClass} → Operation`) — recorded schema extension (3rd, after `TERMINATES`/`HAS_ALTERNATIVE`). The executable traversal path is now `HAS_FACE → HAS_ABILITY → CAUSES → CONSUMES → HAS_TYPE → CAN_UNDERGO → TERMINATES`.
+3. **Stale HANDOFF fixed (pt9 #3).** Updated the lower section (was "6 tiers / 3,235 edges / 9,967 relations / old build order") to 7 tiers, 3,306 edges, current build order incl. `lifecycle`, and the recorded schema-extension predicates.
+
+**Result.** Lifecycle 17 nodes / 71 edges, 0 signature violations; 60 executable traversals unchanged (continuous/grounded/reach-termination). Coverage union **3,306 edges**, 0 provenance gaps, conditions_all_resolve. **228 tests pass** (+ pt9 OR-exclusivity + CAN_UNDERGO regressions). Deterministic; frozen Phase 4 + Phase 5 byte-untouched.
+
+**pt9 remaining:** portable mechanical sacrifice-clause extraction (still the hand-authored `SAC_OUTLETS` dict) — awaiting a separate go-ahead.
+
+Refs: `docs/hob-kg-phase6-review-pt9.md`; `src/hobkg/{assemble,completeness,lifecycle}.py`; `tests/{test_lifecycle,test_coverage}.py`; `HANDOFF.md`; `data/graph_global/{lifecycle_edges,completeness_edges,completeness_conditions,card_pair_projection_lifecycle}.jsonl`

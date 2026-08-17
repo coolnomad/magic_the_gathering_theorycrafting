@@ -72,8 +72,9 @@ def test_cause_specific_sacrifice_transition_with_incoming_edge(mat, lnodes, led
         assert ("MOVES_FROM", "zone:battlefield") in out
         assert ("MOVES_TO", "zone:graveyard") in out
         assert ("TERMINATES", state) in out
-        # the incoming edge is HAS_ABILITY from the host (the permanent)
-        assert any(e["source"] == host and e["predicate"] == "HAS_ABILITY" and e["target"] == op for e in ledges)
+        # pt9: the incoming edge is CAN_UNDERGO from the host (a transition, not an "ability")
+        assert any(e["source"] == host and e["predicate"] == "CAN_UNDERGO" and e["target"] == op for e in ledges)
+        assert not any(e["predicate"] == "HAS_ABILITY" and e["target"] == op for e in ledges)
 
 
 def test_rules_provenance_corrected(lnodes, ledges):
@@ -84,17 +85,41 @@ def test_rules_provenance_corrected(lnodes, ledges):
 
 
 def test_or_gate_is_reachable_from_stir(mat, lnodes, ledges):
-    # pt8 #2: the OR gate must have an INCOMING edge from Stir's additional-cost ability, and
-    # HAS_ALTERNATIVE the sacrifice gate + the pay-{4} cost (Stir op -> REQUIRES OR gate ->
-    # HAS_ALTERNATIVE {sac gate, pay cost}).
+    # pt8 #2: the OR gate has an INCOMING REQUIRES from Stir's additional-cost ability, and
+    # HAS_ALTERNATIVE its two branch operations.
     assert mat["or_cost_gates"] == 1
     or_gate = next(nid for nid in lnodes if nid.startswith("gate:or-cost:"))
     incoming = [e for e in ledges if e["target"] == or_gate]
     assert incoming and incoming[0]["predicate"] == "REQUIRES"           # gate is reachable
     assert incoming[0]["source"].startswith("ability:completeness:sac:")  # from Stir's additional-cost ability
     alts = [e["target"] for e in ledges if e["source"] == or_gate and e["predicate"] == "HAS_ALTERNATIVE"]
-    assert any(a.startswith("gate:completeness:sac-cost:") for a in alts)
-    assert any(a.startswith("cost:pay:") for a in alts)
+    assert any(a.startswith("op:completeness:sac:") for a in alts)       # sacrifice branch op
+    assert any(a.startswith("op:pay:") for a in alts)                    # pay branch op
+
+
+def test_or_gate_is_mutually_exclusive_pay_branch_consumes_nothing(lnodes, ledges):
+    # THE pt9 decisive regression: only the CHOSEN branch executes. Executing the pay branch must
+    # NOT consume a permanent or terminate an attachment; the sacrifice op executes ONLY on the
+    # sacrifice branch (both its incoming CAUSES gated by the sacrifice-branch condition).
+    import hobkg.completeness as cc
+    or_gate = next(nid for nid in lnodes if nid.startswith("gate:or-cost:"))
+    assert lnodes[or_gate]["data"]["mutually_exclusive"] is True
+    fid = or_gate[len("gate:or-cost:"):]
+    sac_op, pay_op = f"op:completeness:sac:{fid}", f"op:pay:{fid}"
+    comp = list(_load_dicts(G / "completeness_edges.jsonl"))
+    everything = ledges + comp
+    # (a) every CAUSES into the sacrifice op is gated by the sacrifice-branch condition
+    into_sac = [e for e in everything if e["predicate"] == "CAUSES" and e["target"] == sac_op]
+    assert into_sac and all(cc.COND_OR_SACRIFICE in (e.get("condition_ids") or []) for e in into_sac)
+    # (b) the pay op is gated by the pay-branch condition and consumes/terminates NOTHING
+    into_pay = [e for e in ledges if e["predicate"] == "CAUSES" and e["target"] == pay_op]
+    assert into_pay and all(cc.COND_OR_PAY in (e.get("condition_ids") or []) for e in into_pay)
+    pay_out = {e["predicate"] for e in ledges if e["source"] == pay_op}
+    assert "CONSUMES" not in pay_out and "TERMINATES" not in pay_out
+    # (c) the two branch conditions are mutually exclusive
+    conds = {c["condition_id"]: c for c in _load_dicts(G / "completeness_conditions.jsonl")}
+    assert conds[cc.COND_OR_PAY]["expression"]["mutually_exclusive_with"] == cc.COND_OR_SACRIFICE
+    assert conds[cc.COND_OR_SACRIFICE]["expression"]["mutually_exclusive_with"] == cc.COND_OR_PAY
 
 
 def test_executable_traversal_is_continuous_and_reaches_termination(rep, lrel):
@@ -131,7 +156,7 @@ def test_stir_and_snowslope_sacrifice_crude(lrel):
         m = ms[0]
         assert m["relation"] == "SACRIFICE_TERMINATES_ATTACHMENT" and m["executable"]
         assert m["path_predicates"] == ["HAS_FACE", "HAS_ABILITY", "CAUSES", "CONSUMES",
-                                        "HAS_TYPE", "HAS_ABILITY", "TERMINATES"]
+                                        "HAS_TYPE", "CAN_UNDERGO", "TERMINATES"]
 
 
 def test_deterministic():
