@@ -1331,3 +1331,26 @@ This round had **two distinct review inputs**: (A) an inline review on the OR-ga
 **pt10.md remaining (presented for a go-ahead — per-card action-level simulation):** #2 activation restrictions (Snowslope "only during your turn, only once each turn": needs a controller-turn condition + a per-turn activation counter that increments and resets); #3 payoff wiring (Snowslope's "exile top card → play permission → expires end of next turn", and the analogous per-outlet payoffs/timing in the reviewer's table — Tom's draw/discard, Gollum's graveyard-source, Stone-Giant's damage, Allure's draw, the ETB/attack-trigger timing for Rhovanion/Bolg/Sackville). This is granular per-card execution modeling; the fodder/attachment analytics are already accepted, so it is offered as the next executability step rather than auto-built. Portable sacrifice-clause extraction also remains open.
 
 Refs: inline OR-gate review + `docs/hob-kg-phase6-review-pt10.md`; `src/hobkg/completeness.py` (OR gate, `sac_head`, `_reverse_steps`, conditional dies, CR fixes); `src/hobkg/lifecycle.py` (OR moved out, OR routing in reproject); `tests/{test_completeness,test_lifecycle,test_coverage}.py`
+
+---
+
+## [2026-08-17 21:00] DECISION — pt11: sacrifice machinery ACCEPTED (no blocking defect); executability scope boundary fixed
+
+Reviewer (`docs/hob-kg-phase6-review-pt11.md`): **"The implemented pt10 scope is now correct. I do not see another blocking structural defect in the sacrifice machinery it changed."** No code change required — a clean bill of health for the sacrifice/lifecycle work. Every pt10 correction verified by the reviewer: Snowslope sacrificing Crude (artifact) → no creature-dies → Crude to graveyard → attachment + `+2/+1` terminate; Snowslope sacrificing a creature → creature-dies → dies triggers fire (via `cond:completeness-sacrificed-is-creature`); Stir's OR gate is the sole causal parent with no residual direct `ability→sacrifice` edge; sacrifice branch consumes the permanent, pay branch consumes four generic mana and no permanent; both completeness and lifecycle projections traverse the OR gate; Allure of Power uses its Adventure `:1` face; provenance cites `CR 701.21` + `118.8`/`601.2b,f–h`; the tests directly cover OR routing, mana payment, the conditional death event, provenance, and the flagship Crude relationships.
+
+**Accepted scope boundary (reviewer's own framing):**
+- Sacrifice **eligibility** — correct.
+- **Artifact-vs-creature** event consequences — correct.
+- Equipment **attachment termination** — correct.
+- Stir's **alternative payment** — correct.
+- **Full per-card ability execution** — incomplete *by explicit deferral*, NOT a defect. "What remains is modeling the complete abilities around those sacrifices, not repairing the sacrifice relationships again."
+
+**Remaining, all explicit future work (each needs a go-ahead — none is a blocker):**
+1. Per-card **activation restrictions** — e.g. Snowslope "only during your turn, activation_count_this_turn < 1, increment, reset at turn boundary"; analogous timing for the other outlets.
+2. Per-card **payoff wiring** — e.g. Snowslope "exile top card → grant play-permission → expire at end of next turn"; the other outlets' payoffs (Tom draw/discard, Gollum graveyard-source, Stone-Giant damage, Allure draw, ETB/attack-trigger timing for Rhovanion/Bolg/Sackville).
+3. **Portable mechanical sacrifice-clause extraction** (replace the hand-authored `SAC_OUTLETS` dict) — the reusable-harness direction (`docs/portability_plan.md`).
+4. **Independent human semantic validation** — the manual gold-set adjudication (only a human can perform it).
+
+**State at this checkpoint:** all reviews pt1–pt11 resolved; 7 additive projection tiers over the frozen Phase 4 graph; coverage union 3,306 edges / ~10,000 relations, 0 provenance gaps, all conditions resolve; 230 tests pass, deterministic; frozen Phase 4 + Phase 5 byte-untouched. The mechanistic possibility graph (what A can do to/with B under the rules, expandable to grounded primitive paths with provenance, and — for sacrifice/attachment — executable transitions) is complete and internally consistent for HOB; the open items above are capability/portability/human-review extensions, not gaps in the accepted graph.
+
+Refs: `docs/hob-kg-phase6-review-pt11.md`

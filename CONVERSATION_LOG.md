@@ -4188,3 +4188,87 @@ Two provenance/executability details also remain:
 * `op:pay` has `HAS_COST {4}` but does not explicitly consume four generic mana. That may be sufficient for a feature graph, but a fully autonomous executor still needs defined cost-payment semantics.
 
 Verdict: the pay branch no longer sacrifices anything, so the principal pt9 defect is fixed. I would require removal of the duplicate sacrifice cause before calling branch execution unambiguous. Portable sacrifice-clause extraction remains open.
+
+### [2026-08-16 23:52] ASSISTANT
+pt10: the principal defect is fixed (pay branch no longer sacrifices), but a real **duplicate-cause** ambiguity remains â€” the sacrifice op now has *two* active causal parents when sacrifice is chosen (the completeness `ability CAUSES op:sac` **and** the OR gate's `CAUSES`), which could schedule the sacrifice twice. The clean fix: remove the direct `ability â†’ CAUSES â†’ op:sac` for OR-cost outlets and make the **OR gate the sole causal parent** (`ability â†’ REQUIRES OR gate â†’ CAUSES op:sac`). That requires the OR gate to live in the *completeness* layer (so both projections route through it), plus two provenance corrections (CR 701.21 not 701.17; OR-cost cites 118.8/601.2) and mana-consumption on `op:pay`.
+
+Let me set up tracking and inspect the pieces.
+
+`resource:mana` exists. Let me fix the CR provenance and rework the OR-cost wiring in completeness (OR gate as sole causal parent). Let me view the current outlet-materialize block.
+
+I'm already implementing pt10 (its content was in your previous message), but let me read the file version now as you asked, to make sure I'm not missing anything.
+
+The **file pt10.md is a *different* review** than the one you pasted last turn â€” the file is about **Snowslope Hunter's sacrifice machinery** (artifact sacrifice wrongly causing creature-dies events; missing activation restrictions; unwired payoffs), while the pasted one was the OR-gate duplicate-cause. Both are legitimate; I'll address the clearly-correct bounded items from each. Let me see the family-3 dies materialization to fix the biggest issue (item #1 â€” dies must be conditional on the sacrificed object being a creature).
+
+Item #1 (the biggest correctness bug) is clear â€” the dies-CAUSES edges are unconditional, so sacrificing an artifact to a both-types outlet wrongly enables dies triggers. Let me add a `sacrificed-is-creature` condition and gate the dies edges. First the condition constant.
+
+Now add the `sacrificed-is-creature` condition definition.
+
+Now update the completeness family-4 reproject to route OR outlets through the OR gate. Let me view it.
+
+Both family-3 and family-4 reprojections build the head via `ability CAUSES op` â€” which no longer exists for OR outlets. Let me add a head helper that routes through the OR gate for OR outlets. Let me see the reproject setup.
+
+Let me add a `sac_head` helper (routing OR outlets through the gate) and use it in families 3 and 4. First, insert the helper before family 3.
+
+Now family-4's head. Let me view and rewrite it.
+
+Family-4's tail also needs OR-gate routing. Let me rewrite it using the head helper reversed.
+
+Now define `_reverse_steps`. Let me find the `_step` helper.
+
+Now the lifecycle side â€” the OR gate moved to completeness, so I must remove it from lifecycle and route the lifecycle reproject head through the gate. Let me view the lifecycle OR section and reproject head.
+
+Removing the OR-gate section from lifecycle (it's now in completeness).
+
+Now fix the lifecycle materialize return (drop `or_cost_gates`) and the reproject head (OR routing). Let me view them.
+
+Now update the lifecycle reproject head for OR routing. Let me view it.
+
+Let me regenerate and verify the OR-gate move + conditional dies.
+
+Completeness `SATISFIES_SACRIFICE_COST` dropped 629â†’517 â€” that's exactly Stir's share, suggesting Stir's family-4 reprojection broke with the OR routing. Let me investigate.
+
+Found it â€” Allure of Power is an adventure face (`:1`), but `sac_head` used `hasface.get(card)` which returns the *primary* face (`:0`), breaking continuity. Let me key it by the outlet's actual face.
+
+The family-3 reproject uses `sac_head` too, so that's fixed. Let me regenerate and confirm the count is restored.
+
+Restored to 629 SATISFIES (Allure fixed), +5 ENABLES from Allure's now-grounded dies. Conditional dies confirmed (Snowslope gated, Tom unconditional). Let me regenerate everything and run the suite to surface test updates.
+
+Four expected failures from the OR-gate move. Let me get the exact counts, then update the tests (move OR tests to completeness, fix Stir's path, add conditional-dies test).
+
+Now fix the lifecycle flagship path (Stir now routes through the OR gate â†’ extra `REQUIRES`) and move the OR-gate tests to completeness.
+
+Now remove the two OR-gate tests from test_lifecycle (they move to completeness).
+
+Now add the OR-gate + conditional-dies + provenance tests to `test_completeness.py` (where the OR gate now lives). Let me check its fixtures and append.
+
+230 pass. Let me verify determinism + frozen graph, revert noise, and confirm the flagship still renders.
+
+Stir now routes through the OR gate (sole causal parent), continuous, frozen graph untouched. Let me mark tasks done and record the science.
+
+Let me update the HANDOFF (OR gate moved to completeness; lifecycle counts changed) while the push completes.
+
+Both commits landed (`b03071f` pt10 fixes, `41d8d41` HANDOFF); working tree clean.
+
+## pt10 â€” two reviews this round, both resolved
+This round had **two distinct review inputs**: the inline OR-gate review and the file `pt10.md` (Snowslope). Both accept the card-to-card fodder relationships and attachment termination as correct for deck-space analysis; the fixes were action-level-execution correctness. **230 tests pass**, deterministic, frozen graph untouched.
+
+**Duplicate-cause fixed** â€” the sacrifice op had *two* active causal parents when sacrifice was chosen (`ability CAUSES` + OR gate `CAUSES`), which could schedule it twice. Removed the direct `abilityâ†’CAUSESâ†’sac` for OR outlets; the **OR gate is now the sole causal parent** (`ability REQUIRES gate:or-cost CAUSES {sac[or-sacrifice], op:pay[or-pay]}`). To let both projections route through it, the OR-gate machinery **moved from lifecycle into completeness**. `op:pay` now `CONSUMES resource:mana` (4) â€” pays {4}, not a permanent. (Fixed a latent multiface bug the refactor surfaced: Allure of Power is an adventure `:1` face, so `sac_head` keys `HAS_FACE` by the outlet's face, not card.)
+
+**Conditional death events** (pt10.md #1) â€” `op:sac CAUSES event:dies` is now gated on `cond:â€¦-sacrificed-is-creature` for artifact+creature outlets (Snowslope, Gollum, Stir, Sackville), so sacrificing a *noncreature artifact* no longer enables creature-dies triggers; creature-only outlets stay unconditional.
+
+**Provenance corrected** â€” Sacrifice `CR 701.17` (that's *Mill*) â†’ **701.21**; the OR additional cost cites **118.8 / 601.2b,fâ€“h** instead of the Equipment rules.
+
+The Stirâ†’Crude traversal now renders through the gate: `Stir â†’ ability â†’ REQUIRES â†’ gate:or-cost â†’ CAUSES â†’ op:sac â†’ CONSUMES artifact â†’ HAS_TYPE â†’ Crude â†’ CAN_UNDERGO â†’ op:sacrifice â†’ TERMINATES attachment`.
+
+## What pt10.md leaves open (per-card action-level simulation â€” a decision for you)
+The reviewer's remaining points are **granular per-card execution context** (the fodder/attachment analytics are already accepted):
+- **#2 Activation restrictions** â€” e.g. Snowslope's "only during your turn, only once each turn" needs a controller-turn condition + a per-turn activation counter (increment + turn-reset).
+- **#3 Payoff wiring** â€” e.g. Snowslope's "exile top card â†’ play-permission â†’ expires"; and the per-outlet payoffs/timing in the reviewer's table (Tom's draw/discard, Gollum's graveyard-source, Stone-Giant's damage, Allure's draw, ETB/attack-trigger timing for Rhovanion/Bolg/Sackville).
+
+Plus the still-open **portable sacrifice-clause extraction** (replace the hand-authored `SAC_OUTLETS` dict).
+
+These are substantial per-card modeling efforts, so â€” per the review rhythm â€” I've committed the accepted fixes and am presenting #2/#3 (and portability) for your go-ahead rather than auto-expanding into full action-level simulation. Want me to take on the activation-timing + payoff wiring next, the portability harness, or hold here?
+
+### [2026-08-16 23:56] USER
+read hob-kg-phase6-review-pt11.md next. major blockers are handled now.
