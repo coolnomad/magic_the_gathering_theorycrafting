@@ -1410,3 +1410,21 @@ Two parser bugs found + fixed **during DEV, before freezing**: outlet-detection 
 **244 tests pass** (+8). The frozen HOB **data/graph layers remain untouched**; this module is a read-only parser over `data/raw/fin/` + its own fixtures (`_load_dicts` reused, not changed). This is tracer bullet #2 — real cross-set evidence with an honest held-out score and a measured backlog — **not** the portable extractor itself.
 
 Refs: `src/hobkg/sac_schema.py`; `tools/build_fin_fixture.py`; `tests/{test_sac_schema.py,fixtures/fin_sacrifice.jsonl,fixtures/fin_sacrifice_heldout.jsonl}`; `reports/sac_schema_portability.md`; `data/raw/fin/scryfall_fin.json`; reviewer critique of `c67fcc5`; [[tracer-bullet-portability]]
+
+---
+
+## [2026-08-17] EXPERIMENT — review pt1 follow-up, COMMIT A: freeze the improved sacrifice parser (extract_all + per-atom selector + 3 fixes)
+
+Review `docs/hob_portability_review_pt1.md` (of commit `8e2d90a`) accepted tracer bullet #2 as a schema prototype and preliminary FIN validation, and specified the next bounded slice. Structural asks: (1) set-wide adjudication of all FIN "sacrif" faces with detection precision/recall; (2) attach a selector to each sacrifice cost atom (the atom was `{"sacrifice": True}`, disconnected from the record-level selector — cannot represent "sacrifice A **and** B" or branch-specific fodder); (3) `extract_all() -> list` (a face can have several sacrifice clauses); (4) for auditability, **freeze the parser in one commit, then add the unseen set-wide fixture in a later commit**; (5) label these agent-authored reference annotations, not an independent gold set; metric note: **clause-level exact match is primary**, per-field micro is secondary (inflated by easy defaults like `modal=False`).
+
+To honor #4 literally this is split into two commits; **this is Commit A** — the parser + scoring code, frozen, validated ONLY against already-seen fixtures. Commit B will add ONLY adjudicated data.
+
+**Parser changes (`src/hobkg/sac_schema.py`):**
+- `extract_all(oracle, name) -> list[dict]` returns EVERY outlet clause; `parse_structured` is now a thin first-or-None wrapper (ask #3).
+- Cost atoms carry structure: the sacrifice atom is `{"sacrifice": <selector signature>}` via `_sel_sig`, not a bare `True` (ask #2) — so multi-object and branch-specific costs are representable; `_canon_cost` serialises nested atoms deterministically (`json.dumps` sorted).
+- **The three known errors fixed** (review's "fix the three while preserving the six"): self-sacrifice "Sacrifice **this creature**" no longer leaks `creature` into `card_types` (self ⇒ `card_types=[]`, matching "Sacrifice <cardname>"); `ability_context` now represents a **dual trigger** ("enters or attacks" → `triggered_etb_or_attack`) by collecting ALL event keywords in the governing trigger sentence; multi-symbol mana `{1}{B}` is **coalesced** into one `pay` atom (comma-tokenise the cost prefix, join adjacent brace runs). `_ability_context` is now scoped to the clause's own line (+ the modal intro line for bulleted choices) so an unrelated trigger elsewhere on the card is not misattributed.
+- Set-wide scaffolding added but **dormant**: `run_setwide()` returns `{available: False}` until `tests/fixtures/fin_sacrifice_setwide.jsonl` exists — computes face-level detection precision/recall, **clause-level exact match (primary)**, and per-field micro accuracy (secondary). `report()` reframed: set-wide is PRIMARY (currently "pending"), and DEV/HELD-OUT are now labelled **regression sets**, not fresh evidence.
+
+**Result:** DEV 11/11 (100% fields), HELD-OUT 6/6 (100%) — the six pt#2 held-out cases now PASS because the three errors they exposed are fixed; they are retained unchanged as a regression set (their text is still byte-identical to source, asserted by a test). **246 tests pass** (+2). The honest portability number now moves to the set-wide split (Commit B). Frozen HOB data/graph layers untouched (read-only parser).
+
+Refs: `src/hobkg/sac_schema.py`; `tools/build_fin_fixture.py`; `tests/test_sac_schema.py`; `reports/sac_schema_portability.md`; `docs/hob_portability_review_pt1.md`; [[tracer-bullet-portability]]

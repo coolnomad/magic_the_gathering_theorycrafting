@@ -25,6 +25,7 @@ self-timer and a "Whenever you sacrifice ..." trigger are NOT outlets (`is_outle
 
 from __future__ import annotations
 
+import json
 import re
 
 PERMANENT_TYPES = ["artifact", "creature", "enchantment", "planeswalker", "land", "battle", "vehicle"]
@@ -83,46 +84,65 @@ def _selector(phrase: str, card_name: str) -> dict:
         or (short and short in low) or "~" in p
     generic = bool(re.search(r"\bpermanents?\b", low)) and not types
     qty = _quantity(p)
-    if qty is None and is_self:                             # a named/self sacrifice is exactly one object
-        qty = 1
+    if is_self:
+        # a self-sacrifice targets THIS specific object; the type word in "this creature" is
+        # incidental, not a selector constraint (cf. "Sacrifice <cardname>" naming no type at all).
+        types, or_types = [], False
+        if qty is None:
+            qty = 1                                        # a named/self sacrifice is exactly one object
     return {"card_types": types, "or_types": or_types, "supertypes": supertypes, "qualifiers": quals,
             "self": is_self, "another": another, "generic_permanent": generic, "quantity": qty}
 
 
+_TRIG_MAP = {"enters": "etb", "attacks": "attack", "dies": "dies"}
+
+
+def _trig_kws(sentence: str):
+    return [_TRIG_MAP[k] for k in ("enters", "attacks", "dies") if re.search(r"\b" + k + r"\b", sentence)]
+
+
 def _ability_context(oracle: str, clause: str) -> str:
-    end = oracle.find(clause) + len(clause) if clause in oracle else len(oracle)
-    prefix = oracle[:end].lower()
-    if "as an additional cost to cast" in prefix:
+    """The context governing THIS clause. Scoped to the clause's own line (plus the modal intro line
+    for a bulleted choice), so an unrelated trigger elsewhere on the card is not misattributed."""
+    cl = clause.lower()
+    if "as an additional cost to cast" in cl:
         return "cast"
-    if re.search(r"\bkicker\b", prefix):
+    if re.match(r"\s*kicker\b", cl):
         return "cast"
-    trig = None                                             # bind to the LAST trigger governing the clause
-    for m in re.finditer(r"\b(when|whenever)\b[^.]*?\b(enters|attacks|dies)\b", prefix):
-        trig = m.group(2)
-    if trig == "enters":
-        return "triggered_etb"
-    if trig == "attacks":
-        return "triggered_attack"
-    if trig == "dies":
-        return "triggered_other"
+    if re.search(r"\bwhen(ever)?\b", cl):                   # trigger on the clause's own line
+        kws = _trig_kws(cl)                                 # one trigger may name several events
+        return "triggered_" + "_or_".join(kws) if kws else "triggered_other"
+    lines = oracle.split("\n")
+    idx = next((i for i, ln in enumerate(lines) if clause in ln), None)
+    if idx and "choose" in lines[idx - 1].lower() and re.search(r"\bwhen(ever)?\b", lines[idx - 1].lower()):
+        kws = _trig_kws(lines[idx - 1].lower())             # modal edict: trigger is the intro line
+        return "triggered_" + "_or_".join(kws) if kws else "triggered_other"
     if ":" in clause or re.search(r"\{[^}]+\}\s*,", clause):
         return "activated"
-    if re.search(r"\bwhen(ever)?\b", prefix):
-        return "triggered_other"
     return "resolution"
 
 
-def _cost(clause: str, context: str) -> object:
-    """Structured cost as ALT (choose one branch) of ALL (do every atom). None for non-cost outlets."""
+_BRACE_RUN_RE = re.compile(r"(?:\{[^}]+\})+")
+
+
+def _cost(clause: str, context: str, selector: dict) -> object:
+    """Structured cost as ALT (choose one branch) of ALL (do every atom). Each sacrifice atom carries
+    its OWN selector, so 'sacrifice A and B' / branch-specific fodder are representable (review pt1
+    #2). None for non-cost outlets."""
     if context not in ("activated_ability", "additional_cast_cost", "kicker"):
         return None
-    # the cost prefix = everything up to the first ':' (activated) or the whole clause (cast/kicker)
     prefix = clause.split(":")[0] if context == "activated_ability" else clause
     prefix = re.split(r"\bor pay\b", prefix, flags=re.IGNORECASE)[0]
     conj = []                                               # the ALL atoms of the sacrifice branch
-    for mana in _MANA_RE.findall(prefix):
-        conj.append({"tap": True} if mana == "{T}" else {"pay": mana})
-    conj.append({"sacrifice": True})
+    for tok in prefix.split(","):                           # comma-separated cost components
+        run = "".join(_BRACE_RUN_RE.findall(tok))           # coalesce adjacent mana symbols: {1}{B} -> one
+        if not run:
+            continue
+        if run == "{T}":
+            conj.append({"tap": True})
+        else:
+            conj.append({"pay": run})
+    conj.append({"sacrifice": _sel_sig(selector)})
     if re.search(r",\s*discard\b", prefix, re.IGNORECASE):
         conj.append({"discard": 1})
     branches = [{"all": conj}]
@@ -132,11 +152,19 @@ def _cost(clause: str, context: str) -> object:
     return {"alt": branches}
 
 
-def parse_structured(oracle: str, card_name: str = "") -> dict | None:
-    """Parse the (first) sacrifice outlet in `oracle` into a structured record, or None if there is
-    no outlet. Unknowable fields are set to None / 'unsupported' — the parser never guesses a
-    default (cf. the tracer-bullet-#1 review: `kind` must not fall back to activated_cost)."""
+def _sel_sig(sel: dict) -> dict:
+    """Compact, canonical selector signature carried on a sacrifice cost atom."""
+    return {"card_types": sorted(sel.get("card_types") or []), "or_types": bool(sel.get("or_types")),
+            "supertypes": sorted(sel.get("supertypes") or []), "qualifiers": sorted(sel.get("qualifiers") or []),
+            "self": bool(sel.get("self")), "another": bool(sel.get("another")), "quantity": sel.get("quantity")}
+
+
+def extract_all(oracle: str, card_name: str = "") -> list[dict]:
+    """Return EVERY sacrifice outlet in `oracle` as a structured record (review pt1 #3: a face can
+    carry several sacrifice clauses). Unknowable fields are None / 'unsupported' — the parser never
+    guesses a default (`cost_context` is not forced to activated). Empty list = no outlet."""
     text = oracle or ""
+    out = []
     for raw in [ln.strip() for ln in text.split("\n") if "sacrifice" in ln.lower()]:
         if _TRIGGER_SAC_RE.search(raw):                     # "Whenever you sacrifice ..." is a condition
             continue
@@ -144,19 +172,13 @@ def parse_structured(oracle: str, card_name: str = "") -> dict | None:
         mphrase = _SAC_PHRASE_RE.search(raw)
         if not mphrase:
             continue
-        phrase = mphrase.group(1)
-        low = raw.lower()
-        sel = _selector(phrase, card_name)
+        sel = _selector(mphrase.group(1), card_name)
         # an outlet must select a real object to sacrifice; a Saga "Sacrifice after IV" self-timer
         # selects nothing (no type / self / generic permanent) and is therefore NOT an outlet.
         if not (sel["card_types"] or sel["self"] or sel["generic_permanent"]):
             continue
-        # actor
-        if edict:
-            actor = re.sub(r"\s+", "_", edict.group(1).lower())
-        else:
-            actor = "you"
-        # cost_context (NEVER default to activated_cost)
+        low = raw.lower()
+        actor = re.sub(r"\s+", "_", edict.group(1).lower()) if edict else "you"
         if "as an additional cost to cast" in low:
             context = "additional_cast_cost"
         elif re.match(r"kicker\b", low):
@@ -170,20 +192,25 @@ def parse_structured(oracle: str, card_name: str = "") -> dict | None:
         else:
             context = "unsupported"
         modal = bool(re.search(r"\bchoose (one|two)\b", text.lower())) and edict is not None
-        rec = {
+        out.append({
             "is_outlet": True,
             "cost_context": context,
             "actor": actor,
             "ability_context": _ability_context(text, raw),
             "modal": modal,
             "selector": sel,
-            "cost": _cost(raw, context),
+            "cost": _cost(raw, context, sel),
             "restriction_timing": "sorcery" if "activate only as a sorcery" in low else None,
             "clause": raw,
             "oracle_span": _span(text, raw),
-        }
-        return rec
-    return None
+        })
+    return out
+
+
+def parse_structured(oracle: str, card_name: str = "") -> dict | None:
+    """The FIRST sacrifice outlet (or None) — a convenience wrapper over extract_all()."""
+    all_ = extract_all(oracle, card_name)
+    return all_[0] if all_ else None
 
 
 def _span(oracle: str, clause: str):
@@ -208,11 +235,11 @@ def _flatten(rec: dict | None) -> dict:
 
 
 def _canon_cost(cost) -> object:
+    """Canonical, order-independent form of a structured cost (atoms may carry nested selectors)."""
     if not cost:
         return None
-    def atom(a):
-        return sorted(f"{k}={v}" for k, v in a.items())
-    return sorted(str(sorted([atom(a) for a in br.get("all", [])])) for br in cost.get("alt", []))
+    return sorted(json.dumps(sorted(json.dumps(a, sort_keys=True) for a in br.get("all", [])))
+                  for br in cost.get("alt", []))
 
 
 def score(expected: dict, got: dict | None) -> dict:
@@ -226,7 +253,9 @@ def score(expected: dict, got: dict | None) -> dict:
         if f not in expected:
             continue
         e, g = expected[f], gflat.get(f)
-        if isinstance(e, list):
+        if f == "cost":
+            e = _canon_cost(e)                              # expected stores a raw cost dict; canonicalize both sides
+        elif isinstance(e, list):
             e = sorted(e)
         good = (e == g)
         out[f] = {"expected": e, "got": g, "ok": good}
@@ -257,6 +286,63 @@ def run_fin(repo=None, fixture="tests/fixtures/fin_sacrifice.jsonl") -> dict:
             "field_accuracy": round(tot_ok / tot, 4) if tot else 0.0, "results": results}
 
 
+def _clause_exact(expected_clause: dict, got_clause: dict | None) -> bool:
+    sc = score(expected_clause, got_clause)
+    return sc["fields_ok"] == sc["fields_total"] and sc["fields_total"] > 0
+
+
+def run_setwide(repo=None, fixture="tests/fixtures/fin_sacrifice_setwide.jsonl") -> dict:
+    """Set-wide evaluation over EVERY adjudicated FIN face containing 'sacrif' (review pt1 #1). Reports
+    face-level detection precision/recall (outlet vs non-outlet), clause-level exact match (the
+    PRIMARY metric — review pt1 metric note), and per-field micro accuracy (secondary/diagnostic).
+    The parser is frozen; this fixture is adjudicated separately. Returns {available: False} until the
+    fixture exists (so the parser can be committed and frozen BEFORE the unseen fixture is added)."""
+    from .pipeline import REPO, _load_dicts
+    repo = repo or REPO
+    path = repo / fixture
+    if not path.exists():
+        return {"available": False}
+    cases = list(_load_dicts(path))
+    tp = fp = fn = tn = 0
+    clause_exact = clause_total = 0
+    field_ok = field_tot = 0
+    fp_faces, fn_faces, imperfect = [], [], []
+    for c in cases:
+        exp_clauses = (c["expected"].get("clauses") or [])
+        got = sorted(extract_all(c["oracle_text"], c.get("name", "")),
+                     key=lambda r: (r.get("oracle_span") or [0])[0])
+        exp_pos, got_pos = bool(exp_clauses), bool(got)
+        tp += exp_pos and got_pos
+        fp += (not exp_pos) and got_pos
+        fn += exp_pos and (not got_pos)
+        tn += (not exp_pos) and (not got_pos)
+        if got_pos and not exp_pos:
+            fp_faces.append(c["name"])
+        if exp_pos and not got_pos:
+            fn_faces.append(c["name"])
+        clause_total += len(exp_clauses)
+        face_perfect = (exp_pos == got_pos)
+        for i, ec in enumerate(exp_clauses):                # align by text order (near-all faces = 1 clause)
+            gc = got[i] if i < len(got) else None
+            ok = _clause_exact(ec, gc)
+            clause_exact += int(ok)
+            sc = score(ec, gc)
+            field_ok += sc["fields_ok"]
+            field_tot += sc["fields_total"]
+            face_perfect = face_perfect and ok
+        if not face_perfect:
+            imperfect.append(c["name"])
+    prec = tp / (tp + fp) if (tp + fp) else 1.0
+    rec = tp / (tp + fn) if (tp + fn) else 1.0
+    return {"available": True, "faces": len(cases), "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+            "precision": round(prec, 4), "recall": round(rec, 4),
+            "clause_exact": clause_exact, "clause_total": clause_total,
+            "clause_exact_rate": round(clause_exact / clause_total, 4) if clause_total else 0.0,
+            "field_ok": field_ok, "field_total": field_tot,
+            "field_accuracy": round(field_ok / field_tot, 4) if field_tot else 0.0,
+            "fp_faces": fp_faces, "fn_faces": fn_faces, "imperfect": imperfect}
+
+
 def _section(title, note, fin):
     L = [f"## {title}", "", note, "",
          f"- cards: **{fin['cases']}**  · fully-correct (all fields): **{fin['cards_fully_correct']}**",
@@ -279,39 +365,57 @@ def report(repo=None) -> dict:
     repo = repo or REPO
     dev = run_fin(repo, "tests/fixtures/fin_sacrifice.jsonl")
     held = run_fin(repo, "tests/fixtures/fin_sacrifice_heldout.jsonl")
+    sw = run_setwide(repo)
     L = ["# Portability tracer bullet #2 — structured sacrifice schema on real FIN Oracle text", "",
-         "Validates the structured clause schema against small, **named, provenanced** samples of "
-         "real *Final Fantasy* (FIN) cards (source: `data/raw/fin/scryfall_fin.json`; each carries "
-         "its Scryfall `id`). Every card has a **manually-adjudicated** expected structured record "
-         "(adjudicated to the rules, not to the parser); the parser output is scored **field by "
-         "field** — a wrong or unsupported field fails.", "",
-         "Two splits, to answer the tracer-bullet-#1 review directly:",
-         f"- **DEV** (parser tuned on these): {dev['cards_fully_correct']}/{dev['cases']} cards, "
-         f"{dev['field_accuracy']:.1%} fields.",
-         f"- **HELD-OUT** (parser frozen, never tuned on these; scored once): "
-         f"**{held['cards_fully_correct']}/{held['cases']} cards, {held['field_accuracy']:.1%} fields**. "
-         "This is the honest portability number.", ""]
-    L += _section("HELD-OUT split — the portability evidence (parser never tuned on these)",
-                  "Real FIN cards chosen and adjudicated AFTER the parser was frozen. Misses are "
-                  "reported as-is and become backlog; they are not fixed in this slice.", held)
-    L += _section("DEV split — the tuning set (parser was iterated to pass these)",
-                  "Full marks here only demonstrate the schema can *represent* these clauses; it is "
-                  "train-set accuracy, not evidence of generalisation.", dev)
-    L += ["## What the FIN run establishes (and does not)", "",
-          "- **Establishes**: the structured schema (cost as `ALT`-of-`ALL`; selector-internal "
-          "`or_types`; `actor`; `ability_context`; timing restriction) *represents* real FIN "
-          "sacrifice clauses, and — the tracer-bullet-#1 review fix — the parser **flags** what it "
-          "cannot model instead of silently mislabelling it (`cost_context` is never defaulted to "
-          "activated; edicts are `resolution_effect` with an `actor`, not a cost).",
-          "- **Held-out misses = the measured backlog** for the next slices: dual-trigger "
-          "`ability_context` (\"enters or attacks\"), coalescing multi-symbol mana (`{1}{B}`) into "
-          "one cost atom, and any others surfaced above — each now quantified against real "
-          "adjudicated second-set text rather than invented cards.",
-          "- The frozen HOB **data/graph layers are untouched**; this module is a read-only parser "
-          "over `data/raw/fin/` and its own fixtures (shared loader `_load_dicts` is reused, not changed)."]
+         "Structured sacrifice-clause schema + parser + a non-tautological field-by-field scorer, "
+         "validated on **real, source-provenanced** *Final Fantasy* (FIN) Oracle text "
+         "(`data/raw/fin/scryfall_fin.json`; every fixture record carries its Scryfall `id` and its "
+         "text is byte-identical to source). Expected structures are adjudicated **to the rules, not "
+         "to the parser** — and are **agent-authored reference annotations, NOT an independent human "
+         "gold set** (review pt1 #5).", ""]
+    if sw.get("available"):
+        L += ["## PRIMARY — set-wide FIN evaluation (every face containing “sacrif”)", "",
+              "Detection is over ALL adjudicated FIN faces; clause-level exact match is the primary "
+              "quality metric (per-field micro accuracy is secondary — it is inflated by easy default "
+              "fields such as `modal=False` / empty lists / `restriction_timing=None`).", "",
+              f"- faces adjudicated: **{sw['faces']}**  (TP {sw['tp']} · FP {sw['fp']} · FN {sw['fn']} · TN {sw['tn']})",
+              f"- **detection precision {sw['precision']:.1%} · recall {sw['recall']:.1%}** (outlet vs non-outlet)",
+              f"- **clause-level exact match: {sw['clause_exact']}/{sw['clause_total']} = "
+              f"{sw['clause_exact_rate']:.1%}**  ← primary",
+              f"- per-field micro accuracy: {sw['field_ok']}/{sw['field_total']} = {sw['field_accuracy']:.1%} "
+              "(secondary/diagnostic)"]
+        if sw["fp_faces"]:
+            L.append(f"- false-positive faces (parser saw an outlet, adjudication did not): {sw['fp_faces']}")
+        if sw["fn_faces"]:
+            L.append(f"- false-negative faces (adjudicated outlet the parser missed): {sw['fn_faces']}")
+        if sw["imperfect"]:
+            L.append(f"- faces with any clause/field error: {sw['imperfect']}")
+        L.append("")
+    else:
+        L += ["## PRIMARY — set-wide FIN evaluation", "",
+              "_Pending: the set-wide adjudicated fixture is added in the FOLLOWING commit, so this "
+              "parser can be committed and **frozen first** (review pt1 #4 — independent auditability). "
+              "Run `sac-schema` again once `tests/fixtures/fin_sacrifice_setwide.jsonl` exists._", ""]
+    L += ["## Regression sets (parser tuned/known — not fresh evidence)", "",
+          f"- DEV (11 curated, parser tuned to these): {dev['cards_fully_correct']}/{dev['cases']} "
+          f"cards exact, {dev['field_accuracy']:.1%} fields.",
+          f"- HELD-OUT (the original 6 pt#2 cases, now with the three known parser errors fixed): "
+          f"{held['cards_fully_correct']}/{held['cases']} cards exact, {held['field_accuracy']:.1%} fields. "
+          "These previously exposed self-`this creature` type-leak, dual `enters or attacks` trigger, "
+          "and multi-symbol mana `{1}{B}` — all now fixed and kept as regression fixtures.", ""]
+    L += _section("HELD-OUT regression detail", "The six pt#2 held-out cards (unchanged text).", held)
+    L += ["## What this establishes (and does not)", "",
+          "- The structured schema (cost = `ALT`-of-`ALL` with a **selector on each sacrifice atom**; "
+          "selector-internal `or_types`; `actor`; `ability_context` incl. dual triggers; timing "
+          "restriction) represents real FIN sacrifice clauses; `extract_all()` returns EVERY clause "
+          "on a face; the parser flags what it cannot model rather than mislabelling it.",
+          "- It does **not** yet establish a complete portable extractor: the set-wide false "
+          "positives / false negatives / imperfect faces above are the measured backlog.",
+          "- These are agent-authored reference annotations, not independent human semantic "
+          "validation. The frozen HOB **data/graph layers are untouched** (read-only parser)."]
     (repo / "reports" / "sac_schema_portability.md").write_text("\n".join(L) + "\n", encoding="utf-8")
-    return {"dev": {"cases": dev["cases"], "cards_fully_correct": dev["cards_fully_correct"],
+    return {"setwide": sw,
+            "dev": {"cases": dev["cases"], "cards_fully_correct": dev["cards_fully_correct"],
                     "field_accuracy": dev["field_accuracy"]},
             "heldout": {"cases": held["cases"], "cards_fully_correct": held["cards_fully_correct"],
-                        "field_accuracy": held["field_accuracy"], "fields_ok": held["fields_ok"],
-                        "fields_total": held["fields_total"]}}
+                        "field_accuracy": held["field_accuracy"]}}

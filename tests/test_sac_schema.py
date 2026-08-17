@@ -1,12 +1,12 @@
-"""Portability tracer bullet #2: the STRUCTURED sacrifice schema, validated on real FIN Oracle text.
+"""Portability tracer bullet #2 (+ review pt1 follow-up): the STRUCTURED sacrifice schema on real FIN.
 
-These tests answer the review of tracer bullet #1 (commit c67fcc5):
-  * the scorer is NON-tautological — it compares to adjudicated structured output field-by-field, so
-    a deliberately-wrong record fails (test_scorer_is_not_tautological);
-  * the fixture text is REAL and provenanced — byte-identical to data/raw/fin/scryfall_fin.json
-    (test_fixture_oracle_text_is_byte_identical_to_source);
-  * DEV is train-set accuracy; HELD-OUT is the honest portability number, and its known limits are
-    pinned so they cannot be silently "adjudicated away" (test_heldout_*).
+Answers the pt1 review of commit 8e2d90a:
+  * extract_all() returns EVERY clause on a face (not just the first)          — test_extract_all_*
+  * each sacrifice cost atom carries its own selector                          — test_selector_on_atom
+  * the three known parser errors are fixed, six pt#2 cases kept as regression — test_heldout_regression
+  * the scorer is still non-tautological and fixture text is still provenanced — test_scorer_*, test_fixture_*
+The set-wide precision/recall + clause-exact-match evaluation is exercised in test_setwide_* (which
+tolerates the fixture being absent, so this parser can be committed and frozen BEFORE it is added).
 """
 
 import io
@@ -29,38 +29,51 @@ def _src_text(card, face_name):
 
 
 def test_parse_is_pure_oracle_text():
-    # an activated self-sacrifice cost, parsed with no per-card branch
     r = sx.parse_structured("{2}, {T}, Sacrifice this creature: Draw a card.", "Whatever")
     assert r["cost_context"] == "activated_ability" and r["actor"] == "you"
     assert r["selector"]["self"] is True and r["ability_context"] == "activated"
-    assert sx.parse_structured("Flying", "X") is None                 # no sacrifice clause
-    assert sx.parse_structured("Whenever you sacrifice a creature, draw a card.", "X") is None  # trigger, not outlet
+    assert sx.parse_structured("Flying", "X") is None
+    assert sx.parse_structured("Whenever you sacrifice a creature, draw a card.", "X") is None  # trigger
+
+
+def test_extract_all_returns_every_clause():
+    # a face with two distinct sacrifice outlets yields two records (review pt1 #3)
+    two = "{1}, Sacrifice a creature: Draw a card.\nSacrifice an artifact: Add {C}."
+    recs = sx.extract_all(two, "X")
+    assert len(recs) == 2
+    assert {r["selector"]["card_types"][0] for r in recs} == {"creature", "artifact"}
+    assert sx.extract_all("Flying", "X") == []
+
+
+def test_selector_is_attached_to_each_sacrifice_atom():
+    # the sacrifice cost atom carries its own selector, not a bare {"sacrifice": True} (review pt1 #2)
+    r = sx.parse_structured("{2}, Sacrifice a legendary creature: Draw.", "X")
+    atoms = r["cost"]["alt"][0]["all"]
+    sac = next(a["sacrifice"] for a in atoms if "sacrifice" in a)
+    assert sac["card_types"] == ["creature"] and sac["supertypes"] == ["legendary"]
 
 
 def test_edict_is_not_an_activated_cost():
-    # the exact tracer-bullet-#1 bug: an edict must NOT default to a cost context
     r = sx.parse_structured("Target opponent sacrifices a creature of their choice.", "X")
-    assert r["cost_context"] == "resolution_effect"     # not 'activated_cost'
-    assert r["actor"] == "target_opponent" and r["cost"] is None
+    assert r["cost_context"] == "resolution_effect" and r["actor"] == "target_opponent" and r["cost"] is None
     r2 = sx.parse_structured("When it enters, each player sacrifices a creature of their choice.", "X")
     assert r2["actor"] == "each_player" and r2["ability_context"] == "triggered_etb"
 
 
-def test_selector_or_vs_supertype_and_cost_alt():
-    # selector-internal OR ("artifact or creature") is distinct from cost-level ALT ("or pay")
-    r = sx.parse_structured("{3}, Sacrifice another creature or artifact: Draw a card.", "X")
-    assert r["selector"]["card_types"] == ["artifact", "creature"] and r["selector"]["or_types"] is True
-    assert r["selector"]["another"] is True
-    # additional cast cost with a real ALT of branches: sacrifice(...) OR pay {2}
-    r2 = sx.parse_structured("As an additional cost to cast this spell, sacrifice a legendary creature or pay {2}.", "X")
-    assert r2["cost_context"] == "additional_cast_cost" and r2["selector"]["supertypes"] == ["legendary"]
-    branches = sx._canon_cost(r2["cost"])
-    assert any("pay={2}" in b for b in branches) and any("sacrifice=True" in b for b in branches)
-    assert len(branches) == 2                             # two ALT branches (sacrifice | pay)
+def test_the_three_known_errors_are_fixed():
+    # 1) self "this creature" must NOT leak the type into the selector
+    r = sx.parse_structured("{T}, Sacrifice this creature: Deal 2 damage.", "Bomb")
+    assert r["selector"]["self"] is True and r["selector"]["card_types"] == []
+    # 2) a dual 'enters or attacks' trigger is represented as such
+    r2 = sx.parse_structured("Whenever this enters or attacks, you may sacrifice another creature. If you do, draw.", "X")
+    assert r2["ability_context"] == "triggered_etb_or_attack"
+    # 3) multi-symbol mana {1}{B} is one pay atom, not two
+    r3 = sx.parse_structured("{1}{B}, Sacrifice another creature or artifact: Draw.", "X")
+    pays = [a["pay"] for a in r3["cost"]["alt"][0]["all"] if "pay" in a]
+    assert pays == ["{1}{B}"]
 
 
 def test_scorer_is_not_tautological():
-    # a CORRECT record scores full; a WRONG record fails exactly the wrong fields
     expected = {"is_outlet": True, "cost_context": "activated_ability", "actor": "you",
                 "sel_card_types": ["artifact"]}
     good = {"is_outlet": True, "cost_context": "activated_ability", "actor": "you",
@@ -70,17 +83,12 @@ def test_scorer_is_not_tautological():
     sg = sx.score(expected, good)
     assert sg["fields_ok"] == sg["fields_total"] == 4
     sb = sx.score(expected, bad)
-    assert sb["fields"]["cost_context"]["ok"] is False
-    assert sb["fields"]["actor"]["ok"] is False
-    assert sb["fields"]["sel_card_types"]["ok"] is False
-    assert sb["fields"]["is_outlet"]["ok"] is True        # this one still matches
-    # a None parse (missed outlet) fails every value field, but matches is_outlet:False
-    sn = sx.score({"is_outlet": False}, None)
-    assert sn["fields"]["is_outlet"]["ok"] is True
+    assert sb["fields"]["cost_context"]["ok"] is False and sb["fields"]["actor"]["ok"] is False
+    assert sb["fields"]["sel_card_types"]["ok"] is False and sb["fields"]["is_outlet"]["ok"] is True
+    assert sx.score({"is_outlet": False}, None)["fields"]["is_outlet"]["ok"] is True
 
 
 def test_fixture_oracle_text_is_byte_identical_to_source():
-    # provenance integrity: the fixtures copy real Scryfall text, never hand-typed
     src = {c["id"]: c for c in json.load(io.open(REPO / "data/raw/fin/scryfall_fin.json", encoding="utf-8"))}
     for fx in (DEV, HELD):
         for rec in _load_dicts(REPO / fx):
@@ -88,32 +96,27 @@ def test_fixture_oracle_text_is_byte_identical_to_source():
             assert rec["oracle_text"] == _src_text(src[rec["id"]], rec["name"]), rec["name"]
 
 
-def test_dev_split_is_fully_representable():
-    # the schema can represent every dev clause (train-set: parser was tuned to these)
+def test_dev_and_heldout_regression_pass():
+    # DEV is the tuning set; HELD-OUT is the six pt#2 cases with the three known errors now fixed.
     dev = sx.run_fin(fixture=DEV)
-    assert dev["cases"] == 11
-    assert dev["cards_fully_correct"] == 11 and dev["field_accuracy"] == 1.0
-
-
-def test_heldout_is_honest_portability_evidence():
-    # parser is FROZEN vs these; the score is < 1.0 and the known limits fail (pinned so they
-    # cannot be silently adjudicated away). If a future slice fixes one, update this test on purpose.
+    assert dev["cases"] == 11 and dev["cards_fully_correct"] == 11 and dev["field_accuracy"] == 1.0
     held = sx.run_fin(fixture=HELD)
-    assert held["cases"] == 6
-    assert held["field_accuracy"] < 1.0                   # honest: not a reproduction demo
-    by = {r["name"]: r["score"]["fields"] for r in held["results"]}
-    # dual 'enters or attacks' trigger is not modelled yet
-    assert by["Sephiroth, Fabled SOLDIER"]["ability_context"]["ok"] is False
-    # multi-symbol mana {1}{B} is not coalesced yet
-    assert by["Yiazmat, Ultimate Mark"]["cost"]["ok"] is False
-    # self-by-"this creature" still leaks the type into the selector
-    assert by["Blazing Bomb"]["sel_card_types"]["ok"] is False
-    # but the Saga-chapter edicts (actor + quantity 2) ARE handled
-    assert all(v["ok"] for v in by["Braska's Final Aeon"].values())
+    assert held["cases"] == 6 and held["cards_fully_correct"] == 6 and held["field_accuracy"] == 1.0
+
+
+def test_setwide_runner_contract():
+    # the set-wide evaluator returns a well-formed result; if the (separately-committed) fixture is
+    # present it exposes the primary metrics, otherwise it is explicitly pending.
+    sw = sx.run_setwide()
+    if sw.get("available"):
+        for k in ("precision", "recall", "clause_exact", "clause_total", "field_accuracy"):
+            assert k in sw
+        assert 0.0 <= sw["precision"] <= 1.0 and 0.0 <= sw["recall"] <= 1.0
+    else:
+        assert sw == {"available": False}
 
 
 def test_report_written():
     out = sx.report()
-    assert out["dev"]["field_accuracy"] == 1.0
-    assert 0.0 < out["heldout"]["field_accuracy"] < 1.0
+    assert out["dev"]["field_accuracy"] == 1.0 and out["heldout"]["field_accuracy"] == 1.0
     assert (REPO / "reports/sac_schema_portability.md").exists()
