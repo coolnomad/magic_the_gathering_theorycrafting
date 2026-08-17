@@ -1428,3 +1428,25 @@ To honor #4 literally this is split into two commits; **this is Commit A** — t
 **Result:** DEV 11/11 (100% fields), HELD-OUT 6/6 (100%) — the six pt#2 held-out cases now PASS because the three errors they exposed are fixed; they are retained unchanged as a regression set (their text is still byte-identical to source, asserted by a test). **246 tests pass** (+2). The honest portability number now moves to the set-wide split (Commit B). Frozen HOB data/graph layers untouched (read-only parser).
 
 Refs: `src/hobkg/sac_schema.py`; `tools/build_fin_fixture.py`; `tests/test_sac_schema.py`; `reports/sac_schema_portability.md`; `docs/hob_portability_review_pt1.md`; [[tracer-bullet-portability]]
+
+---
+
+## [2026-08-17] EXPERIMENT — review pt1 follow-up, COMMIT B: set-wide FIN evaluation against the FROZEN parser
+
+Commit B of the review pt1 slice. The parser was frozen in Commit A (`a042bc3`); here I add ONLY adjudicated data — no change to `src/hobkg/sac_schema.py` (verified: `git diff a042bc3 -- src/hobkg/sac_schema.py` is empty) — and score it once. This honors review pt1 #4 (independent auditability: freeze the parser first, add the unseen set-wide fixture in a later commit).
+
+**Adjudication (agent-authored reference annotations, NOT an independent human gold set — pt1 #5).** All **50** FIN faces containing "sacrif" (`tests/fixtures/fin_sacrifice_setwide.jsonl`, text byte-identical to `data/raw/fin/scryfall_fin.json`, asserted by a test) labelled outlet/non-outlet, and every outlet annotated with **all** its clauses (pt1 #2). Rule: an OUTLET is a player sacrificing a permanent as an *operative action* — activated/additional/kicker COST, optional/resolution EFFECT, or EDICT. NON-OUTLET = (a) parenthetical REMINDER text (Saga "Sacrifice after N" timers; a created token's "{T}, Sacrifice this token"); (b) a "Whenever a player sacrifices…" trigger CONDITION; (c) automatic CONSEQUENCE/cleanup (delayed "Sacrifice it at the beginning of…"; a self-destruction drawback). → **27 outlet / 23 non-outlet.**
+
+**Set-wide result (parser frozen, scored once):**
+- **Detection: precision 86.7% (26/30), recall 96.3% (26/27)** — TP 26 · FP 4 · FN 1 · TN 19.
+- **Clause-level exact match (PRIMARY): 25/28 = 89.3%.** Per-field micro accuracy 374/392 = 95.4% is reported only as secondary/diagnostic — it is inflated by easy default fields (`modal=False`, empty lists, `restriction_timing=None`), per the pt1 metric note.
+- **1 false negative** — Quina ("Sacrifice **a Frog**"): the selector reads only card TYPES, not creature SUBTYPES → the outlet is invisible. (The pt#1 "no_subtypes" assumption, now measured on real recall.)
+- **4 false positives** — Sleep Magic + Tellah (self-sacrifice CONSEQUENCES, "sacrifice this Aura"/"sacrifice Tellah") and Undercity Dire Rat + Magic Pot (Treasure-token **reminder text**): the parser cannot tell an outlet from a self-sac consequence or from parenthetical reminder mechanics.
+- **Over-extraction (not penalised by the metric, reported for honesty):** 6 spurious clauses — Gaius (a modal edict yields 3 mode-clauses where 1 was adjudicated) + the 4 FP faces (1 each).
+- **Imperfect clauses (backlog):** Sephiroth One-Winged Angel ("any number of **other** creatures" — "other" not read as `another`); Eden ("**When you do**" inside an activated ability misread as a trigger → `ability_context`); plus the FP/FN faces above.
+
+**Multi-clause works on real text:** World Map has two distinct activated sacrifice abilities; `extract_all` returns both and both score exact (pt1 #3).
+
+**Measured backlog for the next slice** (all now quantified against real adjudicated FIN text): subtype fodder selectors (recall); distinguish sacrifice-as-consequence / reminder text from real outlets (precision); read "other" as `another`; don't treat "When you do" as a trigger; represent modal edicts as one clause with alternative fodder. **251 tests pass** (+5). Frozen HOB data/graph layers untouched.
+
+Refs: `tests/fixtures/fin_sacrifice_setwide.jsonl`; `tests/test_sac_setwide.py`; `tools/build_fin_fixture.py`; `reports/sac_schema_portability.md`; `data/raw/fin/scryfall_fin.json`; `docs/hob_portability_review_pt1.md`; frozen parser `a042bc3`; [[tracer-bullet-portability]]

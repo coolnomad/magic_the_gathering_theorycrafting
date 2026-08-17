@@ -2,9 +2,17 @@
 
 Structured sacrifice-clause schema + parser + a non-tautological field-by-field scorer, validated on **real, source-provenanced** *Final Fantasy* (FIN) Oracle text (`data/raw/fin/scryfall_fin.json`; every fixture record carries its Scryfall `id` and its text is byte-identical to source). Expected structures are adjudicated **to the rules, not to the parser** — and are **agent-authored reference annotations, NOT an independent human gold set** (review pt1 #5).
 
-## PRIMARY — set-wide FIN evaluation
+## PRIMARY — set-wide FIN evaluation (every face containing “sacrif”)
 
-_Pending: the set-wide adjudicated fixture is added in the FOLLOWING commit, so this parser can be committed and **frozen first** (review pt1 #4 — independent auditability). Run `sac-schema` again once `tests/fixtures/fin_sacrifice_setwide.jsonl` exists._
+Detection is over ALL adjudicated FIN faces; clause-level exact match is the primary quality metric (per-field micro accuracy is secondary — it is inflated by easy default fields such as `modal=False` / empty lists / `restriction_timing=None`).
+
+- faces adjudicated: **50**  (TP 26 · FP 4 · FN 1 · TN 19)
+- **detection precision 86.7% · recall 96.3%** (outlet vs non-outlet)
+- **clause-level exact match: 25/28 = 89.3%**  ← primary
+- per-field micro accuracy: 374/392 = 95.4% (secondary/diagnostic)
+- false-positive faces (parser saw an outlet, adjudication did not): ['Sleep Magic', 'Undercity Dire Rat', 'Tellah, Great Sage', 'Magic Pot']
+- false-negative faces (adjudicated outlet the parser missed): ['Quina, Qu Gourmet']
+- faces with any clause/field error: ['Sleep Magic', 'Sephiroth, One-Winged Angel', 'Undercity Dire Rat', 'Quina, Qu Gourmet', 'Tellah, Great Sage', 'Magic Pot', 'Eden, Seat of the Sanctum']
 
 ## Regression sets (parser tuned/known — not fresh evidence)
 
