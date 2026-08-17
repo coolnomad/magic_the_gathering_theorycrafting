@@ -35,11 +35,11 @@ Structural checks: **128/128 pass**.
 - [pass] Well-Worn Spatula → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'MODIFIES_WHEN_ATTACHED', 'SUPPLIES_RESOURCE'])_
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Kíli the Resourceful  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'SUPPLIES_RESOURCE'])_
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER'])_
-- [pass] My Precious // Allure of Power → Lakeshore Apothecary  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
+- [pass] My Precious // Allure of Power → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Belladonna Took  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] The Black Arrow → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'GRANTS_ABILITY_WHEN_ATTACHED', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Well-Worn Spatula → Bothersome Noisemaker  _(expect: relation combination ['CAN_ATTACH_TO', 'ENABLES_TRIGGER', 'MODIFIES_WHEN_ATTACHED'])_
-- [pass] My Precious // Allure of Power → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
+- [pass] My Precious // Allure of Power → Belladonna Took  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → The Sackville-Bagginses  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'IS_ELIGIBLE_SACRIFICE_TARGET', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Rhovanion Rampager  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Gollum the Abandoned  _(expect: relation combination ['CAN_ATTACH_TO', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED', 'SATISFIES_SACRIFICE_COST'])_

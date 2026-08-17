@@ -234,6 +234,72 @@ def test_family4_gate_carries_cost_alternatives(cnodes):
     assert stone_gate and stone_gate["data"]["alternatives"] == ["artifact"]
 
 
+# ---- pt10: OR gate is the SOLE causal parent; conditional dies; corrected provenance --------
+_STIR = "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0"
+
+
+def test_pt10_or_gate_is_sole_causal_parent(cnodes, cedges):
+    # pt10: for the OR-cost outlet (Stir) the OR gate is the SOLE causal parent of the sacrifice —
+    # there is NO direct ability->CAUSES->sac (which would double-cause it); instead
+    # ability -REQUIRES-> gate:or-cost -CAUSES-> {sac [or-sacrifice], pay [or-pay]}.
+    or_gate, sac_op, pay_op = f"gate:or-cost:{_STIR}", f"op:completeness:sac:{_STIR}", f"op:pay:{_STIR}"
+    ability = f"ability:completeness:sac:{_STIR}"
+    assert cnodes[or_gate]["data"]["mutually_exclusive"] is True
+    # NO direct ability -> CAUSES -> sac op
+    assert not any(e["source"] == ability and e["predicate"] == "CAUSES" and e["target"] == sac_op
+                   for e in cedges)
+    # the ONLY CAUSES into the sac op is from the OR gate, gated by the sacrifice branch
+    into_sac = [e for e in cedges if e["predicate"] == "CAUSES" and e["target"] == sac_op]
+    assert into_sac and all(e["source"] == or_gate for e in into_sac)
+    assert all(comp.COND_OR_SACRIFICE in (e.get("condition_ids") or []) for e in into_sac)
+    # the ability REQUIRES the OR gate; the gate HAS_ALTERNATIVE both branch ops
+    assert any(e["source"] == ability and e["predicate"] == "REQUIRES" and e["target"] == or_gate for e in cedges)
+    alts = {e["target"] for e in cedges if e["source"] == or_gate and e["predicate"] == "HAS_ALTERNATIVE"}
+    assert sac_op in alts and pay_op in alts
+
+
+def test_pt10_pay_branch_consumes_mana_not_a_permanent(cedges):
+    # executing the pay branch: gated by the pay condition, consumes {4} mana (NOT a permanent),
+    # terminates NOTHING — so choosing pay does not sacrifice anything.
+    pay_op = f"op:pay:{_STIR}"
+    into_pay = [e for e in cedges if e["predicate"] == "CAUSES" and e["target"] == pay_op]
+    assert into_pay and all(comp.COND_OR_PAY in (e.get("condition_ids") or []) for e in into_pay)
+    out = [(e["predicate"], e["target"]) for e in cedges if e["source"] == pay_op]
+    assert ("CONSUMES", "resource:mana") in out                    # pays {4} generic mana
+    assert not any(p == "CONSUMES" and t.startswith("obj:type:") for p, t in out)   # no permanent
+    assert not any(p == "TERMINATES" for p, _ in out)
+    # the two branch conditions are mutually exclusive
+    conds = {c["condition_id"]: c for c in _load_dicts(G / "completeness_conditions.jsonl")}
+    assert conds[comp.COND_OR_PAY]["expression"]["mutually_exclusive_with"] == comp.COND_OR_SACRIFICE
+
+
+def test_pt10_dies_event_conditional_on_sacrificed_being_a_creature(cedges):
+    # pt10 #1: an artifact-and-creature outlet's death event is gated on the sacrificed object being
+    # a creature (so sacrificing a noncreature artifact does NOT emit creature-dies); a creature-only
+    # outlet's death event is unconditional.
+    def dies_conds(fid):
+        return [e.get("condition_ids") or [] for e in cedges
+                if e["source"] == f"op:completeness:sac:{fid}" and e["predicate"] == "CAUSES"
+                and "dies" in e["target"]]
+    # Snowslope Hunter (artifact + creature) — gated
+    snow = "face:fdf7f144-56e4-4f88-b81a-b85473922355:0"
+    dc = dies_conds(snow)
+    assert dc and all(comp.COND_SAC_IS_CREATURE in c for c in dc)
+    for fid in ("face:8d88facd-cf7e-498e-ab6b-6bd021316162:0", _STIR):  # Gollum, Stir (both types)
+        assert all(comp.COND_SAC_IS_CREATURE in c for c in dies_conds(fid))
+    # Tom, Bert, and William (creature only) — unconditional death
+    tom = "face:0ea58cfe-b37c-49a6-a3be-7e60065b8238:0"
+    assert dies_conds(tom) and all(c == [] for c in dies_conds(tom))
+
+
+def test_pt10_provenance_cr_corrected(cedges):
+    # pt10: Sacrifice is CR 701.21 (701.17 is Mill); the OR additional cost cites 118.8 / 601.2
+    provs = [p.get("rule_ref", "") for e in cedges for p in e.get("provenance", [])]
+    assert provs and not any("701.17" in r for r in provs)
+    assert any("701.21" in r for r in provs)                       # Sacrifice
+    assert any("118.8" in r and "601.2" in r for r in provs)       # OR additional cost
+
+
 # ---- 7. edges resolve + signatures (final gate) ---------------------------------------
 def test_paths_and_signatures_validate(mat, rep, crel):
     assert mat["signature_violations"] == 0

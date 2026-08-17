@@ -1,7 +1,7 @@
 # HOB Completeness Layer — Materialization + Reprojection
 
-- **reprojected metaedges**: 1036 (origin `completeness`)
-- **by relation**: {'SATISFIES_SACRIFICE_COST': 629, 'ENABLES_TRIGGER': 56, 'IS_ELIGIBLE_SACRIFICE_TARGET': 351}
+- **reprojected metaedges**: 1041 (origin `completeness`)
+- **by relation**: {'SATISFIES_SACRIFICE_COST': 629, 'ENABLES_TRIGGER': 61, 'IS_ELIGIBLE_SACRIFICE_TARGET': 351}
 - **paths continuous (step joins connect)**: True
 - **paths card-grounded (card:A ... card:B)**: True
 - **all path edges resolve**: True
@@ -15,7 +15,7 @@
 - **Rhovanion Rampager -> Gollum the Abandoned** [SATISFIES_SACRIFICE_COST] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Rhovanion Rampager -> Front Porch Sentries** [ENABLES_TRIGGER] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_ABILITY -> CAUSES -> CAUSES -> TRIGGERS -> HAS_ABILITY -> HAS_FACE
 - **Rhovanion Rampager -> Lake-town Lookout** [ENABLES_TRIGGER] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_ABILITY -> CAUSES -> CAUSES -> TRIGGERS -> HAS_ABILITY -> HAS_FACE
-- **Rhovanion Rampager -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
+- **Rhovanion Rampager -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> REQUIRES -> HAS_ABILITY -> HAS_FACE
 - **Rhovanion Rampager -> The Sackville-Bagginses** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Rhovanion Rampager -> Fearsome Goblin Pair** [ENABLES_TRIGGER] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_ABILITY -> CAUSES -> CAUSES -> TRIGGERS -> HAS_ABILITY -> HAS_FACE
 - **Rhovanion Rampager -> Snowslope Hunter** [SATISFIES_SACRIFICE_COST] via `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
@@ -24,7 +24,7 @@
 - **Belladonna Took -> My Precious // Allure of Power** [SATISFIES_SACRIFICE_COST] via `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Belladonna Took -> Bolg of the North** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Belladonna Took -> Gollum the Abandoned** [SATISFIES_SACRIFICE_COST] via `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
-- **Belladonna Took -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
+- **Belladonna Took -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> REQUIRES -> HAS_ABILITY -> HAS_FACE
 - **Belladonna Took -> The Sackville-Bagginses** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Belladonna Took -> Snowslope Hunter** [SATISFIES_SACRIFICE_COST] via `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Gollum, Silent Slinker // Meager Meal -> Rhovanion Rampager** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
@@ -32,7 +32,7 @@
 - **Gollum, Silent Slinker // Meager Meal -> My Precious // Allure of Power** [SATISFIES_SACRIFICE_COST] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Gollum, Silent Slinker // Meager Meal -> Bolg of the North** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Gollum, Silent Slinker // Meager Meal -> Gollum the Abandoned** [SATISFIES_SACRIFICE_COST] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
-- **Gollum, Silent Slinker // Meager Meal -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
+- **Gollum, Silent Slinker // Meager Meal -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> REQUIRES -> HAS_ABILITY -> HAS_FACE
 - **Gollum, Silent Slinker // Meager Meal -> The Sackville-Bagginses** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Gollum, Silent Slinker // Meager Meal -> Snowslope Hunter** [SATISFIES_SACRIFICE_COST] via `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Nori, Teller of Tales -> Rhovanion Rampager** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
@@ -40,7 +40,7 @@
 - **Nori, Teller of Tales -> My Precious // Allure of Power** [SATISFIES_SACRIFICE_COST] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Nori, Teller of Tales -> Bolg of the North** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Nori, Teller of Tales -> Gollum the Abandoned** [SATISFIES_SACRIFICE_COST] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
-- **Nori, Teller of Tales -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
+- **Nori, Teller of Tales -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> REQUIRES -> HAS_ABILITY -> HAS_FACE
 - **Nori, Teller of Tales -> The Sackville-Bagginses** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Nori, Teller of Tales -> Snowslope Hunter** [SATISFIES_SACRIFICE_COST] via `face:03253076-9add-4efb-9227-b0a062c86534:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Bejeweled Warg -> Rhovanion Rampager** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
@@ -49,7 +49,7 @@
 - **Bejeweled Warg -> My Precious // Allure of Power** [SATISFIES_SACRIFICE_COST] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Bejeweled Warg -> Bolg of the North** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Bejeweled Warg -> Gollum the Abandoned** [SATISFIES_SACRIFICE_COST] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
-- **Bejeweled Warg -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
+- **Bejeweled Warg -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> REQUIRES -> HAS_ABILITY -> HAS_FACE
 - **Bejeweled Warg -> The Sackville-Bagginses** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Bejeweled Warg -> Snowslope Hunter** [SATISFIES_SACRIFICE_COST] via `face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Head of the Hunt -> Rhovanion Rampager** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
@@ -58,12 +58,12 @@
 - **Head of the Hunt -> My Precious // Allure of Power** [SATISFIES_SACRIFICE_COST] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Head of the Hunt -> Bolg of the North** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Head of the Hunt -> Gollum the Abandoned** [SATISFIES_SACRIFICE_COST] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
-- **Head of the Hunt -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
+- **Head of the Hunt -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> REQUIRES -> HAS_ABILITY -> HAS_FACE
 - **Head of the Hunt -> The Sackville-Bagginses** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Head of the Hunt -> Snowslope Hunter** [SATISFIES_SACRIFICE_COST] via `face:0523e271-5e0b-4e4b-9eac-86f915d18952:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **The Arkenstone // Seek the Heart -> Gollum the Abandoned** [SATISFIES_SACRIFICE_COST] via `face:09f09d0a-6054-4545-b81e-0295773cc5f0:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **The Arkenstone // Seek the Heart -> Stone-Giant of High Pass** [SATISFIES_SACRIFICE_COST] via `face:09f09d0a-6054-4545-b81e-0295773cc5f0:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
-- **The Arkenstone // Seek the Heart -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:09f09d0a-6054-4545-b81e-0295773cc5f0:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
+- **The Arkenstone // Seek the Heart -> Stir Up Trouble** [SATISFIES_SACRIFICE_COST] via `face:09f09d0a-6054-4545-b81e-0295773cc5f0:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> REQUIRES -> HAS_ABILITY -> HAS_FACE
 - **The Arkenstone // Seek the Heart -> The Sackville-Bagginses** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:09f09d0a-6054-4545-b81e-0295773cc5f0:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **The Arkenstone // Seek the Heart -> Snowslope Hunter** [SATISFIES_SACRIFICE_COST] via `face:09f09d0a-6054-4545-b81e-0295773cc5f0:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE
 - **Balin, Loremaster -> Rhovanion Rampager** [IS_ELIGIBLE_SACRIFICE_TARGET] via `face:0d420e41-43e9-41d6-832c-5a9f410c994e:0` — HAS_FACE -> HAS_TYPE -> CONSUMES -> CAUSES -> HAS_ABILITY -> HAS_FACE

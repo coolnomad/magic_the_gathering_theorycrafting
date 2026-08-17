@@ -35,10 +35,10 @@ def test_coverage_reports_all_layers_and_union(cov):
     # frozen + repair + legend + mechanism + equip layers reported SEPARATELY and as a
     # deduplicated union (the completed graph, not just Phase 4).
     assert cov["edges_frozen"] == 2728 and cov["edges_repair"] == 9 and cov["edges_legend"] == 113
-    assert cov["edges_mechanism"] == 111 and cov["edges_equip"] == 173 and cov["edges_completeness"] == 101
-    assert cov["edges_lifecycle"] == 71
+    assert cov["edges_mechanism"] == 111 and cov["edges_equip"] == 173 and cov["edges_completeness"] == 107
+    assert cov["edges_lifecycle"] == 65
     assert cov["nodes_mechanism"] == 3 and cov["nodes_legend"] == 58 and cov["nodes_equip"] == 107
-    assert cov["nodes_completeness"] == 28 and cov["nodes_lifecycle"] == 17
+    assert cov["nodes_completeness"] == 31 and cov["nodes_lifecycle"] == 14
     assert cov["edges_union"] == (cov["edges_frozen"] + cov["edges_repair"] + cov["edges_legend"]
                                   + cov["edges_mechanism"] + cov["edges_equip"]
                                   + cov["edges_completeness"] + cov["edges_lifecycle"]) == 3306
@@ -46,8 +46,8 @@ def test_coverage_reports_all_layers_and_union(cov):
     assert cov["edges_by_origin"].get("legend_rule") == 113   # legend layer in the origin counts
     assert cov["edges_by_origin"].get("mechanism_repair") == 111  # mechanism layer (incl. broadened draws)
     assert cov["edges_by_origin"].get("equip") == 173        # equip layer in the origin counts
-    assert cov["edges_by_origin"].get("completeness") == 101  # completeness layer in the origin counts
-    assert cov["edges_by_origin"].get("lifecycle") == 71     # executability lifecycle layer
+    assert cov["edges_by_origin"].get("completeness") == 107  # completeness layer (incl. the OR gate)
+    assert cov["edges_by_origin"].get("lifecycle") == 65     # executability lifecycle layer
     assert cov["edges_without_provenance"] == 0              # incl. every legend/mechanism/equip edge
     # abilities counted over the UNIFIED node set — the legend SBA ability must be included
     assert cov["abilities_by_kind"].get("state_based_action") == 1

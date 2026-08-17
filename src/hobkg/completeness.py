@@ -73,7 +73,9 @@ ZONE_GRAVEYARD = "zone:graveyard"
 BELLADONNA_ABILITY = "ability:face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0:token_enters_escalating"
 
 _CR_TOKEN_ENTERS = "CR 603.2 (triggered abilities) / 111 (tokens)"
-_CR_SACRIFICE = "CR 701.17 (Sacrifice) / 603.2 (dies triggers) / 118 (costs)"
+_CR_SACRIFICE = "CR 701.21 (Sacrifice) / 603.2 (dies triggers) / 118 (costs)"
+# an OR additional cost is a cost-payment choice, NOT the Equipment/leave rules
+_CR_OR_COST = "CR 118.8 (alternative/additional costs) / 601.2b, 601.2f-h (paying costs while casting)"
 
 # ---- FAMILY 3/4 sacrifice outlets (surveyed from data/normalized/faces.jsonl oracle_text) ---
 # face_id -> spec: name, accepts (subset of {"artifact","creature"}), another (bool),
@@ -126,6 +128,10 @@ COND_SAC_ANOTHER = "cond:completeness-sac-another"
 # the pay branch does not reach the sacrifice op / consume a permanent / terminate an attachment.
 COND_OR_SACRIFICE = "cond:completeness-or-sacrifice-branch-chosen"
 COND_OR_PAY = "cond:completeness-or-pay-branch-chosen"
+# pt10: sacrificing a permanent is a death (dies) event ONLY when the sacrificed object is a
+# creature. For an outlet that accepts BOTH artifact and creature, the dies event must be gated on
+# this — otherwise sacrificing a noncreature artifact wrongly enables creature-dies triggers.
+COND_SAC_IS_CREATURE = "cond:completeness-sacrificed-is-creature"
 
 
 def _card_of(nid):
@@ -148,6 +154,17 @@ def _step(edge, direction):
     s = project._step(edge, direction)
     s.pop("provenance", None)
     return s
+
+
+def _reverse_steps(steps):
+    """Reverse a forward chain (A→…→Z) into Z→…→A: reverse order, swap each step's endpoints/direction."""
+    out = []
+    for s in reversed(steps):
+        r = dict(s)
+        r["source"], r["target"] = s["target"], s["source"]
+        r["direction"] = "reverse" if s.get("direction") == "forward" else "forward"
+        out.append(r)
+    return out
 
 
 class _G:
@@ -243,6 +260,9 @@ def materialize(repo: Path = REPO) -> dict:
                            "mutually_exclusive_with": COND_OR_SACRIFICE},
              "The pay branch of the OR additional cost was chosen (mutually exclusive with sacrificing).",
              "OR additional cost — pay branch")
+    add_cond(COND_SAC_IS_CREATURE, {"op": "has_type", "subject": "sacrificed_permanent", "type": "creature"},
+             "The sacrificed permanent is a creature (so its removal is a death / dies event).",
+             "sacrificed object is a creature")
     add_cond(COND_SAC_ANOTHER, {"op": "distinct", "left": "sacrificed_permanent", "right": "source_permanent"},
              "The sacrificed permanent must be ANOTHER permanent (not the source itself).", "sacrifice another")
 
@@ -266,12 +286,32 @@ def materialize(repo: Path = REPO) -> dict:
              {"kind": "sacrifice", "accepts": accepts, "another": spec["another"],
               "or_pay": spec["or_pay"], "destination": "graveyard"}, p)
         edges.append(_edge(fid, "HAS_ABILITY", ability, p))
-        # pt9: for an OR additional cost the sacrifice executes ONLY on the sacrifice branch (so the
-        # pay branch does not reach the sacrifice). Non-OR outlets sacrifice unconditionally.
-        if spec.get("or_pay"):
-            edges.append(_edge(ability, "CAUSES", op, p, condition_ids=[COND_OR_SACRIFICE]))
+        # pt10: for an OR additional cost the OR gate is the SOLE causal parent of the sacrifice —
+        # remove the direct ability->CAUSES->sac (which would double-cause it) and route
+        # ability -REQUIRES-> gate:or-cost -CAUSES-> sac [sacrifice branch] / -CAUSES-> pay [pay branch].
+        or_pay = spec.get("or_pay")
+        if or_pay:
+            or_gate = f"gate:or-cost:{fid}"
+            pay_op = f"op:pay:{fid}"
+            pay_cost = f"cost:pay:{or_pay}"
+            po = [_prov(_CR_OR_COST, "OR additional cost (sacrifice or pay)", face_id=fid,
+                        oracle_span=spec.get("oracle_span"), text=spec["clause"])]
+            node(or_gate, "Gate", f"OR cost: sacrifice or pay {or_pay}",
+                 {"gate_type": "or", "mutually_exclusive": True, "branches": ["sacrifice", "pay"],
+                  "pay": or_pay, "sacrifice_branch": op, "pay_branch": pay_op,
+                  "sacrifice_condition": COND_OR_SACRIFICE, "pay_condition": COND_OR_PAY}, po)
+            node(pay_cost, "Cost", f"pay {or_pay}", {"mana_cost": or_pay, "kind": "mana"}, po)
+            node(pay_op, "Operation", f"pay {or_pay} (OR alternative)",
+                 {"kind": "pay_mana", "mana_cost": or_pay, "consumes_permanent": False}, po)
+            edges.append(_edge(ability, "REQUIRES", or_gate, po))          # the additional cost = the OR gate
+            edges.append(_edge(or_gate, "HAS_ALTERNATIVE", op, po))        # sacrifice branch
+            edges.append(_edge(or_gate, "HAS_ALTERNATIVE", pay_op, po))    # pay branch
+            edges.append(_edge(or_gate, "CAUSES", op, po, condition_ids=[COND_OR_SACRIFICE]))   # sole cause of sac
+            edges.append(_edge(or_gate, "CAUSES", pay_op, po, condition_ids=[COND_OR_PAY]))
+            edges.append(_edge(pay_op, "HAS_COST", pay_cost, po))
+            edges.append(_edge(pay_op, "CONSUMES", "resource:mana", po, quantity=4))  # pays {4} generic
         else:
-            edges.append(_edge(ability, "CAUSES", op, p))
+            edges.append(_edge(ability, "CAUSES", op, p))                  # mandatory sacrifice
         # typed cost gate (FAMILY 4): alternatives = accepted types, `another`, `or_pay`
         node(gate, "Gate", f"sacrifice cost: {name}",
              {"gate_type": "typed_sacrifice_cost", "alternatives": accepts, "another": spec["another"],
@@ -293,11 +333,16 @@ def materialize(repo: Path = REPO) -> dict:
         # dies-triggered ability listens to (event:dies / this-creature-dies / this_creature_dies)
         if "creature" in accepts:
             fired = [ev for ev in DIES_EVENTS if ev in g.nodes]
+            # pt10 #1: if the outlet ALSO accepts artifacts, the death event happens only when the
+            # sacrificed object is actually a creature — gate it so sacrificing an artifact does NOT
+            # emit a creature-dies event. Creature-only outlets always sacrifice a creature.
+            dies_conds = [COND_SAC_IS_CREATURE] if "artifact" in accepts else []
             for ev in fired:
                 edges.append(_edge(op, "CAUSES", ev,
                                    [_prov(_CR_SACRIFICE,
                                           "sacrificing a creature to this outlet is a death event (feeds dies triggers)",
-                                          face_id=fid, text=spec["clause"])]))
+                                          face_id=fid, text=spec["clause"])],
+                                   **({"condition_ids": dies_conds} if dies_conds else {})))
             if fired:
                 fam3_enablers += 1
 
@@ -415,6 +460,27 @@ def reproject(repo: Path = REPO) -> dict:
                  {"trigger": "token-you-control-enters"})
             fam2_reprojected += (len(metaedges) - before)
 
+    def sac_head(fid):
+        """Head steps card:O -> op:completeness:sac:{fid}. pt10: for an OR-cost outlet the OR gate
+        is the SOLE causal parent (ability -REQUIRES-> gate:or-cost -CAUSES-> op:sac); a non-OR
+        outlet keeps ability -CAUSES-> op:sac."""
+        op = f"op:completeness:sac:{fid}"
+        a_card = _card_of(fid)
+        hf = hasface_by_face.get(fid)      # key by the OUTLET's face (adventure faces are :1, not :0)
+        hab = E(fid, "HAS_ABILITY", f"ability:completeness:sac:{fid}")
+        if not (hf and hab):
+            return None, None
+        if SAC_OUTLETS.get(fid, {}).get("or_pay"):
+            req = E(f"ability:completeness:sac:{fid}", "REQUIRES", f"gate:or-cost:{fid}")
+            cau = E(f"gate:or-cost:{fid}", "CAUSES", op)
+            if not (req and cau):
+                return None, None
+            return [_step(hf, "forward"), _step(hab, "forward"), _step(req, "forward"), _step(cau, "forward")], a_card
+        cau = E(f"ability:completeness:sac:{fid}", "CAUSES", op)
+        if not cau:
+            return None, None
+        return [_step(hf, "forward"), _step(hab, "forward"), _step(cau, "forward")], a_card
+
     # ---- FAMILY 3: sac-outlet CARD -> dies-trigger CARD (ENABLES_TRIGGER) ------------------
     # each sac op CAUSES every dies event; each dies event TRIGGERS the frozen dies-abilities.
     fam3_reprojected = 0
@@ -427,14 +493,10 @@ def reproject(repo: Path = REPO) -> dict:
         op = cause_dies["source"]              # op:completeness:sac:{fid}
         ev = cause_dies["target"]
         fid = _face_of(op)
-        a_card = _card_of(op)
-        hf = hasface.get(a_card)
-        hab = E(fid, "HAS_ABILITY", f"ability:completeness:sac:{fid}")
-        cau = E(f"ability:completeness:sac:{fid}", "CAUSES", op)
-        if not (hf and hab and cau):
+        base, a_card = sac_head(fid)
+        if not base:
             continue
-        head = [_step(hf, "forward"), _step(hab, "forward"), _step(cau, "forward"),
-                _step(cause_dies, "forward")]
+        head = base + [_step(cause_dies, "forward")]
         for trg in dies_triggers_by_ev.get(ev, []):
             dies_ability = trg["target"]
             b_tail, b_card = ability_to_card_tail(dies_ability)
@@ -459,14 +521,13 @@ def reproject(repo: Path = REPO) -> dict:
         fid = _face_of(op)
         cls = con["target"]
         b_card = _card_of(op)
-        # tail:  op <-CAUSES- ability <-HAS_ABILITY- face:saccard <-HAS_FACE- card:saccard
-        cau = E(f"ability:completeness:sac:{fid}", "CAUSES", op)
-        hab = E(fid, "HAS_ABILITY", f"ability:completeness:sac:{fid}")
-        hf_b = hasface_by_face.get(fid)
-        if not (cau and hab and hf_b):
+        # tail:  cls <-CONSUMES- op <- (causal chain) <- card:saccard. The causal chain routes
+        # through the OR gate for OR-cost outlets (pt10) — reuse the forward head, reversed.
+        base, _ = sac_head(fid)
+        if not base:
             continue
         spec = SAC_OUTLETS.get(fid, {})
-        tail = [_step(con, "reverse"), _step(cau, "reverse"), _step(hab, "reverse"), _step(hf_b, "reverse")]
+        tail = [_step(con, "reverse")] + _reverse_steps(base)
         for p_card, ht in sorted(htype[cls].items()):
             hf_p = hasface.get(p_card)
             if not hf_p:

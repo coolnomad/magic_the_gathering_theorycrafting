@@ -32,7 +32,7 @@
 
 ### shared event: event:dies  (`discovered_event`)
 - anchors: `event:dies`
-- members: 10  · contributors: 8  · consumers: 2  · conditions: 0  · feedback cycles: 0
+- members: 10  · contributors: 8  · consumers: 2  · conditions: 1  · feedback cycles: 0
 
 ### life-loss trigger  (`discovered_event`)
 - anchors: `event:player-loses-life`
@@ -40,11 +40,11 @@
 
 ### shared event: event:this-creature-dies  (`discovered_event`)
 - anchors: `event:this-creature-dies`
-- members: 9  · contributors: 8  · consumers: 2  · conditions: 0  · feedback cycles: 0
+- members: 9  · contributors: 8  · consumers: 2  · conditions: 1  · feedback cycles: 0
 
 ### shared event: event:this_creature_dies  (`discovered_event`)
 - anchors: `event:this_creature_dies`
-- members: 9  · contributors: 8  · consumers: 1  · conditions: 0  · feedback cycles: 0
+- members: 9  · contributors: 8  · consumers: 1  · conditions: 1  · feedback cycles: 0
 
 ### shared event: event:token-you-control-enters  (`discovered_event`)
 - anchors: `event:token-you-control-enters`
@@ -76,7 +76,7 @@
 
 ### mana base  (`discovered_resource`)
 - anchors: `resource:mana`
-- members: 11  · contributors: 14  · consumers: 0  · conditions: 1  · feedback cycles: 0
+- members: 12  · contributors: 15  · consumers: 0  · conditions: 1  · feedback cycles: 0
 
 ### Ferocious  (`ferocious`)
 - anchors: `rule:ferocious`, `keyword:ferocious`

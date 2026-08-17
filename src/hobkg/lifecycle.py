@@ -114,44 +114,9 @@ def materialize(repo: Path = REPO) -> dict:
         edge(op, "TERMINATES", state, "sacrificing the Equipment ends its attachment state (and its bonus)")
         edge(op, "REFERENCES_RULE", RULE_LEAVE, "instance of the general leave-battlefield invariant")
 
-    # ---- explicit OR cost gate, WIRED into the outlet's execution path --------------------
-    or_gates = 0
-    for gid, n in sorted(completeness_nodes.items()):
-        if not gid.startswith("gate:") or "sac-cost" not in gid:
-            continue
-        or_pay = (n.get("data") or {}).get("or_pay")
-        if not or_pay:
-            continue
-        or_gates += 1
-        m = _UUID.search(gid)
-        fid = re.search(r"face:[0-9a-f-]+:\d+", gid).group(0)
-        or_gate = f"gate:or-cost:{fid}"
-        pay_cost = f"cost:pay:{or_pay}"
-        pay_op = f"op:pay:{fid}"
-        sac_ability = f"ability:completeness:sac:{fid}"
-        sac_op = f"op:completeness:sac:{fid}"
-        # a MUTUALLY-EXCLUSIVE OR gate: exactly one branch executes (pt9)
-        node(or_gate, "Gate", f"OR cost: sacrifice or pay {or_pay}",
-             {"gate_type": "or", "mutually_exclusive": True, "branches": ["sacrifice", "pay"],
-              "pay": or_pay, "sacrifice_branch": sac_op, "pay_branch": pay_op,
-              "sacrifice_condition": COND_OR_SACRIFICE, "pay_condition": COND_OR_PAY},
-             "explicit mutually-exclusive OR cost gate: sacrifice OR pay")
-        node(pay_cost, "Cost", f"pay {or_pay}", {"mana_cost": or_pay, "kind": "mana"},
-             "the pay-mana alternative of the OR cost")
-        node(pay_op, "Operation", f"pay {or_pay} (OR alternative)",
-             {"kind": "pay_mana", "mana_cost": or_pay, "consumes_permanent": False},
-             "the pay-mana branch execution — consumes NO permanent, terminates NO attachment")
-        # WIRING (pt8 #2): the additional-cost ability REQUIRES the OR gate -> gate is reachable
-        edge(sac_ability, "REQUIRES", or_gate, "the additional cost is satisfied via the sacrifice-or-pay OR gate")
-        edge(pay_op, "HAS_COST", pay_cost, "the pay branch pays the mana cost")
-        # pt9: the OR gate CAUSES each branch's execution, each gated by its (mutually exclusive)
-        # branch condition — so only the CHOSEN branch executes.
-        edge(or_gate, "HAS_ALTERNATIVE", sac_op, "the sacrifice branch → executes the sacrifice operation")
-        edge(or_gate, "HAS_ALTERNATIVE", pay_op, "the pay branch → executes the pay operation")
-        edge(or_gate, "CAUSES", sac_op, "executing the sacrifice branch performs the sacrifice",
-             condition_ids=[COND_OR_SACRIFICE])
-        edge(or_gate, "CAUSES", pay_op, "executing the pay branch pays {4} — no sacrifice",
-             condition_ids=[COND_OR_PAY])
+    # NOTE (pt10): the explicit mutually-exclusive OR cost gate (gate:or-cost + op:pay + the
+    # ability→REQUIRES→gate→CAUSES→{sac,pay} wiring) now lives in the COMPLETENESS layer, so the OR
+    # gate is the SOLE causal parent of the sacrifice op and both projections route through it.
 
     # ---- write + validate ----------------------------------------------------------------
     uniq = {}
@@ -179,7 +144,7 @@ def materialize(repo: Path = REPO) -> dict:
             connected_ops += 1
     return {"lifecycle_nodes": len(nodes), "lifecycle_edges": len(edges),
             "sacrifice_ops": len(sac_ops), "connected_sacrifice_ops": connected_ops,
-            "attachment_states_covered": len(attach_states), "or_cost_gates": or_gates,
+            "attachment_states_covered": len(attach_states),
             "unresolved_terminated_states": missing_state, "signature_violations": len(violations),
             "_violations": violations}
 
@@ -241,15 +206,25 @@ def reproject(repo: Path = REPO) -> dict:
         o_card = _card_of(fid)
         hf_o = hasface.get(o_card)
         hab_o = Ed(fid, "HAS_ABILITY", f"ability:completeness:sac:{fid}")
-        cau_o = Ed(f"ability:completeness:sac:{fid}", "CAUSES", f"op:completeness:sac:{fid}")
-        if not (hf_o and hab_o and cau_o):
+        op_sac = f"op:completeness:sac:{fid}"
+        # pt10: the OR gate is the sole causal parent for OR-cost outlets — route the head through
+        # ability -REQUIRES-> gate:or-cost -CAUSES-> op:sac; non-OR outlets keep ability -CAUSES-> op:sac.
+        if spec.get("or_pay"):
+            req_o = Ed(f"ability:completeness:sac:{fid}", "REQUIRES", f"gate:or-cost:{fid}")
+            cau_o = Ed(f"gate:or-cost:{fid}", "CAUSES", op_sac)
+            cause_steps = [req_o, cau_o] if (req_o and cau_o) else None
+        else:
+            cau_o = Ed(f"ability:completeness:sac:{fid}", "CAUSES", op_sac)
+            cause_steps = [cau_o] if cau_o else None
+        if not (hf_o and hab_o and cause_steps):
             continue
         for typ in spec.get("accepts", []):
             cls = OBJ_TYPE_ARTIFACT if typ == "artifact" else OBJ_TYPE_CREATURE
-            con = Ed(f"op:completeness:sac:{fid}", "CONSUMES", cls)
+            con = Ed(op_sac, "CONSUMES", cls)
             if not con:
                 continue
-            head = [_step(hf_o, "forward"), _step(hab_o, "forward"), _step(cau_o, "forward"), _step(con, "forward")]
+            head = [_step(hf_o, "forward"), _step(hab_o, "forward")] \
+                + [_step(e, "forward") for e in cause_steps] + [_step(con, "forward")]
             # bind the fodder P to each Equipment host of the accepted type + run its sacrifice transition
             for host in equipment_hosts:
                 ht = htype.get(cls, {}).get(host)

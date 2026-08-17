@@ -4073,3 +4073,118 @@ Ready for your review of `c87fbdb` or direction on the portability work.
 
 ### [2026-08-16 23:24] USER
 read hob-kg-phase6-review-pt9.md
+
+### [2026-08-16 23:32] ASSISTANT
+pt9 **accepts the sacrifice-to-attachment-termination repair** (the principal connectivity failure is closed). One substantive issue remains + two smaller ones:
+
+1. **Stir's OR gate isn't executably exclusive** â€” the completeness ability *unconditionally* `CAUSES` the sacrifice op, so choosing the `pay {4}` branch still reaches the sacrifice. The chosen branch must govern execution (execute the pay branch â†’ nothing consumed, no attachment terminates).
+2. **`HAS_ABILITY` for the sacrifice transition** is a traversal hack â€” a `CAN_UNDERGO` predicate is semantically cleaner.
+3. **HANDOFF has stale refs** (6 tiers / 3,235 edges / 9,967 relations / old build order) below the new section.
+
+Let me set up tasks and inspect the completeness edge that needs conditioning.
+
+I understand the structure â€” line 256's unconditional `ability CAUSES op` is the leak. My plan: condition the sacrifice branch on `cond:or-sacrifice-chosen` and the pay branch on `cond:or-pay-chosen` (mutually exclusive), with the OR gate causing each branch conditionally. Let me start with the schema â€” add `CAN_UNDERGO` (pt9 #2).
+
+Now condition the OR-cost sacrifice branch in completeness. Let me add the exclusivity conditions and gate the CAUSES edge.
+
+Let me find where completeness defines its conditions, to add the two OR conditions.
+
+Now condition the OR-cost sacrifice branch's `CAUSES` edge (only for `or_pay` outlets).
+
+Now update `lifecycle.py`: `CAN_UNDERGO` for the sacrifice transition, and the executable OR branches. Let me view the relevant sections.
+
+Now update the lifecycle imports and the reproject step (`HAS_ABILITY` â†’ `CAN_UNDERGO` for the sacrifice transition).
+
+Let me regenerate completeness + lifecycle and verify the OR exclusivity + CAN_UNDERGO.
+
+17 nodes / 71 edges, 0 signature violations. Let me independently verify the OR exclusivity (pt9's decisive concern) and CAN_UNDERGO.
+
+All pt9 fixes verified: **both** CAUSES edges into the Stir sacrifice op are gated by `cond:or-sacrifice-branch-chosen`; the pay branch (gated by `cond:or-pay-branch-chosen`, mutually exclusive) **consumes nothing and terminates nothing**; `CAN_UNDERGO` replaces `HAS_ABILITY` for the transition. Let me clean up and update the tests.
+
+Now update the coverage test (lifecycle 68â†’71 edges, 16â†’17 nodes) and fix the stale HANDOFF references (pt9 #3).
+
+Now fix the stale HANDOFF references (pt9 #3). Let me find them.
+
+Now regenerate the full pipeline and run the suite.
+
+228 pass. Let me mark tasks done, verify determinism + frozen graph, and revert review noise.
+
+Frozen graph untouched. Let me record the science (pt9 fixes + `CAN_UNDERGO` schema revision) and commit.
+
+pt9 resolved, committed and pushed (`b6f89d8`).
+
+## pt9 verdict: sacrificeâ†’termination repair **accepted**; I fixed the remaining items
+The reviewer confirmed the principal Crude/Snowslope/Stir connectivity is closed (continuous, card-grounded, reachability-tested). The three remaining items:
+
+**1. Stir's OR gate is now executably exclusive** (the substantive one). The defect: the completeness ability *unconditionally* `CAUSES` the sacrifice, so choosing `pay {4}` still sacrificed. Fix: two mutually-exclusive branch conditions (`cond:â€¦-or-sacrifice-branch-chosen` / `â€¦-or-pay-branch-chosen`). Every `CAUSES` into the Stir sacrifice op is now gated by the *sacrifice* branch (OR-cost outlets only â€” non-OR outlets stay unconditional), the OR gate `CAUSES` each branch conditionally, and a new `op:pay:{stir}` (`HAS_COST cost:pay:{4}`) **consumes nothing and terminates nothing**. Independently verified + regression-tested: **executing the pay branch reaches no sacrifice, no consumption, no attachment termination** â€” exactly pt9's decisive test.
+
+**2. `CAN_UNDERGO` predicate** â€” replaced the loose `HAS_ABILITY op:sacrifice:H` (a transition isn't an ability the object possesses) with a new `CAN_UNDERGO` predicate (recorded schema extension, 3rd after `TERMINATES`/`HAS_ALTERNATIVE`). The traversal path is now `HAS_FACE â†’ HAS_ABILITY â†’ CAUSES â†’ CONSUMES â†’ HAS_TYPE â†’ CAN_UNDERGO â†’ TERMINATES`.
+
+**3. Stale HANDOFF refs** â€” corrected the lower section (6â†’7 tiers, 3,306 edges, current build order, schema-extension predicates).
+
+**228 tests pass**, deterministic, frozen Phase 4 + Phase 5 byte-untouched. Coverage union **3,306 edges**, 0 provenance gaps, all conditions resolve.
+
+## Still open (each awaits a go-ahead)
+1. **Portable mechanical sacrifice-clause extraction** â€” replace the hand-authored `SAC_OUTLETS` dict with clause detection (the reusable-harness direction, `docs/portability_plan.md`).
+2. **Independent human semantic validation** â€” the manual gold-set adjudication only you can do.
+
+Ready for your review of `b6f89d8` or direction on the portability work.
+
+### [2026-08-16 23:35] USER
+The commit materially fixes the requested issue, but one execution ambiguity remains.
+
+What is now correct:
+
+* StirΓÇÖs sacrifice and pay branches have mutually exclusive conditions.
+* The pay branch reaches an explicit `op:pay` and has no `CONSUMES` or `TERMINATES` edges.
+* The sacrifice branch retains the Crude ΓåÆ graveyard ΓåÆ attachment-termination traversal.
+* `CAN_UNDERGO` replaces the misleading `CardFace HAS_ABILITY sacrifice-operation`.
+* The lifecycle paths now use `CAN_UNDERGO`.
+* The stale handoff tier counts, edge counts, query description, and build order were updated.
+* Coverage now reports 3,306 primitive edges and 10,027 relations.
+
+The remaining problem is duplicate execution of the sacrifice branch.
+
+Currently, when the sacrifice condition is selected, both of these edges are active:
+
+```text
+Stir sacrifice ability
+  CAUSES ΓåÆ sacrifice operation
+  [sacrifice branch chosen]
+
+OR gate
+  CAUSES ΓåÆ sacrifice operation
+  [sacrifice branch chosen]
+```
+
+The test confirms that both incoming edges are conditionally gated, but it does not establish that the operation executes only once. Unless the future execution engine deduplicates operations by node identity, this can schedule the same sacrifice twice.
+
+The clean representation is:
+
+```text
+Stir additional-cost ability
+  REQUIRES ΓåÆ OR gate
+
+OR gate
+Γö£ΓöÇΓöÇ CAUSES ΓåÆ sacrifice operation [sacrifice chosen]
+ΓööΓöÇΓöÇ CAUSES ΓåÆ pay operation       [pay chosen]
+```
+
+For an OR-cost outlet, the direct `ability ΓåÆ CAUSES ΓåÆ sacrifice operation` edge should be removed. The lifecycle reprojection should traverse:
+
+```text
+ability
+ΓåÆ REQUIRES OR gate
+ΓåÆ CAUSES sacrifice operation
+ΓåÆ CONSUMES ΓÇª
+```
+
+That would make the branch controller the sole causal parent.
+
+Two provenance/executability details also remain:
+
+* `completeness.py` cites `CR 701.17` for sacrifice, but the repositoryΓÇÖs frozen Comprehensive Rules define Sacrifice at `701.21`; `701.17` is Mill.
+* The OR/payment edges inherit Equipment rules (`701.3d`, `400.7`, etc.). They should cite `118.8` and `601.2b`, `601.2fΓÇôh`.
+* `op:pay` has `HAS_COST {4}` but does not explicitly consume four generic mana. That may be sufficient for a feature graph, but a fully autonomous executor still needs defined cost-payment semantics.
+
+Verdict: the pay branch no longer sacrifices anything, so the principal pt9 defect is fixed. I would require removal of the duplicate sacrifice cause before calling branch execution unambiguous. Portable sacrifice-clause extraction remains open.

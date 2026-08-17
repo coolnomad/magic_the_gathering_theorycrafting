@@ -4,10 +4,10 @@
 
 - cards / faces parsed: **193 / 210**
 - abilities by kind: {'?': 43, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1, 'automatic': 4, 'static_pt_bonus': 9, 'static_grant': 6, 'sacrifice_outlet': 9}
-- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **111** + equip **173** + completeness **101** + lifecycle **71** = union **3306** (+1 repair, +58 legend, +3 mechanism, +107 equip, +28 completeness, +17 lifecycle nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 111, 'equip': 173, 'completeness': 101, 'lifecycle': 71}; provenance gaps: 0
-- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **392** + equip **3250** + completeness **1036** = union **10027**
+- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **111** + equip **173** + completeness **107** + lifecycle **65** = union **3306** (+1 repair, +58 legend, +3 mechanism, +107 equip, +31 completeness, +14 lifecycle nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 111, 'equip': 173, 'completeness': 107, 'lifecycle': 65}; provenance gaps: 0
+- pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **392** + equip **3250** + completeness **1041** = union **10032**
 - conditions all resolve: **True** (unresolved: none)
-- conditions: 168 (81 raw-unresolved); unresolved Oracle records: 16
+- conditions: 169 (81 raw-unresolved); unresolved Oracle records: 16
 - LLM: 210 faces accepted; audit 5 accepted / 114 no-relation / 10 graph-repair
 - pair relations: **5278** {'CONTRIBUTES_TO_GATE': 666, 'INFRASTRUCTURE_CASTING': 4593, 'ENABLES_TRIGGER': 4, 'SUPPLIES_RESOURCE': 15}
 - pairs with multiple relation types: 80
@@ -19,7 +19,7 @@
 
 - HAS_ABILITY: 621
 - HAS_TYPE: 552
-- CAUSES: 434
+- CAUSES: 433
 - HAS_COST: 224
 - HAS_FACE: 210
 - REFERENCES_RULE: 115
@@ -33,7 +33,7 @@
 - QUALIFIES_FOR: 78
 - REQUIRES: 65
 - HAS_STATE: 63
-- CONSUMES: 36
+- CONSUMES: 37
 - SCALES_WITH: 35
 - ADDS_COUNTER: 34
 - CREATES_OBJECT: 27
