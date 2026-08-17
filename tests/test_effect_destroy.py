@@ -19,7 +19,7 @@ def _setup():
         n2c[f["name"]] = f["card_id"]
         cid2name.setdefault(f["card_id"], f["name"])
     pairs = _load_dicts(G / "card_pair_projection_effect.jsonl")
-    structured = _load_dicts(G / "effect_destroy.jsonl")
+    structured = [s for s in _load_dicts(G / "effect_records.jsonl") if s["op"] == "DESTROY"]
     return by_card, n2c, cid2name, pairs, structured
 
 

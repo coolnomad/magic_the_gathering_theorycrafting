@@ -1,18 +1,17 @@
-# Effect-semantics — structured effects (Phase 2a)
+# Effect-semantics — structured effects (Phase 3: targeted-object families)
 
-Additive `effect_semantics` layer over the frozen reference. Family: **targeted destruction** (`CAN_DESTROY`). Each effect is a validated record (selector + participant + mode + condition + duration + targeting/quantifier + pronoun binding + attempt/zone-transition + Oracle-span provenance); deterministic projection fans each targeted destroy to every eligible card, **aggregating all supporting effects/modes per pair** (`supports`). Frozen core untouched.
+Additive `effect_semantics` layer over the frozen reference. Families: destruction, damage, counters, power/toughness, ability grants, tap/untap, fight, and type-change. Each effect is a validated record (selector + participant + mode + condition + duration + targeting/quantifier + **same-object variable binding** + Oracle-span provenance); deterministic projection fans each targeted effect to every eligible card, **aggregating all supporting effects/modes per pair** (`supports`). Frozen core untouched. Two predicates are proposed schema extensions (documented): `CAN_FIGHT`, `CHANGES_TYPE_OF`.
 
-- destroy effects: **10** on 10 faces  · CAN_DESTROY pairs: **603**
+- effects: **69** on 52 faces  · pairs: **6098**
 
-| card | targeted | mode | selector | eligible cards | token specs |
-|---|---|---|---|---:|---:|
-| Azog, Moria's Ruin | yes | — | creature | 112 | 9 |
-| Bilbo's Deadly Slice | yes | — | creature | 112 | 9 |
-| Burn, Burn, Tree and Fern | yes | — | artifact | 18 | 3 |
-| Giant's Boulder | yes | — | permanent | 163 | 11 |
-| Pinecone Strike | yes | choose_one_or_both#1 | artifact [token] | 0 | 3 |
-| Stir Up Trouble | yes | — | creature | 112 | 9 |
-| Stone by Sunlight | yes | choose_one#0 | creature [power_ge≥4] | 32 | 2 |
-| The Black Arrow | no | — | dragon | 4 | 1 |
-| Thorin's Last Stand | yes | choose_one#1 | artifact|enchantment | 38 | 3 |
-| Warg Tactics | yes | choose_one#0 | creature [flying] | 12 | 2 |
+| relation | pairs |  | op | effects |
+|---|---:|---|---|---:|
+| `ADDS_COUNTER_TO` | 1424 |  | `ADD_COUNTER` | 19 |
+| `GRANTS_ABILITY_TO` | 1362 |  | `MODIFY_PT` | 14 |
+| `MODIFIES_POWER_TOUGHNESS` | 1253 |  | `GRANT_ABILITY` | 12 |
+| `CAN_DEAL_DAMAGE_TO` | 672 |  | `DESTROY` | 10 |
+| `CAN_DESTROY` | 603 |  | `DEAL_DAMAGE` | 7 |
+| `CAN_UNTAP` | 336 |  | `UNTAP` | 3 |
+| `CAN_TAP` | 224 |  | `TAP` | 2 |
+| `CAN_FIGHT` | 112 |  | `FIGHT` | 1 |
+| `CHANGES_TYPE_OF` | 112 |  | `CHANGE_TYPE` | 1 |

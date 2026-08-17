@@ -271,6 +271,144 @@ def _destroy_effects(face: dict):
     return out
 
 
+# --------------------------------------------------------------------------- #
+#  Phase 3 — the other targeted-object families, with same-object variable binding #
+# --------------------------------------------------------------------------- #
+_ABIL_KW = ["flying", "trample", "vigilance", "lifelink", "deathtouch", "menace", "reach", "haste",
+            "hexproof", "indestructible", "first strike", "double strike", "ward", "protection",
+            "prowess", "defender", "shroud"]
+_TARGET_RE = re.compile(r"((?:up to \w+ |one or two |another |other |each |all )?)target\s+", re.I)
+_TDELIM = re.compile(r"\.|,|;|\bgets?\b|\bgains?\b|\bfights?\b|\bbecomes?\b|\band\b|\bif\b|\bthen\b|"
+                     r"\buntil\b|\bto\b|\bequal\b|$", re.I)
+_PRON = re.compile(r"\b(it|that creature|that permanent|those|them)\b", re.I)
+
+
+def _abilities(phrase: str):
+    low = phrase.lower()
+    return sorted({k for k in _ABIL_KW if re.search(r"\b" + re.escape(k) + r"\b", low)})
+
+
+def _targets_in(clause: str):
+    """Every 'target <selector>' in a clause, assigned stable vars obj0, obj1, … (in text order)."""
+    out = []
+    for m in _TARGET_RE.finditer(clause):
+        qtext = m.group(1).lower()
+        rest = clause[m.end():]
+        d = _TDELIM.search(rest)
+        phrase = (rest[:d.start()] if d else rest).strip()
+        if not phrase:
+            continue
+        quant = "up_to_2" if "one or two" in qtext else "target"
+        um = re.search(r"up to (\w+)", qtext)
+        if um:
+            quant = f"up_to_{_sch._NUM.get(um.group(1), um.group(1))}"
+        sel = _sch.selector(phrase, var=f"obj{len(out)}", targeted=True, quantifier=quant)
+        for w in ("other", "another"):
+            if w in qtext:
+                sel["exclusions"] = sorted(set(sel["exclusions"]) | {w})
+        out.append({"var": sel["var"], "start": m.start(), "selector": sel})
+    return out
+
+
+def _before(targets, pos):
+    cand = [t for t in targets if t["start"] <= pos]
+    return cand[-1] if cand else (targets[0] if targets else None)
+
+
+def _after(targets, pos):
+    cand = [t for t in targets if t["start"] >= pos]
+    return cand[0] if cand else None
+
+
+# per-op: (relation, regex, object side 'before'|'after', extractor(match)->payload)
+def _object_effects(face: dict):
+    """Structured object-operation effects per (ability, mode) clause, binding operations that act on
+    the SAME object to one object variable (Warg mode-1 counter+grant; Reverent Howl pump+grant), and
+    distinct objects to distinct vars (Troll Negotiations counter on obj0, fight obj1)."""
+    text = _blank_reminders(face.get("oracle_text") or "")
+    kind, branches = _modes(text)
+    short = face["name"].split(",")[0].lower()
+    out = []
+    for br in branches:
+        clause = br["text"]
+        cbase = text.find(clause) if clause in text else 0
+        targets = _targets_in(clause)
+        clause_id = f"{face['id']}#a?.m{br['index']}" if kind else f"{face['id']}#a?"
+        ops = []
+
+        def emit(relation, op, obj, extra, span):
+            if not obj:
+                return
+            ops.append({"op": op, "relation": relation, "object_var": obj["var"],
+                        "selector": obj["selector"], "span": [cbase + span[0], cbase + span[1]], **extra})
+
+        for m in re.finditer(r"deals?\s+(\d+|x)\s+damage\s+to\b", clause, re.I):
+            emit("CAN_DEAL_DAMAGE_TO", "DEAL_DAMAGE", _after(targets, m.end()),
+                 {"amount": m.group(1).lower(), "source_var": "self"}, m.span())
+        # source-power damage: "<your creature> deals damage equal to its power to <target>" (Quarrel)
+        for m in re.finditer(r"deals?\s+damage\s+(equal to its power\s+)?to\b", clause, re.I):
+            subj, obj = _before(targets, m.start()), _after(targets, m.end())
+            if subj and obj and subj["var"] != obj["var"]:
+                ops.append({"op": "DEAL_DAMAGE", "relation": "CAN_DEAL_DAMAGE_TO", "object_var": obj["var"],
+                            "selector": obj["selector"], "source_var": subj["var"],
+                            "source_selector": subj["selector"],
+                            "amount": "equal_to_source_power" if m.group(1) else "unspecified",
+                            "span": [cbase + m.start(), cbase + m.end()]})
+        for m in re.finditer(r"put\s+(\w+)\s+(\+1/\+1|\-1/\-1|[a-z]+)\s+counters?\s+on\b", clause, re.I):
+            w = m.group(1).lower()
+            n = 1 if w in ("a", "an") else _sch._NUM.get(w, w)
+            emit("ADDS_COUNTER_TO", "ADD_COUNTER", _after(targets, m.end()),
+                 {"n": n, "counter": m.group(2)}, m.span())
+        for m in re.finditer(r"gets?\s+([+\-][\dXx]+/[+\-][\dXx]+)", clause, re.I):
+            emit("MODIFIES_POWER_TOUGHNESS", "MODIFY_PT", _before(targets, m.start()),
+                 {"pt_mod": m.group(1)}, m.span())
+        for m in re.finditer(r"gains?\s+([A-Za-z][A-Za-z ,]*?(?:and [A-Za-z ]+)?)(?=\s+until|\.|,|;|$)", clause, re.I):
+            abils = _abilities(m.group(1))
+            if abils:
+                emit("GRANTS_ABILITY_TO", "GRANT_ABILITY", _before(targets, m.start()), {"abilities": abils}, m.span())
+        for m in re.finditer(r"\b(taps?|untaps?)\b", clause, re.I):
+            rel = "CAN_UNTAP" if m.group(1).lower().startswith("untap") else "CAN_TAP"
+            emit(rel, m.group(1).upper().rstrip("S"), _after(targets, m.end()), {}, m.span())
+        for m in re.finditer(r"\bfights?\b", clause, re.I):
+            subj, obj = _before(targets, m.start()), _after(targets, m.end())
+            if subj and obj:
+                ops.append({"op": "FIGHT", "relation": "CAN_FIGHT", "object_var": subj["var"],
+                            "selector": subj["selector"], "fight_target_var": obj["var"],
+                            "fight_target_selector": obj["selector"], "span": [cbase + m.start(), cbase + m.end()]})
+        for m in re.finditer(r"becomes?\s+(?:a|an)\s+(\w+)\b", clause, re.I):
+            typ = m.group(1).lower()
+            if typ in _sch.PERMANENT_TYPES:
+                emit("CHANGES_TYPE_OF", "CHANGE_TYPE", _before(targets, m.start()),
+                     {"added_type": typ, "in_addition": "in addition" in clause.lower()}, m.span())
+
+        # a same-object replacement bound to a damaged target (Pinecone: 'If that creature would die … exile it instead')
+        repl = re.search(r"if (?:that creature|it) would die[^.]*?exile it instead", clause, re.I)
+        for op in ops:
+            if op["op"] == "DEAL_DAMAGE" and repl:
+                op["replacement"] = {"kind": "die_would_exile_instead", "object_var": op["object_var"]}
+        # a spell-level cost reduction conditioned on the target (Magnificent End: '… less to cast if it
+        # targets a tapped creature') — attach to the targeted object effect
+        cm = re.search(r"costs? (\{[^}]+\}) less to cast if it targets a (\w+) creature", text, re.I)
+        for op in ops:
+            if cm and op["selector"]["targeted"]:
+                op["cost_modification"] = {"amount": cm.group(1),
+                                           "condition": {"kind": "conditional_cost",
+                                                         "predicate": f"target_is_{cm.group(2).lower()}"}}
+
+        for i, op in enumerate(ops):
+            sub = op.pop("span")
+            rec = {"effect_id": f"{face['id']}#{op['op']}#{br['index']}#{i}", "op": op["op"],
+                   "relation": op["relation"], "participant": "you", "selector": op["selector"],
+                   "object_var": op["object_var"], "mode": {"kind": kind, "index": br["index"]},
+                   "condition": _sch.condition(clause), "duration": _sch.duration(clause),
+                   "optional": "may " in clause.lower(),
+                   "targeted": op["selector"]["targeted"], "affects_each": op["selector"]["affects_each"],
+                   "binding": None, "clause_id": clause_id, "oracle_span": sub,
+                   **{k: v for k, v in op.items() if k not in ("op", "relation", "object_var", "selector")}}
+            out.append(rec)
+    return out
+
+
 def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dict:
     """Extract + project the destruction family (Phase 2). Structured facts → effect_destroy.jsonl;
     deterministic card-pair projection → card_pair_projection_effect.jsonl (origin effect_semantics).
@@ -285,64 +423,71 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
 
     structured, errors = [], []
     agg = {}                                                # (src,tgt,relation) -> aggregated pair with `supports`
+
+    def project(src, sel, relation, family, support):
+        for tgt in cards:
+            if any(_sch.matches_card(sel, cf) for cf in by_card[tgt]):
+                key = (src, tgt, relation)
+                if key not in agg:                          # unique pair, AGGREGATE all supporting effects/modes
+                    agg[key] = {"source_card": src, "target_card": tgt, "relation": relation,
+                                "self_pair": src == tgt, "generic": True, "origin": "effect_semantics",
+                                "family": family, "supports": []}
+                agg[key]["supports"].append(support)
+
     for f in sorted(faces, key=lambda x: x["id"]):
-        for eff in _destroy_effects(f):
+        for eff in _destroy_effects(f) + _object_effects(f):
             errors += [f"{eff['effect_id']}: {e}" for e in _sch.validate_effect(eff)]
             sel = eff["selector"]
-            support = {"effect_id": eff["effect_id"], "mode": eff["mode"], "clause": eff["clause"],
-                       "oracle_span": eff["oracle_span"], "targeted": eff["targeted"],
-                       "face_id": f["id"], "name": f["name"]}
+            family = eff["op"].lower()
+            support = {"effect_id": eff["effect_id"], "mode": eff["mode"], "op": eff["op"],
+                       "object_var": eff.get("object_var"), "oracle_span": eff["oracle_span"],
+                       "targeted": eff["targeted"], "face_id": f["id"], "name": f["name"]}
             elig_tokens = sorted(t["id"] for t in tokens if _sch.matches_token(sel, t))
             structured.append({**eff, "face_id": f["id"], "card": f["card_id"], "name": f["name"],
                                "eligible_token_specs": elig_tokens,
-                               "provenance": {**support, "rule": "effect_semantics.destroy",
+                               "provenance": {**support, "rule": f"effect_semantics.{family}",
                                               "layer": "effect_semantics"}})
-            src = f["card_id"]
-            for tgt in cards:
-                if any(_sch.matches_card(sel, cf) for cf in by_card[tgt]):
-                    key = (src, tgt, "CAN_DESTROY")
-                    if key not in agg:                      # unique pair, but AGGREGATE all supporting effects/modes
-                        agg[key] = {"source_card": src, "target_card": tgt, "relation": "CAN_DESTROY",
-                                    "self_pair": src == tgt, "generic": True, "origin": "effect_semantics",
-                                    "family": "destroy", "supports": []}
-                    agg[key]["supports"].append(support)
+            project(f["card_id"], sel, eff["relation"], family, support)
+            if eff["op"] == "FIGHT" and eff.get("fight_target_selector"):
+                project(f["card_id"], eff["fight_target_selector"], "CAN_FIGHT", "fight",
+                        {**support, "role": "fight_target"})
     pairs = sorted(agg.values(), key=lambda p: (p["source_card"], p["target_card"], p["relation"]))
     assert not errors, f"effect schema violations: {errors[:5]}"
     if not write:
         return {"_structured": structured, "_pairs": pairs}
+    from collections import Counter
     G = repo / "data" / "graph_global"
-    _writej(G / "effect_destroy.jsonl", sorted(structured, key=lambda r: r["effect_id"]))
+    _writej(G / "effect_records.jsonl", sorted(structured, key=lambda r: r["effect_id"]))
     _writej(G / "card_pair_projection_effect.jsonl", pairs)
     _effects_report(repo, structured, pairs)
-    return {"faces_with_destroy": len({s["face_id"] for s in structured}),
-            "destroy_effects": len(structured), "destroy_pairs": len(pairs)}
+    return {"effects": len(structured), "faces_with_effects": len({s["face_id"] for s in structured}),
+            "pairs": len(pairs), "by_relation": dict(Counter(p["relation"] for p in pairs)),
+            "by_family": dict(Counter(s["op"] for s in structured))}
 
 
 def _effects_report(repo, structured, pairs):
-    L = ["# Effect-semantics — structured effects (Phase 2a)", "",
-         "Additive `effect_semantics` layer over the frozen reference. Family: **targeted destruction** "
-         "(`CAN_DESTROY`). Each effect is a validated record (selector + participant + mode + condition "
-         "+ duration + targeting/quantifier + pronoun binding + attempt/zone-transition + Oracle-span "
-         "provenance); deterministic projection fans each targeted destroy to every eligible card, "
-         "**aggregating all supporting effects/modes per pair** (`supports`). Frozen core untouched.", "",
-         f"- destroy effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  "
-         f"· CAN_DESTROY pairs: **{len(pairs)}**", "",
-         "| card | targeted | mode | selector | eligible cards | token specs |",
-         "|---|---|---|---|---:|---:|"]
-    npairs = {}
-    for p in pairs:
-        npairs[p["source_card"]] = npairs.get(p["source_card"], 0) + 1
-    for s in sorted(structured, key=lambda r: r["name"]):
-        sel = s["selector"]
-        desc = ("&".join(sel["card_types"]) if not sel["or_types"] else "|".join(sel["card_types"])) \
-            or (",".join(sel["subtypes"]) or ("permanent" if sel["generic_permanent"] else "?"))
-        if sel["supertypes"]:
-            desc = "+".join(sel["supertypes"]) + " " + desc
-        for k, v in sel["predicates"].items():
-            desc += f" [{k}{'' if v is True else '≥' + str(v)}]"
-        mode = f"{s['mode']['kind']}#{s['mode']['index']}" if s["mode"]["kind"] else "—"
-        L.append(f"| {s['name']} | {'yes' if s['targeted'] else 'no'} | {mode} | {desc} | "
-                 f"{npairs.get(s['card'], 0)} | {len(s['eligible_token_specs'])} |")
+    from collections import Counter
+    byrel = Counter(p["relation"] for p in pairs)
+    byop = Counter(s["op"] for s in structured)
+    L = ["# Effect-semantics — structured effects (Phase 3: targeted-object families)", "",
+         "Additive `effect_semantics` layer over the frozen reference. Families: destruction, damage, "
+         "counters, power/toughness, ability grants, tap/untap, fight, and type-change. Each effect is "
+         "a validated record (selector + participant + mode + condition + duration + targeting/"
+         "quantifier + **same-object variable binding** + Oracle-span provenance); deterministic "
+         "projection fans each targeted effect to every eligible card, **aggregating all supporting "
+         "effects/modes per pair** (`supports`). Frozen core untouched. Two predicates are proposed "
+         "schema extensions (documented): `CAN_FIGHT`, `CHANGES_TYPE_OF`.", "",
+         f"- effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  · "
+         f"pairs: **{len(pairs)}**", "",
+         "| relation | pairs |  | op | effects |", "|---|---:|---|---|---:|"]
+    rels = sorted(byrel, key=lambda r: -byrel[r])
+    opsl = sorted(byop, key=lambda o: -byop[o])
+    for i in range(max(len(rels), len(opsl))):
+        r = f"`{rels[i]}`" if i < len(rels) else ""
+        rc = byrel[rels[i]] if i < len(rels) else ""
+        o = f"`{opsl[i]}`" if i < len(opsl) else ""
+        oc = byop[opsl[i]] if i < len(opsl) else ""
+        L.append(f"| {r} | {rc} |  | {o} | {oc} |")
     (repo / "reports" / "effect_semantics.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
