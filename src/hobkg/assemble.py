@@ -97,6 +97,11 @@ GLOBAL_SIGNATURES = {
     "REQUIRES": (_ACTOR_SUBJ | {"Ability", "Gate", "Effect"},
                  {"Resource", "State", "ObjectClass", "Gate", "CounterType", "TokenSpec", "Event", "Zone"}),
     "DERIVED_FROM": (None, None),  # not signature-checked
+    # --- executability schema extension (pt7, lifecycle layer) -----------------
+    # a permanent leaving the battlefield terminates the attachment States it hosts (and, via the
+    # REQUIRES chain, the continuous effects needing them); an OR cost gate has alternative satisfiers.
+    "TERMINATES": ({"Operation", "Event", "State"}, {"State"}),
+    "HAS_ALTERNATIVE": ({"Gate"}, {"Gate", "Cost", "Operation"}),
 }
 
 # actor predicates whose CardFace/Ability subject must be reified onto an Operation.

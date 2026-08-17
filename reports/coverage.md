@@ -4,7 +4,7 @@
 
 - cards / faces parsed: **193 / 210**
 - abilities by kind: {'?': 43, 'triggered': 142, 'static': 134, 'spell_effect': 67, 'replacement': 16, 'activated': 59, 'state_based_action': 1, 'automatic': 4, 'static_pt_bonus': 9, 'static_grant': 6, 'sacrifice_outlet': 9}
-- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **111** + equip **173** + completeness **101** = union **3235** (+1 repair, +58 legend, +3 mechanism, +107 equip, +28 completeness nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 111, 'equip': 173, 'completeness': 101}; provenance gaps: 0
+- primitive edges (per layer + union): frozen **2728** + repair **9** + legend **113** + mechanism **111** + equip **173** + completeness **101** + lifecycle **54** = union **3289** (+1 repair, +58 legend, +3 mechanism, +107 equip, +28 completeness, +16 lifecycle nodes); by origin {'phase4': 2728, 'graph_repair': 9, 'legend_rule': 113, 'mechanism_repair': 111, 'equip': 173, 'completeness': 101, 'lifecycle': 54}; provenance gaps: 0
 - pair relations (per layer + union): mechanical **5278** + audited **3** + repaired **8** + mechanism **392** + equip **3250** + completeness **1036** = union **9967**
 - conditions all resolve: **True** (unresolved: none)
 - conditions: 166 (81 raw-unresolved); unresolved Oracle records: 16
@@ -22,12 +22,12 @@
 - CAUSES: 432
 - HAS_COST: 223
 - HAS_FACE: 210
+- REFERENCES_RULE: 115
 - ENABLES: 115
+- MOVES_TO: 111
 - PRODUCES: 109
-- REFERENCES_RULE: 102
-- MOVES_TO: 98
+- MOVES_FROM: 97
 - MODIFIES: 96
-- MOVES_FROM: 84
 - TRIGGERS: 83
 - HAS_KEYWORD: 80
 - QUALIFIES_FOR: 78
@@ -39,12 +39,14 @@
 - CREATES_OBJECT: 27
 - INSTANTIATES: 26
 - CAN_LEAD_TO: 21
+- TERMINATES: 13
 - ATTACHED_TO: 12
 - HAS_COUNTER_TYPE: 11
 - PREVENTS: 9
 - REPLACES: 7
 - COUNTS: 3
 - PERSISTS_AS: 2
+- HAS_ALTERNATIVE: 2
 - REMOVES_COUNTER: 1
 - SATISFIES: 1
 

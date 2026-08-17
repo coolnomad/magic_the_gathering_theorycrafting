@@ -1260,3 +1260,24 @@ Reviewer (`docs/hob-kg-phase6-review-pt7.md`) checked through `a51b832`: **"the 
 These three are a coherent, larger goal (an executable state-transition model + a portable extraction harness) distinct from the accepted analytical graph, so — per the per-phase review rhythm — they are **presented for a go-ahead** rather than auto-built.
 
 Refs: `docs/hob-kg-phase6-review-pt7.md`; `src/hobkg/completeness.py` (cost/effect relation split); `tests/test_completeness.py`; `data/graph_global/card_pair_projection_completeness.jsonl`
+
+---
+
+## [2026-08-17 13:00] DECISION + EXPERIMENT — executability tier: lifecycle state-transitions + explicit OR gate (schema revision)
+
+With the user's go-ahead (chose "Build executability tier" over portability/pause), built pt7 items 1 & 2 — the executable state-transition primitives the analytical graph lacked.
+
+**SCHEMA REVISION (recorded per spec §Agent execution discipline #9).** Added two predicates to `assemble.GLOBAL_SIGNATURES` (purely additive; no frozen edge uses them; the frozen graph re-validates unchanged):
+- **`TERMINATES`** : `{Operation, Event, State} → {State}` — an action/event ends a state.
+- **`HAS_ALTERNATIVE`** : `{Gate} → {Gate, Cost, Operation}` — an OR gate's alternative satisfiers.
+
+**New additive layer `src/hobkg/lifecycle.py`** (`python -m hobkg.cli lifecycle`; origin `lifecycle`; 16 nodes / 54 edges, 0 signature violations). Purely primitive (no card-pair projection — this is about executability, not new pair claims).
+
+1. **Permanent-lifecycle transition (pt7 #1).** For each of the 13 equip attachment states `state:attachment:H`, an executable `op:leave-battlefield:H` with the full chain: `MOVES_FROM zone:battlefield`, `MOVES_TO zone:graveyard`, **`TERMINATES state:attachment:H`**, `REFERENCES_RULE rule:leave-battlefield-terminates-attachment`. The rule node encodes the GENERAL invariant — *when a permanent P leaves the battlefield, terminate every attachment state it hosts and every continuous effect requiring that state* (the equip `op:modify-equipped:H`/`op:grant-equipped:H` REQUIRE the state, so ending it ends them). So a simulator can now execute "sacrifice Crude Bent Blade → it leaves the battlefield to the graveyard → its `state:attachment` terminates → its +2/+1 ends", not just read `terminates_attachment: true` metadata. Verified the exact Crude chain.
+2. **Explicit OR cost gate (pt7 #2).** Stir Up Trouble's "sacrifice an artifact or creature OR pay {4}" is now a `gate:or-cost:{stir}` (gate_type `or`) with two `HAS_ALTERNATIVE` branches: the sacrifice cost gate `gate:completeness:sac-cost:{stir}` and an explicit `cost:pay:{4}` — not just `or_pay` gate data.
+
+**Integration + tests.** Unioned into coverage (frozen 2,728 + repair 9 + legend 113 + mechanism 111 + equip 173 + completeness 101 + **lifecycle 54 = 3,289 edges**, 0 provenance gaps) and `modules._Graph`. **226 tests pass** (+7 lifecycle: additive/signature, schema-ext registered, every attachment state has a full leave-transition, TERMINATES targets real states, general-invariant rule, explicit OR gate, determinism). Deterministic byte-identical rebuild; frozen Phase 4 + Phase 5 byte-untouched.
+
+**pt7 remaining (item 4, presented earlier):** portable mechanical sacrifice-clause extraction (replace the hand-authored `SAC_OUTLETS` dict) — part of the reusable-harness direction (`docs/portability_plan.md`), still awaiting a separate go-ahead.
+
+Refs: `docs/hob-kg-phase6-review-pt7.md`; `src/hobkg/{assemble,lifecycle,coverage,modules,cli}.py`; `tests/test_lifecycle.py`; `data/graph_global/{lifecycle_nodes,lifecycle_edges}.jsonl`; `reports/lifecycle.md`

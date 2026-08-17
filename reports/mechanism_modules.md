@@ -1,8 +1,8 @@
 # HOB Phase 6 — Higher-Order Mechanism Modules
 
-- **modules**: 51
+- **modules**: 52
 - **modules with feedback cycles**: 1
-- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 9, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 13, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'state_constraint': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
+- **by kind**: {'amass': 1, 'discovered_counter': 1, 'discovered_event': 9, 'discovered_obj': 1, 'discovered_resource': 6, 'ferocious': 1, 'gate': 14, 'zone_flow': 1, 'hone_equipment': 1, 'landfall': 1, 'state_constraint': 1, 'recruit': 1, 'saga': 1, 'trigger': 1, 'storied': 1, 'token_production': 11}
 
 ## Modules
 
@@ -112,7 +112,7 @@
 
 ### gate:completeness:sac-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0  (`gate`)
 - anchors: `gate:completeness:sac-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0`
-- members: 0  · contributors: 0  · consumers: 2  · conditions: 2  · feedback cycles: 0
+- members: 1  · contributors: 1  · consumers: 2  · conditions: 2  · feedback cycles: 0
 
 ### gate:completeness:sac-cost:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0  (`gate`)
 - anchors: `gate:completeness:sac-cost:face:e3a665f9-6e51-4e0d-923b-e9552d5978a4:0`
@@ -121,6 +121,10 @@
 ### gate:completeness:sac-cost:face:fdf7f144-56e4-4f88-b81a-b85473922355:0  (`gate`)
 - anchors: `gate:completeness:sac-cost:face:fdf7f144-56e4-4f88-b81a-b85473922355:0`
 - members: 0  · contributors: 0  · consumers: 2  · conditions: 3  · feedback cycles: 0
+
+### gate:or-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0  (`gate`)
+- anchors: `gate:or-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0`
+- members: 1  · contributors: 0  · consumers: 2  · conditions: 0  · feedback cycles: 0
 
 ### gate:recruit-nonland-discard  (`gate`)
 - anchors: `gate:recruit-nonland-discard`
@@ -136,7 +140,7 @@
 
 ### graveyard reuse  (`zone_flow`)
 - anchors: `zone:graveyard`
-- members: 32  · contributors: 41  · consumers: 0  · conditions: 5  · feedback cycles: 0
+- members: 42  · contributors: 54  · consumers: 0  · conditions: 5  · feedback cycles: 0
 
 ### Hone/Equipment  (`hone_equipment`)
 - anchors: `counter:hone`, `rule:hone`, `rule:equip`, `keyword:equip`

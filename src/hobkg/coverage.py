@@ -49,7 +49,9 @@ def coverage(repo: Path = REPO) -> dict:
     equip_nodes = _opt(G / "equip_nodes.jsonl")
     completeness_edges = _opt(G / "completeness_edges.jsonl")
     completeness_nodes = _opt(G / "completeness_nodes.jsonl")
-    # deduplicated union of frozen + graph-repair + legend + mechanism + equip + completeness layers
+    lifecycle_edges = _opt(G / "lifecycle_edges.jsonl")
+    lifecycle_nodes = _opt(G / "lifecycle_nodes.jsonl")
+    # deduplicated union of frozen + graph-repair + legend + mechanism + equip + completeness + lifecycle
     union = {e["edge_id"]: {**e, "origin": e.get("origin", "phase4")} for e in frozen_edges}
     for e in repair_edges:
         union[e["edge_id"]] = {**e, "origin": e.get("origin", "graph_repair")}
@@ -61,6 +63,8 @@ def coverage(repo: Path = REPO) -> dict:
         union[e["edge_id"]] = {**e, "origin": e.get("origin", "equip")}
     for e in completeness_edges:
         union[e["edge_id"]] = {**e, "origin": e.get("origin", "completeness")}
+    for e in lifecycle_edges:
+        union[e["edge_id"]] = {**e, "origin": e.get("origin", "lifecycle")}
     edges = list(union.values())
     cards = list(_load_dicts(repo / "data/normalized/cards.jsonl"))
     faces = list(_load_dicts(repo / "data/normalized/faces.jsonl"))
@@ -81,7 +85,7 @@ def coverage(repo: Path = REPO) -> dict:
     # abilities counted over the UNIFIED node set (frozen + repair + legend), so the legend
     # layer's state_based_action ability is included — not just the frozen Phase 4 nodes.
     union_nodes = {n["id"]: n for n in nodes}
-    for n in repair_nodes + legend_nodes + mechanism_nodes + equip_nodes + completeness_nodes:
+    for n in repair_nodes + legend_nodes + mechanism_nodes + equip_nodes + completeness_nodes + lifecycle_nodes:
         union_nodes.setdefault(n["id"], n)
     ability_kinds = Counter(n["data"].get("kind", "?")
                             for n in union_nodes.values() if n["type"] == "Ability")
@@ -111,9 +115,11 @@ def coverage(repo: Path = REPO) -> dict:
         "edges_frozen": len(frozen_edges), "edges_repair": len(repair_edges),
         "edges_legend": len(legend_edges), "edges_mechanism": len(mechanism_edges),
         "edges_equip": len(equip_edges), "edges_completeness": len(completeness_edges),
+        "edges_lifecycle": len(lifecycle_edges),
         "edges_union": len(edges), "nodes_repair": len(repair_nodes),
         "nodes_legend": len(legend_nodes), "nodes_mechanism": len(mechanism_nodes),
         "nodes_equip": len(equip_nodes), "nodes_completeness": len(completeness_nodes),
+        "nodes_lifecycle": len(lifecycle_nodes),
         "edges_total": len(edges), "edges_by_predicate": dict(edges_by_pred),
         "edges_by_origin": dict(Counter(e.get("origin", "phase4") for e in edges)),
         "edges_without_provenance": sum(1 for e in edges if not e.get("provenance")),
@@ -155,10 +161,11 @@ def _coverage_report(repo, s, no_out, no_in, cards):
          f"- abilities by kind: {s['abilities_by_kind']}",
          f"- primitive edges (per layer + union): frozen **{s['edges_frozen']}** + repair "
          f"**{s['edges_repair']}** + legend **{s['edges_legend']}** + mechanism **{s['edges_mechanism']}** "
-         f"+ equip **{s['edges_equip']}** + completeness **{s['edges_completeness']}** = union "
-         f"**{s['edges_union']}** (+{s['nodes_repair']} repair, +{s['nodes_legend']} legend, "
-         f"+{s['nodes_mechanism']} mechanism, +{s['nodes_equip']} equip, +{s['nodes_completeness']} "
-         f"completeness nodes); by origin {s['edges_by_origin']}; provenance gaps: {s['edges_without_provenance']}",
+         f"+ equip **{s['edges_equip']}** + completeness **{s['edges_completeness']}** + lifecycle "
+         f"**{s['edges_lifecycle']}** = union **{s['edges_union']}** (+{s['nodes_repair']} repair, "
+         f"+{s['nodes_legend']} legend, +{s['nodes_mechanism']} mechanism, +{s['nodes_equip']} equip, "
+         f"+{s['nodes_completeness']} completeness, +{s['nodes_lifecycle']} lifecycle nodes); "
+         f"by origin {s['edges_by_origin']}; provenance gaps: {s['edges_without_provenance']}",
          f"- pair relations (per layer + union): mechanical **{s['relations_mechanical']}** + audited "
          f"**{s['relations_audited']}** + repaired **{s['relations_repaired']}** + mechanism "
          f"**{s['relations_mechanism']}** + equip **{s['relations_equip']}** + completeness "
