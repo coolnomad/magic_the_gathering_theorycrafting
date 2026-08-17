@@ -1,0 +1,30 @@
+{
+  "data/graph/conditions.jsonl": {
+    "bytes": 10912,
+    "sha256": "e570fd919c4996fd49dba0a74cb8f18b9539641df6e9f842ec79660ccb08dfca"
+  },
+  "data/graph/edges.jsonl": {
+    "bytes": 287172,
+    "sha256": "8242d402fa03c79d47b233d629282341de6e5c1c6ba44208683063b4fe75f1da"
+  },
+  "data/graph/gates.jsonl": {
+    "bytes": 1408,
+    "sha256": "137170e0913d1b4055b8f2c82083b88589dcbae95d21f0cb58a236952ebc0451"
+  },
+  "data/graph/nodes.jsonl": {
+    "bytes": 87580,
+    "sha256": "02ea4e45e5fdd0425b19315cb1f1e6a03dd5d42b2075d90cb352f57bcadc7c1e"
+  },
+  "data/graph_global/conditions.jsonl": {
+    "bytes": 63781,
+    "sha256": "b3f75437491f5a77afd76deff3ac0c7433ffc872682ea6436fe771e15e38190f"
+  },
+  "data/graph_global/edges.jsonl": {
+    "bytes": 1021756,
+    "sha256": "fe0e26a6a926bef747f12019dd819236b8a77d61bf77981fb0129c84b0ccca08"
+  },
+  "data/graph_global/nodes.jsonl": {
+    "bytes": 901125,
+    "sha256": "0fbe3dd2a83db29c1c8f12761d83765cdb135f0dcf47a715eb675d8d17250345"
+  }
+}

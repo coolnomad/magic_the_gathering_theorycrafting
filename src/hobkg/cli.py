@@ -122,6 +122,10 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "audit-repair":
         from . import audit_repair
         print(json.dumps(audit_repair.materialize(), indent=2))
+    elif cmd == "effect-census":
+        from . import effect_semantics
+        s = effect_semantics.census(); s.pop("summary", None)
+        print(json.dumps(s, indent=2))
     elif cmd == "reproject-lifecycle":
         from . import lifecycle
         print(json.dumps(lifecycle.reproject(), indent=2))
