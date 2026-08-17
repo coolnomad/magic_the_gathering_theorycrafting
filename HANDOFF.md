@@ -30,14 +30,21 @@ for the full build-phase status.
   naming split + the **executability tier** — lifecycle state-transitions + explicit OR gate — built).
   Only **independent human semantic validation** + pt7 item 4 (portable sacrifice-clause extraction,
   awaiting a go-ahead) remain.
-- **226 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
+- **227 tests pass, deterministic.** The frozen Phase 4 graph (`data/graph_global/{nodes,edges,
   conditions}.jsonl`) and Phase 5 projections are byte-stable; ALL other layers are purely additive.
 - **Schema extension (recorded):** `assemble.GLOBAL_SIGNATURES` gained `TERMINATES`
   (`{Op,Event,State}→State`) and `HAS_ALTERNATIVE` (`Gate→{Gate,Cost,Op}`) for the lifecycle layer.
-- **7th (primitives-only) layer:** `lifecycle_{nodes,edges}.jsonl` (16/54) — per equip attachment
-  state an executable `op:leave-battlefield:H` (MOVES_FROM battlefield / MOVES_TO graveyard /
-  TERMINATES the attachment state / REFERENCES the general leave-battlefield invariant), and Stir's
-  explicit `gate:or-cost` (sacrifice OR pay {4}). CLI: `lifecycle`. Union now **3,289 edges**.
+- **7th layer — executability (`lifecycle_*`, 16/68 + a projection).** Per Equipment host H a
+  cause-specific `op:sacrifice:H` (`H HAS_ABILITY op:sacrifice:H` incoming; `MOVES_FROM battlefield`
+  / `MOVES_TO graveyard` / `TERMINATES state:attachment:H` / `REFERENCES` the leave-battlefield
+  invariant), and Stir's OR cost WIRED in (`ability:completeness:sac:{stir} REQUIRES gate:or-cost`
+  `HAS_ALTERNATIVE {sac gate, cost:pay:{4}}`). `reproject-lifecycle` → **60
+  `SACRIFICE_TERMINATES_ATTACHMENT`** executable bound traversals (`card:O → sac op → CONSUMES
+  artifact ← HAS_TYPE ← face:P → op:sacrifice:P → TERMINATES state:attachment:P`). CLI: `lifecycle`
+  / `reproject-lifecycle`. Union now **3,303 edges**; card-pair layer is now **7 tiers**.
+- **pt5/pt8 LESSON (reinforced):** validate every projected path as a real, REACHABLE traversal
+  (`step[i].target == step[i+1].source`, endpoints resolve to the cards, and — for lifecycle — the
+  path reaches the claimed termination). Node existence ≠ executable connectivity.
 - Card-pair layer = **6 separate tiers**: `card_pair_projection.jsonl` (5,278 mechanical),
   `_audit.jsonl` (3 llm_audit), `_repaired.jsonl` (8 graph_repair), `_mechanism.jsonl`
   (392 mechanism_repair — second-draw [all genuine drawers] / Dwarf-Equipment / noncreature-cast),
