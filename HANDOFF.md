@@ -58,10 +58,11 @@ for the full build-phase status.
   `op:equip:E`→`state:attachment:E`, bound-creature effects via `obj:bound-creature:E HAS_TYPE creature`,
   ETB auto-attach distinct, `token:axe` covered, clause dispositions); `completeness_*` (28/101/3:
   `event:token-you-control-enters`, sac ops CAUSE death events, `gate:completeness:sac-cost:*` +
-  `CONSUMES obj:type:{artifact,creature}`); `lifecycle_*` (17/71: cause-specific `op:sacrifice:H`
-  reached via `CAN_UNDERGO`, `TERMINATES state:attachment:H`, and Stir's mutually-exclusive
-  `gate:or-cost` — sacrifice branch gated by `cond:…-or-sacrifice-branch-chosen`, pay branch by
-  `…-or-pay-branch-chosen`). Unified `coverage.json` = **3,306 edges / ~10,000 relations,
+  `CONSUMES obj:type:{artifact,creature}` — dies edges gated by `cond:…-sacrificed-is-creature` for
+  artifact+creature outlets; Stir's mutually-exclusive `gate:or-cost` is the SOLE causal parent of
+  its sacrifice op — `ability REQUIRES gate:or-cost CAUSES {sac[or-sacrifice], op:pay[or-pay]}`, no
+  direct ability→CAUSES→sac); `lifecycle_*` (14/65: cause-specific `op:sacrifice:H` reached via
+  `CAN_UNDERGO`, `TERMINATES state:attachment:H`). Unified `coverage.json` = **3,306 edges / ~10,000 relations,
   0 provenance gaps, conditions_all_resolve=true**; `mechanism_modules.jsonl` (38 modules);
   `pair_index.jsonl` (37,249 pairs, 7 layers/columns); `structural_validation_set.jsonl`.
   `DEFERRED_INVARIANTS` empty; spec invariants #1–#17 modeled; schema extension predicates
