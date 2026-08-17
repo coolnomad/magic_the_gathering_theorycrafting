@@ -1,29 +1,31 @@
-"""Executability layer (pt7): permanent-lifecycle state-transitions + explicit OR cost gates.
+"""Executability layer (pt7/pt8): a CONNECTED, reachable sacrifice → zone-transition →
+attachment-termination traversal, plus Stir's OR cost wired into its execution path.
 
-The analytical graph records that sacrificing an attached Equipment ends its bonus only as pair
-metadata (`terminates_attachment: true`). This layer makes it an EXECUTABLE primitive so a
-simulator / intervention engine can run the change, and models Stir Up Trouble's "sacrifice OR
-pay {4}" as an explicit OR gate rather than gate data.
+pt8 rejected the first cut (`21a5933`) for the pt5 failure class — the lifecycle pieces existed
+but were disconnected: the per-Equipment leave op had no incoming edges, and the OR gate had none.
+This layer wires them into an executable mechanism a simulator can traverse.
 
-Additive (`data/graph_global/lifecycle_{nodes,edges}.jsonl`, origin `lifecycle`); the frozen
-graph and all other layers are untouched. Uses the schema-extension predicates `TERMINATES` and
-`HAS_ALTERNATIVE` (added to `assemble.GLOBAL_SIGNATURES`; recorded in LABNOTEBOOK).
+Additive (`data/graph_global/lifecycle_{nodes,edges}.jsonl` + `card_pair_projection_lifecycle.jsonl`,
+origin `lifecycle`). Uses the schema-extension predicates `TERMINATES` and `HAS_ALTERNATIVE`.
 
-Per attachment state `state:attachment:H` (one per Equipment host H, from the equip layer):
+Per Equipment host H (from the equip layer's `state:attachment:H`):
 
-    op:leave-battlefield:H  MOVES_FROM -> zone:battlefield
-    op:leave-battlefield:H  MOVES_TO   -> zone:graveyard
-    op:leave-battlefield:H  TERMINATES -> state:attachment:H
-    op:leave-battlefield:H  REFERENCES_RULE -> rule:leave-battlefield-terminates-attachment
+    H  HAS_ABILITY -> op:sacrifice:H                 (H can be sacrificed — the incoming edge pt8 wanted)
+    op:sacrifice:H  MOVES_FROM -> zone:battlefield   (cause-specific: sacrifice, battlefield -> graveyard —
+    op:sacrifice:H  MOVES_TO   -> zone:graveyard      NOT a generic "leave" hardcoded to graveyard)
+    op:sacrifice:H  TERMINATES -> state:attachment:H
+    op:sacrifice:H  REFERENCES_RULE -> rule:leave-battlefield-terminates-attachment
 
-The rule node encodes the GENERAL invariant: *when a permanent leaves the battlefield, terminate
-every attachment state it hosts and every continuous effect requiring that state* (the effects
-—`op:modify-equipped:H` / `op:grant-equipped:H`— REQUIRE the state, so ending it ends them).
+Reprojection — the executable bound traversal (source = the outlet, target = the sacrificed Equipment):
 
-For each OR sacrifice cost (Stir's "sacrifice an artifact or creature OR pay {4}"):
+    card:O -HAS_FACE-> face:O -HAS_ABILITY-> ability:sac(O) -CAUSES-> op:sac(O)
+           -CONSUMES-> obj:type:{artifact|creature} <-HAS_TYPE- face:P
+           -HAS_ABILITY-> op:sacrifice:P -TERMINATES-> state:attachment:P
 
-    gate:or-cost:{face}  HAS_ALTERNATIVE -> gate:completeness:sac-cost:{face}   (the sacrifice branch)
-    gate:or-cost:{face}  HAS_ALTERNATIVE -> cost:pay:{mana}                     (the pay branch)
+so a simulator can bind the sacrificed object P, run P's zone transition, and end P's attachment.
+
+Stir's OR cost is wired: `ability:completeness:sac:{stir} REQUIRES gate:or-cost:{stir}`, and the OR
+gate HAS_ALTERNATIVE the sacrifice cost gate + an explicit `cost:pay:{4}`.
 """
 
 from __future__ import annotations
@@ -33,12 +35,23 @@ import json
 import re
 from pathlib import Path
 
+from . import project
+from .completeness import SAC_OUTLETS, OBJ_TYPE_ARTIFACT, OBJ_TYPE_CREATURE
 from .pipeline import REPO, _load_dicts
 
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 RULE_LEAVE = "rule:leave-battlefield-terminates-attachment"
 ZONE_BATTLEFIELD = "zone:battlefield"
 ZONE_GRAVEYARD = "zone:graveyard"
-_CR = "CR 603.6e / 704 (state-based actions) / 701.17 (Sacrifice)"
+# correct rules (pt8): NOT 603.6e (that is an Aura leave-the-battlefield trigger)
+_CR = ("CR 701.3d (Equipment leaving the battlefield becomes unattached) / 400.7 (zone change = new "
+       "object) / 611.3b (a static continuous effect applies while its source is on the battlefield) / "
+       "301.5, 704.5n (Equipment attachment legality)")
+
+
+def _card_of(nid: str):
+    m = _UUID.search(nid or "")
+    return "card:" + m.group(0) if m else None
 
 
 def _opt(path: Path):
@@ -47,6 +60,12 @@ def _opt(path: Path):
 
 def _mid(source: str, predicate: str, target: str) -> str:
     return "lf" + hashlib.sha1(f"{source}|{predicate}|{target}".encode("utf-8")).hexdigest()[:14]
+
+
+def _step(edge: dict, direction: str) -> dict:
+    s = project._step(edge, direction)
+    s.pop("provenance", None)
+    return s
 
 
 def materialize(repo: Path = REPO) -> dict:
@@ -69,27 +88,30 @@ def materialize(repo: Path = REPO) -> dict:
                       "target": target, "provenance": [{"source": "lifecycle", "rule_ref": _CR, "derivation": note}],
                       "origin": "lifecycle", **props})
 
-    # the general invariant (leave-battlefield -> terminate hosted attachment states + their effects)
     node(RULE_LEAVE, "Rule", "leaving the battlefield terminates attachment",
          {"invariant": ("When a permanent P leaves the battlefield, terminate every attachment state "
                         "hosted by P and every continuous effect that requires that state."),
-          "cr": "603.6e / 704"}, "the general leave-battlefield termination invariant")
+          "cr": "701.3d / 400.7 / 611.3b / 301.5 / 704.5n"},
+         "the general leave-battlefield termination invariant")
 
-    # ---- per-Equipment lifecycle transition ---------------------------------------------
+    # ---- per-Equipment cause-specific SACRIFICE transition (connected via HAS_ABILITY) ----
     attach_states = sorted(n for n in equip_nodes if n.startswith("state:attachment:"))
     for state in attach_states:
         host = state[len("state:attachment:"):]           # face:… or token:axe
-        op = f"op:leave-battlefield:{host}"
+        op = f"op:sacrifice:{host}"
         name = equip_nodes[state]["data"].get("equipment", host)
-        node(op, "Operation", f"{name} leaves the battlefield",
-             {"kind": "leave_battlefield", "equipment": name, "host": host,
-              "terminates": state}, "a permanent leaving the battlefield (sacrifice/destroy/etc.)")
-        edge(op, "MOVES_FROM", ZONE_BATTLEFIELD, "the permanent moves off the battlefield")
-        edge(op, "MOVES_TO", ZONE_GRAVEYARD, "the sacrificed/destroyed permanent goes to its owner's graveyard")
-        edge(op, "TERMINATES", state, "leaving the battlefield ends this Equipment's attachment state")
+        node(op, "Operation", f"sacrifice {name}",
+             {"kind": "sacrifice", "cause": "sacrifice", "equipment": name, "host": host,
+              "from_zone": "battlefield", "to_zone": "graveyard", "terminates": state},
+             "cause-specific sacrifice transition (battlefield -> graveyard)")
+        # the incoming edge pt8 required: the permanent hosts this sacrifice transition
+        edge(host, "HAS_ABILITY", op, "the Equipment can be sacrificed (hosts its sacrifice transition)")
+        edge(op, "MOVES_FROM", ZONE_BATTLEFIELD, "sacrifice moves the permanent off the battlefield")
+        edge(op, "MOVES_TO", ZONE_GRAVEYARD, "the sacrificed permanent goes to its owner's graveyard")
+        edge(op, "TERMINATES", state, "sacrificing the Equipment ends its attachment state (and its bonus)")
         edge(op, "REFERENCES_RULE", RULE_LEAVE, "instance of the general leave-battlefield invariant")
 
-    # ---- explicit OR cost gate for OR sacrifice costs (Stir's "... OR pay {4}") ----------
+    # ---- explicit OR cost gate, WIRED into the outlet's execution path --------------------
     or_gates = 0
     for gid, n in sorted(completeness_nodes.items()):
         if not gid.startswith("gate:") or "sac-cost" not in gid:
@@ -98,13 +120,18 @@ def materialize(repo: Path = REPO) -> dict:
         if not or_pay:
             continue
         or_gates += 1
-        or_gate = gid.replace("gate:completeness:sac-cost:", "gate:or-cost:")
+        m = _UUID.search(gid)
+        fid = re.search(r"face:[0-9a-f-]+:\d+", gid).group(0)
+        or_gate = f"gate:or-cost:{fid}"
         pay_cost = f"cost:pay:{or_pay}"
+        sac_ability = f"ability:completeness:sac:{fid}"
         node(or_gate, "Gate", f"OR cost: sacrifice or pay {or_pay}",
-             {"gate_type": "or", "branches": ["sacrifice", "pay"], "pay": or_pay,
-              "sacrifice_branch": gid}, "explicit OR cost gate: sacrifice OR pay")
+             {"gate_type": "or", "branches": ["sacrifice", "pay"], "pay": or_pay, "sacrifice_branch": gid},
+             "explicit OR cost gate: sacrifice OR pay")
         node(pay_cost, "Cost", f"pay {or_pay}", {"mana_cost": or_pay, "kind": "mana"},
              "the pay-mana alternative of the OR cost")
+        # WIRING (pt8 #2): the outlet's additional-cost ability REQUIRES the OR gate -> gate is reachable
+        edge(sac_ability, "REQUIRES", or_gate, "the additional cost is satisfied via the sacrifice-or-pay OR gate")
         edge(or_gate, "HAS_ALTERNATIVE", gid, "the sacrifice branch of the OR cost")
         edge(or_gate, "HAS_ALTERNATIVE", pay_cost, "the pay-mana branch of the OR cost")
 
@@ -122,35 +149,123 @@ def materialize(repo: Path = REPO) -> dict:
 
     from .graph_repair import _validate_repair_layer
     violations = _validate_repair_layer(repo, all_nodes, nodes, edges)
-    # integrity: every TERMINATES target is a real attachment state; every leave op has the full chain
     terminated = {e["target"] for e in edges if e["predicate"] == "TERMINATES"}
     missing_state = sorted(s for s in terminated if s not in all_nodes and s not in nodes)
-    leave_ops = {n for n in nodes if n.startswith("op:leave-battlefield:")}
-    complete_ops = 0
-    for op in leave_ops:
+    # every sacrifice op has an INCOMING edge (pt8 #1) and the full outgoing chain
+    incoming = {e["target"] for e in edges}
+    sac_ops = [n for n in nodes if n.startswith("op:sacrifice:")]
+    connected_ops = 0
+    for op in sac_ops:
         preds = {e["predicate"] for e in edges if e["source"] == op}
-        if {"MOVES_FROM", "MOVES_TO", "TERMINATES", "REFERENCES_RULE"} <= preds:
-            complete_ops += 1
-    _report(repo, nodes, edges, len(attach_states), or_gates)
+        if op in incoming and {"MOVES_FROM", "MOVES_TO", "TERMINATES", "REFERENCES_RULE"} <= preds:
+            connected_ops += 1
     return {"lifecycle_nodes": len(nodes), "lifecycle_edges": len(edges),
-            "leave_battlefield_ops": len(leave_ops), "complete_lifecycle_ops": complete_ops,
+            "sacrifice_ops": len(sac_ops), "connected_sacrifice_ops": connected_ops,
             "attachment_states_covered": len(attach_states), "or_cost_gates": or_gates,
             "unresolved_terminated_states": missing_state, "signature_violations": len(violations),
             "_violations": violations}
 
 
-def _report(repo: Path, nodes: dict, edges: list, n_states: int, or_gates: int) -> None:
-    L = ["# HOB Executability Layer — Lifecycle Transitions + OR Cost Gates (pt7)", "",
-         f"- **lifecycle nodes**: {len(nodes)}  · **edges**: {len(edges)}",
-         f"- **attachment states with a leave-battlefield termination**: {n_states}",
-         f"- **explicit OR cost gates**: {or_gates}",
-         "- new schema-extension predicates: `TERMINATES` (Op/Event/State → State), "
-         "`HAS_ALTERNATIVE` (Gate → Gate/Cost/Operation)", "",
-         "## General invariant", "",
-         "`rule:leave-battlefield-terminates-attachment` — when a permanent leaves the battlefield, "
-         "terminate every attachment state it hosts and every continuous effect requiring that state.", "",
-         "## Sample transitions", ""]
-    for e in edges:
-        if e["predicate"] == "TERMINATES":
-            L.append(f"- `{e['source']}` TERMINATES `{e['target']}`")
-    (repo / "reports" / "lifecycle.md").write_text("\n".join(L[:80]) + "\n", encoding="utf-8")
+# --------------------------------------------------------------------------- #
+#  Reprojection: the executable bound sacrifice->termination traversal          #
+# --------------------------------------------------------------------------- #
+def reproject(repo: Path = REPO) -> dict:
+    G = repo / "data" / "graph_global"
+    frozen = list(_load_dicts(G / "edges.jsonl"))
+    lif = list(_load_dicts(G / "lifecycle_edges.jsonl"))
+    comp = _opt(G / "completeness_edges.jsonl")
+    equip_nodes = {n["id"] for n in _opt(G / "equip_nodes.jsonl")}
+    all_edges = frozen + comp + lif
+    real_or_layer = {e["edge_id"] for e in all_edges}
+    index = {}
+    for e in all_edges:
+        index.setdefault((e["source"], e["predicate"], e["target"]), e)
+
+    def Ed(source=None, predicate=None, target=None):
+        for e in all_edges:
+            if (source is None or e["source"] == source) and (predicate is None or e["predicate"] == predicate) \
+                    and (target is None or e["target"] == target):
+                return e
+        return None
+
+    hasface = {}   # card -> HAS_FACE edge
+    for e in frozen:
+        if e["predicate"] == "HAS_FACE":
+            hasface.setdefault(_card_of(e["source"]), e)
+    # HAS_TYPE edge per (face, type) for the fodder-binding step
+    htype = {}     # (obj_type) -> {face_id: edge}
+    for e in frozen:
+        if e["predicate"] == "HAS_TYPE" and e["target"] in (OBJ_TYPE_ARTIFACT, OBJ_TYPE_CREATURE):
+            htype.setdefault(e["target"], {})[e["source"]] = e
+    # the Equipment fodder population: faces that host an attachment state
+    equipment_hosts = sorted(n[len("state:attachment:"):] for n in equip_nodes
+                             if n.startswith("state:attachment:") and n[len("state:attachment:"):].startswith("face:"))
+
+    metaedges = []
+
+    def emit(o_card, p_card, steps):
+        if not o_card or not p_card or o_card == p_card or any(s is None for s in steps):
+            return
+        for x, y in zip(steps, steps[1:]):
+            if x["target"] != y["source"]:
+                return
+        seq = [steps[0]["source"]] + [s["target"] for s in steps]
+        if _card_of(seq[0]) != o_card or _card_of(seq[-1]) != p_card:
+            return
+        metaedges.append({
+            "source_card": o_card, "target_card": p_card, "relation": "SACRIFICE_TERMINATES_ATTACHMENT",
+            "origin": "lifecycle", "path_kind": "grounded", "steps": steps, "primitive_path": seq,
+            "path_predicates": [s["predicate"] for s in steps], "edge_ids": [s["edge_id"] for s in steps],
+            "connecting_node": seq[1], "terminated_state": seq[-1],
+            "executable": True})
+
+    for fid, spec in sorted(SAC_OUTLETS.items()):
+        o_card = _card_of(fid)
+        hf_o = hasface.get(o_card)
+        hab_o = Ed(fid, "HAS_ABILITY", f"ability:completeness:sac:{fid}")
+        cau_o = Ed(f"ability:completeness:sac:{fid}", "CAUSES", f"op:completeness:sac:{fid}")
+        if not (hf_o and hab_o and cau_o):
+            continue
+        for typ in spec.get("accepts", []):
+            cls = OBJ_TYPE_ARTIFACT if typ == "artifact" else OBJ_TYPE_CREATURE
+            con = Ed(f"op:completeness:sac:{fid}", "CONSUMES", cls)
+            if not con:
+                continue
+            head = [_step(hf_o, "forward"), _step(hab_o, "forward"), _step(cau_o, "forward"), _step(con, "forward")]
+            # bind the fodder P to each Equipment host of the accepted type + run its sacrifice transition
+            for host in equipment_hosts:
+                ht = htype.get(cls, {}).get(host)
+                sacrifice = Ed(host, "HAS_ABILITY", f"op:sacrifice:{host}")
+                terminates = Ed(f"op:sacrifice:{host}", "TERMINATES", f"state:attachment:{host}")
+                if not (ht and sacrifice and terminates):
+                    continue
+                p_card = _card_of(host)
+                steps = head + [_step(ht, "reverse"), _step(sacrifice, "forward"), _step(terminates, "forward")]
+                emit(o_card, p_card, steps)
+
+    metaedges.sort(key=lambda m: (m["source_card"], m["target_card"], m["connecting_node"]))
+    with (G / "card_pair_projection_lifecycle.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
+        for m in metaedges:
+            fh.write(json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n")
+
+    continuous = all(x["target"] == y["source"] for m in metaedges for x, y in zip(m["steps"], m["steps"][1:]))
+    grounded = all(_card_of(m["primitive_path"][0]) == m["source_card"]
+                   and _card_of(m["primitive_path"][-1]) == m["target_card"] for m in metaedges)
+    reaches_termination = all(m["primitive_path"][-1].startswith("state:attachment:") for m in metaedges)
+    edges_resolve = all(s["edge_id"] in real_or_layer for m in metaedges for s in m["steps"])
+    _report(repo, metaedges, continuous, grounded, reaches_termination, edges_resolve)
+    return {"reprojected": len(metaedges), "paths_continuous": continuous, "paths_card_grounded": grounded,
+            "paths_reach_attachment_termination": reaches_termination, "edges_resolve": edges_resolve}
+
+
+def _report(repo, metaedges, continuous, grounded, reaches, ok):
+    names = {c["id"]: c["name"] for c in _load_dicts(repo / "data/normalized/cards.jsonl")}
+    L = ["# HOB Executability Layer — Sacrifice → Termination Traversal (pt8)", "",
+         f"- **executable metaedges**: {len(metaedges)} (origin `lifecycle`, SACRIFICE_TERMINATES_ATTACHMENT)",
+         f"- **paths continuous**: {continuous}  · **card-grounded**: {grounded}  · "
+         f"**reach attachment termination**: {reaches}  · **edges resolve**: {ok}", "",
+         "## Sample executable traversals", ""]
+    for m in metaedges[:40]:
+        a, b = names.get(m["source_card"], m["source_card"]), names.get(m["target_card"], m["target_card"])
+        L.append(f"- **{a} sacrifices {b}** → {' → '.join(m['path_predicates'])} → `{m['terminated_state']}`")
+    (repo / "reports" / "lifecycle.md").write_text("\n".join(L) + "\n", encoding="utf-8")

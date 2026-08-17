@@ -74,6 +74,7 @@ def coverage(repo: Path = REPO) -> dict:
     mechanism_rel = _opt(G / "card_pair_projection_mechanism.jsonl")
     equip_rel = _opt(G / "card_pair_projection_equip.jsonl")
     completeness_rel = _opt(G / "card_pair_projection_completeness.jsonl")
+    lifecycle_rel = _opt(G / "card_pair_projection_lifecycle.jsonl")
     audit = _opt(G / "audit_results.jsonl")
     conds = list(_load_dicts(G / "conditions.jsonl")) + _opt(G / "mechanism_conditions.jsonl") \
         + _opt(G / "equip_conditions.jsonl") + _opt(G / "completeness_conditions.jsonl")
@@ -127,8 +128,9 @@ def coverage(repo: Path = REPO) -> dict:
         "relations_mechanical": len(proj), "relations_audited": len(audit_accepted),
         "relations_repaired": len(repaired_rel), "relations_mechanism": len(mechanism_rel),
         "relations_equip": len(equip_rel), "relations_completeness": len(completeness_rel),
+        "relations_lifecycle": len(lifecycle_rel),
         "relations_union": (len(proj) + len(audit_accepted) + len(repaired_rel) + len(mechanism_rel)
-                            + len(equip_rel) + len(completeness_rel)),
+                            + len(equip_rel) + len(completeness_rel) + len(lifecycle_rel)),
         "conditions_total": len(conds),
         "conditions_raw_unresolved": sum(1 for c in conds if c.get("status") == "raw_unresolved"),
         "conditions_unresolved": unresolved_conds,
@@ -205,7 +207,7 @@ def pair_index(repo: Path = REPO) -> dict:
     its mechanical, audited, repaired, and mechanism-repair relations (empty pairs included)."""
     G = repo / "data" / "graph_global"
     cards = sorted(c["id"] for c in _load_dicts(repo / "data/normalized/cards.jsonl"))
-    mech, aud, rep, mch, eqp, cmp = (defaultdict(list) for _ in range(6))
+    mech, aud, rep, mch, eqp, cmp, lif = (defaultdict(list) for _ in range(7))
     for m in _load_dicts(G / "card_pair_projection.jsonl"):
         mech[(m["source_card"], m["target_card"])].append(m["relation"])
     for m in _opt(G / "card_pair_projection_audit.jsonl"):
@@ -218,18 +220,20 @@ def pair_index(repo: Path = REPO) -> dict:
         eqp[(m["source_card"], m["target_card"])].append(m["relation"])
     for m in _opt(G / "card_pair_projection_completeness.jsonl"):
         cmp[(m["source_card"], m["target_card"])].append(m["relation"])
+    for m in _opt(G / "card_pair_projection_lifecycle.jsonl"):
+        lif[(m["source_card"], m["target_card"])].append(m["relation"])
     n, nonempty = 0, 0
     with (G / "pair_index.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
         for a in cards:
             for b in cards:
-                mr, ar, rr, cr, er, pr = (sorted(d[(a, b)]) for d in (mech, aud, rep, mch, eqp, cmp))
-                total = len(mr) + len(ar) + len(rr) + len(cr) + len(er) + len(pr)
+                mr, ar, rr, cr, er, pr, lr = (sorted(d[(a, b)]) for d in (mech, aud, rep, mch, eqp, cmp, lif))
+                total = len(mr) + len(ar) + len(rr) + len(cr) + len(er) + len(pr) + len(lr)
                 n += 1
                 nonempty += 1 if total else 0
                 fh.write(json.dumps({"source_card": a, "target_card": b, "self_pair": a == b,
                                      "mechanical": mr, "audited": ar, "repaired": rr, "mechanism": cr,
-                                     "equip": er, "completeness": pr, "total_relations": total},
-                                    sort_keys=True) + "\n")
+                                     "equip": er, "completeness": pr, "lifecycle": lr,
+                                     "total_relations": total}, sort_keys=True) + "\n")
     return {"pair_records": n, "possible_ordered_pairs": len(cards) ** 2,
             "nonempty_pairs": nonempty, "empty_pairs": n - nonempty}
 
@@ -256,7 +260,8 @@ def structural_validation_set(repo: Path = REPO) -> dict:
     rel_by_pair = defaultdict(set)
     for layer in ("card_pair_projection.jsonl", "card_pair_projection_audit.jsonl",
                   "card_pair_projection_repaired.jsonl", "card_pair_projection_mechanism.jsonl",
-                  "card_pair_projection_equip.jsonl", "card_pair_projection_completeness.jsonl"):
+                  "card_pair_projection_equip.jsonl", "card_pair_projection_completeness.jsonl",
+                  "card_pair_projection_lifecycle.jsonl"):
         for m in _opt(G / layer):
             rel_by_pair[(m["source_card"], m["target_card"])].add(m["relation"])
     related = set(rel_by_pair)

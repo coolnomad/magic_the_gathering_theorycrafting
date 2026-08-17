@@ -2,7 +2,7 @@
 
 *NOT an independent human gold set: these are deterministic structural assertions against the same graph. Human reviewers still adjudicate semantics and may override.*
 
-Structural checks: **125/125 pass**.
+Structural checks: **128/128 pass**.
 
 ## adventures — 17/17 pass
 - [pass] Gollum, Silent Slinker // Meager Meal  _(expect: exactly two face nodes)_
@@ -23,7 +23,7 @@ Structural checks: **125/125 pass**.
 - [pass] Bilbo Baggins, Burglar // Take a Glance  _(expect: exactly two face nodes)_
 - [pass] Smaug, the Great Calamity // Spew Flame  _(expect: exactly two face nodes)_
 
-## multi_edge_pairs — 44/44 pass
+## multi_edge_pairs — 47/47 pass
 - [pass] Glamdring, Foe-hammer // Gleam of Death → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE'])_
 - [pass] My Precious // Allure of Power → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED'])_
 - [pass] Orcrist, Goblin-cleaver → Balin, Loremaster  _(expect: relation combination ['CAN_ATTACH_TO', 'CONTRIBUTES_TO_GATE', 'GRANTS_ABILITY_WHEN_ATTACHED', 'INFRASTRUCTURE_CASTING', 'MODIFIES_WHEN_ATTACHED'])_

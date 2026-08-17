@@ -3915,3 +3915,103 @@ The one thing that genuinely remains for full-spec acceptance is **independent h
 
 ### [2026-08-16 22:23] USER
 read hob-kg-phase6-review-pt7.md
+
+### [2026-08-16 22:56] ASSISTANT
+pt7's verdict: **the Crude Bent Blade relationship is now represented correctly for deck-space analysis** â€” the completeness batch is accepted. It raises four items, all framed as a *higher* "executable/portable" bar beyond the accepted analytical representation:
+
+1. **Lifecycle transitions** â€” `terminates_attachment` is metadata, not a primitive transition (needs a real "P leaves battlefield â†’ terminate its attachment states" invariant).
+2. **Explicit OR gate** â€” Stir's "sacrifice OR pay {4}" is gate data, not a modeled OR gate.
+3. **Semantic naming (a real accuracy bug)** â€” `SAC_OUTLETS` conflates actual *costs* (Stir, Snowslope Hunter) with *optional effects* (Rhovanion, Bolg, Sackville); all get `SATISFIES_SACRIFICE_COST`, which wrongly implies Bolg *requires* fodder. Split into `SATISFIES_SACRIFICE_COST` vs `IS_ELIGIBLE_SACRIFICE_TARGET`.
+4. **Portability** â€” the 9-face sacrifice catalogue is a hand-authored dict; should be mechanically detected.
+
+Item 3 is a clear, bounded correctness fix â€” let me do that now. Let me look at the catalogue.
+
+The `kind` field already distinguishes `activated_cost`/`additional_cast_cost` (real costs) from `effect` (optional â€” Rhovanion/Bolg/Sackville). I just need reproject to emit the right relation label. Let me see the family-4 emit.
+
+The fix is precise: choose the relation from `spec["kind"]`.
+
+Let me regenerate and verify the cost/effect split.
+
+The split is correct: costs (Stir, Snowslope, Tom, Gollum, Stone-Giant, Allure) â†’ `SATISFIES_SACRIFICE_COST`; optional effects (Bolg, Rhovanion, Sackville) â†’ `IS_ELIGIBLE_SACRIFICE_TARGET`. Crudeâ†’Stir stays a cost. Let me run the completeness tests to see what needs updating.
+
+All 12 pass. Let me add a regression test for the cost/effect distinction, then run the full suite.
+
+Let me update the no-reverse test to cover both relations and add the cost/effect split regression.
+
+Let me check the helper exists and run the completeness tests.
+
+`_card_names_to_id` doesn't exist. Let me build the map inline instead.
+
+Let me run the full suite (with a regenerate of downstream artifacts, since the relation labels changed).
+
+Item 3 (the cost/effect naming fix) is done â€” 219 tests pass. Let me record it and commit, then address the rest of pt7.
+
+pt7 **accepts the completeness batch for deck-space analysis** â€” I fixed its one accuracy item (the cost/effect naming split), committed as `77473dc`. The remaining three pt7 items are explicitly a *higher* "executable/portable" bar beyond the accepted analytical graph, and they're a genuinely different, large direction â€” so I'll get your call rather than auto-build.
+
+The user chose **build the executability tier** â€” lifecycle state-transitions (leave-battlefield â†’ terminate attachment + dependent effects) and Stir's explicit OR gate. This needs two new predicates (`TERMINATES`, `HAS_ALTERNATIVE`) as a recorded schema extension. Let me check prerequisites (zone:battlefield, attachment states).
+
+All prerequisites present. Let me add the two new predicates (`TERMINATES`, `HAS_ALTERNATIVE`) to the signature table as a recorded schema extension.
+
+Now build the lifecycle layer.
+
+Now wire the CLI command and run it.
+
+Lifecycle layer clean: 16 nodes / 54 edges, 13 complete leave-battlefield ops, 1 OR gate, 0 signature violations. Let me integrate it into coverage + modules and add tests.
+
+Now update the coverage union test and write the lifecycle test.
+
+The modules-subgraph test needs the lifecycle layer added to its edge-id union (same pattern as prior layers).
+
+226 pass. Let me verify Crude's lifecycle transition, confirm determinism + frozen graph, and revert review noise.
+
+Crude's lifecycle transition is exactly what pt7 asked for (`MOVES_FROM battlefield â†’ MOVES_TO graveyard â†’ TERMINATES attachment`), frozen graph untouched. Let me regenerate the report, record the schema revision, and commit.
+
+Committed and pushed (`21a5933`). Let me refresh the HANDOFF facts and give the summary.
+
+pt7 is resolved. Summary of this turn:
+
+## pt7 verdict: completeness batch **accepted** for deck-space analysis
+The reviewer confirmed Crude Bent Blade â†’ Stir Up Trouble / Snowslope Hunter is now correct and all three earlier families are addressed. Its items:
+
+**Done â€” item 3 (naming accuracy)** [`77473dc`]: `SAC_OUTLETS` conflated mandatory sacrifice *costs* with optional "you may sacrifice" *effects*. Split into `SATISFIES_SACRIFICE_COST` (629 â€” Stir, Snowslope, Tom, Gollum, Stone-Giant, Allure) vs `IS_ELIGIBLE_SACRIFICE_TARGET` (351 â€” Rhovanion, Bolg, Sackville), so a deck analysis won't count optional-sacrifice cards as requiring fodder.
+
+**Done â€” items 1 & 2, the executability tier** (you chose this) [`21a5933`]: a new primitives-only **lifecycle layer** (`src/hobkg/lifecycle.py`, 16 nodes / 54 edges, 0 signature violations):
+- **Lifecycle transitions**: each equip attachment state gets an executable `op:leave-battlefield:H` with `MOVES_FROM battlefield â†’ MOVES_TO graveyard â†’ TERMINATES state:attachment:H â†’ REFERENCES` the general invariant (*P leaves battlefield â‡’ terminate its attachment states + dependent continuous effects*). A simulator can now **run** "sacrifice Crude â†’ its attachment and +2/+1 end," not just read `terminates_attachment` metadata.
+- **Explicit OR gate**: Stir's "sacrifice OR pay {4}" is now `gate:or-cost` with two `HAS_ALTERNATIVE` branches.
+- **Recorded schema revision**: added `TERMINATES` and `HAS_ALTERNATIVE` to `GLOBAL_SIGNATURES` (additive; frozen graph re-validates unchanged).
+
+**226 tests pass**, deterministic, frozen Phase 4 + Phase 5 byte-untouched. Coverage union is now **3,289 edges / 0 provenance gaps** across **7 additive layers**.
+
+## What's left (each needs a go-ahead)
+1. **pt7 item 4 â€” portable sacrifice-clause extraction**: replace the hand-authored 9-face `SAC_OUTLETS` dict with mechanical clause detection (types / cost-vs-effect / another / optionality / OR / timing / span). This is the start of the reusable set-agnostic harness (`docs/portability_plan.md`).
+2. **Independent human semantic validation** â€” the manual gold-set adjudication that only you can perform.
+
+The HANDOFF refresh commit+push is finishing in the background; I'll confirm when it lands. Ready for your review of `21a5933` or direction on the portability work whenever you want.
+
+### [2026-08-16 22:57] USER
+<task-notification>
+<task-id>bq3vm52uu</task-id>
+<tool-use-id>toolu_01Vun6GB1Wd6jcVZFbwcrQ1h</tool-use-id>
+<output-file>C:\Users\dimuc\AppData\Local\Temp\claude\C--GitHub-magic-the-gathering-theorycrafting\e6d97ada-5ff0-4cce-b520-83302da376af\tasks\bq3vm52uu.output</output-file>
+<status>completed</status>
+<summary>Background command "Commit + push HANDOFF refresh" completed (exit code 0)</summary>
+</task-notification>
+
+### [2026-08-16 22:57] ASSISTANT
+Confirmed â€” the HANDOFF refresh landed as `8d41349`, and the working tree is clean and in sync with `origin/main`.
+
+Everything from pt7 is committed and pushed:
+- `77473dc` â€” sacrifice cost/effect naming split
+- `21a5933` â€” executability tier (lifecycle transitions + explicit OR gate + `TERMINATES`/`HAS_ALTERNATIVE` schema extension)
+- `8d41349` â€” HANDOFF refresh
+
+State: **226 tests pass**, deterministic, 7 additive layers (3,289 union edges, 0 provenance gaps), frozen Phase 4 + Phase 5 byte-untouched.
+
+Open, each awaiting your go-ahead:
+1. **pt7 item 4** â€” portable mechanical sacrifice-clause extraction (start of the reusable set-agnostic harness).
+2. **Independent human semantic validation** â€” the manual gold-set adjudication.
+
+Ready when you are.
+
+### [2026-08-16 23:01] USER
+read hob-kg-phase6-review-pt8.md

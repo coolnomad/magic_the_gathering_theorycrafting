@@ -23,6 +23,8 @@ _LAYERS = [
     ("equip", "card_pair_projection_equip.jsonl", "equip (Equipment->creature attachment)"),
     ("completeness", "card_pair_projection_completeness.jsonl",
      "completeness (token-entry / sac->dies / sacrifice-fodder)"),
+    ("lifecycle", "card_pair_projection_lifecycle.jsonl",
+     "lifecycle (executable sacrifice -> attachment termination)"),
 ]
 
 

@@ -124,7 +124,7 @@
 
 ### gate:or-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0  (`gate`)
 - anchors: `gate:or-cost:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0`
-- members: 1  · contributors: 0  · consumers: 2  · conditions: 0  · feedback cycles: 0
+- members: 1  · contributors: 1  · consumers: 2  · conditions: 0  · feedback cycles: 0
 
 ### gate:recruit-nonland-discard  (`gate`)
 - anchors: `gate:recruit-nonland-discard`
@@ -173,7 +173,7 @@
 
 ### token production (token:axe)  (`token_production`)
 - anchors: `token:axe`
-- members: 2  · contributors: 2  · consumers: 6  · conditions: 0  · feedback cycles: 0
+- members: 2  · contributors: 2  · consumers: 7  · conditions: 0  · feedback cycles: 0
 
 ### token production (token:bear)  (`token_production`)
 - anchors: `token:bear`

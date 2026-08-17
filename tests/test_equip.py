@@ -258,14 +258,30 @@ def test_conditions_resolve(mat, econds, eedges):
 
 
 # ---- 13. deterministic ----------------------------------------------------------------
+def _filehash(path):
+    # chunked read with a retry — opening the ~11MB projection intermittently raises OSError
+    # [Errno 22] on Windows under full-suite file-handle pressure (environmental, not a
+    # determinism defect: this test passes in isolation and the layer rebuilds byte-identically).
+    for attempt in range(5):
+        try:
+            h = hashlib.sha256()
+            with open(str(path), "rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 20), b""):
+                    h.update(chunk)
+            return h.hexdigest()
+        except OSError:
+            if attempt == 4:
+                raise
+    return None
+
+
 def test_deterministic():
     def run():
         eq.materialize()
         eq.reproject()
-        return (hashlib.sha256((G / "equip_nodes.jsonl").read_bytes()).hexdigest()
-                + hashlib.sha256((G / "equip_edges.jsonl").read_bytes()).hexdigest()
-                + hashlib.sha256((G / "equip_conditions.jsonl").read_bytes()).hexdigest()
-                + hashlib.sha256((G / "card_pair_projection_equip.jsonl").read_bytes()).hexdigest())
+        return "".join(_filehash(G / f) for f in
+                       ("equip_nodes.jsonl", "equip_edges.jsonl", "equip_conditions.jsonl",
+                        "card_pair_projection_equip.jsonl"))
     assert run() == run()
 
 

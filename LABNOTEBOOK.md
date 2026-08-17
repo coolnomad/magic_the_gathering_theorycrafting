@@ -1281,3 +1281,21 @@ With the user's go-ahead (chose "Build executability tier" over portability/paus
 **pt7 remaining (item 4, presented earlier):** portable mechanical sacrifice-clause extraction (replace the hand-authored `SAC_OUTLETS` dict) — part of the reusable-harness direction (`docs/portability_plan.md`), still awaiting a separate go-ahead.
 
 Refs: `docs/hob-kg-phase6-review-pt7.md`; `src/hobkg/{assemble,lifecycle,coverage,modules,cli}.py`; `tests/test_lifecycle.py`; `data/graph_global/{lifecycle_nodes,lifecycle_edges}.jsonl`; `reports/lifecycle.md`
+
+---
+
+## [2026-08-17 15:00] CORRECTION — pt8: lifecycle wired into an EXECUTABLE, reachable traversal (connectivity — the pt5 failure class again)
+
+Reviewer (`docs/hob-kg-phase6-review-pt8.md`) accepted the schema additions + primitive structures but **rejected `21a5933` as completing executability**: the pieces were DISCONNECTED (the same pt5 failure class). Crude's leave-op had zero incoming edges; the OR gate had zero incoming edges; so a simulator could not traverse "sacrifice Crude → Crude leaves → attachment ends." My prior "a simulator can now execute …" claim was too strong. Also: `op:leave-battlefield` hardcoded MOVES_TO graveyard (conflating sacrifice with generic departure), and `CR 603.6e` was the wrong rule. All five pt8 points fixed; independently re-verified (not self-certified).
+
+Rewrote `src/hobkg/lifecycle.py` to WIRE the primitives into an executable mechanism:
+1. **Connected sacrifice transition (pt8 #1, #3).** `op:leave-battlefield:H` → cause-specific **`op:sacrifice:H`** (battlefield→graveyard), each now with an INCOMING edge — `H HAS_ABILITY op:sacrifice:H` (the permanent hosts its sacrifice transition) — plus `MOVES_FROM battlefield` / `MOVES_TO graveyard` / `TERMINATES state:attachment:H` / `REFERENCES_RULE`. 13/13 sacrifice ops connected (incoming + full chain).
+2. **OR gate wired (pt8 #2).** `ability:completeness:sac:{stir} REQUIRES gate:or-cost:{stir}` gives the OR gate an incoming edge, and it `HAS_ALTERNATIVE` the sacrifice cost gate + explicit `cost:pay:{4}` — a simulator processing Stir now knows it must satisfy that gate.
+3. **Corrected rules provenance (pt8 #4).** Dropped `603.6e` (an Aura leave trigger); now `CR 701.3d` (Equipment leaving → unattached) / `400.7` (zone change = new object) / `611.3b` (static effect while source on battlefield) / `301.5`, `704.5n` (attachment legality).
+4. **Executable reprojection (pt8 #5) + reachability gate.** New `reproject()` emits **60 `SACRIFICE_TERMINATES_ATTACHMENT` metaedges** (5 artifact-accepting outlets × 12 Equipment) — the bound traversal pt8's decisive test demanded: `card:O → face:O → ability:sac → op:sac → CONSUMES obj:type:artifact ← HAS_TYPE ← face:P → HAS_ABILITY → op:sacrifice:P → TERMINATES state:attachment:P`. Self-gated + independently verified: **0 orphan sacrifice ops, 0 discontinuous joins, 0 bad endpoints, paths reach the attachment termination**. Flagship confirmed: **Stir Up Trouble AND Snowslope Hunter sacrifice Crude Bent Blade** end-to-end (`HAS_FACE → HAS_ABILITY → CAUSES → CONSUMES → HAS_TYPE → HAS_ABILITY → TERMINATES`), terminating Crude's attachment (and thus its +2/+1). The tests now assert REACHABILITY from the consuming card, not just node existence.
+
+**Integration.** Lifecycle is now a 7th projection tier: coverage (frozen 2,728 + repair 9 + legend 113 + mechanism 111 + equip 173 + completeness 101 + **lifecycle 68 = 3,303 edges**; relations union incl. 60 lifecycle), `modules._Graph`, `pair_index` (7th `lifecycle` column), `structural_validation`, query CLI (7th layer). Also hardened `test_equip.py::test_deterministic` against a Windows `read_bytes [Errno 22]` flake on the ~11 MB equip projection (chunked read + retry; environmental, not a determinism defect). **227 tests pass**; deterministic; frozen Phase 4 + Phase 5 byte-untouched.
+
+**pt8 remaining:** portable mechanical sacrifice-clause extraction (still the hand-authored `SAC_OUTLETS` dict) — awaiting a separate go-ahead.
+
+Refs: `docs/hob-kg-phase6-review-pt8.md`; `src/hobkg/{lifecycle,coverage,query,cli}.py`; `tests/{test_lifecycle,test_equip,test_coverage}.py`; `data/graph_global/{lifecycle_nodes,lifecycle_edges,card_pair_projection_lifecycle}.jsonl`; `reports/lifecycle.md`

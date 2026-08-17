@@ -113,6 +113,9 @@ def main(argv: list[str] | None = None) -> int:
         from . import lifecycle
         s = lifecycle.materialize(); s.pop("_violations", None)
         print(json.dumps(s, indent=2))
+    elif cmd == "reproject-lifecycle":
+        from . import lifecycle
+        print(json.dumps(lifecycle.reproject(), indent=2))
     elif cmd == "query-card":
         from . import query
         print(query.query_card(argv[1]))
