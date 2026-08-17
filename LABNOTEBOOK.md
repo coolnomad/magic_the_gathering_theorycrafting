@@ -1372,3 +1372,21 @@ Reviewer confirmed the disposition and endorsed freezing: *"I would freeze the c
 - Deferred (only if action-level simulation becomes a near-term goal): per-card activation timing + payoff wiring (Snowslope-style), across the sacrifice outlets.
 
 Refs: reviewer freeze endorsement (post-pt11); `docs/portability_plan.md`; HEAD `8201109`
+
+---
+
+## [2026-08-17 23:59] EXPERIMENT — portability tracer bullet #1: deterministic sacrifice-clause extractor
+
+Per the user's directive (a **tracer bullet**, [[tracer-bullet-portability]]): build the deterministic sacrifice-clause extractor as the first portability slice — reproduce the nine accepted HOB `SAC_OUTLETS` records **without card-specific hardcoding**, run it against an adversarial second-set fixture, report every HOB assumption exposed, and propose only the **minimal** restructure implied (NOT the broad engine/config split).
+
+**`src/hobkg/sac_extract.py`** (`python -m hobkg.cli sac-extract`): `extract(oracle) -> record|None` is a **pure Oracle-text parser** — it never reads a face-id (verified: `SAC_OUTLETS` not in `extract.__code__.co_names`). It parses `accepts` (card types after "sacrifice a/an/another …", stopping at "or pay"), `another`, `or_pay` ("or pay {N}"), `kind` (additional_cast_cost / activated_cost / effect, from "as an additional cost to cast" / a `{cost},`-or-`:` activation / "you may sacrifice"), `mana_cost` (the `{…},Sacrifice` activation prefix), the exact clause and its `oracle_span` (an improvement — the hand-authored catalogue had `oracle_span: null`). "Whenever/When you sacrifice …" is excluded as a trigger, not an outlet.
+
+**Reproduces the frozen catalogue exactly: 9/9, 0 mismatches, 0 spurious** on the core fields (accepts/another/or_pay/kind/mana_cost) — Tom/Gollum/Snowslope/Rhovanion/Bolg/Sackville/Stir/Allure/Stone-Giant all match, including the `activated_cost` vs `effect` vs `additional_cast_cost` distinction, Stir's `or_pay {4}`, Snowslope's no-mana activated cost, and the "another" flag.
+
+**Adversarial fixture** (`tests/fixtures/sac_adversarial.jsonl`, 10 non-HOB clauses) → **10 distinct HOB assumptions exposed** (each a MISS or an INCOMPLETE record; `reports/sac_extract_portability.md`): fixed card-type enum (generic "permanent" unhandled); no subtypes/tribes ("Goblin"); quantity assumed one (">1"/variable X missed); no self-sacrifice ("this"/"~"); OR only recognizes "pay {mana}" (non-mana alternatives like "or discard a card" dropped); conjunctive AND misread as OR; qualified phrases ("nonland permanent") unhandled; controller/actor never captured (edicts "each player sacrifices" missed); activation timing/frequency ("only as a sorcery", "only once each turn") not extracted (= the pt10.md #2 deferral, now confirmed as a portability gap).
+
+**Minimal restructure proposed (evidence-driven, in the report):** the parser is already set-agnostic in shape (reproduces HOB with zero hardcoding), so the next unit is NOT an `engine/` vs `sets/HOB/` repo split but a **declarative sacrifice clause schema** the parser consumes: (1) a structured *fodder selector* (card_types/subtypes/supertypes/qualifiers/generic-permanent/quantity/self); (2) a *cost model* as an alternatives list `ALT[sacrifice, pay, discard, …]` distinguishing `ALL[…]` (AND) from `ALT[…]` (OR); (3) an *actor/controller* field (you | each player | target opponent); (4) *activation restrictions* as conditions (timing/frequency/zone/turn); (5) *LLM escalation* only for clauses the deterministic parser flags ambiguous. Validated by this same reproduce-HOB + adversarial-fixture harness.
+
+**Also (test-infra):** hardened `pipeline._load_dicts` and `test_equip`'s determinism hash with a chunked-read + retry — a whole-file read of the multi-MB projections intermittently raised Windows `OSError [Errno 22]` under full-suite file-handle pressure (environmental, not a determinism defect). **236 tests pass** (+6 tracer-bullet). The frozen HOB analytical reference is untouched (`sac_extract` is a read-only parser; no graph layer changed).
+
+Refs: `src/hobkg/sac_extract.py`; `tests/{test_sac_extract.py,fixtures/sac_adversarial.jsonl}`; `reports/sac_extract_portability.md`; `src/hobkg/{cli,pipeline}.py`; [[tracer-bullet-portability]]; `docs/portability_plan.md`

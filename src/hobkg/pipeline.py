@@ -154,7 +154,20 @@ def run(repo: Path = REPO) -> dict:
 
 
 def _load_dicts(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    # chunked binary read + retry: a single whole-file read of the large multi-MB projections
+    # intermittently raises OSError [Errno 22] on Windows under full-suite file-handle pressure.
+    for attempt in range(5):
+        try:
+            buf = bytearray()
+            with open(str(path), "rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 20), b""):
+                    buf += chunk
+            text = buf.decode("utf-8")
+            break
+        except OSError:
+            if attempt == 4:
+                raise
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
 _PERMANENT_TYPES = {"Artifact", "Creature", "Enchantment", "Land", "Planeswalker", "Battle"}
