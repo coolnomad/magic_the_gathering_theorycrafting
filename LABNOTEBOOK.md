@@ -1667,3 +1667,25 @@ Review `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt1.md` reje
 Destruction results preserved; object families now: ~130 effects across 14 ops. **308 tests pass** (+10 review-driven: cross-ability isolation, self, per-op duration, participant/empty-rejection, comma-OR, new families, real clause_ids, any-target, Moment condition, reconciliation-zero-unresolved). Frozen artifacts byte-identical.
 
 Refs: `src/hobkg/{effect_semantics,effect_schema,cli}.py`; `tests/test_effect_object.py`; `reports/{effect_semantics,effect_reconciliation}.md`; `data/graph_global/{effect_records,card_pair_projection_effect}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt1.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] CORRECTION — Effect-semantics Phase 3b: selector + projection correctness (review PHASE3 pt2)
+
+Review pt2 accepted the ability-scoping but found a second layer of selector/projection errors (headline effects structurally present but NOT projecting). All 11 items fixed; frozen core byte-identical.
+
+1. **Vocabulary-validated subtypes** (`effect_schema._valid_subtypes`): the capitalization heuristic turned syntax words (`target`, `until`, `each`, `whenever`, `landfall`, `saga`, `creatures`) into bogus subtypes that eliminated all projections. Subtypes are now validated against the controlled vocabulary of subtypes actually printed on HOB faces/tokens (plurals normalized). Result: Reverent Howl / Smaug / Concerted Care / Stone / Arkenstone / Great Ugly now project to their eligible creatures again. Global test: every emitted subtype ∈ vocabulary.
+2. **Mass selectors** (review #7): a non-targeted class reference ("Creatures you control get", "Elves you control") is now `targeted:false, affects_each:true, quantifier:all/each` — Arkenstone anthem & Great Ugly menace project to every creature.
+3. **`artifacts and creatures` = class OR** (review #8): plural "Xs and Ys" is a union, not the `X Y` conjunction.
+4. **Self-effects project only source→source** (review #6): `matches_card` returns False for a `self` selector; projection adds only `src→src`. Sting/Master's Councillors/Mirkwood Pathmaker no longer fan to other cards (the reflexive relation from the human audit).
+5. **Local subject resolution + target dedup** (review #2/#3): each subject-verb op resolves its OWN subject from the first `target …`/self/pronoun in its prefix (not one global subject), so Mirkwood Meditator binds `this creature`→`self` (not the Landfall trigger's land) while a target-dedup cache keeps same-object ops (Reverent Howl pump+grant; Stone type+grant) on one var.
+6. **Old Fat Spider** (review #3): duration phrase stripped from the selector → clean `target creature` (up_to_1), `duration:as_long_as_source_on_battlefield`.
+7. **Burglar's Plot** (review #4): two-object exchange — `object_var` obj0 + `second_var` obj1, `shared_constraint:same_card_type`, `nonland` predicate that excludes lands in projection.
+8. **`object_var == selector.var`** enforced in `validate_effect` (unless an explicit binding); any-target selector now carries the real var (was `tmp`).
+9. **Reconciliation at `(clause_id, family)`** (review #10): each family per clause is separately reconciled; deferred/non-executable dispositions (divided-damage, nonkeyword-ability-grant, remove-counter, bound source-power damage) are **counted separately**, not hidden in "0 unresolved". Result: **119 extracted / 4 deferred / 0 unresolved**.
+10. **CHANGE_TYPE extended** to subtype-adds ("becomes a Bear creature") and per-family reminder detection so reminder-only "destroy"/"deals damage" (Stone mode-1, Troll's fight reminder) reconcile as reminder.
+11. **Projection-level tests** for Reverent Howl, Concerted Care, Stone, Arkenstone, Great Ugly, Mirkwood Meditator, Old Fat Spider, Burglar's Plot + a self-effect (source→source).
+
+**314 tests pass** (+6). Frozen artifacts byte-identical. Every emitted subtype is vocabulary-valid; every object relation has a non-empty object selector or a self/antecedent binding; self selectors are reflexive-only.
+
+Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_object.py`; `reports/{effect_semantics,effect_reconciliation}.md`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt2.md`; [[phase4-frozen]]

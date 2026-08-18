@@ -1,17 +1,20 @@
-# Effect-semantics — Phase-3 census reconciliation
+# Effect-semantics — Phase-3 (clause_id, family) reconciliation
 
-Every census clause carrying a Phase-3 effect family is reconciled with an extracted effect or a documented disposition (review PHASE3 pt1 #10).
+Every `(clause_id, family)` carrying a Phase-3 effect family is EXTRACTED or DISPOSITIONED. Deferred / non-executable dispositions are counted separately from `unresolved`.
 
-- Phase-3 census clauses: **139**  · extracted: **101**  · unresolved: **0**
+- (clause, family) pairs: **174**  · extracted: **119**  · deferred/nonexecutable: **4**  · unresolved: **0**
 
-| disposition | clauses |
+| disposition | (clause,family) |
 |---|---:|
-| extracted | 101 |
-| attachment_static (equip/aura layer) | 16 |
+| extracted | 119 |
+| attachment_static (equip/aura layer) | 22 |
 | amass (counters on an Army token — token/mechanism layer) | 13 |
-| participant_effect (Phase 4: player-directed) | 3 |
+| reminder_text (family appears only in reminder text) | 6 |
+| participant_effect (Phase 4: player-directed) | 5 |
 | combat_damage_trigger (a trigger, not a damage effect) | 2 |
+| grants_nonkeyword_ability — DEFERRED | 2 |
+| counter_as_condition (census false positive — a counter reference, not an add) | 1 |
+| source_power_bound_damage — DEFERRED | 1 |
 | restriction (doesn't-untap — restriction family) | 1 |
-| divided_damage (multi-target division — deferred) | 1 |
-| crew (keyword reminder — vehicle/mechanism layer) | 1 |
-| grants_nonkeyword_ability (a granted triggered/quoted ability — deferred) | 1 |
+| attachment (equip layer — not a type change) | 1 |
+| divided_damage — DEFERRED | 1 |

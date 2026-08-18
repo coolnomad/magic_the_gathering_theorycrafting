@@ -287,8 +287,8 @@ _EQUIPPED_RE = re.compile(r"\b(equipped|enchanted) creature\b", re.I)   # attach
 _PLAYER_RE = re.compile(r"\b(target opponent|target player|each opponent|each player|that player)\b", re.I)
 _ANYTARGET_RE = re.compile(r"\bany target\b", re.I)
 _SUBJVERB_RE = re.compile(r"\b(gets?|gains?|loses?|fights?|becomes?)\b", re.I)
-_OBJ_DELIM = re.compile(r"\.|;|\bfor each\b|\band gains?\b|\band has\b|\band loses?\b|\bif\b|\bthen\b|"
-                        r"\buntil\b|$", re.I)
+_OBJ_DELIM = re.compile(r"\.|;|\bfor each\b|\bfor as long as\b|\bthat share\b|\bgets?\b|\bgains?\b|\bhas\b|"
+                        r"\bhave\b|\bloses?\b|\bfights?\b|\bbecomes?\b|\bif\b|\bthen\b|\buntil\b|$", re.I)
 
 
 def _abilities(phrase):
@@ -341,6 +341,8 @@ def _object_effects(face):
         clause_id = f"{face['id']}#a{cl['ability_index']}" + (f".m{cl['mode_index']}" if cl["mode_index"] is not None else "")
         vc = [0]
 
+        tvars = {}                                          # dedup: same object referenced twice → one var
+
         def alloc():
             v = f"obj{vc[0]}"; vc[0] += 1; return v
 
@@ -354,17 +356,25 @@ def _object_effects(face):
             if _SELF_RE.search(low) or self_name or "~" in phrase:
                 return {"kind": "self", "var": "self", "selector": _self_selector(), "participant": None}
             if _ANYTARGET_RE.search(low):
-                return {"kind": "any_target", "var": alloc(), "selector": _anytarget_selector("tmp"), "participant": None}
+                v = alloc()
+                return {"kind": "any_target", "var": v, "selector": _anytarget_selector(v), "participant": None}
             if re.match(r"\s*(it|its|that creature|that permanent|those|them|their)\b", low) and "target" not in low:
                 return {"kind": "pronoun"}       # pronoun only when it LEADS the phrase, not buried mid-phrase
             part = _sch.participant(phrase) if _PLAYER_RE.search(low) else None
-            v = alloc()
-            sel = _sch.selector(phrase, var=v, targeted=("target" in low),
+            sel = _sch.selector(phrase, var="?", targeted=("target" in low),
                                 quantifier=("up_to_2" if "one or two" in low else None))
+            # a non-targeted class reference is a MASS effect (affects each such object) — review pt2 #7
+            if part is not None or (not sel["targeted"] and not _sch.selector_is_empty(sel)):
+                sel["targeted"] = False
+                sel["affects_each"] = True
+                sel["quantifier"] = "each" if re.search(r"\beach\b", low) else "all"
             if _sch.selector_is_empty(sel):
                 return {"kind": "participant" if part else "empty", "participant": part}
-            if part is not None or re.search(r"\b(each|all)\b", low):
-                sel["targeted"] = False; sel["affects_each"] = True
+            key = (tuple(sel["card_types"]), tuple(sel["subtypes"]), sel["controller"],
+                   sel["targeted"], sel["affects_each"])
+            if key in tvars:                                # same object → reuse its var (preserves binding)
+                return {"kind": "selector", "var": tvars[key][0], "selector": tvars[key][1], "participant": part}
+            v = alloc(); sel["var"] = v; tvars[key] = (v, sel)
             return {"kind": "selector", "var": v, "selector": sel, "participant": part}
 
         cur = [None]                                       # (var, selector, participant)
@@ -389,8 +399,14 @@ def _object_effects(face):
             return None, None, None
 
         def lead_subject(stext, verb_pos):
-            pre = re.sub(r"^\s*(then|and|also|until end of turn,?|,)\s*", "", stext[:verb_pos], flags=re.I)
-            r = classify(pre)
+            pre = stext[:verb_pos]
+            tm = re.search(r"target\s+(.+)", pre, re.I)     # the object is the FIRST 'target …' in the
+            if tm:                                          # prefix, not the whole prefix (which may name
+                r = classify("target " + _clip(tm.group(1)))  # types from a preceding EFFECT (Stone's
+                if r["kind"] in ("self", "any_target", "selector"):  # "becomes an artifact"); keep the
+                    return r["var"], r["selector"], r.get("participant")  # 'target' marker so it stays targeted
+            pre2 = re.sub(r"^\s*(then|and|also|until end of turn,?|,)\s*", "", pre, flags=re.I)
+            r = classify(pre2)
             if r["kind"] == "equipped":
                 return None
             if r["kind"] == "pronoun":
@@ -432,17 +448,26 @@ def _object_effects(face):
                 emit("UNTAP" if unt else "TAP", "CAN_UNTAP" if unt else "CAN_TAP", var, sel, part, {}, m.span(), None)
                 if var:
                     cur[0] = (var, sel, part)
-            # exchange/gain control of target permanents (Burglar's Plot)
+            # exchange/gain control of target permanents (Burglar's Plot: TWO nonland permanents that
+            # share a card type — two distinct object variables + shared-type constraint, review pt2 #4)
             for m in re.finditer(r"(?:exchange|gain)s? control of\s+(.+)", stext, re.I):
                 r = classify(_clip(m.group(1))); var, sel, part = objsel(r)
-                rel = "EXCHANGES_CONTROL_OF" if "exchange" in m.group(0).lower() else "GAINS_CONTROL_OF"
-                emit("CONTROL_CHANGE", rel, var, sel, part, {}, m.span(), None)
-                if var:
-                    cur[0] = (var, sel, part)
-            # prevent damage dealt BY a target creature (Old Fat Spider)
+                if not (var and sel):
+                    continue
+                exch = "exchange" in m.group(0).lower()
+                extra = {}
+                if exch and re.search(r"\btwo\b", m.group(1).lower()):
+                    v2 = alloc()
+                    extra = {"second_var": v2, "second_selector": {**sel, "var": v2},
+                             "quantity": 2, "shared_constraint": ("same_card_type" if "share a card type" in stext.lower() else None)}
+                emit("CONTROL_CHANGE", "EXCHANGES_CONTROL_OF" if exch else "GAINS_CONTROL_OF",
+                     var, sel, part, extra, m.span(), None)
+            # prevent damage dealt BY a target creature (Old Fat Spider) — strip the source-presence
+            # duration phrase from the selector; record the duration on the effect (review pt2 #3)
             for m in re.finditer(r"prevent all damage that would be dealt by\s+(.+)", stext, re.I):
                 r = classify(_clip(m.group(1))); var, sel, part = objsel(r)
-                emit("PREVENT_DAMAGE", "PREVENTS_DAMAGE_FROM", var, sel, part, {}, m.span(), None)
+                pdur = "as_long_as_source_on_battlefield" if re.search(r"for as long as this .* remains", slow) else None
+                emit("PREVENT_DAMAGE", "PREVENTS_DAMAGE_FROM", var, sel, part, {}, m.span(), pdur)
             for m in re.finditer(r"deals?\s+damage\s+(equal to its power\s+)?to\s+(.+)", stext, re.I):
                 subj = lead_subject(stext, m.start())
                 r = classify(_clip(m.group(2))); ov, osel, opart = objsel(r)
@@ -454,42 +479,52 @@ def _object_effects(face):
                                  "span": [sent["start"] + m.start(), sent["start"] + m.end()]})
                     cur[0] = (ov, osel, opart)
 
-            # establish the sentence subject ONCE (from the first subject-verb that yields a REAL subject
-            # — skipping e.g. "you have an enduring story"), so multiple ops on the same object share one
-            # var (Reverent Howl pump+grant on obj0; Stone type+grant on obj0)
-            for mm in re.finditer(r"\b(gets?|gains?|has|have|loses?|fights?|becomes?|are|is)\b|power and toughness", stext, re.I):
-                subj = lead_subject(stext, mm.start())
-                if subj:
-                    cur[0] = subj
-                    break
-            if cur[0]:
-                var, sel, part = cur[0]
-                for m in re.finditer(r"gets?\s+([+\-][\dXx]+/[+\-][\dXx]+)", stext, re.I):
-                    emit("MODIFY_PT", "MODIFIES_POWER_TOUGHNESS", var, sel, part, {"pt_mod": m.group(1)}, m.span(), dur)
-                for m in re.finditer(r"(?:gains?|has|have)\s+([A-Za-z][A-Za-z ,]*?(?:and [A-Za-z ]+)?)(?=\s+until|\s+as long as|\s*\{|\.|,|;|$)", stext, re.I):
-                    ab = _abilities(m.group(1))
-                    if ab:
-                        emit("GRANT_ABILITY", "GRANTS_ABILITY_TO", var, sel, part, {"abilities": ab}, m.span(), dur)
-                for m in re.finditer(r"loses?\s+(all abilities|[A-Za-z ,]+?)(?=\s+until|\.|,|;|$)", stext, re.I):
-                    ab = ["all_abilities"] if "all abilities" in m.group(1).lower() else _abilities(m.group(1))
-                    if ab:
-                        emit("REMOVE_ABILITY", "REMOVES_ABILITY_FROM", var, sel, part, {"abilities": ab}, m.span(), dur)
-                for m in re.finditer(r"becomes?\s+(?:a|an)\s+(\w+)\b", stext, re.I):
-                    if m.group(1).lower() in _sch.PERMANENT_TYPES:
-                        emit("CHANGE_TYPE", "CHANGES_TYPE_OF", var, sel, part,
-                             {"added_type": m.group(1).lower(), "in_addition": "in addition" in slow}, m.span(), dur)
-                for m in re.finditer(r"(?:base )?power and toughness (?:become|are)\s+(.+?)(?=\s+until|\.|$)", stext, re.I):
-                    emit("SET_BASE_PT", "SETS_BASE_PT", var, sel, part,
-                         {"value": _clip(m.group(1)), "base": "base " in m.group(0).lower()}, m.span(), dur)
-                for m in re.finditer(r"switch(?:es)? its power and toughness", stext, re.I):
-                    emit("SWITCH_PT", "SWITCHES_PT", var, sel, part, {}, m.span(), dur)
-                for m in re.finditer(r"\bfights?\s+(.+)", stext, re.I):
-                    r = classify(_clip(m.group(1))); ov, osel, _ = objsel(r)
-                    if ov and ov != var:
-                        sops.append({"op": "FIGHT", "relation": "CAN_FIGHT", "object_var": var, "selector": sel,
-                                     "participant": part or "you", "fight_target_var": ov, "fight_target_selector": osel,
-                                     "duration": None, "condition": scond,
-                                     "span": [sent["start"] + m.start(), sent["start"] + m.end()]})
+            # each subject-verb op resolves its OWN subject LOCALLY (the phrase just before the verb),
+            # not one global subject — Mirkwood Meditator's "this creature's base P/T" must bind to self,
+            # not the "a land you control" of the Landfall trigger (review pt2 #2/#3). Target dedup keeps
+            # same-object ops (Reverent Howl pump+grant) on one var.
+            def subj_at(pos):
+                s = lead_subject(stext, pos) or cur[0] or first_target()
+                if s:
+                    cur[0] = s
+                return s
+
+            def emit_s(op, relation, pos, extra, span, duration):
+                s = subj_at(pos)
+                if s:
+                    emit(op, relation, s[0], s[1], s[2], extra, span, duration)
+
+            for m in re.finditer(r"gets?\s+([+\-][\dXx]+/[+\-][\dXx]+)", stext, re.I):
+                emit_s("MODIFY_PT", "MODIFIES_POWER_TOUGHNESS", m.start(), {"pt_mod": m.group(1)}, m.span(), dur)
+            for m in re.finditer(r"(?:gains?|has|have)\s+([A-Za-z][A-Za-z ,]*?(?:and [A-Za-z ]+)?)(?=\s+until|\s+as long as|\s*\{|\.|,|;|$)", stext, re.I):
+                ab = _abilities(m.group(1))
+                if ab:
+                    emit_s("GRANT_ABILITY", "GRANTS_ABILITY_TO", m.start(), {"abilities": ab}, m.span(), dur)
+            for m in re.finditer(r"loses?\s+(all abilities|[A-Za-z ,]+?)(?=\s+until|\.|,|;|$)", stext, re.I):
+                ab = ["all_abilities"] if "all abilities" in m.group(1).lower() else _abilities(m.group(1))
+                if ab:
+                    emit_s("REMOVE_ABILITY", "REMOVES_ABILITY_FROM", m.start(), {"abilities": ab}, m.span(), dur)
+            for m in re.finditer(r"becomes?\s+(?:a|an)\s+([A-Za-z][\w ]*?)(?=\s+in addition|\s+until|\.|,|;|$)", stext, re.I):
+                phr = m.group(1)
+                ct = [t for t in _sch.PERMANENT_TYPES if re.search(r"\b" + t + r"\b", phr, re.I)]
+                subs = sorted(_sch._valid_subtypes(phr))
+                if ct or subs:
+                    emit_s("CHANGE_TYPE", "CHANGES_TYPE_OF", m.start(),
+                           {"added_type": ct[0] if ct else None, "added_subtypes": subs,
+                            "in_addition": "in addition" in slow}, m.span(), dur)
+            for m in re.finditer(r"(?:base )?power and toughness (?:become|are)\s+(.+?)(?=\s+until|\.|$)", stext, re.I):
+                emit_s("SET_BASE_PT", "SETS_BASE_PT", m.start(),
+                       {"value": _clip(m.group(1)), "base": "base " in m.group(0).lower()}, m.span(), dur)
+            for m in re.finditer(r"switch(?:es)? its power and toughness", stext, re.I):
+                emit_s("SWITCH_PT", "SWITCHES_PT", m.start(), {}, m.span(), dur)
+            for m in re.finditer(r"\bfights?\s+(.+)", stext, re.I):
+                subj = subj_at(m.start())
+                r = classify(_clip(m.group(1))); ov, osel, _ = objsel(r)
+                if subj and ov and ov != subj[0]:
+                    sops.append({"op": "FIGHT", "relation": "CAN_FIGHT", "object_var": subj[0], "selector": subj[1],
+                                 "participant": subj[2] or "you", "fight_target_var": ov, "fight_target_selector": osel,
+                                 "duration": None, "condition": scond,
+                                 "span": [sent["start"] + m.start(), sent["start"] + m.end()]})
             ops += sops
 
         crange = text[cl["start"]:cl["end"]]
@@ -519,68 +554,84 @@ _PHASE3_FAMILIES = {"deal_damage", "destroy", "add_counter", "remove_counter", "
                     "control_change", "type_change", "tap_untap"}
 
 
+_OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER": "add_counter",
+              "MODIFY_PT": "modify_pt", "SET_BASE_PT": "set_switch_pt", "SWITCH_PT": "set_switch_pt",
+              "GRANT_ABILITY": "grant_ability", "REMOVE_ABILITY": "remove_ability", "TAP": "tap_untap",
+              "UNTAP": "tap_untap", "FIGHT": "fight", "CHANGE_TYPE": "type_change",
+              "CONTROL_CHANGE": "control_change", "PREVENT_DAMAGE": "prevent"}
+_DEFERRED_DISP = {"divided_damage", "grants_nonkeyword_ability", "remove_counter", "source_power_bound_damage"}
+
+
 def reconcile(repo: Path = REPO) -> dict:
-    """Reconcile every Phase-3 census clause with an extracted effect or a documented disposition
-    (review PHASE3 pt1 #10). Writes reports/effect_reconciliation.md. Zero `unresolved` is the goal."""
+    """Reconcile every (clause_id, family) that carries a Phase-3 effect family (review pt2 #10): each
+    is either EXTRACTED (an effect of that family exists on that clause) or DISPOSITIONED. Deferred /
+    non-executable dispositions are counted SEPARATELY, not hidden inside a '0 unresolved' headline."""
     repo = Path(repo)
     census = _load_dicts(repo / "data/graph_global/effect_census.jsonl")
     faces = _load_dicts(repo / "data/normalized/faces.jsonl")
-    extracted = set()
+    extracted_cf = set()
     for f in faces:
         for e in _destroy_effects(f) + _object_effects(f):
-            extracted.add(e["clause_id"])
-    rows, counts = [], {"extracted": 0}
+            extracted_cf.add((e["clause_id"], _OP_FAMILY.get(e["op"], e["op"].lower())))
+    rows, counts = [], {}
     for c in census:
-        fams = set(c["families"]) & _PHASE3_FAMILIES
-        if not fams:
-            continue
         low = c["clause_text"].lower()
-        if c["clause_id"] in extracted:
-            disp = "extracted"
-        elif "equipped creature" in low or "enchanted creature" in low:
-            disp = "attachment_static (equip/aura layer)"
-        elif "amass" in low:
-            disp = "amass (counters on an Army token — token/mechanism layer)"
-        elif re.search(r"\bcrew\b", low):
-            disp = "crew (keyword reminder — vehicle/mechanism layer)"
-        elif re.search(r"deals combat damage", low):
-            disp = "combat_damage_trigger (a trigger, not a damage effect)"
-        elif re.search(r"damage divided", low):
-            disp = "divided_damage (multi-target division — deferred)"
-        elif re.search(r"do(?:es)?n't untap|doesn't untap", low):
-            disp = "restriction (doesn't-untap — restriction family)"
-        elif re.search(r'gains? "', low):
-            disp = "grants_nonkeyword_ability (a granted triggered/quoted ability — deferred)"
-        elif fams == {"remove_counter"}:
-            disp = "remove_counter (deferred — not projected)"
-        elif re.search(r"target (player|opponent)|each (player|opponent)|that player|to any target", low) \
-                and not re.search(r"\b(creature|artifact|enchantment|permanent|land|planeswalker)\b", low.split("target", 1)[-1][:30]):
-            disp = "participant_effect (Phase 4: player-directed)"
-        elif c["clause_in_reminder"]:
-            disp = "reminder_text (ignored)"
-        else:
-            disp = "unresolved"
-        counts[disp] = counts.get(disp, 0) + 1
-        if disp == "extracted":
-            counts["extracted"] += 0
-        rows.append({"clause_id": c["clause_id"], "name": c["name"], "families": sorted(fams),
-                     "disposition": disp, "clause": c["clause_text"][:100]})
+        for fam in sorted(set(c["families"]) & _PHASE3_FAMILIES):
+            fam_matches = [m for m in c["matches"] if m["family"] == fam]
+            if (c["clause_id"], fam) in extracted_cf:
+                disp = "extracted"
+            elif fam_matches and all(m["in_reminder"] for m in fam_matches):
+                disp = "reminder_text (family appears only in reminder text)"
+            elif fam == "type_change" and "attach" in low and "becomes" not in low:
+                disp = "attachment (equip layer — not a type change)"
+            elif fam == "deal_damage" and re.search(r"that creature's power", low):
+                disp = "source_power_bound_damage"
+            elif "equipped creature" in low or "enchanted creature" in low:
+                disp = "attachment_static (equip/aura layer)"
+            elif fam in ("add_counter", "modify_pt") and re.search(r"amass", low):
+                disp = "amass (counters on an Army token — token/mechanism layer)"
+            elif re.search(r"\bcrew\b", low):
+                disp = "crew (keyword reminder — vehicle/mechanism layer)"
+            elif fam == "deal_damage" and re.search(r"deals combat damage", low):
+                disp = "combat_damage_trigger (a trigger, not a damage effect)"
+            elif fam == "deal_damage" and re.search(r"damage divided", low):
+                disp = "divided_damage"
+            elif fam == "tap_untap" and re.search(r"do(?:es)?n't untap|doesn't untap", low):
+                disp = "restriction (doesn't-untap — restriction family)"
+            elif fam == "grant_ability" and re.search(r'gains? "', low):
+                disp = "grants_nonkeyword_ability"
+            elif fam == "remove_counter":
+                disp = "remove_counter"
+            elif fam == "add_counter" and re.search(r"counter on it\b|counter on them\b", low):
+                disp = "counter_as_condition (census false positive — a counter reference, not an add)"
+            elif re.search(r"target (player|opponent)|each (player|opponent)|that player|to any target", low) \
+                    and not re.search(r"\b(creature|artifact|enchantment|permanent|land|planeswalker)\b",
+                                      low.split("target", 1)[-1][:30]):
+                disp = "participant_effect (Phase 4: player-directed)"
+            elif c["clause_in_reminder"]:
+                disp = "reminder_text (ignored)"
+            else:
+                disp = "unresolved"
+            counts[disp] = counts.get(disp, 0) + 1
+            rows.append({"clause_id": c["clause_id"], "name": c["name"], "family": fam,
+                         "disposition": disp, "clause": c["clause_text"][:90]})
     unresolved = [r for r in rows if r["disposition"] == "unresolved"]
-    L = ["# Effect-semantics — Phase-3 census reconciliation", "",
-         "Every census clause carrying a Phase-3 effect family is reconciled with an extracted effect "
-         "or a documented disposition (review PHASE3 pt1 #10).", "",
-         f"- Phase-3 census clauses: **{len(rows)}**  · extracted: **{counts.get('extracted', 0)}**  "
-         f"· unresolved: **{len(unresolved)}**", "", "| disposition | clauses |", "|---|---:|"]
+    deferred = sum(v for k, v in counts.items() if k in _DEFERRED_DISP)
+    L = ["# Effect-semantics — Phase-3 (clause_id, family) reconciliation", "",
+         "Every `(clause_id, family)` carrying a Phase-3 effect family is EXTRACTED or DISPOSITIONED. "
+         "Deferred / non-executable dispositions are counted separately from `unresolved`.", "",
+         f"- (clause, family) pairs: **{len(rows)}**  · extracted: **{counts.get('extracted', 0)}**  "
+         f"· deferred/nonexecutable: **{deferred}**  · unresolved: **{len(unresolved)}**", "",
+         "| disposition | (clause,family) |", "|---|---:|"]
     for d in sorted(counts, key=lambda k: -counts[k]):
-        if d != "extracted" or counts.get("extracted"):
-            L.append(f"| {d} | {counts[d]} |")
+        L.append(f"| {d}{' — DEFERRED' if d in _DEFERRED_DISP else ''} | {counts[d]} |")
     if unresolved:
         L += ["", "## Unresolved (need attention)", ""]
         for r in unresolved:
-            L.append(f"- `{r['clause_id']}` {r['name']} {r['families']}: {r['clause']}")
+            L.append(f"- `{r['clause_id']}` {r['name']} [{r['family']}]: {r['clause']}")
     (repo / "reports" / "effect_reconciliation.md").write_text("\n".join(L) + "\n", encoding="utf-8")
-    return {"phase3_clauses": len(rows), "extracted": counts.get("extracted", 0),
-            "unresolved": len(unresolved), "dispositions": counts}
+    return {"clause_family_pairs": len(rows), "extracted": counts.get("extracted", 0),
+            "deferred": deferred, "unresolved": len(unresolved), "dispositions": counts}
 
 
 def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dict:
@@ -598,15 +649,21 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
     structured, errors = [], []
     agg = {}                                                # (src,tgt,relation) -> aggregated pair with `supports`
 
+    def _add(src, tgt, relation, family, support):
+        key = (src, tgt, relation)
+        if key not in agg:                                  # unique pair, AGGREGATE all supporting effects/modes
+            agg[key] = {"source_card": src, "target_card": tgt, "relation": relation,
+                        "self_pair": src == tgt, "generic": True, "origin": "effect_semantics",
+                        "family": family, "supports": []}
+        agg[key]["supports"].append(support)
+
     def project(src, sel, relation, family, support):
+        if sel.get("self"):                                 # a self selector projects ONLY source→source
+            _add(src, src, relation, family, support)
+            return
         for tgt in cards:
             if any(_sch.matches_card(sel, cf) for cf in by_card[tgt]):
-                key = (src, tgt, relation)
-                if key not in agg:                          # unique pair, AGGREGATE all supporting effects/modes
-                    agg[key] = {"source_card": src, "target_card": tgt, "relation": relation,
-                                "self_pair": src == tgt, "generic": True, "origin": "effect_semantics",
-                                "family": family, "supports": []}
-                agg[key]["supports"].append(support)
+                _add(src, tgt, relation, family, support)
 
     for f in sorted(faces, key=lambda x: x["id"]):
         for eff in _destroy_effects(f) + _object_effects(f):
@@ -643,7 +700,7 @@ def _effects_report(repo, structured, pairs):
     from collections import Counter
     byrel = Counter(p["relation"] for p in pairs)
     byop = Counter(s["op"] for s in structured)
-    L = ["# Effect-semantics — structured effects (Phase 3a: targeted-object families)", "",
+    L = ["# Effect-semantics — structured effects (Phase 3b: targeted-object families)", "",
          "Additive `effect_semantics` layer over the frozen reference. **ABILITY-scoped** extraction "
          "(one clause per (ability, mode); targets never leak across abilities; real `clause_id`), with "
          "**same-object variable binding**, **per-operation duration/condition**, explicit self-effects, "

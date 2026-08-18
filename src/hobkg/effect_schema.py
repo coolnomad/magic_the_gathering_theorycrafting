@@ -18,6 +18,40 @@ PERMANENT_TYPES = ["artifact", "creature", "enchantment", "planeswalker", "land"
 _TYPES_RE = re.compile(r"\b(" + "|".join(PERMANENT_TYPES + ["permanent"]) + r")s?\b", re.I)
 _SUBTYPE_RE = re.compile(r"(?<!non-)\b([A-Z][a-z]{2,})\b")
 _SUPERTYPES = ["legendary", "basic", "snow", "world"]
+_PLURAL_SUB = {"wolves": "wolf", "elves": "elf", "dwarves": "dwarf"}
+_VOCAB = {}
+
+
+def _subtype_vocab():
+    """The controlled subtype vocabulary = every subtype actually printed on a HOB face or token."""
+    if "v" not in _VOCAB:
+        from .pipeline import REPO, _load_dicts
+        v = set()
+        for rel in ("data/normalized/faces.jsonl", "data/normalized/tokens.jsonl"):
+            try:
+                for r in _load_dicts(REPO / rel):
+                    v |= {s.lower() for s in (r.get("type_line") or {}).get("subtypes", [])}
+            except Exception:
+                pass
+        _VOCAB["v"] = v
+    return _VOCAB["v"]
+
+
+def _valid_subtypes(phrase: str):
+    """Title-Case tokens VALIDATED against the subtype vocabulary (rejects syntax words like
+    'Target', 'Until', 'Whenever', 'Each', 'Creatures', 'Landfall', 'Saga'). Plurals normalized."""
+    vocab = _subtype_vocab()
+    out = set()
+    for m in _SUBTYPE_RE.finditer(phrase):
+        w = m.group(1).lower()
+        if w in _SUPERTYPES:
+            continue
+        cand = _PLURAL_SUB.get(w, w)
+        if cand in vocab:
+            out.add(cand)
+        elif cand.rstrip("s") in vocab:
+            out.add(cand.rstrip("s"))
+    return out
 _SUPER_RE = re.compile(r"\b(" + "|".join(_SUPERTYPES) + r")\b", re.I)
 _NUM = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
 
@@ -33,10 +67,12 @@ def selector(phrase: str, var: str = "x", targeted=None, quantifier=None) -> dic
     types = [t for t in types if t != "permanent"]
     # OR vs AND: "artifact or enchantment" is a disjunction; "artifact creature" (adjacent, no 'or')
     # is a conjunction requiring BOTH types.
-    or_types = bool(re.search(r"\b" + _TYPES_RE.pattern + r"\s+or\s+" + _TYPES_RE.pattern, low)) and len(types) >= 2
+    # OR when "X or Y" OR when plural classes are joined by "and" ("artifacts and creatures" = union,
+    # NOT the conjunction "artifact creature" which needs both) — review pt2 #8
+    or_types = (bool(re.search(r"\b" + _TYPES_RE.pattern + r"\s+or\s+" + _TYPES_RE.pattern, low))
+                or bool(re.search(r"\b\w+s\s+and\s+\w+s\b", low))) and len(types) >= 2
     supertypes = sorted({m.group(1).lower() for m in _SUPER_RE.finditer(low)})
-    # subtypes are Title-Case in the ORIGINAL phrase (not lowercased), minus supertype words
-    subtypes = sorted({m.group(1).lower() for m in _SUBTYPE_RE.finditer(p)} - set(_SUPERTYPES))
+    subtypes = sorted(_valid_subtypes(p))                   # vocabulary-validated (review pt2 #1)
     controller = "you" if "you control" in low else ("opponent" if re.search(r"opponent(?:s)? control|an opponent controls", low) else "any")
     owner = "you" if "you own" in low else ("opponent" if "opponent owns" in low else None)
     zone = _zone(low)
@@ -59,6 +95,8 @@ def selector(phrase: str, var: str = "x", targeted=None, quantifier=None) -> dic
         preds["token"] = True
     if re.search(r"\bnontoken\b", low):
         preds["nontoken"] = True
+    if re.search(r"\bnonland\b", low):
+        preds["nonland"] = True
     is_target = ("target" in low) if targeted is None else bool(targeted)
     mass = quantifier in ("each", "all")
     return {"card_types": types, "or_types": or_types, "subtypes": subtypes, "supertypes": supertypes,
@@ -157,9 +195,13 @@ def validate_effect(rec: dict) -> list:
     if rec.get("targeted") not in (True, False):
         errs.append("targeted must be boolean")
     if rec.get("relation", "").startswith(("CAN_", "ADDS_", "MODIFIES_", "GRANTS_", "CHANGES_",
-                                           "REMOVES_", "SETS_", "SWITCHES_", "GAINS_")):
+                                           "REMOVES_", "SETS_", "SWITCHES_", "GAINS_", "EXCHANGES_",
+                                           "PREVENTS_")):
         if selector_is_empty(sel) and not rec.get("binding") and not sel.get("self"):
             errs.append("object relation with empty object selector and no self/antecedent binding")
+    # the effect's object_var must match its selector's var (unless an explicit binding says otherwise)
+    if "object_var" in rec and not rec.get("binding") and sel.get("var") not in (rec["object_var"], None):
+        errs.append(f"object_var {rec['object_var']} != selector.var {sel.get('var')}")
     return errs
 
 
@@ -207,8 +249,12 @@ def matches_card(sel: dict, face: dict) -> bool:
     t = _face_types(face)
     if not t["types"]:
         return False
+    if sel.get("self"):
+        return False                                       # self selectors project only source→source
     if sel["predicates"].get("token") and not sel["predicates"].get("nontoken"):
         return False                                       # a nontoken CARD cannot be a 'token' target
+    if sel["predicates"].get("nonland") and "land" in t["types"]:
+        return False                                       # 'nonland permanent' excludes lands
     if sel["card_types"]:
         if not _type_ok(sel, set(t["types"])):
             return False

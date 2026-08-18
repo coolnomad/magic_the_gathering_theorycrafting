@@ -156,7 +156,8 @@ def test_comma_separated_or_subtype_lists_and_controller():
     assert set(mk["selector"]["subtypes"]) == {"bear", "spider", "wolf"}
     assert mk["selector"]["controller"] == "you"
     assert sch.selector("Bear, Spider, or Wolf you control")["subtypes"] == ["bear", "spider", "wolf"]
-    assert sch.selector("Goblin or Orc you control")["subtypes"] == ["goblin", "orc"]
+    # 'Orc' is not a printed HOB subtype (no Orc permanents) -> vocabulary-validated out; Goblin kept
+    assert sch.selector("Goblin or Orc you control")["subtypes"] == ["goblin"]
     ac = sch.selector("artifact or creature you control")
     assert set(ac["card_types"]) == {"artifact", "creature"} and ac["or_types"] and ac["controller"] == "you"
     assert "up_to_2" in str(sch.selector("creatures", quantifier="up_to_2")["quantifier"])
@@ -193,3 +194,70 @@ def test_moment_of_glory_cast_from_graveyard_on_the_right_effect():
 def test_reconciliation_has_zero_unresolved():
     r = es.reconcile()
     assert r["unresolved"] == 0 and r["extracted"] > 90
+
+
+# ---- review PHASE3 pt2 regression: projection-level correctness ----
+
+def _proj():
+    res = es.build_effects(write=False)
+    n2c = {f["name"]: f["card_id"] for f in _load_dicts(REPO / "data/normalized/faces.jsonl")}
+    by = {}
+    for p in res["_pairs"]:
+        by.setdefault((p["source_card"], p["relation"]), set()).add(p["target_card"])
+    return n2c, by
+
+
+def test_every_emitted_subtype_is_in_the_vocabulary():
+    vocab = sch._subtype_vocab()
+    for f in _load_dicts(REPO / "data/normalized/faces.jsonl"):
+        for e in es._object_effects(f):
+            for s in e["selector"].get("subtypes", []):
+                assert s in vocab, (f["name"], e["op"], s)
+
+
+def test_object_var_matches_selector_var():
+    for f in _load_dicts(REPO / "data/normalized/faces.jsonl"):
+        for e in es._object_effects(f):
+            if not e.get("binding"):
+                assert e["selector"]["var"] in (e["object_var"], None), (f["name"], e["op"])
+
+
+def test_key_effects_actually_project_to_eligible_cards():
+    n2c, by = _proj()
+    creatures = {c for c, fs in
+                 {ff["card_id"]: [x for x in _load_dicts(REPO / "data/normalized/faces.jsonl") if x["card_id"] == ff["card_id"]]
+                  for ff in _load_dicts(REPO / "data/normalized/faces.jsonl")}.items()
+                 if any("Creature" in (x.get("type_line") or {}).get("types", []) for x in fs)}
+    n = len(creatures)
+    assert len(by[(n2c["Reverent Howl"], "MODIFIES_POWER_TOUGHNESS")]) == n         # +2/+2 -> every creature
+    assert len(by[(n2c["The Arkenstone"], "MODIFIES_POWER_TOUGHNESS")]) == n         # anthem -> every creature
+    assert len(by[(n2c["Concerted Care"], "GRANTS_ABILITY_TO")]) > 100               # artifact|creature
+    assert by[(n2c["Great Ugly-Looking Goblin"], "GRANTS_ABILITY_TO")] == creatures  # mass menace
+    # Stone by Sunlight mode-1 grant + type-change share one object and both project
+    assert len(by[(n2c["Stone by Sunlight"], "GRANTS_ABILITY_TO")]) == n
+    assert len(by[(n2c["Stone by Sunlight"], "CHANGES_TYPE_OF")]) == n
+
+
+def test_self_effects_project_only_source_to_source():
+    n2c, by = _proj()
+    for nm, rel in [("Sting, Bilbo's Sword", "ADDS_COUNTER_TO"),
+                    ("Master's Councillors", "MODIFIES_POWER_TOUGHNESS"),
+                    ("Mirkwood Pathmaker", "SETS_BASE_PT")]:
+        assert by[(n2c[nm], rel)] == {n2c[nm]}, nm            # ONLY source→source
+
+
+def test_old_fat_spider_and_burglar_projection_constraints():
+    n2c, by = _proj()
+    faces = _load_dicts(REPO / "data/normalized/faces.jsonl")
+    by_card = {}
+    for f in faces:
+        by_card.setdefault(f["card_id"], []).append(f)
+    ofs = by[(n2c["Old Fat Spider Can't See Me"], "PREVENTS_DAMAGE_FROM")]
+    assert ofs and all(any("Creature" in (cf.get("type_line") or {}).get("types", []) for cf in by_card[t]) for t in ofs)
+    burg = by[(n2c["Burglar's Plot"], "EXCHANGES_CONTROL_OF")]
+    assert burg and not any(all("Land" in (cf.get("type_line") or {}).get("types", []) for cf in by_card[t]) for t in burg)
+
+
+def test_reconcile_reports_deferred_separately_from_unresolved():
+    r = es.reconcile()
+    assert r["unresolved"] == 0 and r["deferred"] >= 3 and r["extracted"] > 100
