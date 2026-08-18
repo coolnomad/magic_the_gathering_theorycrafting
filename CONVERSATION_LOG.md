@@ -6163,6 +6163,29 @@ record even though Oracle says "draw a card, then discard a card"; the land
 predicate belongs only to the later conditional instruction. Updated advisory
 `docs/review_events/review_ready.json` to signal the pt6 `REPAIR` result.
 
+## 2026-08-18 Review Agent - Phase 4b pt7
+
+Reviewed worker commit `b0759cbfa4567ea88e75ba95bd752d3afe02f3f2`
+against parent/review commit `55435f79aed9774197a55bd5c3f52f6e160d92a2`.
+Created and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt7.md`
+as review commit `5429b7f22c46ebbcd0330d44f1fae5f37930bc83`.
+Verdict: `ACCEPT`.
+
+Verification performed: targeted Phase 4 resource/participant/object/destroy tests
+passed (`96 passed`), full suite passed (`366 passed`), frozen manifest check
+reported `frozen_failures 0`, two consecutive `effect-build` runs were
+byte-identical (`effect_records` hash
+`c8dfc1e323ecfd495caa920ede838892986e45ccb60787d931c66ee6cdbf49ef`),
+reconciliation reported 275 clause/family pairs, 185 extracted, 4 deferred, and
+0 unresolved, and pair-projection files contained no resource fan-out relations.
+
+The pt6 `Silvan Reveler` regression is repaired: the DISCARD record now selects
+one unconstrained card from your hand. The pt5 repairs remain present for `Down,
+Down to Goblin-town` and `The Master of Lake-town`. This accepts the bounded
+Phase 4b discard/mill repair only; broader Phase 4 remains open. Updated
+advisory `docs/review_events/review_ready.json` to signal the pt7 `ACCEPT`
+result.
+
 ## 2026-08-18 Review Agent - New Commit Check
 
 User reported a new commit was available. Ran `git status --short --branch`,
@@ -6237,3 +6260,59 @@ I addressed both in repair commit `1577a43` (pushed). That repair is now awaitin
 
 ### [2026-08-18 13:07] USER
 ok review_pt6 is up. read that
+
+### [2026-08-18 13:10] ASSISTANT
+Phase 4 pt6 on my SHA `1577a43`, verdict **REPAIR** with a single blocking finding. Let me read it:
+
+A single narrow blocking finding: Silvan Reveler's DISCARD `card_selector` wrongly gets `predicates:{type:land}` â€” my `_discard_selector` scans `low[ms:ms+90]`, which crosses into the *next* sentence "If you discard a **land** card this way". Same operation-scoping issue as pt3. Fix: bound the predicate scan to the discard's own sentence (Down Down's `nonland` comes from the antecedent look-back, so it's unaffected):
+
+Silvan is now unconstrained; Down Down's `nonland` (from the antecedent look-back) and all others preserved. Let me add the regression test and verify invariance:
+
+Accepted draw/life preserved, deterministic (`c8dfc1e3`), 366 pass. Regenerate coverage last and append the LABNOTEBOOK entry:
+
+Staged exactly my 5 files (reviewer's handoff doc untouched), diff-check clean. Commit and push:
+
+Committed and pushed as `b0759cb` (remote confirmed). Let me run the pt6 acceptance checks against the committed records:
+
+All pt6 acceptance checks pass against the committed records. The repair is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt6** (verdict REPAIR on my SHA `1577a43`, single blocking finding) is addressed in commit `b0759cb`:
+
+**Blocking finding â€” Silvan Reveler's DISCARD selector wrongly required a land card.** `_discard_selector` scanned `low[ms:ms+90]`, which crossed the sentence boundary into the *following* conditional "If you discard a **land** card this way, put it â€¦", so the unconstrained "discard a card" inherited `predicates:{type:land}` â€” the same operation-scoping bug class fixed for conditions in pt3.
+
+**Fix:** the predicate scan is now bounded to the discard's **own sentence** (`low[ms:next ". "]`). Silvan Reveler's `card_selector` is unconstrained (`{zone:hand, owner:you, count:1, chooser:you}`, no predicates). Down, Down to Goblin-town's genuine `nonland` predicate is untouched â€” it derives from the antecedent look-back over `low[:ms]` ("choose a nonland card"), not the forward scan.
+
+**Verification (all 4 acceptance checks pass):** Silvan unconstrained; Down Down's chosen-nonland same-object binding preserved; Master of Lake-town's trigger + life-lost binding preserved; every DISCARD still carries a hand-zone selector with owner/chooser/count. Accepted Phase-4a draw/life byte-identical (`b514f37` subset); 189 effects / 126 faces / 7,950 pairs, **zero** discard/mill fan-out; reconcile 275 â†’ 185 extracted, 4 deferred, **0 unresolved**; two serial builds byte-identical (`c8dfc1e3`); **366 tests pass** (+1 pt6 regression); frozen manifest green; `git diff --check 1577a43..b0759cb` clean; reports byte-identical (the fix removes one spurious predicate, not a count).
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4b-repair2` / `Addresses-Review: 55435f7` / `Addresses-Implementation: 1577a43` / `Validation` trailers; staged only my own paths; reviewer's uncommitted artifacts left untouched.
+
+This is the second Phase-4b repair (pt5 â†’ pt6, each narrowing to one operation-scoping issue), now resolved. The repair awaits re-review. Remaining Phase-4 families (sacrifice, exile/movement, search/tutor, counterspells, full `SUPPLIES_RESOURCE` review) stay open for later bounded sub-tasks.
+
+### [2026-08-18 13:50] USER
+ok review_pt7 is up. read that
+
+### [2026-08-18 13:51] ASSISTANT
+pt7 is an **ACCEPT** of my SHA `b0759cb` (0 blocking, 0 nonblocking, `phase_may_proceed: true`). Let me read the full doc:
+
+Phase 4b (discard/mill) is **ACCEPTED** â€” pt7 verdict ACCEPT of my exact SHA `b0759cb`, **0 blocking, 0 nonblocking, 0 deferred**, `phase_may_proceed: true`.
+
+## What the reviewer confirmed
+- **Silvan Reveler** regression fixed: unconstrained one-card discard from your hand; the later "If you discard a land card" condition no longer contaminates the selector.
+- **pt5 repairs preserved:** Down, Down to Goblin-town (nonland selector, `chooser:you`, `that_card` same-object antecedent) and The Master of Lake-town (life-loss trigger + variable mill binding).
+- All invariants green: accepted Phase-4a draw/life byte-identical (`52cda2c6â€¦`), 189 effects / 7,950 pairs, **zero** discard/mill fan-out, reconcile 275 â†’ 185 extracted / 4 deferred / **0 unresolved**, two deterministic builds (`c8dfc1e3â€¦`), frozen manifest clean, 366 tests pass.
+- Confirmed the change is operation-scoped, not card-name-specific.
+
+Per the protocol, ACCEPT is terminal for this bounded task â€” **there is no repair to make**. I've taken no further action.
+
+## Phase 4 status
+Phase 4 is **not closed**. Accepted so far: 4a (draw/life), 4b (discard/mill). Remaining bounded sub-tasks under the governing spec:
+- **Sacrifice** â€” classify each clause (selectable-fodder cost, optional/mandatory sacrifice effect, self-sacrifice cost, edict, delayed/Saga cleanup, Treasure reminder, conditional consequence); reuse the portable sacrifice extractor.
+- **Search / tutor** â€” project to eligible choices (deterministic), distinct from stochastic library movement.
+- **Exile / movement / recursion**, **counterspells** (incl. "unless its controller pays"), and the **complete `SUPPLIES_RESOURCE` review**.
+
+Want me to proceed to the next bounded sub-task? If so, **sacrifice** is the natural next piece (it has its own portable extractor to integrate and a rich cost-vs-effect taxonomy, closely following the discipline I just built for discard). Say the word (or name a different subset) and I'll implement it with record-level regression tests per the reviewer's guidance before requesting review.
+
+### [2026-08-18 13:52] USER
+yes do the next task

@@ -854,11 +854,95 @@ def _participant_effects(face):
     return out
 
 
+# Phase 4c — SACRIFICE. Integrates the portable sacrifice extractor (`sac_schema`) — reusing its
+# `_selector`/`_cost` parsing and its trigger/edict/phrase regexes — but applies the eligibility and
+# self/pronoun handling in THIS layer so the accepted portable module (and its pinned FIN metrics)
+# stays untouched. A sacrifice moves a chosen permanent battlefield→graveyard; it is participant-level
+# (a choice among the sacrificer's own permanents / an edict) → no deterministic card-pair fan-out.
+_SAC_COST_CTX = {"activated_ability", "additional_cast_cost", "kicker"}
+
+
+def _sacrifice_effects(face):
+    from . import sac_schema as _sac
+    text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))
+    clauses = _ability_clauses(text)
+
+    def clause_id_at(pos):
+        for cl in clauses:
+            if cl["start"] <= pos < cl["end"]:
+                return (f"{face['id']}#a{cl['ability_index']}"
+                        + (f".m{cl['mode_index']}" if cl["mode_index"] is not None else ""),
+                        cl["mode_kind"], cl["mode_index"])
+        return f"{face['id']}#a0", None, None
+
+    out, pvars, vc, j = [], {}, [0], 0
+    for line in text.split("\n"):
+        raw = line.strip()
+        if "sacrifice" not in raw.lower() or _sac._TRIGGER_SAC_RE.search(raw):
+            continue                                         # 'Whenever you sacrifice …' is a condition
+        edict = _sac._EDICT_RE.search(raw)
+        mphrase = _sac._SAC_PHRASE_RE.search(raw)
+        if not mphrase:
+            continue
+        phrase = mphrase.group(1)
+        sel = dict(_sac._selector(phrase, face["name"]))
+        pl = phrase.strip().lower()
+        if not sel["self"] and (re.match(r"(it|this)\b", pl) or re.search(r"\bthis (saga|enchantment)\b", pl)):
+            sel["self"], sel["card_types"], sel["subtypes"], sel["or_types"] = True, [], [], False
+            sel["quantity"] = sel["quantity"] or 1
+        # eligibility (review-parity with sac_schema PLUS subtype-only fodder, e.g. 'another Goblin')
+        if not (sel["card_types"] or sel["self"] or sel["generic_permanent"] or sel["subtypes"]):
+            continue
+        low = raw.lower()
+        actor = re.sub(r"\s+", "_", edict.group(1).lower()) if edict else "you"
+        if "as an additional cost to cast" in low:
+            ctx = "additional_cast_cost"
+        elif re.match(r"kicker\b", low):
+            ctx = "kicker"
+        elif edict:
+            ctx = "resolution_effect"
+        elif _sac._MAY_RE.search(raw):
+            ctx = "effect"
+        elif ":" in raw and re.search(r"[Ss]acrifice[^:]*:", raw):
+            ctx = "activated_ability"
+        else:
+            ctx = "unsupported"                              # e.g. conditional self-sac (Misty, Last Light)
+        role = "cost" if ctx in _SAC_COST_CTX else "effect"
+        pos = text.find(mphrase.group(0))
+        span = [pos, pos + len(mphrase.group(0))] if pos >= 0 else list(mphrase.span())
+        cid, mkind, midx = clause_id_at(span[0])
+        if actor not in pvars:
+            pvars[actor] = f"p{vc[0]}"; vc[0] += 1
+        targeted = actor.startswith("target")
+        card_selector = {"zone": "battlefield", "owner": actor, "self": sel["self"],
+                         "another": sel["another"], "card_types": sel["card_types"],
+                         "or_types": sel["or_types"], "subtypes": sel["subtypes"],
+                         "supertypes": sel["supertypes"], "generic_permanent": sel["generic_permanent"],
+                         "count": sel["quantity"], "chooser": actor}
+        cond = _sch.condition(raw)                           # scoped to the sacrifice's OWN line (abilities
+        #                                                      are newline-separated; a prior line's
+        #                                                      'as long as …' must not gate this cost)
+        rec = {"effect_id": f"{cid}#SACRIFICE#{j}", "op": "SACRIFICE", "relation": "SACRIFICES",
+               "participant": actor, "participant_var": pvars[actor], "role": role, "cost_context": ctx,
+               "cost": _sac._cost(raw, ctx if ctx in _SAC_COST_CTX else "x", sel),
+               "selector": _sch.participant_selector(pvars[actor], targeted=targeted),
+               "card_selector": card_selector, "source_zone": "battlefield",
+               "dest_zone": "graveyard", "event": "sacrifice",
+               "mode": {"kind": mkind, "index": midx, "exclusive": bool(mkind and "choose" in mkind)},
+               "condition": cond, "duration": None, "optional": ctx == "effect", "targeted": targeted,
+               "affects_each": actor.startswith("each"), "binding": None,
+               "clause_id": cid, "oracle_span": span}
+        out.append(rec)
+        j += 1
+    return out
+
+
 _PHASE3_FAMILIES = {"deal_damage", "destroy", "add_counter", "remove_counter", "modify_pt",
                     "set_switch_pt", "grant_ability", "remove_ability", "fight", "prevent",
                     "control_change", "type_change", "tap_untap"}
 _PHASE4A_FAMILIES = {"draw", "life"}
 _PHASE4B_FAMILIES = {"discard", "mill"}
+_PHASE4C_FAMILIES = {"sacrifice"}
 
 
 _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER": "add_counter",
@@ -867,7 +951,7 @@ _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER":
               "UNTAP": "tap_untap", "FIGHT": "fight", "CHANGE_TYPE": "type_change",
               "CONTROL_CHANGE": "control_change", "PREVENT_DAMAGE": "prevent",
               "DRAW": "draw", "GAIN_LIFE": "life", "LOSE_LIFE": "life",
-              "DISCARD": "discard", "MILL": "mill"}
+              "DISCARD": "discard", "MILL": "mill", "SACRIFICE": "sacrifice"}
 _DEFERRED_DISP = {"divided_damage", "grants_nonkeyword_ability", "remove_counter", "source_power_bound_damage"}
 
 
@@ -880,12 +964,12 @@ def reconcile(repo: Path = REPO) -> dict:
     faces = _load_dicts(repo / "data/normalized/faces.jsonl")
     extracted_cf = set()
     for f in faces:
-        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f):
+        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f):
             extracted_cf.add((e["clause_id"], _OP_FAMILY.get(e["op"], e["op"].lower())))
     rows, counts = [], {}
     for c in census:
         low = c["clause_text"].lower()
-        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES)):
+        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES | _PHASE4C_FAMILIES)):
             fam_matches = [m for m in c["matches"] if m["family"] == fam]
             if (c["clause_id"], fam) in extracted_cf:
                 disp = "extracted"
@@ -913,8 +997,13 @@ def reconcile(repo: Path = REPO) -> dict:
                 disp = "remove_counter"
             elif fam == "add_counter" and re.search(r"counter on it\b|counter on them\b", low):
                 disp = "counter_as_condition (census false positive — a counter reference, not an add)"
-            elif fam in ("life", "draw") and re.search(r'"[^"]*(?:gains?|loses?|draws?)[^"]*"', low):
+            elif fam in ("life", "draw", "sacrifice") and \
+                    re.search(r'"[^"]*(?:gains?|loses?|draws?|sacrifices?)[^"]*"', low):
                 disp = "granted_ability (quoted ability on another/created object — deferred execution)"
+            elif fam == "sacrifice" and re.search(r"\b(?:whenever|when)\b[^.]*\bsacrifices?\b", low):
+                disp = "sacrifice_trigger (a trigger event, not a sacrifice effect)"
+            elif fam == "sacrifice" and re.search(r"sacrifice after\b", low):
+                disp = "saga_cleanup (Saga 'Sacrifice after N' self-timer — mechanism layer)"
             elif fam == "life" and re.search(r"\bpay(?:s)?\s+(?:\d+\s+|x\s+)?life\b", low):
                 disp = "life_payment_cost (a cost, not a life effect)"
             elif fam == "draw" and re.search(r"^\s*(?:whenever|when)\b.*\bdraws?\b.*,", low):
@@ -946,7 +1035,7 @@ def reconcile(repo: Path = REPO) -> dict:
                          "disposition": disp, "clause": c["clause_text"][:90]})
     unresolved = [r for r in rows if r["disposition"] == "unresolved"]
     deferred = sum(v for k, v in counts.items() if k in _DEFERRED_DISP)
-    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + Phase 4b discard/mill)", "",
+    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice)", "",
          "Every `(clause_id, family)` carrying a Phase-3 object family or a Phase-4 participant family "
          "(draw, life, discard, mill) is EXTRACTED or DISPOSITIONED. Deferred / non-executable "
          "dispositions (life-payment / discard / cycling costs, draw/life/mill *triggers*, recruit) are "
@@ -997,7 +1086,7 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
                 _add(src, tgt, relation, family, support)
 
     for f in sorted(faces, key=lambda x: x["id"]):
-        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f):
+        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f):
             errors += [f"{eff['effect_id']}: {e}" for e in _sch.validate_effect(eff)]
             sel = eff["selector"]
             family = eff["op"].lower()
@@ -1048,12 +1137,18 @@ def _effects_report(repo, structured, pairs):
          "(library→graveyard) — likewise participant-level/stochastic with no card-pair fan-out, each "
          "carrying `source_zone`/`dest_zone`/`event`; discard distinguishes an activation-cost discard "
          "('Discard a card: …') and a condition ('If you discard …') from a real discard effect. "
+         "**Phase-4c:** SACRIFICE (battlefield→graveyard) integrates the portable `sac_schema` "
+         "extractor — reusing its selector/cost parsing — classifying each outlet as a `cost` "
+         "(activated / additional-cast / kicker) or an `effect` (optional `may`, edict, or conditional "
+         "self-sacrifice), with the eligibility `card_selector` (self / fodder type / subtype / OR) and "
+         "no card-pair fan-out; Saga 'Sacrifice after N' self-timers, quoted token abilities, and "
+         "'Whenever you sacrifice …' triggers are dispositioned, not extracted. "
          "Each effect is a validated record; projection aggregates all supporting "
          "effects/modes per pair (`supports`). Frozen core untouched. **Proposed schema extensions "
          "(documented, not casually invented):** `CAN_FIGHT`, `CHANGES_TYPE_OF`, `SETS_BASE_PT`, "
          "`SWITCHES_PT`, `REMOVES_ABILITY_FROM`, `EXCHANGES_CONTROL_OF`/`GAINS_CONTROL_OF`, "
-         "`PREVENTS_DAMAGE_FROM`, `DRAWS_CARDS`, `GAINS_LIFE`/`LOSES_LIFE`, `DISCARDS_CARDS`, `MILLS_CARDS`. "
-         "Every census clause in scope is reconciled (`reports/effect_reconciliation.md`, 0 unresolved).", "",
+         "`PREVENTS_DAMAGE_FROM`, `DRAWS_CARDS`, `GAINS_LIFE`/`LOSES_LIFE`, `DISCARDS_CARDS`, `MILLS_CARDS`, "
+         "`SACRIFICES`. Every census clause in scope is reconciled (`reports/effect_reconciliation.md`, 0 unresolved).", "",
          f"- effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  · "
          f"pairs: **{len(pairs)}**", "",
          "| relation | pairs |  | op | effects |", "|---|---:|---|---|---:|"]
