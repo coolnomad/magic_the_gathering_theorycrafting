@@ -1689,3 +1689,22 @@ Review pt2 accepted the ability-scoping but found a second layer of selector/pro
 **314 tests pass** (+6). Frozen artifacts byte-identical. Every emitted subtype is vocabulary-valid; every object relation has a non-empty object selector or a self/antecedent binding; self selectors are reflexive-only.
 
 Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_object.py`; `reports/{effect_semantics,effect_reconciliation}.md`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt2.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] CORRECTION — Effect-semantics Phase 3c: semantic completeness of the object records (review PHASE3 pt3)
+
+Review pt3 accepted that all earlier *projection* defects are genuinely fixed and narrowed the scope to semantic completeness: several emitted records were structurally present but dropped a *qualifier* (condition, predicate, replacement, duration, or a cross-sentence antecedent). Six targeted corrections; frozen core byte-identical.
+
+1. **Conditions/gates preserved** (`effect_schema.condition`): `as long as you have an enduring story` → `{kind:gate, gate:enduring_story}` (Ori, Óin, Thorin Oakenshield, Fíli); `as long as you control another <Subtype>` → `{kind:controls_another, subtype:…}` (Dáin's Company / Bolg's Company); `threshold` → `{kind:threshold, detail:seven_or_more_cards_in_graveyard}` (Most Decrepit Old Bird). **19 records now carry a condition** (was 0 on the gated object effects).
+2. **`has_counter` predicate** (`effect_schema` selector predicates): `with a/an/one or more <sign> counter` → `predicates.has_counter` (Great Ugly-Looking Goblin's menace now restricted to creatures with a `+1/+1` counter, not every creature).
+3. **Gnashing of Teeth replacement bound** (`effect_semantics`): the mode-0 `MODIFY_PT` now carries `replacement:{kind:die_would_exile_instead, object_var:<the debuffed creature>, duration:this_turn}` — the death-to-exile rider binds to the SAME target variable, mirroring Pinecone Strike.
+4. **Old Fat Spider source-presence duration**: both chapters' grants (the hexproof `GRANT_ABILITY` and the `PREVENT_DAMAGE`) now carry `duration:as_long_as_source_on_battlefield` (matched via `for as long as this … remains`).
+5. **Thorin, Mountain-king cross-sentence source binding**: the damage source is no longer the impossible `creature`+`equipment` selector. `first_target` now iterates EACH `target …` occurrence (was a single greedy capture that merged "target Equipment … to target creature" into one selector) and `_OBJ_DELIM` stops at `to target`; the source binds to the attached *creature* (a clean `card_types:[creature]` selector), distinct from the damage target var.
+6. **Valid-but-uninstantiated Oracle subtypes retained** (`effect_schema._ORACLE_EXTRA_SUBTYPES = {"orc"}`): "target Goblin or Orc" keeps `[goblin, orc]` in the selector even though no HOB permanent currently has subtype Orc — the graph distinguishes *selector contains Orc* from *current projection finds zero Orc objects* (the Orc branch projects to 0 today, by design).
+
+**Systematic regression test** (`test_no_unconditional_effect_when_the_clause_gates_it`): keyed on each effect's REAL clause text (via `_ability_clauses` + reconstructed `clause_id`), any clause containing an enduring-story / controls-another gate must emit a non-null `condition`, and any `with a … counter` clause must carry `has_counter`. Keying on the clause (not a char window) avoids falsely gating an unrelated sibling ability — e.g. Bifur's Storied keyword ("you have an enduring story") sits in a different ability than its `+1/+1` counter and correctly does NOT gate it.
+
+**320 tests pass** (+6 Phase-3c: conditions/qualifiers preserved, systematic gate test, Gnashing replacement binding, Old Fat Spider both-chapter durations, Thorin source-is-attached-creature, Orc retained-but-projects-to-zero). 120 object effects on 90 faces → 7,950 CAN_* pairs. Frozen artifacts byte-identical (manifest + pinned digest green). This closes the Phase-3 semantic-completeness pass; reconciliation "extracted" still means *an op of that family exists*, so the qualifier coverage is now guarded by these dedicated semantic tests rather than by reconciliation alone.
+
+Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_object.py`; `data/graph_global/{effect_records,card_pair_projection_effect}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt3.md`; [[phase4-frozen]]

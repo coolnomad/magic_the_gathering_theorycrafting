@@ -22,11 +22,17 @@ _PLURAL_SUB = {"wolves": "wolf", "elves": "elf", "dwarves": "dwarf"}
 _VOCAB = {}
 
 
+# Oracle-recognized subtypes that HOB REFERENCES but does not instantiate (review pt3): kept in the
+# selector vocabulary even though the projection currently finds zero such objects.
+_ORACLE_EXTRA_SUBTYPES = {"orc"}
+
+
 def _subtype_vocab():
-    """The controlled subtype vocabulary = every subtype actually printed on a HOB face or token."""
+    """The subtype vocabulary = every subtype printed on a HOB face/token, PLUS Oracle-referenced but
+    currently-uninstantiated subtypes (e.g. Orc) so 'target Goblin or Orc' stays semantically complete."""
     if "v" not in _VOCAB:
         from .pipeline import REPO, _load_dicts
-        v = set()
+        v = set(_ORACLE_EXTRA_SUBTYPES)
         for rel in ("data/normalized/faces.jsonl", "data/normalized/tokens.jsonl"):
             try:
                 for r in _load_dicts(REPO / rel):
@@ -97,6 +103,9 @@ def selector(phrase: str, var: str = "x", targeted=None, quantifier=None) -> dic
         preds["nontoken"] = True
     if re.search(r"\bnonland\b", low):
         preds["nonland"] = True
+    cm = re.search(r"with (?:a|an|one or more) (\+1/\+1|\-1/\-1|\w+) counter", low)
+    if cm:
+        preds["has_counter"] = cm.group(1)                  # e.g. Great Ugly '… with a +1/+1 counter on it'
     is_target = ("target" in low) if targeted is None else bool(targeted)
     mass = quantifier in ("each", "all")
     return {"card_types": types, "or_types": or_types, "subtypes": subtypes, "supertypes": supertypes,
@@ -156,6 +165,13 @@ def condition(text: str):
         return {"kind": "cast_from_graveyard"}
     if re.search(r"\bif this spell was kicked\b|\bkicker\b", low):
         return {"kind": "kicker"}
+    if re.search(r"as long as you have an enduring story", low):
+        return {"kind": "gate", "gate": "enduring_story"}          # HOB Storied gate (review pt3 #1)
+    m = re.search(r"as long as you control (?:another|an|a)\s+([A-Z][a-z]+)", text)
+    if m:
+        return {"kind": "controls_another", "subtype": m.group(1).lower()}
+    if re.search(r"\bthreshold\b", low):
+        return {"kind": "threshold", "detail": "seven_or_more_cards_in_graveyard"}
     if not re.search(r"\bif\b", low):
         return None
     # intervening-if only when the `if` sits inside a triggered-ability trigger clause

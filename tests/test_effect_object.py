@@ -156,8 +156,8 @@ def test_comma_separated_or_subtype_lists_and_controller():
     assert set(mk["selector"]["subtypes"]) == {"bear", "spider", "wolf"}
     assert mk["selector"]["controller"] == "you"
     assert sch.selector("Bear, Spider, or Wolf you control")["subtypes"] == ["bear", "spider", "wolf"]
-    # 'Orc' is not a printed HOB subtype (no Orc permanents) -> vocabulary-validated out; Goblin kept
-    assert sch.selector("Goblin or Orc you control")["subtypes"] == ["goblin"]
+    # 'Orc' is Oracle-recognized but uninstantiated in HOB -> retained in the selector (review pt3)
+    assert sch.selector("Goblin or Orc you control")["subtypes"] == ["goblin", "orc"]
     ac = sch.selector("artifact or creature you control")
     assert set(ac["card_types"]) == {"artifact", "creature"} and ac["or_types"] and ac["controller"] == "you"
     assert "up_to_2" in str(sch.selector("creatures", quantifier="up_to_2")["quantifier"])
@@ -261,3 +261,62 @@ def test_old_fat_spider_and_burglar_projection_constraints():
 def test_reconcile_reports_deferred_separately_from_unresolved():
     r = es.reconcile()
     assert r["unresolved"] == 0 and r["deferred"] >= 3 and r["extracted"] > 100
+
+
+# ---- review PHASE3 pt3: semantic completeness (conditions / durations / bindings) ----
+
+def test_conditions_and_qualifiers_are_preserved():
+    # enduring-story gate, controls-another, and the +1/+1-counter predicate are retained
+    assert _by_op("Óin the Brave")["GRANT_ABILITY"][0]["condition"] == {"kind": "gate", "gate": "enduring_story"}
+    assert _by_op("Fíli the Pathfinder")["MODIFY_PT"][0]["condition"]["gate"] == "enduring_story"
+    dc = _by_op("Dáin's Company")["GRANT_ABILITY"][0]
+    assert dc["condition"] == {"kind": "controls_another", "subtype": "dwarf"}
+    gug = _by_op("Great Ugly-Looking Goblin")["GRANT_ABILITY"][0]
+    assert gug["selector"]["predicates"].get("has_counter") == "+1/+1"
+
+
+def test_no_unconditional_effect_when_the_clause_gates_it():
+    # systematic: if an effect's OWN clause carries a gate ('as long as …' / 'with a … counter'),
+    # the record must not be bare-unconditional — the condition or the has_counter predicate must
+    # be captured. Keyed on the effect's real clause (via clause_id), not a char window, so a
+    # sibling ability's Storied text (e.g. Bifur) does not falsely gate an unrelated counter.
+    GATE = ("as long as you have an enduring story", "as long as you control another")
+    for f in _load_dicts(REPO / "data/normalized/faces.jsonl"):
+        text = es._blank_reminders(f.get("oracle_text") or "")
+        clauses = {}
+        for cl in es._ability_clauses(text):
+            cid = f"{f['id']}#a{cl['ability_index']}" + (
+                f".m{cl['mode_index']}" if cl["mode_index"] is not None else "")
+            clauses[cid] = text[cl["start"]:cl["end"]].lower()
+        for e in es._object_effects(f):
+            ctext = clauses.get(e["clause_id"], "")
+            if any(g in ctext for g in GATE):
+                assert e["condition"] is not None, (f["name"], e["op"], e["clause_id"])
+            if "with a +1/+1 counter" in ctext or "with a -1/-1 counter" in ctext:
+                assert (e["selector"].get("predicates") or {}).get("has_counter"), \
+                    (f["name"], e["op"], e["clause_id"])
+
+
+def test_gnashing_replacement_binds_to_the_debuffed_creature():
+    mp = [e for e in _by_op("Gnashing of Teeth")["MODIFY_PT"] if e["targeted"]][0]
+    assert mp["replacement"]["kind"] == "die_would_exile_instead"
+    assert mp["replacement"]["object_var"] == mp["object_var"] and mp["replacement"]["duration"] == "this_turn"
+
+
+def test_old_fat_spider_both_chapters_carry_source_presence_duration():
+    assert _by_op("Old Fat Spider Can't See Me")["GRANT_ABILITY"][0]["duration"] == "as_long_as_source_on_battlefield"
+    assert _by_op("Old Fat Spider Can't See Me")["PREVENT_DAMAGE"][0]["duration"] == "as_long_as_source_on_battlefield"
+
+
+def test_thorin_mountain_king_damage_source_is_the_attached_creature():
+    dmg = _by_op("Thorin, Mountain-king")["DEAL_DAMAGE"][0]
+    assert dmg["source_selector"]["card_types"] == ["creature"]        # the creature, NOT an Equipment
+    assert "equipment" not in dmg["source_selector"]["subtypes"]
+    assert dmg["source_var"] != dmg["object_var"]                      # distinct source/target vars
+
+
+def test_oracle_recognized_orc_subtype_retained_but_projects_to_zero():
+    assert "orc" in sch.selector("Goblin or Orc you control")["subtypes"]
+    faces = _load_dicts(REPO / "data/normalized/faces.jsonl")
+    orc_cards = [f for f in faces if "Orc" in (f.get("type_line") or {}).get("subtypes", [])]
+    assert orc_cards == []                                             # selector keeps Orc; HOB has 0 Orc objects

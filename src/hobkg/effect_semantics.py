@@ -287,8 +287,9 @@ _EQUIPPED_RE = re.compile(r"\b(equipped|enchanted) creature\b", re.I)   # attach
 _PLAYER_RE = re.compile(r"\b(target opponent|target player|each opponent|each player|that player)\b", re.I)
 _ANYTARGET_RE = re.compile(r"\bany target\b", re.I)
 _SUBJVERB_RE = re.compile(r"\b(gets?|gains?|loses?|fights?|becomes?)\b", re.I)
-_OBJ_DELIM = re.compile(r"\.|;|\bfor each\b|\bfor as long as\b|\bthat share\b|\bgets?\b|\bgains?\b|\bhas\b|"
-                        r"\bhave\b|\bloses?\b|\bfights?\b|\bbecomes?\b|\bif\b|\bthen\b|\buntil\b|$", re.I)
+_OBJ_DELIM = re.compile(r"\.|;|\bfor each\b|\bfor as long as\b|\bthat share\b|\bto target\b|\bgets?\b|"
+                        r"\bgains?\b|\bhas\b|\bhave\b|\bloses?\b|\bfights?\b|\bbecomes?\b|\bif\b|\bthen\b|"
+                        r"\buntil\b|$", re.I)
 
 
 def _abilities(phrase):
@@ -379,17 +380,18 @@ def _object_effects(face):
 
         cur = [None]                                       # (var, selector, participant)
         crange0 = text[cl["start"]:cl["end"]]
-        ft = []                                            # cached first-object-target of the clause
+        ftc = {}                                            # cached first-object-target of the clause, by wanted type
 
-        def first_target():
-            if not ft:
+        def first_target(want=None):
+            if want not in ftc:
                 res = None
-                for tm in re.finditer(r"target\s+(.+)", crange0, re.I):
-                    r = classify(_clip(tm.group(1)))
-                    if r["kind"] in ("self", "any_target", "selector"):
+                for tm in re.finditer(r"\btarget\s+", crange0, re.I):    # EACH 'target …' occurrence
+                    r = classify("target " + _clip(crange0[tm.end():]))
+                    if r["kind"] in ("self", "any_target", "selector") and \
+                            (want is None or want in (r["selector"].get("card_types") or [])):
                         res = (r["var"], r["selector"], r.get("participant")); break
-                ft.append(res)
-            return ft[0]
+                ftc[want] = res
+            return ftc[want]
 
         def objsel(res):
             if res["kind"] in ("self", "any_target", "selector"):
@@ -419,7 +421,9 @@ def _object_effects(face):
         for sent in cl["sentences"]:
             stext = text[sent["start"]:sent["end"]]
             slow = stext.lower()
-            dur = "until_end_of_turn" if "until end of turn" in slow else ("this_turn" if "this turn" in slow else None)
+            dur = ("until_end_of_turn" if "until end of turn" in slow else
+                   "this_turn" if "this turn" in slow else
+                   "as_long_as_source_on_battlefield" if re.search(r"for as long as this .* remains", slow) else None)
             scond = _sch.condition(stext)                  # condition scoped to THIS sentence
             sops = []
 
@@ -469,7 +473,9 @@ def _object_effects(face):
                 pdur = "as_long_as_source_on_battlefield" if re.search(r"for as long as this .* remains", slow) else None
                 emit("PREVENT_DAMAGE", "PREVENTS_DAMAGE_FROM", var, sel, part, {}, m.span(), pdur)
             for m in re.finditer(r"deals?\s+damage\s+(equal to its power\s+)?to\s+(.+)", stext, re.I):
-                subj = lead_subject(stext, m.start())
+                # the DAMAGING object is a creature (Thorin's 'that creature' = the target CREATURE the
+                # Equipment attached to, not the target Equipment); bind the source across sentences
+                subj = first_target(want="creature") or lead_subject(stext, m.start())
                 r = classify(_clip(m.group(2))); ov, osel, opart = objsel(r)
                 if subj and ov and subj[0] != ov:
                     sops.append({"op": "DEAL_DAMAGE", "relation": "CAN_DEAL_DAMAGE_TO", "object_var": ov,
@@ -528,10 +534,13 @@ def _object_effects(face):
             ops += sops
 
         crange = text[cl["start"]:cl["end"]]
-        repl = re.search(r"if (?:that creature|it) would die[^.]*?exile it instead", crange, re.I)
-        for op in ops:
-            if op["op"] == "DEAL_DAMAGE" and repl:
-                op["replacement"] = {"kind": "die_would_exile_instead", "object_var": op["object_var"], "duration": "this_turn"}
+        # a die→exile replacement binds to the TARGETED object of the mode (Pinecone's damage, but also
+        # Gnashing's -5/-5 MODIFY_PT), lasting the turn (review pt3 #2)
+        if re.search(r"if (?:that creature|it) would die[^.]*?exile it instead", crange, re.I):
+            tgt_op = next((op for op in ops if op["selector"]["targeted"]), None)
+            if tgt_op:
+                tgt_op["replacement"] = {"kind": "die_would_exile_instead",
+                                         "object_var": tgt_op["object_var"], "duration": "this_turn"}
         cm = re.search(r"costs? (\{[^}]+\}) less to cast if it targets a (\w+) creature", text, re.I)
 
         for i, op in enumerate(ops):
