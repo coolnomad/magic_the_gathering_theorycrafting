@@ -132,8 +132,17 @@ def condition(text: str):
 _EFFECT_REQUIRED = ("effect_id", "op", "relation", "participant", "selector", "mode", "targeted")
 
 
+def selector_is_empty(sel: dict) -> bool:
+    """An object selector is empty if it constrains no object at all (no type/subtype/supertype/
+    generic-permanent) AND is not a self reference."""
+    return not (sel.get("card_types") or sel.get("subtypes") or sel.get("supertypes")
+                or sel.get("generic_permanent") or sel.get("self"))
+
+
 def validate_effect(rec: dict) -> list:
-    """Return a list of schema violations for an effect record (empty = valid)."""
+    """Return a list of schema violations for an effect record (empty = valid). An OBJECT-directed
+    relation may not validate with an empty object selector unless an explicit self/antecedent binding
+    supplies the object (review PHASE3 pt1 #6)."""
     errs = []
     for k in _EFFECT_REQUIRED:
         if k not in rec:
@@ -147,6 +156,10 @@ def validate_effect(rec: dict) -> list:
         errs.append("mode must be {kind, index}")
     if rec.get("targeted") not in (True, False):
         errs.append("targeted must be boolean")
+    if rec.get("relation", "").startswith(("CAN_", "ADDS_", "MODIFIES_", "GRANTS_", "CHANGES_",
+                                           "REMOVES_", "SETS_", "SWITCHES_", "GAINS_")):
+        if selector_is_empty(sel) and not rec.get("binding") and not sel.get("self"):
+            errs.append("object relation with empty object selector and no self/antecedent binding")
     return errs
 
 

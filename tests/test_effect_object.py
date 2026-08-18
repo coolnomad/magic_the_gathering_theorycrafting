@@ -114,3 +114,82 @@ def test_all_object_effects_validate():
     for f in faces:
         for e in es._object_effects(f):
             assert sch.validate_effect(e) == [], (f["name"], e["op"])
+
+
+# ---- review PHASE3 pt1 regression: the generalized behaviour must be SAFE ----
+
+def test_no_cross_ability_target_leak():
+    # Dwarven Mattock: "+2/+2" applies to the EQUIPPED creature (equip layer), not the earlier
+    # target Dwarf -> no object MODIFY_PT leaks across abilities.
+    assert not _effs("Dwarven Mattock")
+    # Master's Councillors: its self +2/+0 is NOT bound to the later target player.
+    mc = _by_op("Master's Councillors")["MODIFY_PT"][0]
+    assert mc["object_var"] == "self" and mc["selector"]["self"] is True
+
+
+def test_self_effects_are_explicit():
+    sting = _by_op("Sting, Bilbo's Sword")["ADD_COUNTER"][0]
+    assert sting["object_var"] == "self" and sting["selector"]["self"] is True
+
+
+def test_duration_attaches_per_operation():
+    o = _by_op("Warg Tactics")
+    assert o["ADD_COUNTER"][0]["duration"] is None                 # counter is permanent
+    assert o["GRANT_ABILITY"][0]["duration"] == "until_end_of_turn"  # only the grant expires
+    dmg = _by_op("Pinecone Strike")["DEAL_DAMAGE"][0]
+    assert dmg["duration"] is None                                  # damage is immediate
+    assert dmg["replacement"]["duration"] == "this_turn"           # the replacement lasts the turn
+
+
+def test_participant_separated_and_no_empty_object_selectors():
+    o = _by_op("Gnashing of Teeth")["MODIFY_PT"]
+    mass = [e for e in o if e["affects_each"]][0]
+    assert mass["participant"] == "target_player" and mass["targeted"] is False
+    faces = _load_dicts(REPO / "data/normalized/faces.jsonl")
+    for f in faces:                                                # no object effect has an empty selector
+        for e in es._object_effects(f):
+            assert not sch.selector_is_empty(e["selector"]), (f["name"], e["op"])
+
+
+def test_comma_separated_or_subtype_lists_and_controller():
+    mk = _by_op("Mirkwood")["ADD_COUNTER"][0]
+    assert set(mk["selector"]["subtypes"]) == {"bear", "spider", "wolf"}
+    assert mk["selector"]["controller"] == "you"
+    assert sch.selector("Bear, Spider, or Wolf you control")["subtypes"] == ["bear", "spider", "wolf"]
+    assert sch.selector("Goblin or Orc you control")["subtypes"] == ["goblin", "orc"]
+    ac = sch.selector("artifact or creature you control")
+    assert set(ac["card_types"]) == {"artifact", "creature"} and ac["or_types"] and ac["controller"] == "you"
+    assert "up_to_2" in str(sch.selector("creatures", quantifier="up_to_2")["quantifier"])
+
+
+def test_new_families_present():
+    assert _by_op("Galion, Elvenking's Butler")["SET_BASE_PT"][0]["object_var"] == "obj0"
+    assert _by_op("Mirkwood Meditator")["SET_BASE_PT"][0]["value"] == "4/2"
+    assert _by_op("Burglar's Plot")["CONTROL_CHANGE"][0]["relation"] == "EXCHANGES_CONTROL_OF"
+    assert _by_op("Old Fat Spider Can't See Me")["PREVENT_DAMAGE"][0]["relation"] == "PREVENTS_DAMAGE_FROM"
+    # Enchanted River's Grasp's "loses all abilities" is an aura static -> no targeted removal
+    assert not any(e["op"] == "REMOVE_ABILITY" for e in _effs("Enchanted River's Grasp"))
+
+
+def test_effect_ids_carry_real_clause_ids_not_placeholder():
+    for f in _load_dicts(REPO / "data/normalized/faces.jsonl"):
+        for e in es._object_effects(f):
+            assert "#a?" not in e["clause_id"] and e["clause_id"].split("#")[1].startswith("a")
+
+
+def test_black_arrow_any_target_damage_preserved():
+    dmg = _by_op("The Black Arrow")["DEAL_DAMAGE"][0]
+    assert dmg["any_target"] is True and dmg["selector"].get("alternatives")
+
+
+def test_moment_of_glory_cast_from_graveyard_on_the_right_effect():
+    ctrs = _by_op("Moment of Glory")["ADD_COUNTER"]
+    targeted = [c for c in ctrs if c["targeted"]][0]
+    mass = [c for c in ctrs if c["affects_each"]][0]
+    assert targeted["condition"] is None                          # the first counter is unconditional
+    assert mass["condition"]["kind"] == "cast_from_graveyard"      # only the each-other counter
+
+
+def test_reconciliation_has_zero_unresolved():
+    r = es.reconcile()
+    assert r["unresolved"] == 0 and r["extracted"] > 90

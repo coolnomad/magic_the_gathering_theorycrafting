@@ -1643,3 +1643,27 @@ Sequence step 3: the rest of the targeted-object effects on the Phase-2 schema. 
 Output unified into `data/graph_global/effect_records.jsonl` (renamed from `effect_destroy.jsonl` — it now holds all families) + `card_pair_projection_effect.jsonl`. **69 effects on 52 faces → 6,098 CAN_* pairs** (ADDS_COUNTER_TO 1424, GRANTS_ABILITY_TO 1362, MODIFIES_POWER_TOUGHNESS 1253, CAN_DEAL_DAMAGE_TO 672, CAN_DESTROY 603, CAN_TAP/UNTAP 560, CAN_FIGHT 112, CHANGES_TYPE_OF 112), composed into `pair_index` under the `effect_semantics` column. **298 tests pass.** Frozen artifacts byte-identical (manifest + pinned digest green). Destruction results unchanged.
 
 Refs: `src/hobkg/effect_semantics.py` (`_object_effects`, generic projection); `tests/{test_effect_object,test_effect_destroy}.py`; `reports/effect_semantics.md`; `data/graph_global/{effect_records,card_pair_projection_effect}.jsonl`; [[phase4-frozen]]
+
+---
+
+## [2026-08-17] CORRECTION — Effect-semantics Phase 3a: ability-scoped extraction (review PHASE3 pt1)
+
+Review `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt1.md` rejected Phase 3: the generalized extractor parsed a whole face as one clause, so targets leaked across abilities and several records were materially wrong. Full architectural rebuild of `_object_effects` (and `_destroy_effects` unified onto the same segmentation); frozen core byte-identical.
+
+**Architecture:** extraction now runs per **(ability, mode) clause** via `_ability_clauses` (same segmenter as the census → real `clause_id` like `#a2.m1`, never `#a?`). Within a clause, a per-sentence subject is established once from the first subject-verb that yields a REAL subject (skipping auxiliaries like "you have an enduring story"), so operations on the same object **share one variable** while distinct targets get distinct vars; pronouns ("it"/"its"/"that creature") bind only when they LEAD the phrase. All 10 named-card defects fixed and verified:
+- **cross-ability leak gone:** Dwarven Mattock & Crude Bent Blade emit nothing (the "+2/+2" is an equipped-creature static → equip layer; "enchanted creature" likewise → aura layer);
+- **self-effects explicit:** Master's Councillors "+2/+0" and Sting's counter bind to `self`, not a later target player;
+- **per-operation duration:** Warg counter `duration:null` (permanent) but the grant `until_end_of_turn`; Pinecone damage `null`, its die→exile replacement `this_turn`;
+- **per-sentence condition:** Moment of Glory's first counter unconditional, only the each-other counter `cast_from_graveyard`;
+- **object vs participant:** Gnashing's mass mode carries `participant:target_player` + `affects_each`; player-only targets never become empty object selectors (`validate_effect` now REJECTS an object relation with an empty object selector unless self/antecedent-bound);
+- **comma-OR subtypes + controller:** Mirkwood → `[bear,spider,wolf]` + `controller:you`;
+- **any-target** (Black Arrow "1 damage to any target") preserved with `alternatives:[creature,planeswalker,battle,player]`;
+- **Quarrel** source-power damage distinguishes source(you)/target(opponent).
+
+**Remaining Phase-3 families completed** (documented predicate extensions): P/T set/switch (`SETS_BASE_PT`/`SWITCHES_PT` — Galion, Mirkwood Meditator/Pathmaker), ability removal (`REMOVES_ABILITY_FROM`), control change (`EXCHANGES_CONTROL_OF` — Burglar's Plot), damage prevention (`PREVENTS_DAMAGE_FROM` — Old Fat Spider). Plus `CAN_FIGHT`, `CHANGES_TYPE_OF` from Phase 3.
+
+**Reconciliation (`reports/effect_reconciliation.md`, `cli effect-reconcile`):** every Phase-3 census clause is reconciled — **139 clauses → 101 extracted, 0 unresolved**; the non-extracted are explicitly dispositioned (attachment_static equip/aura 15, amass→Army 13, participant→Phase 4 3, combat-damage-trigger 2, divided-damage / crew / doesn't-untap-restriction / grants-nonkeyword-ability 1 each).
+
+Destruction results preserved; object families now: ~130 effects across 14 ops. **308 tests pass** (+10 review-driven: cross-ability isolation, self, per-op duration, participant/empty-rejection, comma-OR, new families, real clause_ids, any-target, Moment condition, reconciliation-zero-unresolved). Frozen artifacts byte-identical.
+
+Refs: `src/hobkg/{effect_semantics,effect_schema,cli}.py`; `tests/test_effect_object.py`; `reports/{effect_semantics,effect_reconciliation}.md`; `data/graph_global/{effect_records,card_pair_projection_effect}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt1.md`; [[phase4-frozen]]
