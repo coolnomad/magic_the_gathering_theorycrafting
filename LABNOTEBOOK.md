@@ -1814,3 +1814,18 @@ New in `_participant_effects`: DISCARD (`DISCARDS_CARDS`) and MILL (`MILLS_CARDS
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4b`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt4/b514f37. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_resource.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt4.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4b repair: discard selectors + mill trigger binding (review PHASE4_review_pt5)
+
+Review `PHASE4_review_pt5.md` (verdict **REPAIR**, reviewed_commit `8320fdd`) accepted the participant/zone/no-fan-out work but flagged 2 blocking omissions in the authoritative records. Both fixed; accepted Phase-4a draw/life records remain byte-identical (`b514f37` subset hash unchanged).
+
+1. **DISCARD discarded-card selector + object binding** (blocker 1): new `_discard_selector` attaches a `card_selector` to every DISCARD record — `{zone:"hand", owner:<participant>, count, chooser, predicates?, object?, antecedent?}`. Which cards leave WHOSE hand, who chooses, and any card constraint are now explicit: Stony-Voiced Goblins (each opponent chooses 1 from their own hand); Balin (`count:"all"` — the whole hand); Uncover (2 from your hand under the `if you do` gate); **Down, Down to Goblin-town** carries the full same-object binding the reviewer required — `owner:target_opponent`, `chooser:"you"`, `predicates:{nonland:true}`, `object:"that_card"`, `antecedent:{kind:chosen_card, same_object:true}` (the discarded card IS the nonland card you chose from the revealed hand).
+2. **The Master of Lake-town mill trigger antecedent + amount binding** (blocker 2): "Whenever a player loses life, that player mills that many cards." The mill now carries `condition:{kind:"triggered", event:"Whenever a player loses life", binds:{participant:"player_who_lost_life", amount:"life_lost"}}` and `quantity_formula:{kind:variable, binding:"that many cards", source:"trigger_quantity", of:"that_player"}` — the trigger event is preserved, `that_player` is the player who lost life, and "that many" is bound to the life-loss quantity rather than an unbound free variable.
+
+**Numbers unchanged in shape:** 189 effects on 126 faces; 7,950 pairs (0 `DISCARDS_CARDS`/`MILLS_CARDS` fan-out). Reconcile 275 → 185 extracted, 4 deferred, 0 unresolved (`reports/{effect_semantics,effect_reconciliation}.md` byte-identical — the fix enriches records, not counts). Two serial `effect-build` runs byte-identical (`effect_records` `47e9b731…`). **365 tests pass** (+6 pt5 record-level regressions: every-discard-has-hand-selector, discard-your-hand-all, uncover-two-under-gate, each-opponent-own-hand, Down-Down chosen-nonland-same-object, Master-of-Lake-town trigger+life-lost binding). Accepted Phase-4a draw/life byte-identical. Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4b-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt5/8320fdd. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_resource.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt5.md`; [[phase4-frozen]]

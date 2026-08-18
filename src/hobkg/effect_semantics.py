@@ -699,6 +699,33 @@ def _quantity_formula(low: str, crange: str, amount: str, me: int):
     return None, amount
 
 
+def _discard_selector(low: str, ms: int, amt: str, owner: str) -> dict:
+    """The discarded-card object/selector for a DISCARD record (review pt5 #1): which cards leave
+    WHOSE hand, any card constraint, who chooses, and — for 'discards that card' — the same-object
+    binding to a previously chosen card. Source zone is always the hand."""
+    seg = low[ms:ms + 90]
+    sel = {"zone": "hand", "owner": owner, "count": ("all" if amt == "hand" else amt), "chooser": owner}
+    preds = {}
+    if "nonland" in seg:
+        preds["nonland"] = True
+    elif re.search(r"\bland cards?\b", seg):
+        preds["type"] = "land"
+    if "legendary" in seg:
+        preds["supertype"] = "legendary"
+    if re.search(r"discards? that card", seg):                # same-object: the previously chosen card
+        sel["object"] = "that_card"
+        sel["antecedent"] = {"kind": "chosen_card", "same_object": True}
+        cm = re.search(r"\bchoose (?:a|an|one) (nonland |legendary )?card\b", low[:ms])
+        if cm and cm.group(1):
+            q = cm.group(1).strip()
+            preds["nonland" if q == "nonland" else "supertype"] = True if q == "nonland" else "legendary"
+        if re.search(r"\byou choose\b", low[:ms]):
+            sel["chooser"] = "you"
+    if preds:
+        sel["predicates"] = preds
+    return sel
+
+
 def _participant_effects(face):
     """DRAW + LIFE participant records with same-participant binding. Reminder text AND double-quoted
     granted abilities are blanked (a recruit reminder 'Draw a card …' and a token's quoted 'You gain
@@ -771,10 +798,12 @@ def _participant_effects(face):
             raw = m.group(1).lower()
             amt = "hand" if "hand" in raw else "1" if raw == "that card" else _amount(raw)
             opt, gate = _op_optionality(low, m.start())
-            extra = {"amount": amt, "optional": opt}
+            dmeta = _participant_at(low, m.start())
+            extra = {"amount": amt, "optional": opt,
+                     "card_selector": _discard_selector(low, m.start(), amt, dmeta[0])}
             if gate:
                 extra["condition"] = gate
-            ops.append(("DISCARD", "DISCARDS_CARDS", _participant_at(low, m.start()), extra,
+            ops.append(("DISCARD", "DISCARDS_CARDS", dmeta, extra,
                         [cl["start"] + m.start(), cl["start"] + m.end()]))
         for m in _MILL_RE.finditer(low):
             if m.start() < eff_start:
@@ -783,7 +812,17 @@ def _participant_effects(face):
             opt, gate = _op_optionality(low, m.start())
             extra = {"amount": "variable" if amt == "that many" else amt, "optional": opt}
             if amt == "that many":
-                extra["quantity_formula"] = {"kind": "variable", "binding": "that many cards"}
+                # 'that many' is trigger-bound (Master of Lake-town: 'Whenever a player loses life,
+                # that player mills that many cards') — preserve the trigger event + amount binding
+                qf = {"kind": "variable", "binding": "that many cards"}
+                if tm:
+                    trg = crange[:tm.end()].strip().rstrip(",")
+                    qf["source"] = "trigger_quantity"
+                    qf["of"] = _participant_at(low, m.start())[0]
+                    extra["condition"] = {"kind": "triggered", "event": trg,
+                                          "binds": {"participant": "player_who_lost_life",
+                                                    "amount": "life_lost"}}
+                extra["quantity_formula"] = qf
             if gate:
                 extra["condition"] = gate
             ops.append(("MILL", "MILLS_CARDS", _participant_at(low, m.start()), extra,

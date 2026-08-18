@@ -118,3 +118,49 @@ def test_accepted_phase4a_draw_life_records_are_unchanged():
     assert rh["DRAW"]["participant_var"] == rh["LOSE_LIFE"]["participant_var"]
     assert rh["DRAW"]["targeted"] and rh["DRAW"]["amount"] == "2"
     assert _by_op("Old Thrush")["GAIN_LIFE"][0]["optional"] is False
+
+
+# ================================================================================================
+#  Phase 4b REPAIR (review PHASE4_review_pt5) — discarded-card selectors + mill trigger binding
+# ================================================================================================
+def test_repair_pt5_every_discard_has_a_hand_card_selector():
+    for name, recs in _structured_by_name().items():
+        for e in recs:
+            if e["op"] == "DISCARD":
+                cs = e.get("card_selector")
+                assert cs and cs["zone"] == "hand" and cs["owner"] == e["participant"], (name, e)
+
+
+def test_repair_pt5_discard_your_hand_selects_all_cards():
+    cs = _by_op("Balin, Loremaster")["DISCARD"][0]["card_selector"]
+    assert cs["count"] == "all" and cs["zone"] == "hand" and cs["owner"] == "you"
+
+
+def test_repair_pt5_uncover_discards_two_from_your_hand_under_if_you_do():
+    d = _by_op("Uncover the Moon-Letters")["DISCARD"][0]
+    assert d["card_selector"]["count"] == "2" and d["card_selector"]["owner"] == "you"
+    assert (d.get("condition") or {}).get("kind") == "prior_action_taken"
+
+
+def test_repair_pt5_each_opponent_discards_one_from_their_hand():
+    cs = _by_op("Stony-Voiced Goblins")["DISCARD"][0]["card_selector"]
+    assert cs["count"] == "1" and cs["owner"] == "each_opponent" and cs["chooser"] == "each_opponent"
+
+
+def test_repair_pt5_down_down_binds_chosen_nonland_card_same_object():
+    d = _by_op("Down, Down to Goblin-town")["DISCARD"][0]
+    cs = d["card_selector"]
+    assert cs["owner"] == "target_opponent" and cs["chooser"] == "you"
+    assert cs["object"] == "that_card"
+    assert cs["antecedent"] == {"kind": "chosen_card", "same_object": True}
+    assert cs["predicates"]["nonland"] is True
+
+
+def test_repair_pt5_master_of_lake_town_mill_binds_trigger_and_life_lost():
+    m = _by_op("The Master of Lake-town")["MILL"][0]
+    assert m["participant"] == "that_player" and m["amount"] == "variable"
+    c = m["condition"]
+    assert c["kind"] == "triggered" and "loses life" in c["event"]
+    assert c["binds"] == {"participant": "player_who_lost_life", "amount": "life_lost"}
+    qf = m["quantity_formula"]
+    assert qf["source"] == "trigger_quantity" and qf["of"] == "that_player"

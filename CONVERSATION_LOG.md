@@ -6053,3 +6053,92 @@ good. you already know you're the worker - but next instructions are here:  Tell
   Proceed to the next bounded Phase 4 sub-task: discard, sacrifice, mill, search, counterspells, complete
   SUPPLIES_RESOURCE review, or another coherent subset from the Phase 4 requirements. Preserve all accepted Phase 4a
   behavior and include protocol trailers in any commit.
+
+### [2026-08-18 10:31] ASSISTANT
+I'm the worker/implementer. Let me read the protocol, the governing spec, and the pt4 review that accepted Phase 4a:
+
+Phase 4a draw/life is **ACCEPTED** (review commit `be6f6b5`, 0 blocking, 1 nonblocking deferred to later execution work). Full Phase 4 remains open. Let me re-read the governing spec's discard/mill/sacrifice sections and inspect the census to pick a coherent bounded next sub-task:
+
+This is a clean **ACCEPT** of Phase 4a. The natural next bounded sub-task is **discard + mill** â€” both are participant-level "put cards into a graveyard" resource operations (discard: handâ†’graveyard; mill: libraryâ†’graveyard), stochastic (no deterministic fan-out), reusing my accepted participant machinery (resolver, per-op optionality/condition, formula quantities), and both need cost-vs-effect discipline. Let me look at the current extractor to extend it:
+
+I understand the structure. Let me add the discard/mill regexes near the existing ones:
+
+Now add the DISCARD and MILL loops and zone fields in the record builder:
+
+Now update `_OP_FAMILY` and the reconciled families, plus add dispositions for discard costs and mill triggers:
+
+Now add reconcile dispositions for discard costs, cycling, recruit reminders, and mill triggers. Let me find the disposition chain:
+
+Now let me verify the discard/mill extraction and reconciliation:
+
+Two issues: Silvan Reveler double-emits (the "If you discard a land card" *condition* is wrongly extracted), and "that player" back-references (Down Down, Master of Lake-town) resolve to `controller`. Let me add the `if you` guard first:
+
+Now let me check whether any accepted draw/life record uses `controller` (from "that player"), to decide the "that player" handling safely:
+
+No accepted draw/life record uses `controller`, so I can safely refine "that player" handling. Let me make it a proper back-reference (to a prior target if one exists, else an explicit `that_player`):
+
+3 DRAW records changed vs accepted â€” I must preserve accepted Phase 4a exactly. Let me diff them:
+
+That's a false positive â€” the only diff is the `name` field's accented characters (KÃ­li/ThrÃ³r/Ã“in) mangled by my subprocess's non-UTF-8 decoding. The records are actually identical. Let me confirm with correct UTF-8 decoding:
+
+All 52 accepted draw/life records are preserved byte-for-byte. Now let me build, reconcile, and check the discard/mill totals and dispositions:
+
+189 effects (17 new: DISCARD 11, MILL 6), pairs unchanged at 7950, zero discard/mill fan-out, 0 unresolved (275 clause-family pairs). Let me run the full suite to check for regressions:
+
+346 pass, no regressions. Now the Phase 4b regression tests:
+
+All 13 pass. Let me update the report headers to reflect Phase 4b:
+
+Now regenerate reports, run full determinism check + suite, then coverage last:
+
+Deterministic (`7fd99332`), 359 pass (+13), 0 unresolved, coverage Phase-6. Let me append the Phase 4b LABNOTEBOOK entry:
+
+Staged exactly my 7 Phase-4b files, diff-check clean, reviewer artifacts left untouched. Commit with protocol trailers and push:
+
+Committed and pushed as `8320fdd`. Let me run the final acceptance-style verification against the committed records:
+
+The Ã“in "FAIL" is the same cp1252 stdin-decoding artifact mangling the accented name (the record didn't match `'Ã“in the Brave'`). The test suite already verified this via proper UTF-8 loading. Let me confirm definitively:
+
+Confirmed â€” Ã“in the Brave has only a `DRAW` (its `Discard a card:` cost is correctly excluded); the earlier "FAIL" was purely a console-encoding artifact on the accented name. All real checks pass.
+
+## Summary
+
+Phase 4a draw/life was **ACCEPTED** (review `PHASE4_review_pt4`, commit `be6f6b5`, 0 blocking). As worker I implemented the next bounded Phase-4 sub-task â€” **Phase 4b: participant/resource DISCARD + MILL** â€” committed and pushed as `8320fdd`.
+
+**What was added** (reusing the accepted 4a machinery â€” participant resolver, per-op optionality/condition, formula quantities):
+- **DISCARD** (`DISCARDS_CARDS`, handâ†’graveyard) and **MILL** (`MILLS_CARDS`, libraryâ†’graveyard), each carrying `source_zone`/`dest_zone`/`event`. Both are participant-level/stochastic â†’ **zero card-pair fan-out**.
+- **Cost vs effect:** `Discard a card: <effect>` and cycling are costs, not effects (Ã“in, Key to the Side-Door â†’ `discard_cost`/`cycling_cost`); `If you discard â€¦` is a condition, not a second discard (Silvan Reveler emits exactly one).
+- **Participants:** edict `each opponent discards` (Stony-Voiced Goblins), optional `discard your hand` (Balin), mandatory `then discard a card`. Introduced a proper **`that player` back-reference** â€” binds to a prior in-clause target (Down Down â†’ `target_opponent`, targeted) or an explicit `that_player` antecedent (Master of Lake-town mill), replacing the old mis-mapping to `controller`.
+- **Mill:** plain `mill N` by you; `target player mills three` (targeted); `that player mills that many` â†’ `that_player`, variable + `quantity_formula`.
+
+**Invariant:** all **52 accepted Phase-4a draw/life records are byte-identical** to `b514f37` (effect_id-keyed diff), and the `that player` refinement touches no accepted record.
+
+**Verification:** 189 effects / 126 faces / 7,950 pairs (0 discard/mill fan-out in `card_pair_projection_effect` and `pair_index`); reconcile 275 â†’ 185 extracted, 4 deferred, **0 unresolved**; two serial builds byte-identical (`7fd99332`); **359 tests pass** (+13 in new `tests/test_effect_resource.py`); frozen manifest green; `git diff --check b514f37..8320fdd` clean; coverage kept Phase-6.
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4b` / `Implements` / `Addresses-Review: be6f6b5` / `Addresses-Implementation: b514f37` / `Validation` trailers; staged only my own paths; reviewer's uncommitted artifacts left untouched.
+
+Remaining Phase-4 sub-tasks (sacrifice, exile/movement, search/tutor, counterspells, full `SUPPLIES_RESOURCE` review) stay open for later bounded iterations. This commit awaits review.
+
+## 2026-08-18 Review Agent - Phase 4b pt5
+
+Reviewed worker commit `8320fdd20eb40005bde6a7eff37ac328e66a7962`
+against parent `be6f6b5152812bd95e1e33bab0ece8f4b67e47d6`.
+Created and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt5.md`
+as review commit `6552b7b3736df08305e7bae7a9d6bfcd4bed4915`.
+Verdict: `REPAIR`.
+
+Verification performed: targeted Phase 4 resource/participant/object/destroy tests
+passed (`89 passed`), full suite passed (`359 passed`), frozen manifest check reported
+`frozen_failures 0`, two consecutive `effect-build` runs were byte-identical
+(`effect_records` hash `7fd993320d34f1f7b9e479074fb2e94bb24b6208deeb7d51bb14e12f226732da`),
+reconciliation reported 275 clause/family pairs, 185 extracted, 4 deferred, and
+0 unresolved, and pair-projection files contained no resource fan-out relations.
+
+Blocking findings: DISCARD records omit discarded-card selectors and same-object
+bindings, including `Down, Down to Goblin-town`; `The Master of Lake-town` mill
+record omits the player-loses-life trigger antecedent and binds "that many" only
+as a vague variable rather than the life-loss quantity. Updated advisory
+`docs/review_events/review_ready.json` to signal the `REPAIR` result for the worker.
+
+### [2026-08-18 10:50] USER
+read hob_effect_semantics_repair_instructions_PHASE4_review_pt5.md
