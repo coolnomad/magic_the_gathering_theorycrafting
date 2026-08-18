@@ -5730,6 +5730,12 @@ ok and i want you to act as the reviewer
 ### [2026-08-18 00:25] ASSISTANT
 Acted as reviewer under `docs/review_event_protocol.md`. Reviewed worker commit `c5f32f9fc12f787636fc90528d28e446a7ab5730` against parent `c9e249e6d1f771536a478507c90ce5239d1264b9`, inspected the Phase 4a draw/life implementation and generated records, ran targeted tests, full `pytest`, frozen-manifest verification, `effect-build`, `effect-reconcile`, and deterministic rebuild hash checks. Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt1.md` in commit `3867e4b7a821a686d91500e82e12348db61773a6` with verdict `REPAIR`. Updated advisory signal `docs/review_events/review_ready.json` to point to the Phase 4 repair review. Blocking findings: lost participant targeting status, Gleaming Splendor target-player quantity/binding error, Gandalf owner binding error, quoted Food ability extracted as immediate life gain, Bard replacement draw false positive, and Gollum modal alternatives flattened.
 
+### [2026-08-18 00:47] USER
+new commit is up
+
+### [2026-08-18 00:47] ASSISTANT
+Acted as reviewer under `docs/review_event_protocol.md`. Reviewed worker repair commit `d40c6f02120b99560568d02470df88fa37249f45` against parent `3867e4b7a821a686d91500e82e12348db61773a6`. Verified the six Phase 4 pt1 blockers were fixed in generated records, ran `git diff --check`, targeted tests, full `pytest`, frozen-manifest verification, `effect-build`, `effect-reconcile`, no-fan-out checks, and deterministic rebuild hashes. Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt2.md` in commit `ac4d3ab8fb0e0ad9b40f0029504d651f6599fa0c` with verdict `REPAIR`. Updated advisory signal `docs/review_events/review_ready.json` to point to the Phase 4 pt2 repair review. Blocking findings: optionality still leaks from sibling instructions, and formula draw quantities remain fixed or under-specified.
+
 ### [2026-08-17 23:58] USER
 Read docs/review_event_protocol.md first. You are the worker/implementer role under that protocol. Then read the
   current phase instructions and the latest review document that applies to your implementation SHA. Act only on review
@@ -5854,4 +5860,69 @@ All protocol trailers are present. Phase 4a is committed and pushed.
 This commit now awaits review. Remaining Phase-4 sub-tasks (discard, sacrifice, mill, search, counterspells + full `SUPPLIES_RESOURCE` review + `sac_schema` integration) are bounded for later iterations.
 
 ### [2026-08-18 00:26] USER
+read the newest review doc
+
+### [2026-08-18 00:36] ASSISTANT
+The newest review is **Phase 4 pt1** targeting my exact SHA `c5f32f9`, verdict **REPAIR** with 6 blocking findings. Let me read it in full:
+
+A REPAIR verdict on my SHA `c5f32f9` with 6 blocking findings. It cites a governing doc I haven't read yet â€” `docs/phase4-requirements.md`. Let me read that and inspect the specific failing records/segmentation:
+
+`phase4-requirements.md` governs the *global-assembly* Phase 4 (different numbering) â€” my governing spec remains the effect-semantics repair instructions. Useful note: v4 gate #1 already establishes a precedent for stripping token-granted quoted abilities (blocking #4). Let me inspect the current failing records and Gollum's segmentation to design the fixes:
+
+Now Gollum's modal structure and how the segmenter handles the "choose one" bullets:
+
+The segmenter already produces `choose_one` modes (ability 2/3/4, mode_index 0/1/2). Let me verify what `mode` my records actually carry for Gollum â€” the review says null:
+
+My current code already emits `mode {choose_one, 1}` for Gollum â€” but the reviewer saw null. Let me check whether the **committed** `effect_records.jsonl` at c5f32f9 was stale:
+
+The committed records already carry `mode: {choose_one, index}` â€” so blocking #6's literal "mode null" claim does **not** reproduce against the committed data (I'll strengthen the modal semantics explicitly and add a test proving it, and note this). Blockers #1â€“#5 are valid. Let me implement the repair. First, `participant_selector` gains a `targeted` param:
+
+Now rewrite the participant resolver and extractor in `effect_semantics.py`. First the constants/resolver:
+
+Now update `_participant_effects` to use the richer resolver, blank quoted abilities, skip replaced "would draw" antecedents, and carry participant targeting/quantity:
+
+Now I'll rewrite the extractor body to carry participant targeting/quantity, blank quoted abilities, and skip replaced "would draw" antecedents:
+
+Now add a reconciliation disposition for quoted granted abilities (Supper for Spiders):
+
+Now let me verify all six fixes against the specific cards:
+
+All six fixes verified at the record level. Let me run the existing participant tests and a full build to check for regressions:
+
+12 existing tests pass. Effects 174â†’172 (Bard's spurious DRAW-1 and Supper's quoted GAIN_LIFE removed); pairs still 7950; 0 unresolved. Now let me add the **record-level** regression tests the review requires (inspecting generated structured records, not just the helper):
+
+All 19 pass. Now full suite, determinism, and the fan-out/frozen guards:
+
+Deterministic, zero draw/life fan-out in both projection files, 339 pass (+7 repair tests). Let me confirm Supper reconciles as `granted_ability` and regenerate reports (coverage last):
+
+Supper reconciles as `granted_ability`, 0 unresolved, coverage.md Phase-6, no whitespace errors. Let me get the final metric breakdown and append the repair LABNOTEBOOK entry:
+
+Now regenerate both reports once more to ensure currency, then stage my paths explicitly and commit:
+
+Staged exactly my repair files (diff-check clean; `card_pair_projection_effect.jsonl` unchanged, reviewer artifacts untouched). Now commit with the repair trailers and push:
+
+Repair committed and pushed as `d40c6f0`. Let me run the review's exact acceptance-test checks against the committed state for final confirmation:
+
+The Phase 4a repair is committed and pushed as `d40c6f0`, and every one of the review's acceptance-test JSONL checks passes against the committed records.
+
+## Summary
+
+**Review PHASE4_review_pt1** (verdict REPAIR, targeting my SHA `c5f32f9`, 6 blocking findings) â€” all addressed in a repair commit that touched no card-pair projection (`card_pair_projection_effect.jsonl` byte-identical, `c2354480`):
+
+| # | Blocker | Fix |
+|---|---------|-----|
+| 1 | Targeted participant effects lost targeting | New `_participant_at` resolver + `participant_selector(targeted, quantity, affects_each)`; `target_player`/`target_opponent` records now `targeted:true` with selector agreeing (Meager Meal, Reverent Howl, Down Down, Sackville) |
+| 2 | "Two target players each draw" bound to `you` | Gleaming Splendor â†’ `target_player`, `affects_each`, `participant_quantity:2`, amount 1 |
+| 3 | Owner/controller binding incomplete | Possessive `<name>'s owner` etc. â†’ Gandalf's draw binds `owner`, not `you` |
+| 4 | Quoted granted abilities emitted as immediate effects | `_blank_quoted` strips double-quoted granted abilities; Supper for Spiders emits no `GAIN_LIFE`, reconciled `granted_ability` |
+| 5 | Replacement draw emitted the replaced event | Skip `would draw` antecedent; Bard, King of Dale emits only the replacement `DRAW 2` |
+| 6 | Modal effects flattened `mode:null` | The committed records already carried `mode.kind=choose_one`+indices (the literal null claim didn't reproduce); made it explicit with `mode.exclusive` + a record-level test |
+
+**Verification:** 172 effects / 122 faces / 7,950 pairs (zero `DRAWS_CARDS`/`GAINS_LIFE`/`LOSES_LIFE` in both `card_pair_projection_effect` and `pair_index`); reconcile 244 â†’ 168 extracted, 4 deferred, **0 unresolved**; two serial builds byte-identical (`78b5d495`); **339 tests pass** (+7 record-level regressions per review requirement #7); frozen manifest green; `git diff --check c5f32f9..d40c6f0` clean; coverage.md kept Phase-6.
+
+**Protocol:** repair commit carries `Role`/`Phase`/`Iteration: 4a-repair1`/`Addresses-Review: 3867e4b`/`Addresses-Implementation: c5f32f9`/`Validation` trailers; staged only my paths, leaving the reviewer's uncommitted artifacts untouched.
+
+One note for the reviewer: blocker #6's literal "`mode: null`" did not reproduce against `c5f32f9`'s committed `effect_records.jsonl` (the records carried `choose_one` modes with distinct indices) â€” I strengthened the choice semantics with `mode.exclusive` and a dedicated test rather than treating it as a missing field. The repair now awaits re-review.
+
+### [2026-08-18 00:49] USER
 read the newest review doc

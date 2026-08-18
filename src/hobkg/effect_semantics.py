@@ -637,6 +637,39 @@ def _blank_quoted(text: str) -> str:
     return re.sub(r'"[^"]*"', lambda m: " " * len(m.group(0)), text)
 
 
+def _op_optionality(low: str, ms: int):
+    """Per-OPERATION optionality (review pt2 #1): an op is optional only if 'may' governs its OWN
+    verb (same sentence, before it) — NOT because a sibling instruction elsewhere in the clause says
+    'may' (Old Thrush's mandatory 'gain 2 life' + optional 'You may search'). An op reached only via
+    an optional prior action ('you may discard … If you do, draw …') is MANDATORY but conditioned on
+    that action (Ragged Short Spear, The Sackville-Bagginses, Balin)."""
+    s0 = low.rfind(". ", 0, ms)
+    seg = low[(0 if s0 < 0 else s0 + 2):ms]
+    if re.search(r"\bmay\b", seg):
+        return True, None
+    if "if you do" in seg:
+        return False, {"kind": "prior_action_taken",
+                       "detail": "gated by an optional prior action ('if you do')"}
+    return False, None
+
+
+def _quantity_formula(low: str, crange: str, amount: str, me: int):
+    """Structured formula quantity (review pt2 #2): 'for each <set>' is a per-each multiplier (not a
+    fixed count) and 'X, where X is …' binds X — so consumers never read `amount:"1"` / `"X"` as the
+    total. Returns (formula|None, amount_marker)."""
+    fe = re.search(r"\bfor each\b\s+([^.]+)", low[me:me + 120])
+    if fe:
+        base = int(amount) if amount.isdigit() else amount
+        per = crange[me + fe.start(1):me + fe.end(1)].strip().rstrip(".")
+        return {"kind": "per_each", "base": base, "per": per}, "formula"
+    if amount in ("X", "variable"):
+        wx = re.search(r"where x is ([^.]+)", low)
+        if wx:
+            return {"kind": "variable", "var": "X",
+                    "binding": crange[wx.start(1):wx.end(1)].strip().rstrip(".")}, amount
+    return None, amount
+
+
 def _participant_effects(face):
     """DRAW + LIFE participant records with same-participant binding. Reminder text AND double-quoted
     granted abilities are blanked (a recruit reminder 'Draw a card …' and a token's quoted 'You gain
@@ -665,38 +698,53 @@ def _participant_effects(face):
                 continue                                     # the draw is the trigger event, not an effect
             if re.search(r"\bwould\s+$", low[:m.start()]):
                 continue                                     # 'if you would draw a card …' = replaced event
-            meta = _participant_at(low, m.start())
-            extra = {"amount": _amount(m.group(1))}
+            amt = _amount(m.group(1))
+            opt, gate = _op_optionality(low, m.start())
+            qf, amt = _quantity_formula(low, crange, amt, m.end())
+            extra = {"amount": amt, "optional": opt}
+            if gate:
+                extra["condition"] = gate
+            if qf:
+                extra["quantity_formula"] = qf
             if re.search(r"cards?\s+instead", low[m.start():m.start() + 40]):
                 extra["replacement"] = {"kind": "draw_instead"}   # Plunder / Bard King of Dale
-            if re.search(r"\bfor each\b", low[m.end():m.end() + 40]):
-                extra["scaling"] = crange[m.end():m.end() + 60].strip()
-            ops.append(("DRAW", "DRAWS_CARDS", meta, extra,
+            ops.append(("DRAW", "DRAWS_CARDS", _participant_at(low, m.start()), extra,
                         [cl["start"] + m.start(), cl["start"] + m.end()]))
         for m in _DRAW_VAR_RE.finditer(low):
             if m.start() < eff_start:
                 continue
-            ops.append(("DRAW", "DRAWS_CARDS", _participant_at(low, m.start()),
-                        {"amount": "variable", "scaling": crange[m.start(1):m.end(1)].strip()},
+            opt, gate = _op_optionality(low, m.start())
+            extra = {"amount": "variable", "optional": opt,
+                     "quantity_formula": {"kind": "variable",
+                                          "binding": crange[m.start(1):m.end(1)].strip().rstrip(".")}}
+            if gate:
+                extra["condition"] = gate
+            ops.append(("DRAW", "DRAWS_CARDS", _participant_at(low, m.start()), extra,
                         [cl["start"] + m.start(), cl["start"] + m.end()]))
         for m in _LIFE_RE.finditer(low):
             if m.start() < eff_start:
                 continue                                     # 'whenever a player loses life' trigger
             op = "GAIN_LIFE" if m.group(1).lower().startswith("gain") else "LOSE_LIFE"
             rel = "GAINS_LIFE" if op == "GAIN_LIFE" else "LOSES_LIFE"
-            ops.append((op, rel, _participant_at(low, m.start()), {"amount": _amount(m.group(2))},
+            opt, gate = _op_optionality(low, m.start())
+            extra = {"amount": _amount(m.group(2)), "optional": opt}
+            if gate:
+                extra["condition"] = gate
+            ops.append((op, rel, _participant_at(low, m.start()), extra,
                         [cl["start"] + m.start(), cl["start"] + m.end()]))
 
         for i, (op, rel, meta, extra, span) in enumerate(ops):
             part, targeted, quantity, each = meta
             v = pvar(part)                                    # same participant string → one var
+            opt = extra.pop("optional", False)
+            cond = extra.pop("condition", None) or _sch.condition(crange)  # per-op gate overrides clause
             rec = {"effect_id": f"{clause_id}#{op}#{i}", "op": op, "relation": rel,
                    "participant": part, "participant_var": v,
                    "selector": _sch.participant_selector(v, targeted=targeted, quantity=quantity,
                                                          affects_each=each),
                    "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"], "exclusive": exclusive},
-                   "condition": _sch.condition(crange), "duration": _sch.duration(crange),
-                   "optional": "may " in low, "targeted": targeted,
+                   "condition": cond, "duration": _sch.duration(crange),
+                   "optional": opt, "targeted": targeted,
                    "affects_each": each, "binding": None,
                    "clause_id": clause_id, "oracle_span": span, **extra}
             if quantity is not None:

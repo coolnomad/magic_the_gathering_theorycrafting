@@ -58,7 +58,8 @@ def test_gollum_riddle_master_distinct_participants_get_distinct_vars():
 def test_variable_amount_draw_is_captured():
     # Tom, Bert, and William: 'Draw cards equal to the sacrificed creature's power'
     d = _by_op("Tom, Bert, and William")["DRAW"][0]
-    assert d["amount"] == "variable" and "sacrificed creature" in d["scaling"]
+    assert d["amount"] == "variable"
+    assert d["quantity_formula"]["kind"] == "variable" and "sacrificed creature" in d["quantity_formula"]["binding"]
 
 
 def test_condition_is_preserved_on_participant_effects():
@@ -172,3 +173,44 @@ def test_repair_same_participant_binding_survives_targeting():
     r = {e["op"]: e for e in _structured()["Reverent Howl"]}
     assert r["DRAW"]["participant_var"] == r["LOSE_LIFE"]["participant_var"]
     assert r["DRAW"]["targeted"] and r["LOSE_LIFE"]["targeted"]
+
+
+# ================================================================================================
+#  Phase 4a REPAIR 2 (review PHASE4_review_pt2) — per-op optionality + structured formula quantities
+# ================================================================================================
+def test_repair_pt2_optionality_does_not_leak_from_sibling_instruction():
+    # Old Thrush: 'you gain 2 life. You may search …' — the life gain is MANDATORY
+    gl = [e for e in _structured()["Old Thrush"] if e["op"] == "GAIN_LIFE"]
+    assert gl and all(e["optional"] is False for e in gl)
+
+
+def test_repair_pt2_draw_gated_by_optional_prior_action_is_conditional_not_optional():
+    # 'you may discard/sacrifice … If you do, draw …' — mandatory draw gated by the optional action
+    for name in ("Ragged Short Spear", "The Sackville-Bagginses"):
+        d = [e for e in _structured()[name] if e["op"] == "DRAW"]
+        assert d, name
+        assert all(e["optional"] is False for e in d), name
+        assert all((e.get("condition") or {}).get("kind") == "prior_action_taken" for e in d), name
+
+
+def test_repair_pt2_for_each_draw_is_formulaic_not_fixed_one():
+    # The Master of Lake-town: 'draw a card for each graveyard with seven or more cards in it'
+    d = [e for e in _structured()["The Master of Lake-town"] if e["op"] == "DRAW"][0]
+    assert d["amount"] != "1"                                  # not read as a total of one
+    qf = d["quantity_formula"]
+    assert qf["kind"] == "per_each" and qf["base"] == 1 and "graveyard" in qf["per"]
+
+
+def test_repair_pt2_x_draw_carries_where_x_binding():
+    for name, frag in (("Balin, Loremaster", "cards discarded"),
+                       ("Uncover the Moon-Letters", "mana spent")):
+        d = [e for e in _structured()[name] if e["op"] == "DRAW"][0]
+        assert d["amount"] == "X", name
+        qf = d["quantity_formula"]
+        assert qf["kind"] == "variable" and qf["var"] == "X" and frag in qf["binding"], name
+
+
+def test_repair_pt2_may_draw_is_still_optional():
+    # Uncover: 'you may draw X cards' — the draw itself IS optional (may governs its own verb)
+    d = [e for e in _structured()["Uncover the Moon-Letters"] if e["op"] == "DRAW"][0]
+    assert d["optional"] is True

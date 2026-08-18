@@ -1762,3 +1762,18 @@ Review `PHASE4_review_pt1.md` (verdict **REPAIR**, reviewed_commit `c5f32f9`) ac
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4a-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt1/c5f32f9. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_participant.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt1.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4a repair 2: per-op optionality + formula quantities (review PHASE4_review_pt2)
+
+Review `PHASE4_review_pt2.md` (verdict **REPAIR**, reviewed_commit `d40c6f0`) confirmed all six pt1 blockers fixed and narrowed to 2 remaining structured-semantics defects. Both fixed; `card_pair_projection_effect.jsonl` still byte-identical (`c2354480…`).
+
+1. **Per-operation optionality** (blocker 1): `optional` was clause-wide (`"may " in low`), so a mandatory effect with an optional *sibling* was wrongly optional. New `_op_optionality(low, ms)` computes it per op: optional only when `may` governs the op's OWN verb (same sentence, before it). **Old Thrush** "you gain 2 life. You may search …" → the `GAIN_LIFE` is now `optional:false` (only the search is optional). An op reached via an optional prior action ("you may discard … If you do, draw …") is MANDATORY but carries `condition:{kind:prior_action_taken}` — **Ragged Short Spear** and **The Sackville-Bagginses** draws are `optional:false` + gated, not plain optional. **Uncover the Moon-Letters** "you may draw X cards" stays `optional:true` (may governs the draw itself).
+2. **Structured formula quantities** (blocker 2): `for each` / `where X is …` no longer collapse to a fixed amount. New `_quantity_formula`: **The Master of Lake-town** "draw a card for each graveyard with seven or more cards" → `amount:"formula"`, `quantity_formula:{kind:per_each, base:1, per:"graveyard with seven or more cards in it"}` (no longer a misleading `amount:"1"`); **Balin, Loremaster** and **Uncover the Moon-Letters** keep `amount:"X"` with `quantity_formula:{kind:variable, var:"X", binding:"the number of cards discarded this way" | "the amount of mana spent to cast that spell"}`; Tom, Bert, and William's "draw cards equal to …" → `quantity_formula:{kind:variable, binding:"equal to the sacrificed creature's power"}` (replaces the old free-text `scaling`).
+
+**Numbers unchanged in shape:** 172 effects on 122 faces; 7,950 pairs (0 `DRAWS_CARDS`/`GAINS_LIFE`/`LOSES_LIFE` in `card_pair_projection_effect` and `pair_index`). Reconcile 244 → 168 extracted, 4 deferred, 0 unresolved. Two serial `effect-build` runs byte-identical (`effect_records` `7af97162…`). **344 tests pass** (+5 record-level pt2 regressions: Old-Thrush-mandatory, prior-action-gated draws, for-each-formulaic, where-X-binding, may-draw-still-optional; the variable-draw test updated from `scaling` → `quantity_formula`). All pt1 repair regressions still green. Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4a-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt2/d40c6f0. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_participant.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt2.md`; [[phase4-frozen]]
