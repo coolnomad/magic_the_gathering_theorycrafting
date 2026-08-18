@@ -1862,3 +1862,18 @@ Phase 4b discard/mill **accepted** (review `PHASE4_review_pt7`, verdict ACCEPT, 
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4c`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt7/b0759cb. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_sacrifice_effects`); `src/hobkg/sac_schema.py` (reused, unmodified); `tests/test_effect_sacrifice.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt7.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4c repair: operation-scoped sacrifice conditions (review PHASE4_review_pt8)
+
+Review `PHASE4_review_pt8.md` (verdict **REPAIR**, reviewed_commit `73e108c`) accepted the sacrifice records/roles/no-fan-out but flagged 2 blocking condition defects. Both fixed; accepted Phase-4a/4b records byte-identical (`b0759cb` 69-record subset).
+
+1. **Later "If you do" payoff no longer leaks onto the sacrifice** (blocker 1): the condition was `_sch.condition(raw)` over the whole line, so a trailing `If you do, <payoff>` (Rhovanion Rampager, Bolg of the North, The Sackville-Bagginses) and Elven Passage's post-colon effect were wrongly attached to the sacrifice. New `_sac_condition(prefix)` derives the gate ONLY from the text BEFORE the sacrifice verb (`raw[:mphrase.start()]`) — a leading gate governs the sacrifice; a trailing "If you do" gates the payoff, and an activated cost is unconditional once activated. Result: Rhovanion/Bolg/Sackville are `optional:true`, `condition:null`; Elven Passage's activated sacrifice cost is `condition:null`.
+2. **Conditional self-sacrifice preserves its specific gate** (blocker 2): Misty Mountains Cold "if you control four or more Treasures" → `condition:{kind:controls_count, count:four, of:treasures, detail}`; Last Light of Durin's Day "if it has six or more quest counters" → `condition:{kind:counter_threshold, count:six, counter:quest, detail}` — no longer the generic `conditional_effect`. Their `cost_context` is now `conditional_self_sacrifice` (an ordinary conditional resolution effect), not `unsupported`.
+
+**Numbers unchanged in shape:** 211 effects on 132 faces; 7,950 pairs (0 `SACRIFICES` fan-out). Reconcile 311 → 207 extracted, 4 deferred, 0 unresolved (`reports/*` byte-identical — the fix corrects condition fields, not counts). Two serial `effect-build` runs byte-identical (`effect_records` `781f2124…`). **381 tests pass** (+2 net: the conditional-self-sac test now asserts the specific gate; +`test_later_if_you_do_payoff_does_not_gate_the_sacrifice` and +`test_activated_sacrifice_cost_is_unconditional`). Accepted Phase-4a/4b byte-identical. Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4c-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt8/73e108c. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_sac_condition`); `tests/test_effect_sacrifice.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt8.md`; [[phase4-frozen]]

@@ -862,6 +862,23 @@ def _participant_effects(face):
 _SAC_COST_CTX = {"activated_ability", "additional_cast_cost", "kicker"}
 
 
+def _sac_condition(prefix: str):
+    """The condition that GATES a sacrifice — derived only from the text BEFORE the sacrifice verb
+    (review pt8): a trailing 'If you do, <payoff>' gates the payoff, not the sacrifice; an activated
+    cost is unconditional once activated. A leading gate is preserved WITH its specific predicate:
+    'if you control four or more Treasures' / 'if it has six or more quest counters'."""
+    low = prefix.lower()
+    m = re.search(r"if you control (\w+) or more ([A-Za-z]+)", low)
+    if m:
+        return {"kind": "controls_count", "count": m.group(1), "of": m.group(2),
+                "detail": f"control {m.group(1)} or more {m.group(2)}"}
+    m = re.search(r"if it has (\w+) or more (\w+) counters?", low)
+    if m:
+        return {"kind": "counter_threshold", "count": m.group(1), "counter": m.group(2),
+                "detail": f"{m.group(1)} or more {m.group(2)} counters"}
+    return _sch.condition(prefix)
+
+
 def _sacrifice_effects(face):
     from . import sac_schema as _sac
     text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))
@@ -906,7 +923,12 @@ def _sacrifice_effects(face):
         elif ":" in raw and re.search(r"[Ss]acrifice[^:]*:", raw):
             ctx = "activated_ability"
         else:
-            ctx = "unsupported"                              # e.g. conditional self-sac (Misty, Last Light)
+            ctx = "unsupported"
+        # condition gating THE SACRIFICE is the LEADING text only (a trailing 'If you do, <payoff>'
+        # gates the payoff, not the sacrifice; a cost is unconditional once activated) — review pt8 #1
+        cond = _sac_condition(raw[:mphrase.start()])
+        if ctx == "unsupported" and sel["self"] and cond:   # an ordinary conditional self-sac resolution
+            ctx = "conditional_self_sacrifice"              # (not 'unsupported') — review pt8 #2
         role = "cost" if ctx in _SAC_COST_CTX else "effect"
         pos = text.find(mphrase.group(0))
         span = [pos, pos + len(mphrase.group(0))] if pos >= 0 else list(mphrase.span())
@@ -919,9 +941,6 @@ def _sacrifice_effects(face):
                          "or_types": sel["or_types"], "subtypes": sel["subtypes"],
                          "supertypes": sel["supertypes"], "generic_permanent": sel["generic_permanent"],
                          "count": sel["quantity"], "chooser": actor}
-        cond = _sch.condition(raw)                           # scoped to the sacrifice's OWN line (abilities
-        #                                                      are newline-separated; a prior line's
-        #                                                      'as long as …' must not gate this cost)
         rec = {"effect_id": f"{cid}#SACRIFICE#{j}", "op": "SACRIFICE", "relation": "SACRIFICES",
                "participant": actor, "participant_var": pvars[actor], "role": role, "cost_context": ctx,
                "cost": _sac._cost(raw, ctx if ctx in _SAC_COST_CTX else "x", sel),

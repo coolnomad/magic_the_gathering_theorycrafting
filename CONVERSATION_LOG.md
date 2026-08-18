@@ -6186,6 +6186,33 @@ Phase 4b discard/mill repair only; broader Phase 4 remains open. Updated
 advisory `docs/review_events/review_ready.json` to signal the pt7 `ACCEPT`
 result.
 
+## 2026-08-18 Review Agent - Phase 4c pt8
+
+Reviewed worker commit `73e108c9a21e23048ad36adfe1c13b38bda449e1`
+against parent/review commit `5429b7f22c46ebbcd0330d44f1fae5f37930bc83`.
+Created and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt8.md`
+as review commit `a6d1cd65d7c94b206a8d01b818667dec68d7f470`.
+Verdict: `REPAIR`.
+
+Verification performed: isolated targeted Phase 4 sacrifice/resource/participant/object/destroy
+tests passed (`109 passed`), full suite passed (`379 passed`), frozen manifest
+check reported `frozen_failures 0`, two consecutive `effect-build` runs were
+byte-identical (`effect_records` hash
+`4e2692e6c903faa4e37b5d4d8a6325d904099331240e042575ca6da0a56f89c2`),
+reconciliation reported 311 clause/family pairs, 207 extracted, 4 deferred, and
+0 unresolved, and pair-projection files contained no sacrifice/resource fan-out
+relations. Accepted Phase 4a/4b participant records remained byte-identical to
+`b0759cb`.
+
+Blocking findings: sacrifice condition extraction still scans too much of the
+line, causing later payoff conditions to attach to the sacrifice operation
+itself (`Rhovanion Rampager`, `Bolg of the North`, `The Sackville-Bagginses`,
+`Elven Passage`); conditional self-sacrifice records preserve only generic
+`conditional_effect` and lose the actual gates (`The Misty Mountains Cold`
+requires four or more Treasures; `Last Light of Durin's Day` requires six or
+more quest counters). Updated advisory `docs/review_events/review_ready.json`
+to signal the pt8 `REPAIR` result.
+
 ## 2026-08-18 Review Agent - New Commit Check
 
 User reported a new commit was available. Ran `git status --short --branch`,
@@ -6316,3 +6343,72 @@ Want me to proceed to the next bounded sub-task? If so, **sacrifice** is the nat
 
 ### [2026-08-18 13:52] USER
 yes do the next task
+
+### [2026-08-18 14:29] ASSISTANT
+Proceeding to the next bounded sub-task: **sacrifice**. First let me check the existing portable sacrifice extractor (the spec says to reuse/integrate it) and dump the sacrifice census clauses:
+
+There's an existing portable sacrifice extractor (`sac_extract.py`, `sac_schema.py`) the spec says to reuse. The 36 clauses span the full taxonomy (self-sac cost, fodder cost, additional cast cost, optional/mandatory effect, edict, Saga cleanup, Treasure reminder, conditional). Let me read the existing extractor to integrate it:
+
+The `sac_schema` is a portability tracer-bullet (FIN-evaluated). Let me see the structured schema it produces per sacrifice clause so I can reuse its classification:
+
+The existing `sac_schema.extract_all` already classifies every outlet (cost_context: additional_cast_cost / activated_ability / effect / resolution_effect edict / kicker / unsupported; actor; selector; cost; skips triggers and Saga self-timers) â€” exactly the portable extractor the spec says to integrate. Let me read its selector/cost/edict internals to map into effect records:
+
+The `sac_schema` selector/cost structures are rich and reusable. Let me test `extract_all` on HOB faces to see the outlets/contexts before integrating:
+
+`extract_all` covers most cases well (additional-cast cost, activated-ability cost, optional effect, edict), but has three gaps I need to handle: **Bolg's Company** ("Sacrifice another Goblin" â€” subtype-only fodder is dropped by the outlet check), and **Misty Mountains Cold** / **Last Light** (conditional self-sacrifice via "this Saga"/"sacrifice it"). Let me check the sac tests and the relevant regexes before deciding whether to extend sac_schema or disposition:
+
+Modifying `sac_schema` is risky (it has 3 test files + FIN metrics), but the subtype-fodder gap (Bolg's Company) is a clear miss. Let me try the minimal safe extension â€” include subtypes in the outlet check and add "saga" to the self-recognition â€” and run the full sac test suite to check for regressions:
+
+Modifying `sac_schema` breaks its 4 pinned portability tests (FIN metrics are locked). That module is accepted under its own review â€” I must not perturb it. Let me revert and handle the gaps in my own integration layer instead:
+
+The system flags sac_schema as reverted to its accepted state (18 tests pass) â€” I'm leaving it untouched. Instead I'll **integrate** sac_schema's parsing helpers (`_selector`, `_cost`, its regexes) from my own layer with relaxed outlet eligibility (subtypes + self-Saga/pronoun), so the portable module stays intact. Let me find where to add `_sacrifice_effects`:
+
+Now wire it into `build_effects`, `reconcile`, `_OP_FAMILY`, and the family set. Let me update those:
+
+Now let me build and check the sacrifice records, fan-out, and which clauses remain unresolved for reconcile dispositions:
+
+22 SACRIFICE effects, pairs unchanged (0 fan-out). The unextracted clauses are all dispositionable (Treasure reminder/quoted, Saga "Sacrifice after IV", the Sackville sacrifice-*trigger*). Let me run reconcile to see what's still unresolved and add the needed dispositions:
+
+Only 1 unresolved: Supper for Spiders' quoted Food sacrifice ("Sacrifice this artifact: You gain 3 life") â€” the `granted_ability` disposition currently only covers life/draw quotes. Let me extend it to sacrifice and add a `sacrifice_trigger` disposition:
+
+0 unresolved, and 22 SACRIFICE records extracted â€” including **Bolg's Company** (subtype `goblin` fodder, the gap I integrated). One thing to check: Bolg's Company shows `cond=controls_another`, which looks like a spurious condition on a sacrifice *cost*. Let me investigate:
+
+Found it: Bolg's Company has two abilities on separate lines, but `_op_sentence` splits only on `". "` (not `".\n"`), so the sacrifice's "sentence" bled into line 1's "as long as you control another Goblin". Since I process sacrifice **line-by-line**, the correct operation scope is the sacrifice's own line (`raw`) â€” this also avoids touching the shared `_op_sentence` used by accepted draw/life:
+
+Bolg fixed (`cond=None`), Misty/Last Light conditional self-sac preserved, and all 69 accepted 4a+4b records byte-identical. Now determinism, reconcile, fan-out, and full suite:
+
+Deterministic (`4e2692e6`), 0 unresolved, 0 fan-out, 366 pass. Now the sacrifice regression tests (record-level, per reviewer guidance):
+
+13 pass. Let me update the report headers to include Phase 4c/sacrifice, then run the full suite and regenerate reports:
+
+Now regenerate all reports, run the full suite, and regenerate coverage last:
+
+379 pass (+13), coverage Phase-6. Let me append the Phase 4c LABNOTEBOOK entry:
+
+Staged exactly my 7 files â€” `sac_schema.py` is correctly **not** modified (I integrated its helpers rather than forking it). Commit and push:
+
+Committed and pushed as `73e108c` (remote confirmed). Let me run the final acceptance verification against the committed records:
+
+All acceptance checks pass against the committed records. Phase 4c (SACRIFICE) is committed and pushed.
+
+## Summary
+
+Phase 4b was accepted (pt7); I proceeded to the next bounded sub-task â€” **Phase 4c: SACRIFICE** â€” committed and pushed as `73e108c`.
+
+**Approach â€” integrate, don't fork.** The spec says to reuse the portable sacrifice extractor. `sac_schema` is an accepted module with pinned FIN metrics and 3 test files, so I left it **unmodified** and had `_sacrifice_effects` reuse its parsing helpers (`_selector`/`_cost`) and regexes, applying outlet-eligibility and self/pronoun handling in my own layer. (I first tried extending sac_schema directly â€” it broke 4 pinned metric tests, so I reverted.)
+
+**What it produces** â€” `SACRIFICE` records (battlefieldâ†’graveyard, participant-level, **no fan-out**):
+- **role** `cost` (activated / additional-cast / kicker) vs `effect` (optional `may` / edict / conditional self-sac), plus `cost_context`, structured `cost`, and an eligibility `card_selector` (self / fodder type / subtype / OR / another / count / chooser).
+- **Gap closed:** subtype-only fodder â€” Bolg's Company "Sacrifice another **Goblin**" (dropped by `sac_schema` alone) now extracts with `subtypes:[goblin]`.
+- **Edict** targeted (Crude Bent Blade â†’ `target_opponent`); **conditional self-sac** (Misty Mountains Cold, Last Light â†’ `self`, `conditional_effect`).
+- **Operation-scoped condition:** read from the sacrifice's own line, so Bolg's line-1 "as long as you control another Goblin" no longer leaks a `controls_another` gate onto the line-2 cost. Left the shared `_op_sentence` untouched to keep accepted 4a/4b byte-identical.
+- **Dispositioned** (not extracted): Saga "Sacrifice after N", quoted token abilities (Supper for Spiders), "Whenever you sacrifice â€¦" triggers (Sackville).
+
+**Verification:** all acceptance checks pass; **69 accepted 4a/4b records byte-identical** to `b0759cb`; 211 effects / 132 faces / 7,950 pairs, **zero** `SACRIFICES` fan-out; reconcile 311 â†’ 207 extracted, 4 deferred, **0 unresolved**; two deterministic builds (`4e2692e6`); **379 tests pass** (+13 in `tests/test_effect_sacrifice.py`); frozen manifest green; `git diff --check b0759cb..73e108c` clean; coverage Phase-6.
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4c` / `Implements` / `Addresses-Review: 5429b7f` / `Addresses-Implementation: b0759cb` / `Validation` trailers; staged only my own paths; `sac_schema.py` and reviewer artifacts untouched.
+
+Remaining Phase-4 sub-tasks (search/tutor, exile/movement, counterspells, complete `SUPPLIES_RESOURCE` review) stay open. This commit awaits review.
+
+### [2026-08-18 15:23] USER
+ok review_pt8 is up. read that

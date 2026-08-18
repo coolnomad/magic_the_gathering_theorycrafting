@@ -70,19 +70,40 @@ def test_edict_is_targeted_and_actor_is_opponent():
     assert e["card_selector"]["owner"] == "target_opponent"
 
 
-def test_conditional_self_sacrifice():
-    # Misty Mountains Cold / Last Light: mandatory self-sacrifice gated by a condition
-    for name in ("The Misty Mountains Cold", "Last Light of Durin's Day"):
-        e = _one(name)
-        assert e["card_selector"]["self"] is True and e["optional"] is False
-        assert (e.get("condition") or {}).get("kind") == "conditional_effect", name
+def test_conditional_self_sacrifice_preserves_the_specific_gate():
+    # Misty Mountains Cold / Last Light: mandatory self-sacrifice gated by a SPECIFIC predicate
+    # (review pt8 #2) — not the generic conditional_effect, and not cost_context 'unsupported'.
+    mi = _one("The Misty Mountains Cold")
+    assert mi["card_selector"]["self"] and mi["optional"] is False
+    assert mi["cost_context"] == "conditional_self_sacrifice"
+    assert mi["condition"]["kind"] == "controls_count" and mi["condition"]["count"] == "four"
+    assert "treasure" in mi["condition"]["of"]
+    ll = _one("Last Light of Durin's Day")
+    assert ll["cost_context"] == "conditional_self_sacrifice"
+    assert ll["condition"]["kind"] == "counter_threshold" and ll["condition"]["count"] == "six"
+    assert ll["condition"]["counter"] == "quest"
 
 
-# ---- operation-scoping / no-leak --------------------------------------------------------------
+# ---- operation-scoping / no-leak (review pt6 + pt8) -------------------------------------------
 def test_sacrifice_condition_does_not_leak_from_a_sibling_line():
     # Bolg's Company line 1 is 'has haste as long as you control another Goblin'; the sacrifice on
     # line 2 must NOT inherit that controls_another condition
     assert _one("Bolg's Company")["condition"] is None
+
+
+def test_later_if_you_do_payoff_does_not_gate_the_sacrifice():
+    # 'you may sacrifice … If you do/When you do, <payoff>' — the sacrifice itself is unconditional
+    # (optional); the trailing condition gates the payoff, not the sacrifice (review pt8 #1)
+    for name in ("Rhovanion Rampager", "Bolg of the North", "The Sackville-Bagginses"):
+        e = _one(name)
+        assert e["optional"] is True and e["condition"] is None, name
+
+
+def test_activated_sacrifice_cost_is_unconditional():
+    # Elven Passage: '{T}, Pay 1 life, Sacrifice this land: … You may behold an Elf. If you do, untap …'
+    # The activated sacrifice cost is unconditional once the ability is activated.
+    e = _one("Elven Passage")
+    assert e["role"] == "cost" and e["cost_context"] == "activated_ability" and e["condition"] is None
 
 
 # ---- projection + invariants ------------------------------------------------------------------
