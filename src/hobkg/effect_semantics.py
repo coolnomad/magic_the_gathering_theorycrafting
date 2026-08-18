@@ -637,6 +637,19 @@ def _blank_quoted(text: str) -> str:
     return re.sub(r'"[^"]*"', lambda m: " " * len(m.group(0)), text)
 
 
+def _op_sentence(crange: str, low: str, ms: int) -> str:
+    """The single sentence containing the op at `ms` (review pt3): conditions are computed from this,
+    not the whole clause, so a later/sibling 'If …' instruction ('Draw X cards. If you have an
+    enduring story, … deals damage') does not leak onto an earlier draw, while a leading condition
+    ('If you controlled that creature, draw a card') or a trailing suffix condition ('gain 1 life if
+    this is the first time …') in the op's OWN sentence is preserved."""
+    s0 = low.rfind(". ", 0, ms)
+    s0 = 0 if s0 < 0 else s0 + 2
+    s1 = low.find(". ", ms)
+    s1 = len(crange) if s1 < 0 else s1
+    return crange[s0:s1]
+
+
 def _op_optionality(low: str, ms: int):
     """Per-OPERATION optionality (review pt2 #1): an op is optional only if 'may' governs its OWN
     verb (same sentence, before it) — NOT because a sibling instruction elsewhere in the clause says
@@ -737,7 +750,8 @@ def _participant_effects(face):
             part, targeted, quantity, each = meta
             v = pvar(part)                                    # same participant string → one var
             opt = extra.pop("optional", False)
-            cond = extra.pop("condition", None) or _sch.condition(crange)  # per-op gate overrides clause
+            # per-op gate (e.g. 'if you do') wins; else the condition from the op's OWN sentence only
+            cond = extra.pop("condition", None) or _sch.condition(_op_sentence(crange, low, span[0] - cl["start"]))
             rec = {"effect_id": f"{clause_id}#{op}#{i}", "op": op, "relation": rel,
                    "participant": part, "participant_var": v,
                    "selector": _sch.participant_selector(v, targeted=targeted, quantity=quantity,

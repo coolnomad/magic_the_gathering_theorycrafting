@@ -1777,3 +1777,20 @@ Review `PHASE4_review_pt2.md` (verdict **REPAIR**, reviewed_commit `d40c6f0`) co
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4a-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt2/d40c6f0. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_participant.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt2.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4a repair 3: operation-scoped conditions (review PHASE4_review_pt3)
+
+Review `PHASE4_review_pt3.md` (verdict **REPAIR**, reviewed_commit `92ec14c`) confirmed all pt1+pt2 blockers fixed and left one narrow defect: participant conditions still fell back to `_sch.condition(crange)` over the **whole clause**, so a later/sibling `if` leaked onto an earlier draw. Same clause-vs-operation scoping issue pt2 fixed for optionality — now applied to conditions.
+
+**Fix:** new `_op_sentence(crange, low, ms)` returns the single sentence containing the op; the builder now computes the fallback condition from that sentence only (`_sch.condition(_op_sentence(...))`), with the per-op `if you do` gate still taking precedence. A later `If …, <other effect>` in a *different* sentence no longer conditions the draw, while a leading condition or a trailing suffix condition in the op's OWN sentence is preserved.
+
+- **Leaks removed:** Balin, Loremaster's draw (the enduring-story `if` gates the *later* damage) → `condition:null`; Silvan Reveler's enter-draw (the `if` gates the later land movement) → `null`; Uncover the Moon-Letters' draw (the `if you do` gates the later discard) → `null` while staying `optional:true` with its `X` formula binding.
+- **True conditions preserved:** Beorn "if you control three or more Bears, draw two" and Azog "If you controlled that creature, draw a card" → `conditional_effect` (leading); Smaug's `intervening_if` on both draw and life; Belladonna Took's resolution-count suffix condition (same sentence); Plunder the Trollshaws is now correctly per-sentence — base "Draw a card." is `null`, only "draw two cards instead" is `cast_from_graveyard` (the pt1 `test_condition_is_preserved` assertion, which had encoded the old clause-wide leak that made BOTH Plunder draws conditional, was corrected to match).
+
+**Numbers unchanged in shape:** 172 effects on 122 faces; 7,950 pairs (0 `DRAWS_CARDS`/`GAINS_LIFE`/`LOSES_LIFE` in `card_pair_projection_effect` and `pair_index`). Reconcile 244 → 168 extracted, 4 deferred, 0 unresolved. Two serial `effect-build` runs byte-identical (`effect_records` `b0204dd0…`). **346 tests pass** (+2 pt3 record-level regressions: no-sibling-condition-leak and true-conditions-preserved; the stale Plunder assertion updated to per-sentence). Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4a-repair3`, `Addresses-Review:`/`Addresses-Implementation:` for pt3/92ec14c. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_participant.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt3.md`; [[phase4-frozen]]

@@ -63,9 +63,10 @@ def test_variable_amount_draw_is_captured():
 
 
 def test_condition_is_preserved_on_participant_effects():
-    # Plunder: cast-from-graveyard draw; Smaug: intervening-if on both draw and life
-    assert all(e["condition"] == {"kind": "cast_from_graveyard"}
-               for e in _by_op("Plunder the Trollshaws")["DRAW"])
+    # Plunder (per-sentence, review pt3): the base 'Draw a card.' is unconditional; only the
+    # replacement 'draw two cards instead' carries cast_from_graveyard. Smaug: intervening-if on both.
+    pl = {e["amount"]: e["condition"] for e in _by_op("Plunder the Trollshaws")["DRAW"]}
+    assert pl["1"] is None and pl["2"] == {"kind": "cast_from_graveyard"}
     smaug = _part("Smaug, Wicked Worm")
     assert {e["condition"]["kind"] for e in smaug} == {"intervening_if"}
 
@@ -214,3 +215,35 @@ def test_repair_pt2_may_draw_is_still_optional():
     # Uncover: 'you may draw X cards' — the draw itself IS optional (may governs its own verb)
     d = [e for e in _structured()["Uncover the Moon-Letters"] if e["op"] == "DRAW"][0]
     assert d["optional"] is True
+
+
+# ================================================================================================
+#  Phase 4a REPAIR 3 (review PHASE4_review_pt3) — operation-scoped conditions (no sibling leak)
+# ================================================================================================
+def test_repair_pt3_condition_does_not_leak_from_later_sibling_instruction():
+    rec = _structured()
+    # Balin: the enduring-story 'if' gates the LATER damage, not the draw
+    assert all(e["condition"] is None for e in rec["Balin, Loremaster"] if e["op"] == "DRAW")
+    # Silvan Reveler: enter-draw is unconditional; the 'if' gates the later land movement
+    assert all(e["condition"] is None for e in rec["Silvan Reveler"] if e["op"] == "DRAW")
+    # Uncover: optional formula-bound draw NOT conditioned by its later 'If you do, discard two cards'
+    u = [e for e in rec["Uncover the Moon-Letters"] if e["op"] == "DRAW"][0]
+    assert u["condition"] is None and u["optional"] is True
+    assert u["quantity_formula"]["var"] == "X"
+
+
+def test_repair_pt3_true_operation_conditions_are_preserved():
+    rec = _structured()
+    def cond(name, op):
+        return [e["condition"] for e in rec[name] if e["op"] == op]
+    # leading 'If …, draw' conditions
+    assert all(c and c["kind"] == "conditional_effect" for c in cond("Beorn the Fierce", "DRAW"))
+    assert all(c and c["kind"] == "conditional_effect" for c in cond("Azog, Moria's Ruin", "DRAW"))
+    # intervening-if trigger governs both draw and life
+    assert all(c and c["kind"] == "intervening_if" for c in cond("Smaug, Wicked Worm", "DRAW"))
+    assert all(c and c["kind"] == "intervening_if" for c in cond("Smaug, Wicked Worm", "LOSE_LIFE"))
+    # trailing suffix condition in the op's own sentence (Belladonna resolution-count)
+    assert all(c is not None for c in cond("Belladonna Took", "GAIN_LIFE"))
+    # per-sentence: Plunder's base draw is unconditional, the replacement draw is cast_from_graveyard
+    pl = {e["amount"]: e["condition"] for e in rec["Plunder the Trollshaws"] if e["op"] == "DRAW"}
+    assert pl["1"] is None and pl["2"] == {"kind": "cast_from_graveyard"}

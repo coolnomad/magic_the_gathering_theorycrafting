@@ -5736,6 +5736,12 @@ new commit is up
 ### [2026-08-18 00:47] ASSISTANT
 Acted as reviewer under `docs/review_event_protocol.md`. Reviewed worker repair commit `d40c6f02120b99560568d02470df88fa37249f45` against parent `3867e4b7a821a686d91500e82e12348db61773a6`. Verified the six Phase 4 pt1 blockers were fixed in generated records, ran `git diff --check`, targeted tests, full `pytest`, frozen-manifest verification, `effect-build`, `effect-reconcile`, no-fan-out checks, and deterministic rebuild hashes. Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt2.md` in commit `ac4d3ab8fb0e0ad9b40f0029504d651f6599fa0c` with verdict `REPAIR`. Updated advisory signal `docs/review_events/review_ready.json` to point to the Phase 4 pt2 repair review. Blocking findings: optionality still leaks from sibling instructions, and formula draw quantities remain fixed or under-specified.
 
+### [2026-08-18 09:38] USER
+new commit is up
+
+### [2026-08-18 09:38] ASSISTANT
+Acted as reviewer under `docs/review_event_protocol.md`. Reviewed worker repair commit `92ec14cf4d3ca1af8b58dcace7aef7f8fa206029` against parent `ac4d3ab8fb0e0ad9b40f0029504d651f6599fa0c`. Verified the Phase 4 pt2 optionality and formula-quantity blockers were fixed and that Phase 4 pt1 fixes remained fixed. Ran `git diff --check`, targeted tests, full `pytest`, frozen-manifest verification, `effect-build`, `effect-reconcile`, no-fan-out checks, source portability check, and deterministic rebuild hashes. Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt3.md` in commit `8d25c9fa37a168e971acd9483cdd55d949a6213e` with verdict `REPAIR`. Updated advisory signal `docs/review_events/review_ready.json` to point to the Phase 4 pt3 repair review. Blocking finding: participant-effect conditions still leak across sibling instructions, e.g. Balin/Silvan/Uncover draw records inherit later unrelated `if` conditions.
+
 ### [2026-08-17 23:58] USER
 Read docs/review_event_protocol.md first. You are the worker/implementer role under that protocol. Then read the
   current phase instructions and the latest review document that applies to your implementation SHA. Act only on review
@@ -5925,4 +5931,55 @@ The Phase 4a repair is committed and pushed as `d40c6f0`, and every one of the r
 One note for the reviewer: blocker #6's literal "`mode: null`" did not reproduce against `c5f32f9`'s committed `effect_records.jsonl` (the records carried `choose_one` modes with distinct indices) â€” I strengthened the choice semantics with `mode.exclusive` and a dedicated test rather than treating it as a missing field. The repair now awaits re-review.
 
 ### [2026-08-18 00:49] USER
+read the newest review doc
+
+### [2026-08-18 09:34] ASSISTANT
+The newest is **Phase 4 pt2** targeting my repair SHA `d40c6f0`, verdict **REPAIR** with 2 blocking findings (down from 6). Let me read it in full:
+
+Two blocking findings: (1) optionality is computed clause-wide (`"may " in low`) so mandatory effects with an optional *sibling* get marked optional, and (2) formula quantities (`for each`, `where X is â€¦`) collapse to fixed amounts. Let me look at the current loop to rewrite per-operation optionality/condition/quantity:
+
+I'll add per-operation optionality/condition/quantity helpers, then rewrite the loops and record builder. First the helpers:
+
+Now rewrite the three op loops and the record builder to use per-op optionality/condition/quantity:
+
+Now let me verify the two blocking cases plus the related conditional-cost cases:
+
+All fixes verified. I removed the old `scaling` field (replaced by structured `quantity_formula`), so the existing `test_variable_amount_draw_is_captured` needs updating, plus I'll add the new record-level regressions the review requires. Let me update the test file:
+
+All 24 pass. Now build, full suite, determinism, and fan-out guard:
+
+Deterministic, 0 fan-out, 344 pass (+5). Now regenerate coverage last and append the LABNOTEBOOK entry:
+
+Now stage my paths explicitly and check what actually changed:
+
+Staged exactly my 5 changed files (reports were byte-identical so unmodified; `effect_schema.py` untouched this round; reviewer artifacts left alone). Now commit with repair trailers and push:
+
+Let me verify the full trailer block and that the push completed:
+
+Trailers all present. Let me confirm the push completed and run the review's acceptance-test JSONL checks against the pushed commit:
+
+All pt2 acceptance checks pass, but git shows "ahead 2" â€” the background push may not have completed. Let me push explicitly:
+
+Remote is at `d40c6f0`; my pt2 commit `92ec14c` still needs to land (the local tracking ref was stale). Let me push directly and wait for it:
+
+The push keeps auto-backgrounding (likely slow network/auth). Let me check the outputs of the pending push tasks:
+
+Confirmed â€” remote `refs/heads/main` is now at `92ec14c`. The push landed. Phase 4a repair 2 is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt2** (verdict REPAIR on my SHA `d40c6f0`, 2 blocking findings â€” down from 6) is fully addressed in commit `92ec14c`:
+
+| # | Blocker | Fix |
+|---|---------|-----|
+| 1 | Optionality leaked from sibling instructions | New `_op_optionality`: `optional` is now per-operation â€” true only when `may` governs the op's *own* verb. **Old Thrush**'s "gain 2 life" is `optional:false` (only the sibling "may search" is optional). Effects reached via an optional prior action ("you may discard â€¦ If you do, draw â€¦") are mandatory-but-gated with `condition:{kind:prior_action_taken}` (**Ragged Short Spear**, **Sackville-Bagginses**); "you may draw X" stays optional (**Uncover**). |
+| 2 | Formula quantities collapsed to fixed amounts | New `_quantity_formula`: `for each` â†’ `{kind:per_each, base, per}` so **Master of Lake-town** is no longer a misleading `amount:"1"`; `X, where X is â€¦` â†’ `{kind:variable, var:"X", binding:â€¦}` (**Balin**, **Uncover**); "draw cards equal to â€¦" â†’ variable binding (**Tom, Bert, and William**), replacing the old free-text `scaling`. |
+
+**Verification (all acceptance tests pass):** every pt2 JSONL check confirmed against the committed records; all six pt1 repairs remain green; 172 effects / 122 faces / 7,950 pairs with **zero** `DRAWS_CARDS`/`GAINS_LIFE`/`LOSES_LIFE` fan-out; reconcile 244 â†’ 168 extracted, 4 deferred, **0 unresolved**; two serial builds byte-identical (`7af97162`); **344 tests pass** (+5 record-level pt2 regressions); frozen manifest green; `git diff --check d40c6f0..92ec14c` clean; coverage.md kept Phase-6.
+
+**Protocol:** repair commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4a-repair2` / `Addresses-Review: ac4d3ab` / `Addresses-Implementation: d40c6f0` / `Validation` trailers; staged only my own paths; reviewer's uncommitted artifacts left untouched.
+
+The repair now awaits re-review. (The three background `git push` invocations were the same push retried â€” the network call was slow; the remote is confirmed at `92ec14c`, so no duplicate commits were created.)
+
+### [2026-08-18 09:51] USER
 read the newest review doc
