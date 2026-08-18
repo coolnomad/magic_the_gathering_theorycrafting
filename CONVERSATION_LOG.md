@@ -5742,6 +5742,12 @@ new commit is up
 ### [2026-08-18 09:38] ASSISTANT
 Acted as reviewer under `docs/review_event_protocol.md`. Reviewed worker repair commit `92ec14cf4d3ca1af8b58dcace7aef7f8fa206029` against parent `ac4d3ab8fb0e0ad9b40f0029504d651f6599fa0c`. Verified the Phase 4 pt2 optionality and formula-quantity blockers were fixed and that Phase 4 pt1 fixes remained fixed. Ran `git diff --check`, targeted tests, full `pytest`, frozen-manifest verification, `effect-build`, `effect-reconcile`, no-fan-out checks, source portability check, and deterministic rebuild hashes. Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt3.md` in commit `8d25c9fa37a168e971acd9483cdd55d949a6213e` with verdict `REPAIR`. Updated advisory signal `docs/review_events/review_ready.json` to point to the Phase 4 pt3 repair review. Blocking finding: participant-effect conditions still leak across sibling instructions, e.g. Balin/Silvan/Uncover draw records inherit later unrelated `if` conditions.
 
+### [2026-08-18 10:04] USER
+new commit is up
+
+### [2026-08-18 10:04] ASSISTANT
+Acted as reviewer under `docs/review_event_protocol.md`. Reviewed worker repair commit `b514f37a0b1ba2e819cdebe04fe9f90db18288e3` against parent `8d25c9fa37a168e971acd9483cdd55d949a6213e`. Verified the Phase 4 pt3 condition-scoping blocker was fixed and that Phase 4 pt1/pt2 fixes remained fixed. Ran `git diff --check`, targeted tests, full `pytest`, frozen-manifest verification, `effect-build`, `effect-reconcile`, no-fan-out checks, source portability check, and deterministic rebuild hashes. Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt4.md` in commit `be6f6b5152812bd95e1e33bab0ece8f4b67e47d6` with verdict `ACCEPT`. Updated advisory signal `docs/review_events/review_ready.json` to point to the accepted Phase 4a draw/life review. Phase 4a draw/life may proceed to the next bounded Phase 4 task; full Phase 4 is not closed.
+
 ### [2026-08-17 23:58] USER
 Read docs/review_event_protocol.md first. You are the worker/implementer role under that protocol. Then read the
   current phase instructions and the latest review document that applies to your implementation SHA. Act only on review
@@ -5983,3 +5989,67 @@ The repair now awaits re-review. (The three background `git push` invocations we
 
 ### [2026-08-18 09:51] USER
 read the newest review doc
+
+### [2026-08-18 09:56] ASSISTANT
+The newest is **Phase 4 pt3** on my SHA `92ec14c`, verdict **REPAIR** with a single blocking finding. Let me read it:
+
+A single narrow blocking finding: conditions still fall back to `_sch.condition(crange)` on the **whole clause**, so a later/sibling `if` leaks onto an earlier draw (Balin, Silvan Reveler, Uncover) â€” the same clause-vs-operation scoping issue I fixed for optionality in pt2. The fix: scope the condition to the op's **own sentence**. This must still preserve true conditions (Beorn, Azog, Smaug, Belladonna, Plunder). Let me add an `_op_sentence` helper and use it:
+
+Now verify the leak is gone on the three flagged cards and the five true-condition cases are preserved:
+
+All correct: the three leak cases now have `cond=None` (Uncover keeps `optional:true`), and all five true-condition cases are preserved (Beorn/Azog conditional, Smaug intervening_if, Belladonna conditional, Plunder per-sentence cast_from_graveyard, Ragged Short Spear prior_action gate). Let me add the pt3 regression tests:
+
+My earlier pt1 test encoded the old leaky behavior (both Plunder draws cast_from_graveyard); the fix correctly makes the base draw unconditional. Let me update that stale assertion:
+
+26 pass. Now build, full suite, determinism, fan-out:
+
+Deterministic, 0 fan-out, 346 pass. Regenerate coverage last and append the LABNOTEBOOK entry:
+
+Staged exactly my 5 files (reports byte-identical, reviewer artifacts untouched). Commit and push:
+
+Committed and pushed as `b514f37` (remote confirmed `92ec14c..b514f37`). Let me run the review's acceptance-test JSONL checks against the committed records:
+
+All eight pt3 acceptance checks pass against the committed records. The repair is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt3** (verdict REPAIR on my SHA `92ec14c`, a single narrow blocking finding) is addressed in commit `b514f37`:
+
+**Blocking finding â€” conditions leaked across sibling instructions.** Conditions still fell back to `_sch.condition(crange)` over the whole clause (the same clause-vs-operation scoping bug pt2 fixed for optionality). Fix: a new `_op_sentence(crange, low, ms)` scopes the condition fallback to the operation's **own sentence** (the per-op `if you do` gate still takes precedence).
+
+| Case | Before | After |
+|------|--------|-------|
+| Balin's draw (enduring-story `if` gates *later* damage) | `conditional_effect` | `null` |
+| Silvan Reveler enter-draw (`if` gates land movement) | `conditional_effect` | `null` |
+| Uncover draw (`if you do` gates later discard) | `conditional_effect` | `null` (stays `optional`, keeps `X` binding) |
+| Beorn / Azog leading `If â€¦, draw` | â€” | `conditional_effect` (preserved) |
+| Smaug intervening-if on draw + life | â€” | `intervening_if` (preserved) |
+| Belladonna resolution-count suffix | â€” | preserved |
+| Plunder | both draws `cast_from_graveyard` (leak) | base draw `null`, replacement `cast_from_graveyard` (per-sentence) |
+
+The stale pt1 test that had encoded the old clause-wide leak (asserting both Plunder draws were conditional) was corrected to the per-sentence semantics.
+
+**Verification:** all eight pt3 acceptance checks pass; all pt1+pt2 repairs remain green; 172 effects / 122 faces / 7,950 pairs with **zero** draw/life fan-out; reconcile 244 â†’ 168 extracted, 4 deferred, **0 unresolved**; two serial builds byte-identical (`b0204dd0`); **346 tests pass** (+2 pt3 regressions); frozen manifest green; `git diff --check 92ec14c..b514f37` clean; coverage.md kept Phase-6.
+
+**Protocol:** repair commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4a-repair3` / `Addresses-Review: 8d25c9f` / `Addresses-Implementation: 92ec14c` / `Validation` trailers; staged only my own paths; reviewer's uncommitted artifacts left untouched.
+
+This is the third consecutive REPAIR on Phase 4a, each narrowing (6 â†’ 2 â†’ 1 blocking findings), now all resolved. The repair awaits re-review.
+
+### [2026-08-18 10:06] USER
+good. you already know you're the worker - but next instructions are here:  Tell the worker to read:
+
+  1. docs/review_event_protocol.md
+  2. docs/hob_effect_semantics_repair_instructions.md
+  3. Latest review: docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt4.md
+
+  Prompt to give it:
+
+  Read docs/review_event_protocol.md first. You are the worker/implementer role.
+
+  Then read docs/hob_effect_semantics_repair_instructions.md and docs/
+  hob_effect_semantics_repair_instructions_PHASE4_review_pt4.md.
+
+  Phase 4a draw/life is accepted in review commit be6f6b5152812bd95e1e33bab0ece8f4b67e47d6. Full Phase 4 is not closed.
+  Proceed to the next bounded Phase 4 sub-task: discard, sacrifice, mill, search, counterspells, complete
+  SUPPLIES_RESOURCE review, or another coherent subset from the Phase 4 requirements. Preserve all accepted Phase 4a
+  behavior and include protocol trailers in any commit.

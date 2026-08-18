@@ -1794,3 +1794,23 @@ Review `PHASE4_review_pt3.md` (verdict **REPAIR**, reviewed_commit `92ec14c`) co
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4a-repair3`, `Addresses-Review:`/`Addresses-Implementation:` for pt3/92ec14c. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_participant.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt3.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] BUILD — Effect-semantics Phase 4b: participant/resource DISCARD + MILL
+
+Phase 4a draw/life **accepted** (review `PHASE4_review_pt4.md`, verdict ACCEPT, review commit `be6f6b5`, 0 blocking; 1 nonblocking on shallow generic conditions deferred to later execution work). Full Phase 4 not closed. Under the worker/reviewer protocol, next bounded sub-task: the two **graveyard-filling participant/resource families** — DISCARD (hand→graveyard) and MILL (library→graveyard). Both are participant-level and stochastic → **no deterministic card-pair fan-out**, and both reuse the accepted 4a machinery (`_participant_at`, `_op_optionality`, `_op_sentence` per-op conditions, `_quantity_formula`).
+
+New in `_participant_effects`: DISCARD (`DISCARDS_CARDS`) and MILL (`MILLS_CARDS`) ops, each carrying `source_zone`/`dest_zone`/`event`.
+- **Cost vs effect** (spec §Discard): an activation-cost discard (`{1},{T}, Discard a card: Draw a card` — Óin the Brave; `Discard a legendary card …: Draw two cards` — Key to the Side-Door) is detected by a colon after the discard verb and is NOT emitted; reconciled `discard_cost`. Cycling (`Halflingcycling`/`Mountaincycling`) is reminder/keyword → `cycling_cost`/reminder.
+- **Condition vs effect:** `If you discard a land card this way, …` (Silvan Reveler) is a condition referencing a discard, not a second discard — skipped (Silvan emits exactly one discard); reconciled `discard_condition`.
+- **Participants:** mandatory edict `each opponent discards a card` (Stony-Voiced Goblins); optional `you may discard your hand` (Balin, `amount:"hand"`); mandatory `then discard a card` after a draw (Thranduil, Confusticate, Silvan, Bilbo, Thrór's Map). **`that player` is now a proper back-reference** (was mis-mapped to `controller`): it binds to a prior in-clause target (Down, Down to Goblin-town's `That player discards that card` → `target_opponent`, `targeted:true`) or, if none, to an explicit `that_player` antecedent (The Master of Lake-town's trigger-bound `that player mills that many cards`).
+- **Mill:** `mill N cards` → `you` (Gleam of Death 6, Speak Secrets 4, Silvan Rally 4); `target player mills three cards` → `target_player`, `targeted` (Master's Councillors); `that player mills that many cards` → `that_player`, `amount:"variable"` + `quantity_formula` (Master of Lake-town). Per spec, mill stays a stochastic participant-level op (no fan-out).
+
+**Invariant preserved:** all **52 accepted Phase-4a draw/life records are byte-identical** to `b514f37` (verified by effect_id-keyed diff); the `that player` refinement touches no accepted record (none used `controller`).
+
+**Numbers:** +17 participant records (DISCARD 11, MILL 6) → **189 effects on 126 faces; 7,950 pairs unchanged** (0 `DISCARDS_CARDS`/`MILLS_CARDS` in `card_pair_projection_effect` and `pair_index`). Reconcile now spans Phase-3 ∪ 4a `{draw,life}` ∪ 4b `{discard,mill}`: **275 (clause,family) → 185 extracted, 4 deferred, 0 unresolved** (discard/cycling costs, discard/mill triggers, recruit counted separately). Two serial `effect-build` runs byte-identical (`effect_records` `7fd99332…`). **359 tests pass** (+13 Phase-4b record-level regressions in `tests/test_effect_resource.py`: edict discard, optional discard-hand, then-discard, cost/condition guards, that-player back-reference, plain/targeted/variable mill, zones, no-fan-out, validation, accepted-4a-unchanged). Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest. Bounded scope: sacrifice, exile/movement, search/tutor, counterspells + the full `SUPPLIES_RESOURCE` review remain for later Phase-4 sub-tasks.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4b`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt4/b514f37. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_resource.py`; `data/graph_global/effect_records.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt4.md`; [[phase4-frozen]]
