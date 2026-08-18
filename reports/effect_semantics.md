@@ -2,15 +2,15 @@
 
 Additive `effect_semantics` layer over the frozen reference. **ABILITY-scoped** extraction (one clause per (ability, mode); targets never leak across abilities; real `clause_id`), with **same-object variable binding**, **per-operation duration/condition**, explicit self-effects, object-vs-participant separation, comma-OR subtype lists, and empty-object-selector rejection. Object families: destruction, damage (incl. source-power & any-target), counters, power/toughness (mod + set/switch), ability grant/removal, tap/untap, fight, type-change, control-change, and damage-prevention. **Phase-4a participant families:** DRAW and LIFE (gain/lose) — player-directed records that bind to a PARTICIPANT (same-participant binding, e.g. Reverent Howl's draw+lose-life) and are **stochastic/participant-level, so they never fan out to card pairs**; `Pay N life` is a cost, not an effect. Each effect is a validated record; projection aggregates all supporting effects/modes per pair (`supports`). Frozen core untouched. **Proposed schema extensions (documented, not casually invented):** `CAN_FIGHT`, `CHANGES_TYPE_OF`, `SETS_BASE_PT`, `SWITCHES_PT`, `REMOVES_ABILITY_FROM`, `EXCHANGES_CONTROL_OF`/`GAINS_CONTROL_OF`, `PREVENTS_DAMAGE_FROM`, `DRAWS_CARDS`, `GAINS_LIFE`/`LOSES_LIFE`. Every census clause in scope is reconciled (`reports/effect_reconciliation.md`, 0 unresolved).
 
-- effects: **174** on 122 faces  · pairs: **7950**
+- effects: **172** on 121 faces  · pairs: **7950**
 
 | relation | pairs |  | op | effects |
 |---|---:|---|---|---:|
-| `ADDS_COUNTER_TO` | 1794 |  | `DRAW` | 35 |
+| `ADDS_COUNTER_TO` | 1794 |  | `DRAW` | 34 |
 | `MODIFIES_POWER_TOUGHNESS` | 1619 |  | `ADD_COUNTER` | 32 |
 | `GRANTS_ABILITY_TO` | 1415 |  | `MODIFY_PT` | 31 |
 | `CAN_DEAL_DAMAGE_TO` | 1120 |  | `GRANT_ABILITY` | 20 |
-| `CAN_DESTROY` | 603 |  | `GAIN_LIFE` | 11 |
+| `CAN_DESTROY` | 603 |  | `GAIN_LIFE` | 10 |
 | `CAN_UNTAP` | 461 |  | `DESTROY` | 10 |
 | `CHANGES_TYPE_OF` | 225 |  | `DEAL_DAMAGE` | 10 |
 | `CAN_TAP` | 224 |  | `LOSE_LIFE` | 8 |

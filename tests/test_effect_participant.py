@@ -106,3 +106,69 @@ def test_participant_records_validate():
     for name in ("Reverent Howl", "Gollum, Riddle Master", "Allure of Power"):
         for e in _part(name):
             assert sch.validate_effect(e) == [], (name, e["op"])
+
+
+# ================================================================================================
+#  Phase 4a REPAIR (review PHASE4_review_pt1) — assertions on the GENERATED structured records
+# ================================================================================================
+def _structured():
+    """The participant-level records as they land in the authoritative effect_records set."""
+    out = es.build_effects(write=False)["_structured"]
+    by_name = {}
+    for s in out:
+        if s["selector"].get("participant_level"):
+            by_name.setdefault(s["name"], []).append(s)
+    return by_name
+
+
+def test_repair1_target_player_and_opponent_records_carry_targeting():
+    rec = _structured()
+    # target_player / target_opponent records are real targets; selector.targeted must agree
+    for name in ("Reverent Howl", "Meager Meal"):
+        tp = [e for e in rec[name] if e["participant"] == "target_player"]
+        assert tp and all(e["targeted"] and e["selector"]["targeted"] for e in tp), name
+    for name in ("Down, Down to Goblin-town", "The Sackville-Bagginses"):
+        to = [e for e in rec[name] if e["participant"] == "target_opponent" and e["op"] == "LOSE_LIFE"]
+        assert to and all(e["targeted"] and e["selector"]["targeted"] for e in to), name
+    # a companion 'you gain' in the same clause stays untargeted
+    you = [e for e in rec["Down, Down to Goblin-town"] if e["participant"] == "you"]
+    assert you and all(e["targeted"] is False for e in you)
+
+
+def test_repair2_two_target_players_each_draw_one():
+    d = [e for e in _structured()["Gleaming Splendor"] if e["op"] == "DRAW"]
+    assert len(d) == 1
+    e = d[0]
+    assert e["participant"] == "target_player" and e["participant"] != "you"
+    assert e["targeted"] is True and e["affects_each"] is True
+    assert e["participant_quantity"] == 2 and e["amount"] == "1"
+
+
+def test_repair3_owner_participant_binding():
+    d = [e for e in _structured()["Gandalf, Wandering Wizard"] if e["op"] == "DRAW"]
+    assert d and d[0]["participant"] == "owner" and d[0]["amount"] == "3"
+
+
+def test_repair4_quoted_granted_ability_is_not_an_immediate_effect():
+    # Supper for Spiders' Food tokens have "... : You gain 3 life." — a granted ability, not a source effect
+    assert not _structured().get("Supper for Spiders")
+
+
+def test_repair5_replaced_would_draw_is_not_emitted_as_a_draw():
+    d = [e for e in _structured()["Bard, King of Dale"] if e["op"] == "DRAW"]
+    assert [e["amount"] for e in d] == ["2"]                # only the replacement 'draw two instead'
+    assert d[0].get("replacement", {}).get("kind") == "draw_instead"
+
+
+def test_repair6_modal_alternatives_carry_choice_metadata():
+    recs = _structured()["Gollum, Riddle Master"]
+    assert recs and all(e["mode"]["kind"] == "choose_one" and e["mode"]["exclusive"] for e in recs)
+    idx = {e["mode"]["index"] for e in recs}
+    assert len(idx) >= 2                                    # alternatives keep distinct mode indices
+
+
+def test_repair_same_participant_binding_survives_targeting():
+    # Reverent Howl still binds draw+lose-life to ONE target-player var, now targeted
+    r = {e["op"]: e for e in _structured()["Reverent Howl"]}
+    assert r["DRAW"]["participant_var"] == r["LOSE_LIFE"]["participant_var"]
+    assert r["DRAW"]["targeted"] and r["LOSE_LIFE"]["targeted"]

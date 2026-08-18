@@ -193,12 +193,16 @@ def selector_is_empty(sel: dict) -> bool:
                 or sel.get("generic_permanent") or sel.get("self"))
 
 
-def participant_selector(var: str = "p0") -> dict:
+def participant_selector(var: str = "p0", targeted: bool = False, quantity=None,
+                         affects_each: bool = False) -> dict:
     """A participant-level record (draw / life / mill / etc.) acts on a PLAYER, not an object. It
     carries an intentionally empty object selector flagged `participant_level` so `validate_effect`
-    does not demand an object binding and `build_effects` does not fan it out to card pairs."""
-    return {"card_types": [], "or_types": [], "subtypes": [], "supertypes": [], "quantifier": None,
-            "targeted": False, "var": var, "participant_level": True}
+    does not demand an object binding and `build_effects` does not fan it out to card pairs. It DOES
+    carry its own participant targeting/quantity/mass metadata (a 'target player' is a real target,
+    'two target players each' has quantity 2 and affects_each)."""
+    return {"card_types": [], "or_types": [], "subtypes": [], "supertypes": [],
+            "quantifier": "each" if affects_each else None, "targeted": targeted, "quantity": quantity,
+            "affects_each": affects_each, "var": var, "participant_level": True}
 
 
 def validate_effect(rec: dict) -> list:

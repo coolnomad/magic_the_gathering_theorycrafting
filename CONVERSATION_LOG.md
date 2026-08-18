@@ -5724,8 +5724,134 @@ Note I deferred one **nonblocking** pt4 recommendation: routing the pipeline's P
 
 2026-08-17T23:51:38-04:00 - Reviewer-agent documentation task: created the authoritative role-neutral worker/reviewer handshake protocol at `docs/review_event_protocol.md` and committed only that documentation file as `c9e249e6d1f771536a478507c90ce5239d1264b9` (`Document worker-reviewer handshake protocol`). The protocol preserves existing review naming under `docs/`, defines exact-SHA review/repair handshakes, deterministic verdicts, watcher rules, repository safety, validation standards, phase closure requirements, and startup checklists.
 
+### [2026-08-18 00:25] USER
+ok and i want you to act as the reviewer
+
+### [2026-08-18 00:25] ASSISTANT
+Acted as reviewer under `docs/review_event_protocol.md`. Reviewed worker commit `c5f32f9fc12f787636fc90528d28e446a7ab5730` against parent `c9e249e6d1f771536a478507c90ce5239d1264b9`, inspected the Phase 4a draw/life implementation and generated records, ran targeted tests, full `pytest`, frozen-manifest verification, `effect-build`, `effect-reconcile`, and deterministic rebuild hash checks. Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt1.md` in commit `3867e4b7a821a686d91500e82e12348db61773a6` with verdict `REPAIR`. Updated advisory signal `docs/review_events/review_ready.json` to point to the Phase 4 repair review. Blocking findings: lost participant targeting status, Gleaming Splendor target-player quantity/binding error, Gandalf owner binding error, quoted Food ability extracted as immediate life gain, Bard replacement draw false positive, and Gollum modal alternatives flattened.
+
 ### [2026-08-17 23:58] USER
 Read docs/review_event_protocol.md first. You are the worker/implementer role under that protocol. Then read the
   current phase instructions and the latest review document that applies to your implementation SHA. Act only on review
   artifacts addressed to your SHA/phase, and include the required role/SHA trailers in any repair or implementation
   commit.
+
+### [2026-08-18 00:15] ASSISTANT
+I'm the worker/implementer. Let me identify my latest implementation SHA, find any review addressed to it, and read the governing phase spec. Let me gather these in parallel:
+
+There's a new `PHASE3_review_pt5.md` and a `review_ready.json` signal. Let me read both to see which SHA the review targets:
+
+The pt5 review targets my cleanup SHA `7ea96b1`, verdict **accepted**, no blocking findings. Let me read the full review:
+
+The pt5 review is an **ACCEPT** of my exact SHA `7ea96b1` with zero blocking findings and no required corrections â€” Phase 3 is accepted and terminal. There is no repair artifact to act on. The review authorizes Phase 4. Let me read the governing Phase 4 spec to identify the bounded first task:
+
+The effect-semantics repair uses its own phase numbering. Let me read the repair instructions doc's structure to find the Phase 4 (participant/resource) scope:
+
+Let me read the acceptance gates and implementation sequence to scope the bounded first Phase 4 task:
+
+The pt5 review is a clean **ACCEPT** of my exact implementation SHA `7ea96b1`, zero blocking findings, no required corrections â€” so there is no repair artifact to act on. Phase 3 is accepted and terminal. The review and the protocol authorize proceeding to **Phase 4** (participant/resource effects: draw, discard, sacrifice, life, mill, search, counterspells).
+
+Per the protocol I'll implement a **bounded** first sub-task rather than the whole phase. The protocol's own example and the smallest coherent unit is **Phase 4a: draw + life** (with the mandatory Reverent Howl regression â€” same participant draws two and loses 2 life). Let me start as worker by generating the deterministic census and inspecting existing participant/resource infrastructure:
+
+Important: the working tree has the **reviewer's** uncommitted artifacts (`review_pt5.md`, `review_events/`, `tools/*watch*.ps1`, and a modified handoff doc). Per the protocol's Repository Safety rules, I will not touch or stage those â€” my Phase 4 commit will stage only my own paths explicitly.
+
+Let me inspect the census families and existing schema to scope Phase 4a (draw + life):
+
+`families` is a count. The per-clause ledger is in the census data file. Let me inspect the census output shape and the draw/life family clauses directly:
+
+Phase 4a targets: **draw (48 clauses)** and **life (22 clauses)**. Let me dump those clauses to design the extractor:
+
+Rich family. Note many "draw a card, then discard a card" are **recruit** reminder text (draw is real; the discard half is Phase 4b), and participants vary (you / target player / each player / owner / controller / "two target players each"). Let me see the life clauses and the existing code structure I'll extend:
+
+The life family cleanly splits into **effects** (gain/lose N life by participant) vs **costs** (`Pay N life` â€” My Precious, Desolation Prowler, Elven Passage), which acceptance gate 5 requires me to keep distinct. Now let me read the code I'll extend â€” `build_effects`, projection, and the schema's participant/op vocabulary:
+
+Let me read the record-assembly, `reconcile`, and `build_effects`/projection sections in detail:
+
+Now I understand the architecture. Let me read the remaining pieces I need: `_PHASE3_FAMILIES`, `_OP_FAMILY`, `_DEFERRED_DISP`, and the schema's `participant()` + `validate_effect()`:
+
+Let me read `_EFFECT_REQUIRED` and the tail of `validate_effect` to know the full record contract:
+
+I now have the full contract. Phase 4a design is clear:
+- New participant-level ops `DRAW`/`GAIN_LIFE`/`LOSE_LIFE` with an empty (participant) selector, participant binding, amount, optionality, condition, duration.
+- Same-participant binding via nearest-preceding subject (Reverent Howl: draws two **and** loses 2 life â†’ same `target_player`).
+- `Pay N life` is a **cost**, not a life effect â€” excluded.
+- Draws/life are **participant-level â†’ no card-pair fan-out** (stochastic guard).
+- Recruit's `(Draw a card, then discardâ€¦)` is reminder text â†’ blanked, dispositioned as reminder (the recruit keyword is a later mechanism concern).
+
+Let me read the record-assembly and `classify` helper in `_object_effects` to mirror conventions:
+
+I have everything needed. Let me check `selector_is_empty` and the `selector()` constructor to build a correct participant selector:
+
+Now I'll implement. First the schema: add a `participant_selector()` helper and exempt participant-level records in `validate_effect`. Let me read the exact lines:
+
+Now I'll add the participant selector helper and exempt participant-level records in validation:
+
+Now the core extractor. Let me insert `_participant_effects` and its helpers after `_object_effects` (line 560):
+
+Now extend `_OP_FAMILY` and wire `_participant_effects` into `build_effects` (structured only, no fan-out):
+
+Now update `reconcile` to include draw/life families, mark participant effects extracted, and add cost/trigger dispositions:
+
+Now add the draw/life dispositions before the generic player-directed branch:
+
+Let me smoke-test the extractor and reconciliation:
+
+Extraction is correct: Reverent Howl and Rage bind draw+lose-life to the same participant var; Gollum's separate abilities get independent vars (each_opponent vs you distinct within the life clause); Ravenhill Flock (draw-trigger) and My Precious (Pay-life cost) correctly emit nothing. Let me build, reconcile, and verify no fan-out + scaling/replacement capture:
+
+`pairs` stayed exactly **7950** â€” participant effects produce zero card-pair fan-out (stochastic guard confirmed). 53 participant records extracted. Let me investigate the 1 unresolved and the 6 generic player-directed dispositions:
+
+Let me identify the exact 1 unresolved clause:
+
+Confirmed â€” Tom, Bert, and William's "Draw cards equal to the sacrificed creature's power" is a real draw with a variable amount that my count-required regex missed. Let me handle variable-amount draws and broaden the pay-life cost detection:
+
+Now broaden the pay-life cost disposition to catch "pay life equal to â€¦" (Inside Information):
+
+0 unresolved, Tom/Bert/William now extracted. Let me verify determinism, no fan-out, frozen manifest, and run the existing suite for regressions:
+
+All green: deterministic (byte-identical builds), `card_pair_projection_effect` unchanged (`c2354480` â€” zero fan-out), frozen manifest and all 320 tests pass. Now the Phase 4a regression + negative tests:
+
+All 12 pass. Let me check the report generator reflects the new families, then run the reports:
+
+The reconciliation report header says "Phase-3" but now covers Phase-4a families too. Let me update that heading for accuracy:
+
+Let me look at the `_effects_report` to update its Phase-3 framing:
+
+Now regenerate reports, run the full suite, then regenerate coverage.md **last** (to avoid the pipeline-test Phase-1 clobber):
+
+332 pass (320 + 12 new), coverage.md is Phase-6, no trailing-whitespace errors. The CRLF lines are just autocrlf warnings. Let me see which files are actually modified:
+
+Clean separation: `card_pair_projection_effect.jsonl` and `coverage.md` are unmodified (zero fan-out confirmed at file level). The reviewer's uncommitted artifacts (pt5 doc, `review_events/`, watcher tools, handoff mod) are present â€” I will **not** stage those. Let me get final metrics, then append the LABNOTEBOOK entry:
+
+Now append the Phase 4a LABNOTEBOOK entry:
+
+Now stage only my own paths (explicitly, leaving the reviewer's uncommitted artifacts untouched) and commit with protocol trailers:
+
+Staged set is exactly my Phase 4a files, diff-check clean. Now commit with protocol trailers and push:
+
+Phase 4a committed and pushed as `c5f32f9`. Let me do a final verification that the commit range is clean and the reviewer's artifacts remain untouched:
+
+Let me confirm the protocol trailers are present in the commit body (git's strict parser only surfaced the last block due to the blank line, but they should be in the message):
+
+All protocol trailers are present. Phase 4a is committed and pushed.
+
+## Summary
+
+**Protocol handling (worker/implementer role):**
+- Read `docs/review_event_protocol.md` and identified my latest implementation SHA (`7ea96b1`).
+- The review addressed to that SHA â€” `PHASE3_review_pt5.md` â€” is a clean **ACCEPT** (0 blocking findings, no required corrections). Per the protocol, ACCEPT is terminal: there was **no repair artifact to act on**. Phase 3 is accepted.
+- The review and protocol authorize Phase 4, so I proceeded to the first **bounded** Phase-4 sub-task as worker.
+
+**Phase 4a: participant/resource DRAW + LIFE** (commit `c5f32f9`):
+- New `_participant_effects(face)` extractor (general, no card-name branches) emitting participant-level `DRAW`/`GAIN_LIFE`/`LOSE_LIFE` records via a new `participant_selector` + `validate_effect` support.
+- **Reverent Howl mandatory regression**: the draw-two and lose-2-life bind to the *same* participant var. Rage into the Valley likewise; Gollum keeps `each_opponent` vs `you` distinct.
+- **Cost vs effect**: `Pay N life` is a cost, not an effect. **Trigger vs effect**: draw/life events inside a leading trigger aren't extracted. **Recruit reminder** draws are blanked (keyword layer). Variable amounts, draw-instead replacement, and conditions preserved.
+- **Stochastic guard**: participant facts don't fan out â€” `card_pair_projection_effect.jsonl` is **byte-identical** to Phase 3 (`c2354480`).
+
+**Verification:** 174 effects / 122 faces / 7,950 pairs (unchanged); reconcile 244 (clause,family) â†’ 169 extracted, 4 deferred, **0 unresolved**; two serial builds byte-identical; **332 tests pass** (+12); frozen manifest green; `git diff --check 7ea96b1..c5f32f9` clean; coverage.md kept in Phase-6 shape.
+
+**Repository safety:** staged only my own paths explicitly; left the reviewer's uncommitted artifacts (pt5 review doc, `review_events/`, watcher tools, handoff edit) untouched. Commit carries the required `Role`/`Phase`/`Iteration`/`Addresses-Review`/`Addresses-Implementation`/`Validation` trailers.
+
+This commit now awaits review. Remaining Phase-4 sub-tasks (discard, sacrifice, mill, search, counterspells + full `SUPPLIES_RESOURCE` review + `sac_schema` integration) are bounded for later iterations.
+
+### [2026-08-18 00:26] USER
+read the newest review doc

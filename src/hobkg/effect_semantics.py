@@ -569,9 +569,12 @@ def _object_effects(face):
 
 _WORDNUM = {"a": "1", "an": "1", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
             "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"}
-# nearest-preceding participant subject (default 'you'); resolves same-participant binding
-_SUBJECT_RE = re.compile(r"\b(each opponent|each player|target opponent|target player|that player|"
-                         r"its controller|its owner|that card's owner|you)\b", re.I)
+# nearest-preceding participant subject (default 'you'); resolves same-participant binding. Matches
+# numeric target-player phrases ('two target players each'), possessive owner/controller subjects
+# ("Gandalf's owner", 'its controller'), and the each-player forms.
+_SUBJECT_RE = re.compile(r"\b((?:\w+\s+)?target opponents?|(?:\w+\s+)?target players?|each opponent|"
+                         r"each player|that player|[a-z]+'s owner|[a-z]+'s controller|its owner|"
+                         r"its controller|that card's owner|you)\b", re.I)
 # a leading trigger clause ('Whenever …,' / 'When …,' / 'At the beginning of …,') — a draw/life verb
 # INSIDE it is the trigger event, NOT an effect this ability produces (Ravenhill Flock, Lakeshore
 # Apothecary, The Master of Lake-town's 'whenever a player loses life').
@@ -588,21 +591,59 @@ def _amount(tok: str) -> str:
     return _WORDNUM.get(t, "X" if t == "x" else t)
 
 
-def _nearest_participant(text: str, pos: int) -> str:
+def _classify_participant(phrase: str) -> str:
+    low = phrase.lower()
+    if "each opponent" in low:
+        return "each_opponent"
+    if "each player" in low:
+        return "each_player"
+    if "target opponent" in low:
+        return "target_opponent"
+    if "target player" in low:
+        return "target_player"
+    if re.search(r"'s owner\b|\bits owner\b|that card's owner", low):
+        return "owner"
+    if re.search(r"'s controller\b|\bits controller\b|\bthat player\b", low):
+        return "controller"
+    return "you"
+
+
+def _participant_at(text: str, pos: int):
+    """Nearest-preceding participant subject → (participant, targeted, quantity, affects_each).
+    'target player'/'target opponent' are real targets; 'two target players each' carries quantity 2
+    and each-status; 'each opponent'/'each player' are mass; possessive owner/controller bind the
+    named player. Defaults to 'you' (untargeted) when no subject precedes."""
     best = None
     for m in _SUBJECT_RE.finditer(text):
         if m.start() <= pos:
-            best = m.group(0)
+            best = m
         else:
             break
-    return _sch.participant(best) if best else "you"
+    if not best:
+        return "you", False, None, False
+    phrase = best.group(0).lower()
+    part = _classify_participant(phrase)
+    targeted = "target" in phrase
+    each = part.startswith("each") or bool(re.search(r"\beach\b", phrase)) or phrase.rstrip().endswith("s")
+    qm = re.match(r"(\w+)\s+target", phrase)
+    quantity = _WORDNUM.get(qm.group(1)) if qm and qm.group(1) in _WORDNUM else None
+    return part, targeted, (int(quantity) if quantity else None), each
+
+
+def _blank_quoted(text: str) -> str:
+    """Blank double-quoted granted abilities (e.g. Supper for Spiders' Food tokens are
+    '… with "{2},{T}, Sacrifice this artifact: You gain 3 life."'). The quoted text is an ability
+    granted to ANOTHER object, not an immediate effect of the source — offsets are preserved."""
+    return re.sub(r'"[^"]*"', lambda m: " " * len(m.group(0)), text)
 
 
 def _participant_effects(face):
-    """DRAW + LIFE participant records with same-participant binding. Reminder text is blanked (so a
-    recruit reminder 'Draw a card, then discard a card' is NOT re-extracted here), and a leading
-    trigger condition is stripped so a draw/life *event* in a trigger is not mistaken for an effect."""
-    text = _blank_reminders(face.get("oracle_text") or "")
+    """DRAW + LIFE participant records with same-participant binding. Reminder text AND double-quoted
+    granted abilities are blanked (a recruit reminder 'Draw a card …' and a token's quoted 'You gain
+    3 life' are NOT effects of the source), and a leading trigger condition is stripped so a draw/life
+    *event* in a trigger is not mistaken for an effect. Each record carries its own participant
+    targeting/quantity/each metadata, and a replaced 'would draw' antecedent is not emitted."""
+    text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))
     out = []
     for cl in _ability_clauses(text):
         clause_id = f"{face['id']}#a{cl['ability_index']}" + (f".m{cl['mode_index']}" if cl["mode_index"] is not None else "")
@@ -610,6 +651,7 @@ def _participant_effects(face):
         low = crange.lower()
         tm = _TRIGGER_PREFIX_RE.match(low)
         eff_start = tm.end() if tm else 0                    # only accept verbs in the EFFECT portion
+        exclusive = bool(cl["mode_kind"] and "choose" in cl["mode_kind"])   # modal / choose-one alternative
         pvars, vc = {}, [0]
 
         def pvar(part):
@@ -617,23 +659,24 @@ def _participant_effects(face):
                 pvars[part] = f"p{vc[0]}"; vc[0] += 1
             return pvars[part]
 
-        ops = []                                             # (op, relation, participant, extra, span)
+        ops = []                                             # (op, relation, participant meta, extra, span)
         for m in _DRAW_RE.finditer(low):
             if m.start() < eff_start:
                 continue                                     # the draw is the trigger event, not an effect
-            part = _nearest_participant(low, m.start())
+            if re.search(r"\bwould\s+$", low[:m.start()]):
+                continue                                     # 'if you would draw a card …' = replaced event
+            meta = _participant_at(low, m.start())
             extra = {"amount": _amount(m.group(1))}
             if re.search(r"cards?\s+instead", low[m.start():m.start() + 40]):
                 extra["replacement"] = {"kind": "draw_instead"}   # Plunder / Bard King of Dale
             if re.search(r"\bfor each\b", low[m.end():m.end() + 40]):
                 extra["scaling"] = crange[m.end():m.end() + 60].strip()
-            ops.append(("DRAW", "DRAWS_CARDS", part, extra,
+            ops.append(("DRAW", "DRAWS_CARDS", meta, extra,
                         [cl["start"] + m.start(), cl["start"] + m.end()]))
         for m in _DRAW_VAR_RE.finditer(low):
             if m.start() < eff_start:
                 continue
-            part = _nearest_participant(low, m.start())
-            ops.append(("DRAW", "DRAWS_CARDS", part,
+            ops.append(("DRAW", "DRAWS_CARDS", _participant_at(low, m.start()),
                         {"amount": "variable", "scaling": crange[m.start(1):m.end(1)].strip()},
                         [cl["start"] + m.start(), cl["start"] + m.end()]))
         for m in _LIFE_RE.finditer(low):
@@ -641,20 +684,24 @@ def _participant_effects(face):
                 continue                                     # 'whenever a player loses life' trigger
             op = "GAIN_LIFE" if m.group(1).lower().startswith("gain") else "LOSE_LIFE"
             rel = "GAINS_LIFE" if op == "GAIN_LIFE" else "LOSES_LIFE"
-            part = _nearest_participant(low, m.start())
-            ops.append((op, rel, part, {"amount": _amount(m.group(2))},
+            ops.append((op, rel, _participant_at(low, m.start()), {"amount": _amount(m.group(2))},
                         [cl["start"] + m.start(), cl["start"] + m.end()]))
 
-        for i, (op, rel, part, extra, span) in enumerate(ops):
+        for i, (op, rel, meta, extra, span) in enumerate(ops):
+            part, targeted, quantity, each = meta
             v = pvar(part)                                    # same participant string → one var
-            out.append({"effect_id": f"{clause_id}#{op}#{i}", "op": op, "relation": rel,
-                        "participant": part, "participant_var": v,
-                        "selector": _sch.participant_selector(v),
-                        "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"]},
-                        "condition": _sch.condition(crange), "duration": _sch.duration(crange),
-                        "optional": "may " in low, "targeted": False,
-                        "affects_each": part.startswith("each"), "binding": None,
-                        "clause_id": clause_id, "oracle_span": span, **extra})
+            rec = {"effect_id": f"{clause_id}#{op}#{i}", "op": op, "relation": rel,
+                   "participant": part, "participant_var": v,
+                   "selector": _sch.participant_selector(v, targeted=targeted, quantity=quantity,
+                                                         affects_each=each),
+                   "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"], "exclusive": exclusive},
+                   "condition": _sch.condition(crange), "duration": _sch.duration(crange),
+                   "optional": "may " in low, "targeted": targeted,
+                   "affects_each": each, "binding": None,
+                   "clause_id": clause_id, "oracle_span": span, **extra}
+            if quantity is not None:
+                rec["participant_quantity"] = quantity
+            out.append(rec)
     return out
 
 
@@ -715,6 +762,8 @@ def reconcile(repo: Path = REPO) -> dict:
                 disp = "remove_counter"
             elif fam == "add_counter" and re.search(r"counter on it\b|counter on them\b", low):
                 disp = "counter_as_condition (census false positive — a counter reference, not an add)"
+            elif fam in ("life", "draw") and re.search(r'"[^"]*(?:gains?|loses?|draws?)[^"]*"', low):
+                disp = "granted_ability (quoted ability on another/created object — deferred execution)"
             elif fam == "life" and re.search(r"\bpay(?:s)?\s+(?:\d+\s+|x\s+)?life\b", low):
                 disp = "life_payment_cost (a cost, not a life effect)"
             elif fam == "draw" and re.search(r"^\s*(?:whenever|when)\b.*\bdraws?\b.*,", low):
