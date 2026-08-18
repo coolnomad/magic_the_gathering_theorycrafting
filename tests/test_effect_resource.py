@@ -164,3 +164,14 @@ def test_repair_pt5_master_of_lake_town_mill_binds_trigger_and_life_lost():
     assert c["binds"] == {"participant": "player_who_lost_life", "amount": "life_lost"}
     qf = m["quantity_formula"]
     assert qf["source"] == "trigger_quantity" and qf["of"] == "that_player"
+
+
+def test_repair_pt6_discard_selector_does_not_inherit_later_condition_predicate():
+    # Silvan Reveler: 'draw a card, then discard a card. If you discard a land card this way, …'
+    # The discard is UNCONSTRAINED; the 'land' predicate belongs to the later movement condition only.
+    cs = _by_op("Silvan Reveler")["DISCARD"][0]["card_selector"]
+    assert not cs.get("predicates"), cs                       # no land/nonland constraint
+    assert cs["count"] == "1" and cs["owner"] == "you" and cs["zone"] == "hand"
+    # Down, Down's genuine nonland predicate (from the chosen-card antecedent) must remain
+    dd = _by_op("Down, Down to Goblin-town")["DISCARD"][0]["card_selector"]
+    assert dd["predicates"]["nonland"] is True and dd["object"] == "that_card"

@@ -1829,3 +1829,17 @@ Review `PHASE4_review_pt5.md` (verdict **REPAIR**, reviewed_commit `8320fdd`) ac
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4b-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt5/8320fdd. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_resource.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt5.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4b repair 2: operation-scoped discard selector (review PHASE4_review_pt6)
+
+Review `PHASE4_review_pt6.md` (verdict **REPAIR**, reviewed_commit `1577a43`) confirmed the pt5 fixes (Down Down chosen-nonland same-object binding; Master of Lake-town trigger + life-lost binding) and left one narrow blocker: the generalized `_discard_selector` predicate scan (`low[ms:ms+90]`) crossed the sentence boundary, so **Silvan Reveler**'s unconstrained discard inherited a `land` predicate from the *following* conditional "If you discard a **land** card this way, put it …". Same operation-scoping class of bug fixed for conditions in pt3.
+
+**Fix:** `_discard_selector` now bounds its predicate scan to the discard's OWN sentence (`low[ms:next ". "]`, capped at 90). Silvan Reveler's DISCARD `card_selector` is now unconstrained (`{zone:hand, owner:you, count:1, chooser:you}`, no `predicates`). Down, Down to Goblin-town's genuine `nonland` predicate is untouched — it comes from the antecedent look-back (`choose a nonland card` in `low[:ms]`), not from the forward `seg` scan, so scoping the forward scan does not affect it.
+
+**Numbers unchanged in shape:** 189 effects on 126 faces; 7,950 pairs (0 `DISCARDS_CARDS`/`MILLS_CARDS` fan-out). Reconcile 275 → 185 extracted, 4 deferred, 0 unresolved (`reports/*` byte-identical — the fix removes one spurious predicate, not a count). Two serial `effect-build` runs byte-identical (`effect_records` `c8dfc1e3…`). **366 tests pass** (+1 pt6 regression: `test_repair_pt6_discard_selector_does_not_inherit_later_condition_predicate` — Silvan has no land/nonland predicate; Down Down's nonland/that_card preserved). Accepted Phase-4a draw/life byte-identical (`b514f37` subset). Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4b-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt6/1577a43. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py`; `tests/test_effect_resource.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt6.md`; [[phase4-frozen]]

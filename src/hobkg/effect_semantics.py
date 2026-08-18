@@ -702,8 +702,11 @@ def _quantity_formula(low: str, crange: str, amount: str, me: int):
 def _discard_selector(low: str, ms: int, amt: str, owner: str) -> dict:
     """The discarded-card object/selector for a DISCARD record (review pt5 #1): which cards leave
     WHOSE hand, any card constraint, who chooses, and — for 'discards that card' — the same-object
-    binding to a previously chosen card. Source zone is always the hand."""
-    seg = low[ms:ms + 90]
+    binding to a previously chosen card. Source zone is always the hand. The predicate scan is scoped
+    to the discard's OWN sentence (review pt6) so a later 'If you discard a land card this way …'
+    conditional does not back-propagate a spurious constraint onto an earlier unconstrained discard."""
+    send = low.find(". ", ms)
+    seg = low[ms:(send if send >= 0 else len(low))][:90]
     sel = {"zone": "hand", "owner": owner, "count": ("all" if amt == "hand" else amt), "chooser": owner}
     preds = {}
     if "nonland" in seg:

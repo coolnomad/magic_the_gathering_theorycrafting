@@ -6140,5 +6140,100 @@ record omits the player-loses-life trigger antecedent and binds "that many" only
 as a vague variable rather than the life-loss quantity. Updated advisory
 `docs/review_events/review_ready.json` to signal the `REPAIR` result for the worker.
 
+## 2026-08-18 Review Agent - Phase 4b pt6
+
+Reviewed worker commit `1577a43ae9870ea07fcb6803cf7fbda32506ff0a`
+against parent/review commit `6552b7b3736df08305e7bae7a9d6bfcd4bed4915`.
+Created and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt6.md`
+as review commit `55435f79aed9774197a55bd5c3f52f6e160d92a2`.
+Verdict: `REPAIR`.
+
+Verification performed: targeted Phase 4 resource/participant/object/destroy tests
+passed (`95 passed`), full suite passed (`365 passed`), frozen manifest check
+reported `frozen_failures 0`, two consecutive `effect-build` runs were
+byte-identical (`effect_records` hash
+`47e9b731f273b45035255c7f35c599b31bfdb36930fc7082e38513d5a4168957`),
+reconciliation reported 275 clause/family pairs, 185 extracted, 4 deferred, and
+0 unresolved, and pair-projection files contained no resource fan-out relations.
+
+Prior pt5 findings were repaired for `Down, Down to Goblin-town` and `The Master
+of Lake-town`, but direct record inspection found a new blocking regression:
+`Silvan Reveler` now has `card_selector.predicates.type = land` on its DISCARD
+record even though Oracle says "draw a card, then discard a card"; the land
+predicate belongs only to the later conditional instruction. Updated advisory
+`docs/review_events/review_ready.json` to signal the pt6 `REPAIR` result.
+
+## 2026-08-18 Review Agent - New Commit Check
+
+User reported a new commit was available. Ran `git status --short --branch`,
+`git fetch origin`, `git log --oneline --decorate -12 --all`, `git branch -avv`,
+and `git for-each-ref` over local and remote branches. No new implementation
+commit was visible: local `main` remained at review commit
+`55435f79aed9774197a55bd5c3f52f6e160d92a2`, and `origin/main` remained at the
+already-reviewed worker commit `1577a43ae9870ea07fcb6803cf7fbda32506ff0a`.
+No review document was created because there was no new exact SHA to review.
+
 ### [2026-08-18 10:50] USER
 read hob_effect_semantics_repair_instructions_PHASE4_review_pt5.md
+
+### [2026-08-18 11:09] ASSISTANT
+Phase 4 pt5 on my SHA `8320fdd`, verdict **REPAIR** with 2 blocking findings. Let me read it:
+
+Two blocking findings: (1) DISCARD records omit the discarded-card selector/object binding (which cards, from whose hand, predicates like nonland, and the "that card" antecedent), and (2) Master of Lake-town's MILL loses its trigger antecedent and the "that many" = life-lost binding. Let me add a discard card-selector helper and fix the mill trigger. First the helper:
+
+Now wire the discard selector into the DISCARD loop and fix the MILL trigger antecedent:
+
+Let me verify both fixes across the audited cards:
+
+Both fixes are complete â€” Down Down now has the full `nonland`/`that_card`/`chosen_card` same-object binding, and Master of Lake-town's mill carries the trigger event + life-lost binding. Let me verify accepted draw/life is still byte-identical and build:
+
+Accepted draw/life preserved, deterministic, 0 fan-out, 0 unresolved. Now the pt5 regression tests:
+
+365 pass (+6). Let me regenerate coverage last, append the LABNOTEBOOK repair entry, and check what changed:
+
+Reports unchanged (counts identical); only the records + code + tests changed. Let me append the LABNOTEBOOK repair entry:
+
+The commit+push backgrounded (slow network). Let me verify the commit landed locally and run the pt5 acceptance checks while the push completes:
+
+Commit `1577a43` landed with all five pt5 acceptance checks passing. Let me confirm the push reached the remote:
+
+Remote is still at `8320fdd` â€” the background push is still in flight. Let me push explicitly and confirm:
+
+Both push attempts are in flight (they'll converge â€” one pushes, the other becomes a no-op). Let me wait briefly and confirm the remote:
+
+Both push tasks completed (exit 0). Let me confirm the remote now has the commit:
+
+Remote and local are both at `1577a43`; the push landed and the range diff-check is clean. Phase 4b repair is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt5** (verdict REPAIR on my SHA `8320fdd`, 2 blocking findings) is addressed in commit `1577a43`:
+
+**Blocker 1 â€” DISCARD records omitted discarded-card selectors/bindings.** New `_discard_selector` attaches a `card_selector` `{zone:"hand", owner:<participant>, count, chooser, predicates?, object?, antecedent?}` to every DISCARD record:
+- **Balin** â†’ `count:"all"` (the whole hand)
+- **Uncover** â†’ 2 from your hand, under the `if you do` gate
+- **Stony-Voiced Goblins** â†’ each opponent chooses 1 from their own hand
+- **Down, Down to Goblin-town** â†’ the full same-object binding the reviewer required: `owner:target_opponent`, `chooser:"you"`, `predicates:{nonland:true}`, `object:"that_card"`, `antecedent:{kind:chosen_card, same_object:true}` â€” the discarded card *is* the nonland card you chose from the revealed hand.
+
+**Blocker 2 â€” Master of Lake-town mill lost its trigger antecedent and amount binding.** The mill now carries `condition:{kind:"triggered", event:"Whenever a player loses life", binds:{participant:"player_who_lost_life", amount:"life_lost"}}` and `quantity_formula:{source:"trigger_quantity", of:"that_player"}` â€” "that many" is bound to the life lost, not a free variable.
+
+**Verification:** all 5 pt5 acceptance checks pass against the records; the **52 accepted Phase-4a draw/life records remain byte-identical** to `b514f37`; 189 effects / 126 faces / 7,950 pairs with **zero** discard/mill fan-out; reconcile 275 â†’ 185 extracted, 4 deferred, **0 unresolved**; two serial builds byte-identical (`47e9b731`); **365 tests pass** (+6 pt5 record-level regressions); frozen manifest green; `git diff --check 8320fdd..1577a43` clean; coverage kept Phase-6. Reports were byte-identical (the fix enriches records, not counts).
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4b-repair1` / `Addresses-Review: 6552b7b` / `Addresses-Implementation: 8320fdd` / `Validation` trailers; staged only my own paths; reviewer's uncommitted artifacts left untouched.
+
+This Phase 4b repair now awaits re-review. Remaining Phase-4 families (sacrifice, exile/movement, search/tutor, counterspells, full `SUPPLIES_RESOURCE` review) stay open for later bounded sub-tasks.
+
+### [2026-08-18 13:06] USER
+what's the last review doc you read?
+
+### [2026-08-18 13:06] ASSISTANT
+The last review doc I read was **`docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt5.md`**.
+
+- **Verdict:** REPAIR (2 blocking findings)
+- **Reviewed commit:** `8320fdd` (my Phase 4b discard/mill implementation)
+- **Findings:** (1) DISCARD records omitted discarded-card selectors/object bindings; (2) Master of Lake-town's mill lost its trigger antecedent and "that many" amount binding.
+
+I addressed both in repair commit `1577a43` (pushed). That repair is now awaiting re-review â€” I have **not** yet read a pt6 review (the current `review_ready.json` signal still points at pt5). Want me to check whether a newer review has landed?
+
+### [2026-08-18 13:07] USER
+ok review_pt6 is up. read that
