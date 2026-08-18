@@ -558,16 +558,118 @@ def _object_effects(face):
                    "oracle_span": span, **{k: v for k, v in op.items() if k not in ("op", "relation", "object_var", "selector", "duration", "participant", "condition")}}
             out.append(rec)
     return out
+
+
+####################################################################################################
+#  Phase 4a — participant/resource effects: DRAW and LIFE (gain/lose).                             #
+#  Player-directed facts: they bind to a PARTICIPANT, not an object, and are STOCHASTIC /          #
+#  participant-level, so they never fan out to card pairs (spec Projection Rules + False-Positive   #
+#  Guards). 'Pay N life' is a COST, not a life effect, and is left to reconciliation.               #
+####################################################################################################
+
+_WORDNUM = {"a": "1", "an": "1", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+            "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"}
+# nearest-preceding participant subject (default 'you'); resolves same-participant binding
+_SUBJECT_RE = re.compile(r"\b(each opponent|each player|target opponent|target player|that player|"
+                         r"its controller|its owner|that card's owner|you)\b", re.I)
+# a leading trigger clause ('Whenever …,' / 'When …,' / 'At the beginning of …,') — a draw/life verb
+# INSIDE it is the trigger event, NOT an effect this ability produces (Ravenhill Flock, Lakeshore
+# Apothecary, The Master of Lake-town's 'whenever a player loses life').
+_TRIGGER_PREFIX_RE = re.compile(r"\s*(?:whenever|when|at the beginning of|as this |as long as )[^,]*,\s*", re.I)
+_DRAW_RE = re.compile(r"draws?\s+((?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|\d+|x|"
+                      r"that many)\b)\s+(?:more\s+)?cards?", re.I)
+# a computed-count draw ('draw cards equal to …') — a real draw whose amount is a variable
+_DRAW_VAR_RE = re.compile(r"draws?\s+cards?\s+(equal to [^.,;]+)", re.I)
+_LIFE_RE = re.compile(r"(gains?|loses?)\s+(\d+|x)\s+life", re.I)
+
+
+def _amount(tok: str) -> str:
+    t = tok.strip().lower()
+    return _WORDNUM.get(t, "X" if t == "x" else t)
+
+
+def _nearest_participant(text: str, pos: int) -> str:
+    best = None
+    for m in _SUBJECT_RE.finditer(text):
+        if m.start() <= pos:
+            best = m.group(0)
+        else:
+            break
+    return _sch.participant(best) if best else "you"
+
+
+def _participant_effects(face):
+    """DRAW + LIFE participant records with same-participant binding. Reminder text is blanked (so a
+    recruit reminder 'Draw a card, then discard a card' is NOT re-extracted here), and a leading
+    trigger condition is stripped so a draw/life *event* in a trigger is not mistaken for an effect."""
+    text = _blank_reminders(face.get("oracle_text") or "")
+    out = []
+    for cl in _ability_clauses(text):
+        clause_id = f"{face['id']}#a{cl['ability_index']}" + (f".m{cl['mode_index']}" if cl["mode_index"] is not None else "")
+        crange = text[cl["start"]:cl["end"]]
+        low = crange.lower()
+        tm = _TRIGGER_PREFIX_RE.match(low)
+        eff_start = tm.end() if tm else 0                    # only accept verbs in the EFFECT portion
+        pvars, vc = {}, [0]
+
+        def pvar(part):
+            if part not in pvars:
+                pvars[part] = f"p{vc[0]}"; vc[0] += 1
+            return pvars[part]
+
+        ops = []                                             # (op, relation, participant, extra, span)
+        for m in _DRAW_RE.finditer(low):
+            if m.start() < eff_start:
+                continue                                     # the draw is the trigger event, not an effect
+            part = _nearest_participant(low, m.start())
+            extra = {"amount": _amount(m.group(1))}
+            if re.search(r"cards?\s+instead", low[m.start():m.start() + 40]):
+                extra["replacement"] = {"kind": "draw_instead"}   # Plunder / Bard King of Dale
+            if re.search(r"\bfor each\b", low[m.end():m.end() + 40]):
+                extra["scaling"] = crange[m.end():m.end() + 60].strip()
+            ops.append(("DRAW", "DRAWS_CARDS", part, extra,
+                        [cl["start"] + m.start(), cl["start"] + m.end()]))
+        for m in _DRAW_VAR_RE.finditer(low):
+            if m.start() < eff_start:
+                continue
+            part = _nearest_participant(low, m.start())
+            ops.append(("DRAW", "DRAWS_CARDS", part,
+                        {"amount": "variable", "scaling": crange[m.start(1):m.end(1)].strip()},
+                        [cl["start"] + m.start(), cl["start"] + m.end()]))
+        for m in _LIFE_RE.finditer(low):
+            if m.start() < eff_start:
+                continue                                     # 'whenever a player loses life' trigger
+            op = "GAIN_LIFE" if m.group(1).lower().startswith("gain") else "LOSE_LIFE"
+            rel = "GAINS_LIFE" if op == "GAIN_LIFE" else "LOSES_LIFE"
+            part = _nearest_participant(low, m.start())
+            ops.append((op, rel, part, {"amount": _amount(m.group(2))},
+                        [cl["start"] + m.start(), cl["start"] + m.end()]))
+
+        for i, (op, rel, part, extra, span) in enumerate(ops):
+            v = pvar(part)                                    # same participant string → one var
+            out.append({"effect_id": f"{clause_id}#{op}#{i}", "op": op, "relation": rel,
+                        "participant": part, "participant_var": v,
+                        "selector": _sch.participant_selector(v),
+                        "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"]},
+                        "condition": _sch.condition(crange), "duration": _sch.duration(crange),
+                        "optional": "may " in low, "targeted": False,
+                        "affects_each": part.startswith("each"), "binding": None,
+                        "clause_id": clause_id, "oracle_span": span, **extra})
+    return out
+
+
 _PHASE3_FAMILIES = {"deal_damage", "destroy", "add_counter", "remove_counter", "modify_pt",
                     "set_switch_pt", "grant_ability", "remove_ability", "fight", "prevent",
                     "control_change", "type_change", "tap_untap"}
+_PHASE4A_FAMILIES = {"draw", "life"}
 
 
 _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER": "add_counter",
               "MODIFY_PT": "modify_pt", "SET_BASE_PT": "set_switch_pt", "SWITCH_PT": "set_switch_pt",
               "GRANT_ABILITY": "grant_ability", "REMOVE_ABILITY": "remove_ability", "TAP": "tap_untap",
               "UNTAP": "tap_untap", "FIGHT": "fight", "CHANGE_TYPE": "type_change",
-              "CONTROL_CHANGE": "control_change", "PREVENT_DAMAGE": "prevent"}
+              "CONTROL_CHANGE": "control_change", "PREVENT_DAMAGE": "prevent",
+              "DRAW": "draw", "GAIN_LIFE": "life", "LOSE_LIFE": "life"}
 _DEFERRED_DISP = {"divided_damage", "grants_nonkeyword_ability", "remove_counter", "source_power_bound_damage"}
 
 
@@ -580,12 +682,12 @@ def reconcile(repo: Path = REPO) -> dict:
     faces = _load_dicts(repo / "data/normalized/faces.jsonl")
     extracted_cf = set()
     for f in faces:
-        for e in _destroy_effects(f) + _object_effects(f):
+        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f):
             extracted_cf.add((e["clause_id"], _OP_FAMILY.get(e["op"], e["op"].lower())))
     rows, counts = [], {}
     for c in census:
         low = c["clause_text"].lower()
-        for fam in sorted(set(c["families"]) & _PHASE3_FAMILIES):
+        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES)):
             fam_matches = [m for m in c["matches"] if m["family"] == fam]
             if (c["clause_id"], fam) in extracted_cf:
                 disp = "extracted"
@@ -613,6 +715,16 @@ def reconcile(repo: Path = REPO) -> dict:
                 disp = "remove_counter"
             elif fam == "add_counter" and re.search(r"counter on it\b|counter on them\b", low):
                 disp = "counter_as_condition (census false positive — a counter reference, not an add)"
+            elif fam == "life" and re.search(r"\bpay(?:s)?\s+(?:\d+\s+|x\s+)?life\b", low):
+                disp = "life_payment_cost (a cost, not a life effect)"
+            elif fam == "draw" and re.search(r"^\s*(?:whenever|when)\b.*\bdraws?\b.*,", low):
+                disp = "draw_trigger (a trigger event/condition, not a draw effect)"
+            elif fam == "life" and re.search(r"^\s*(?:whenever|when)\b.*\bloses?\s+life\b.*,", low):
+                disp = "life_change_trigger (a trigger event, not a life effect)"
+            elif fam == "draw" and re.search(r"\brecruit\b", low):
+                disp = "recruit (keyword action — draw/discard defined by the keyword; mechanism layer)"
+            elif fam == "life" and re.search(r"damage causes loss of life", low):
+                disp = "reminder_text (rules reminder, not a life effect)"
             elif re.search(r"target (player|opponent)|each (player|opponent)|that player|to any target", low) \
                     and not re.search(r"\b(creature|artifact|enchantment|permanent|land|planeswalker)\b",
                                       low.split("target", 1)[-1][:30]):
@@ -626,9 +738,10 @@ def reconcile(repo: Path = REPO) -> dict:
                          "disposition": disp, "clause": c["clause_text"][:90]})
     unresolved = [r for r in rows if r["disposition"] == "unresolved"]
     deferred = sum(v for k, v in counts.items() if k in _DEFERRED_DISP)
-    L = ["# Effect-semantics — Phase-3 (clause_id, family) reconciliation", "",
-         "Every `(clause_id, family)` carrying a Phase-3 effect family is EXTRACTED or DISPOSITIONED. "
-         "Deferred / non-executable dispositions are counted separately from `unresolved`.", "",
+    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life)", "",
+         "Every `(clause_id, family)` carrying a Phase-3 object family or a Phase-4a participant family "
+         "(draw, life) is EXTRACTED or DISPOSITIONED. Deferred / non-executable dispositions (including "
+         "life-payment costs and draw/life *triggers*) are counted separately from `unresolved`.", "",
          f"- (clause, family) pairs: **{len(rows)}**  · extracted: **{counts.get('extracted', 0)}**  "
          f"· deferred/nonexecutable: **{deferred}**  · unresolved: **{len(unresolved)}**", "",
          "| disposition | (clause,family) |", "|---|---:|"]
@@ -675,18 +788,21 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
                 _add(src, tgt, relation, family, support)
 
     for f in sorted(faces, key=lambda x: x["id"]):
-        for eff in _destroy_effects(f) + _object_effects(f):
+        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f):
             errors += [f"{eff['effect_id']}: {e}" for e in _sch.validate_effect(eff)]
             sel = eff["selector"]
             family = eff["op"].lower()
             support = {"effect_id": eff["effect_id"], "mode": eff["mode"], "op": eff["op"],
                        "object_var": eff.get("object_var"), "oracle_span": eff["oracle_span"],
                        "targeted": eff["targeted"], "face_id": f["id"], "name": f["name"]}
-            elig_tokens = sorted(t["id"] for t in tokens if _sch.matches_token(sel, t))
+            participant_level = sel.get("participant_level", False)
+            elig_tokens = [] if participant_level else sorted(t["id"] for t in tokens if _sch.matches_token(sel, t))
             structured.append({**eff, "face_id": f["id"], "card": f["card_id"], "name": f["name"],
                                "eligible_token_specs": elig_tokens,
                                "provenance": {**support, "rule": f"effect_semantics.{family}",
                                               "layer": "effect_semantics"}})
+            if participant_level:
+                continue                                     # participant-level fact — NO card-pair fan-out
             project(f["card_id"], sel, eff["relation"], family, support)
             if eff["op"] == "FIGHT" and eff.get("fight_target_selector"):
                 project(f["card_id"], eff["fight_target_selector"], "CAN_FIGHT", "fight",
@@ -709,19 +825,22 @@ def _effects_report(repo, structured, pairs):
     from collections import Counter
     byrel = Counter(p["relation"] for p in pairs)
     byop = Counter(s["op"] for s in structured)
-    L = ["# Effect-semantics — structured effects (Phase 3b: targeted-object families)", "",
+    L = ["# Effect-semantics — structured effects (Phase 3 object families + Phase 4a participant families)", "",
          "Additive `effect_semantics` layer over the frozen reference. **ABILITY-scoped** extraction "
          "(one clause per (ability, mode); targets never leak across abilities; real `clause_id`), with "
          "**same-object variable binding**, **per-operation duration/condition**, explicit self-effects, "
          "object-vs-participant separation, comma-OR subtype lists, and empty-object-selector rejection. "
-         "Families: destruction, damage (incl. source-power & any-target), counters, power/toughness "
+         "Object families: destruction, damage (incl. source-power & any-target), counters, power/toughness "
          "(mod + set/switch), ability grant/removal, tap/untap, fight, type-change, control-change, and "
-         "damage-prevention. Each effect is a validated record; projection aggregates all supporting "
+         "damage-prevention. **Phase-4a participant families:** DRAW and LIFE (gain/lose) — player-directed "
+         "records that bind to a PARTICIPANT (same-participant binding, e.g. Reverent Howl's draw+lose-life) "
+         "and are **stochastic/participant-level, so they never fan out to card pairs**; `Pay N life` is a "
+         "cost, not an effect. Each effect is a validated record; projection aggregates all supporting "
          "effects/modes per pair (`supports`). Frozen core untouched. **Proposed schema extensions "
          "(documented, not casually invented):** `CAN_FIGHT`, `CHANGES_TYPE_OF`, `SETS_BASE_PT`, "
          "`SWITCHES_PT`, `REMOVES_ABILITY_FROM`, `EXCHANGES_CONTROL_OF`/`GAINS_CONTROL_OF`, "
-         "`PREVENTS_DAMAGE_FROM`. Every Phase-3 census clause is reconciled "
-         "(`reports/effect_reconciliation.md`, 0 unresolved).", "",
+         "`PREVENTS_DAMAGE_FROM`, `DRAWS_CARDS`, `GAINS_LIFE`/`LOSES_LIFE`. Every census clause in scope is "
+         "reconciled (`reports/effect_reconciliation.md`, 0 unresolved).", "",
          f"- effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  · "
          f"pairs: **{len(pairs)}**", "",
          "| relation | pairs |  | op | effects |", "|---|---:|---|---|---:|"]

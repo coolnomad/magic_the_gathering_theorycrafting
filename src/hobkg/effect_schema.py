@@ -193,6 +193,14 @@ def selector_is_empty(sel: dict) -> bool:
                 or sel.get("generic_permanent") or sel.get("self"))
 
 
+def participant_selector(var: str = "p0") -> dict:
+    """A participant-level record (draw / life / mill / etc.) acts on a PLAYER, not an object. It
+    carries an intentionally empty object selector flagged `participant_level` so `validate_effect`
+    does not demand an object binding and `build_effects` does not fan it out to card pairs."""
+    return {"card_types": [], "or_types": [], "subtypes": [], "supertypes": [], "quantifier": None,
+            "targeted": False, "var": var, "participant_level": True}
+
+
 def validate_effect(rec: dict) -> list:
     """Return a list of schema violations for an effect record (empty = valid). An OBJECT-directed
     relation may not validate with an empty object selector unless an explicit self/antecedent binding
@@ -212,9 +220,15 @@ def validate_effect(rec: dict) -> list:
         errs.append("targeted must be boolean")
     if rec.get("relation", "").startswith(("CAN_", "ADDS_", "MODIFIES_", "GRANTS_", "CHANGES_",
                                            "REMOVES_", "SETS_", "SWITCHES_", "GAINS_", "EXCHANGES_",
-                                           "PREVENTS_")):
+                                           "PREVENTS_")) and not sel.get("participant_level"):
         if selector_is_empty(sel) and not rec.get("binding") and not sel.get("self"):
             errs.append("object relation with empty object selector and no self/antecedent binding")
+    # a participant-level record must name a participant and carry no object_var
+    if sel.get("participant_level"):
+        if not rec.get("participant"):
+            errs.append("participant-level record missing participant")
+        if rec.get("object_var") is not None:
+            errs.append("participant-level record must not carry object_var")
     # the effect's object_var must match its selector's var (unless an explicit binding says otherwise)
     if "object_var" in rec and not rec.get("binding") and sel.get("var") not in (rec["object_var"], None):
         errs.append(f"object_var {rec['object_var']} != selector.var {sel.get('var')}")
