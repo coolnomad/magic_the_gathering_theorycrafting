@@ -6213,6 +6213,30 @@ requires four or more Treasures; `Last Light of Durin's Day` requires six or
 more quest counters). Updated advisory `docs/review_events/review_ready.json`
 to signal the pt8 `REPAIR` result.
 
+## 2026-08-18 Review Agent - Phase 4c pt9
+
+Reviewed worker commit `143ec1df22a0d8c1ad5cc2a4b6520a925d9cf1f1`
+against parent/review commit `a6d1cd65d7c94b206a8d01b818667dec68d7f470`.
+Created and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt9.md`
+as review commit `e1546861e0800b84b6826053f2f970cdac2bd9ee`.
+Verdict: `REPAIR`.
+
+Verification performed: isolated targeted Phase 4 sacrifice/resource/participant/object/destroy
+tests passed (`111 passed`), full suite passed (`381 passed`), frozen manifest
+check reported `frozen_failures 0`, two consecutive `effect-build` runs were
+byte-identical (`effect_records` hash
+`781f21247c0e13256d3086af29f8e4ca6b0f23c457efb506bcef6cd323103a9c`),
+reconciliation reported 311 clause/family pairs, 207 extracted, 4 deferred, and
+0 unresolved, and pair-projection files contained no sacrifice/resource fan-out
+relations. Accepted Phase 4a/4b participant records remained byte-identical to
+`b0759cb`.
+
+The pt8 condition findings are repaired, but direct cost inspection found a new
+blocking issue: `Elven Passage`'s `SACRIFICE` record includes tap and
+self-sacrifice in the activated cost but omits the printed `Pay 1 life` co-cost.
+Updated advisory `docs/review_events/review_ready.json` to signal the pt9
+`REPAIR` result.
+
 ## 2026-08-18 Review Agent - New Commit Check
 
 User reported a new commit was available. Ran `git status --short --branch`,
@@ -6412,3 +6436,50 @@ Remaining Phase-4 sub-tasks (search/tutor, exile/movement, counterspells, comple
 
 ### [2026-08-18 15:23] USER
 ok review_pt8 is up. read that
+
+### [2026-08-18 15:28] ASSISTANT
+Phase 4 pt8 on my SHA `73e108c`, verdict **REPAIR** with 2 blocking findings (both about sacrifice conditions). Let me read it:
+
+Two findings, both about sacrifice conditions:
+1. **Leak from later "If you do" payoff** â€” `_sch.condition(raw)` over the full line captures the *trailing* payoff condition (Rhovanion/Bolg/Sackville "If you doâ€¦"; Elven Passage's post-colon effect). The fix: derive the condition only from the text **before** the sacrifice verb (leading condition only).
+2. **Conditional self-sac loses the actual gate** â€” Misty ("control four or more Treasures") and Last Light ("six or more quest counters") collapse to generic `conditional_effect`; need the specific predicate, and avoid `cost_context:"unsupported"`.
+
+Let me add a `_sac_condition` helper and wire it in:
+
+Now update the extractor to use the prefix-scoped condition and refine `cost_context` for conditional self-sac:
+
+Now remove the old full-line `cond = _sch.condition(raw)` line further down (it would overwrite my new `cond`):
+
+Both fixes work â€” optional/cost sacrifices have `cond=None`, and Misty/Last Light now carry structured gates (`controls_count`/`counter_threshold`) with `conditional_self_sacrifice` context. Let me verify invariance, determinism, and the suite:
+
+Accepted 4a/4b preserved, deterministic (`781f2124`). My earlier `test_conditional_self_sacrifice` asserted the generic `conditional_effect` kind, which now changed â€” let me update it and add the pt8 regressions:
+
+15 pass, full suite 381. Let me append the LABNOTEBOOK repair entry and stage:
+
+Staged exactly my 5 files (reports byte-identical, reviewer artifacts untouched). Commit and push:
+
+Committed and pushed as `143ec1d` (remote confirmed). Let me run the pt8 acceptance checks against the committed records:
+
+All pt8 acceptance checks pass against the committed records. The repair is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt8** (verdict REPAIR on my SHA `73e108c`, 2 blocking findings â€” both sacrifice conditions) is addressed in commit `143ec1d`:
+
+**Blocker 1 â€” later "If you do" payoff leaked onto the sacrifice.** `_sch.condition(raw)` over the full line captured the *trailing* payoff condition. New `_sac_condition(prefix)` derives the gate only from text **before** the sacrifice verb (`raw[:mphrase.start()]`): a leading gate governs the sacrifice; a trailing "If you do" gates the payoff; an activated cost is unconditional once activated.
+- Rhovanion Rampager, Bolg of the North, The Sackville-Bagginses â†’ `optional:true`, `condition:null`
+- Elven Passage â†’ activated cost, `condition:null`
+
+**Blocker 2 â€” conditional self-sac lost its specific gate.**
+- Misty Mountains Cold â†’ `condition:{kind:controls_count, count:four, of:treasures}`
+- Last Light of Durin's Day â†’ `condition:{kind:counter_threshold, count:six, counter:quest}`
+- `cost_context` is now `conditional_self_sacrifice` (not `unsupported`).
+
+**Verification (all 7 acceptance checks pass):** accepted Phase-4a/4b **69-record subset byte-identical** to `b0759cb`; 211 effects / 132 faces / 7,950 pairs, **zero** `SACRIFICES` fan-out; reconcile 311 â†’ 207 extracted, 4 deferred, **0 unresolved**; two deterministic builds (`781f2124`); **381 tests pass**; frozen manifest green; `git diff --check 73e108c..143ec1d` clean; reports byte-identical (the fix corrects condition fields, not counts).
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4c-repair1` / `Addresses-Review: a6d1cd6` / `Addresses-Implementation: 73e108c` / `Validation` trailers; staged only my own paths; `sac_schema.py` and reviewer artifacts untouched.
+
+This is the same operation-scoping discipline the reviewer has enforced throughout Phase 4 (conditions/optionality/selectors must be scoped to the operation, not the clause/line), now applied to sacrifice gates. The repair awaits re-review. Remaining Phase-4 families (search/tutor, exile/movement, counterspells, complete `SUPPLIES_RESOURCE` review) stay open.
+
+### [2026-08-18 16:30] USER
+ok review_pt9 is up. read that

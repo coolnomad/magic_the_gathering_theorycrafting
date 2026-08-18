@@ -879,6 +879,24 @@ def _sac_condition(prefix: str):
     return _sch.condition(prefix)
 
 
+def _augment_sac_cost(cost, raw: str, ctx: str):
+    """`sac_schema._cost` only emits mana ({…}) and tap ({T}) atoms, so a non-mana 'Pay N life'
+    co-cost is dropped (review pt9 — Elven Passage). Insert a structured `pay_life` atom into the
+    sacrifice branch, in printed order (before the sacrifice atom), without touching sac_schema."""
+    if not cost:
+        return cost
+    prefix = raw.split(":")[0] if ctx == "activated_ability" else raw
+    m = re.search(r"\bpay\s+(\d+)\s+life\b", prefix, re.IGNORECASE)
+    if not m:
+        return cost
+    for branch in cost.get("alt", []):
+        atoms = branch.get("all", [])
+        idx = next((i for i, a in enumerate(atoms) if "sacrifice" in a), None)
+        if idx is not None and not any("pay_life" in a for a in atoms):
+            atoms.insert(idx, {"pay_life": m.group(1)})
+    return cost
+
+
 def _sacrifice_effects(face):
     from . import sac_schema as _sac
     text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))
@@ -943,7 +961,7 @@ def _sacrifice_effects(face):
                          "count": sel["quantity"], "chooser": actor}
         rec = {"effect_id": f"{cid}#SACRIFICE#{j}", "op": "SACRIFICE", "relation": "SACRIFICES",
                "participant": actor, "participant_var": pvars[actor], "role": role, "cost_context": ctx,
-               "cost": _sac._cost(raw, ctx if ctx in _SAC_COST_CTX else "x", sel),
+               "cost": _augment_sac_cost(_sac._cost(raw, ctx if ctx in _SAC_COST_CTX else "x", sel), raw, ctx),
                "selector": _sch.participant_selector(pvars[actor], targeted=targeted),
                "card_selector": card_selector, "source_zone": "battlefield",
                "dest_zone": "graveyard", "event": "sacrifice",

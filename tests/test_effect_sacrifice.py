@@ -106,6 +106,24 @@ def test_activated_sacrifice_cost_is_unconditional():
     assert e["role"] == "cost" and e["cost_context"] == "activated_ability" and e["condition"] is None
 
 
+def test_elven_passage_cost_preserves_pay_life_co_cost():
+    # review pt9: the printed 'Pay 1 life' co-cost must survive in the structured cost, in the same
+    # activated branch as tap and the self-sacrifice.
+    e = _one("Elven Passage")
+    atoms = e["cost"]["alt"][0]["all"]
+    assert {"tap": True} in atoms
+    assert {"pay_life": "1"} in atoms
+    assert any("sacrifice" in a for a in atoms)
+    assert e["condition"] is None                            # pt8 repair preserved
+
+
+def test_mana_and_tap_co_costs_still_preserved():
+    # sanity: adding pay_life must not perturb ordinary mana/tap sacrifice costs
+    atoms = _one("Lake-town")["cost"]["alt"][0]["all"]
+    assert {"pay": "{2}{W}{U}"} in atoms and {"tap": True} in atoms
+    assert not any("pay_life" in a for a in atoms)
+
+
 # ---- projection + invariants ------------------------------------------------------------------
 def test_sacrifice_does_not_fan_out_to_card_pairs():
     pairs = es.build_effects(write=False)["_pairs"]

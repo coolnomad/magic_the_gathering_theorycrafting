@@ -1877,3 +1877,17 @@ Review `PHASE4_review_pt8.md` (verdict **REPAIR**, reviewed_commit `73e108c`) ac
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4c-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt8/73e108c. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_sac_condition`); `tests/test_effect_sacrifice.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt8.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4c repair 2: sacrifice life-payment co-cost (review PHASE4_review_pt9)
+
+Review `PHASE4_review_pt9.md` (verdict **REPAIR**, reviewed_commit `143ec1d`) confirmed the pt8 condition fixes and left one narrow completeness defect: **Elven Passage** ("{T}, Pay 1 life, Sacrifice this land: …") dropped the printed `Pay 1 life` co-cost from its structured `cost`. Root cause: `sac_schema._cost` only emits mana (`{…}`) and tap (`{T}`) atoms — a non-mana "Pay N life" token has no braces and is skipped.
+
+**Fix (integration-preserving):** since `sac_schema` is accepted/pinned and must not change, a new `_augment_sac_cost(cost, raw, ctx)` post-processes the cost `sac_schema._cost` returns — if the cost prefix (before the `:` for an activated ability, else the whole clause) contains `Pay N life`, it inserts a structured `{"pay_life": N}` atom into the sacrifice branch in printed order (before the `sacrifice` atom). Elven Passage's cost is now `alt[0].all = [{tap:true}, {pay_life:"1"}, {sacrifice:{self:true, quantity:1}}]`; `condition` stays `null` (pt8 repair preserved). Ordinary mana/tap sacrifice costs (Lake-town et al.) are unchanged.
+
+**Surgical:** only Elven Passage's SACRIFICE record differs from `143ec1d`; all **69 accepted Phase-4a/4b records byte-identical** to `b0759cb`. **Numbers unchanged in shape:** 211 effects on 132 faces; 7,950 pairs (0 `SACRIFICES` fan-out). Reconcile 311 → 207 extracted, 4 deferred, 0 unresolved (`reports/*` byte-identical — a cost-atom addition, not a count change). Two serial `effect-build` runs byte-identical (`effect_records` `e78fa201…`). **383 tests pass** (+2: `test_elven_passage_cost_preserves_pay_life_co_cost`, `test_mana_and_tap_co_costs_still_preserved`). Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4c-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt9/143ec1d. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_augment_sac_cost`); `tests/test_effect_sacrifice.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt9.md`; [[phase4-frozen]]
