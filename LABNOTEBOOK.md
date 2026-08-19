@@ -1891,3 +1891,22 @@ Review `PHASE4_review_pt9.md` (verdict **REPAIR**, reviewed_commit `143ec1d`) co
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4c-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt9/143ec1d. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_augment_sac_cost`); `tests/test_effect_sacrifice.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt9.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] BUILD — Effect-semantics Phase 4d: SEARCH / tutor (the deterministic-projection family)
+
+Phase 4c sacrifice **accepted** (review `PHASE4_review_pt10`, verdict ACCEPT, review commit `caecefa`, 0 blocking/nonblocking). Next bounded Phase-4 sub-task per the governing spec §Movement/search: **search/tutor**. Unlike the participant-level resource families (draw/life/discard/mill/sacrifice, which never fan out), a tutor is **deterministic** — the spec says "Tutors should project to eligible choices" — so `_search_effects` emits `SEARCH` records whose **searched-for card selector fans out** to every eligible HOB card as a `SEARCHES_FOR` card→card relation, reusing the Phase-3 object-projection path.
+
+`SEARCH` record fields: `selector` (the searched-for object selector via `_sch.selector` — drives projection), `participant` (the searcher), `source_zone` (`library` / `hand_and_library` — Last Light's "search your hand and/or library"), `dest_zone` (`hand` / `battlefield`+`dest_tapped` / `exile` / `library_top` — Old Thrush "put that card on top"), `quantity` (`1` / `up_to_2` / `variable`), `optional`, `reveal`, `shuffle`, per-op `condition`, mode. Cycling-reminder tutors (Halflingcycling/Mountaincycling) are blanked → keyword/mechanism layer (dispositioned `reminder`), consistent with recruit.
+
+- Seek the Heart → legendary creature → hand (projects to the 48 legendary creatures); Wood Elves → Forest → battlefield; Thrór's Map / Down in the Valley → basic land → hand (reveal); Roads Go Ever → basic Plains ×up_to_2 → **exile**; Troop of Ponies → basic land ×up_to_2 → battlefield tapped; Hobbit Hole (sac-land) / Elven Passage → basic land → battlefield tapped; Old Thrush → optional basic-land tutor → **library_top**; Last Light → Dragon (hand_and_library) → battlefield.
+- **Settle the Wreckage** (the spec's mandated case): its search binds `participant:target_player`, `optional:true`, `quantity:variable` ("that many"), basic land → battlefield tapped.
+
+**Projection discipline preserved:** SEARCH is the FIRST Phase-4 family that fans out (89 `SEARCHES_FOR` pairs); the 7,950 non-search pairs are **byte-identical** to `42d5000`, and the participant families (`DRAWS_CARDS`/`GAINS_LIFE`/`LOSES_LIFE`/`DISCARDS_CARDS`/`MILLS_CARDS`/`SACRIFICES`) still emit **0** pairs. All **91 accepted Phase-4a/4b/4c records byte-identical** to `42d5000`.
+
+**Numbers:** +11 SEARCH records → **222 effects on 135 faces; 8,039 pairs** (7,950 prior + 89 `SEARCHES_FOR`). Reconcile spans Phase-3 ∪ 4a ∪ 4b ∪ 4c ∪ 4d `{tutor_search}`: **324 (clause,family) → 218 extracted, 4 deferred, 0 unresolved**. Two serial `effect-build` runs byte-identical (`effect_records` `4e3b632c…`, pairs `61c409d3…`). **396 tests pass** (+13 in `tests/test_effect_search.py`: selector/zones/quantity/optional per card, Settle target-player+variable, hand-and-library source, cycling-reminder-not-extracted, deterministic fan-out, participant-families-still-0-fanout, validation). Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest. Remaining Phase-4: exile/movement/recursion, counterspells, complete `SUPPLIES_RESOURCE` review.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4d`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt10/42d5000. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_search_effects`); `tests/test_effect_search.py`; `data/graph_global/{effect_records,card_pair_projection_effect}.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt10.md`; [[phase4-frozen]]

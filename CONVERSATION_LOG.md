@@ -6237,6 +6237,30 @@ self-sacrifice in the activated cost but omits the printed `Pay 1 life` co-cost.
 Updated advisory `docs/review_events/review_ready.json` to signal the pt9
 `REPAIR` result.
 
+## 2026-08-18 Review Agent - Phase 4c pt10
+
+Reviewed worker commit `42d5000e9df2cfc756cb563c68173e5fb23087fc`
+against parent/review commit `e1546861e0800b84b6826053f2f970cdac2bd9ee`.
+Created and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt10.md`
+as review commit `caecefad5e41d91c3e9c6ef7639b7b3c7833e89c`.
+Verdict: `ACCEPT`.
+
+Verification performed: isolated targeted Phase 4 sacrifice/resource/participant/object/destroy
+tests passed (`113 passed`), full suite passed (`383 passed`), frozen manifest
+check reported `frozen_failures 0`, two consecutive `effect-build` runs were
+byte-identical (`effect_records` hash
+`e78fa2018ea99fd3409d005b6e28fb7a0d65fc28434d455b7e5733f62bab4eb9`),
+reconciliation reported 311 clause/family pairs, 207 extracted, 4 deferred, and
+0 unresolved, and pair-projection files contained no sacrifice/resource fan-out
+relations. Accepted Phase 4a/4b participant records remained byte-identical to
+`b0759cb`.
+
+The pt9 `Elven Passage` finding is repaired: its activated sacrifice cost now
+contains tap, `pay_life: "1"`, and self-sacrifice in the same branch while
+keeping `condition: null`. Pt8 condition repairs remain present. Updated
+advisory `docs/review_events/review_ready.json` to signal the pt10 `ACCEPT`
+result. This accepts bounded Phase 4c only; broader Phase 4 remains open.
+
 ## 2026-08-18 Review Agent - New Commit Check
 
 User reported a new commit was available. Ran `git status --short --branch`,
@@ -6483,3 +6507,72 @@ This is the same operation-scoping discipline the reviewer has enforced througho
 
 ### [2026-08-18 16:30] USER
 ok review_pt9 is up. read that
+
+### [2026-08-18 16:35] ASSISTANT
+Phase 4 pt9 on my SHA `143ec1d`, verdict **REPAIR** with a single blocking finding (Elven Passage cost). Let me read it:
+
+A single narrow blocking finding: **Elven Passage drops the `Pay 1 life` co-cost.** The `sac_schema._cost` parser only recognizes mana (`{â€¦}`) and tap (`{T}`) atoms â€” "Pay 1 life" has no braces so it's skipped. Since I can't modify `sac_schema` (pinned tests), I'll post-process the cost in my layer to insert a structured `pay_life` atom. Let me add the helper:
+
+Elven Passage now has `[tap, pay_life:"1", sacrifice]` in print order, condition still null, and Lake-town's cost is unchanged. Let me add the regression test and verify invariance:
+
+Surgical change â€” only Elven Passage's SACRIFICE record differs from `143ec1d`, all 69 accepted 4a/4b records preserved. Now determinism, reconcile, fan-out, full suite:
+
+Deterministic (`e78fa201`), 383 pass. Regenerate coverage last and append the LABNOTEBOOK entry:
+
+Committed and pushed as `42d5000` (remote confirmed). Let me run the pt9 acceptance checks against the committed records:
+
+All pt9 acceptance checks pass against the committed records. The repair is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt9** (verdict REPAIR on my SHA `143ec1d`, single blocking finding) is addressed in commit `42d5000`:
+
+**Blocking finding â€” Elven Passage dropped the `Pay 1 life` co-cost.** `sac_schema._cost` only emits mana (`{â€¦}`) and tap (`{T}`) atoms, so the non-brace "Pay 1 life" token was silently skipped. Since `sac_schema` is accepted/pinned and can't change, a new `_augment_sac_cost` post-processes the returned cost: if the cost prefix contains "Pay N life", it inserts a structured `{pay_life:N}` atom into the sacrifice branch in printed order.
+
+- Elven Passage cost is now `[{tap:true}, {pay_life:"1"}, {sacrifice:{self:true, quantity:1}}]`; `condition` stays `null` (pt8 repair preserved).
+- Ordinary mana/tap sacrifice costs (Lake-town et al.) are unchanged â€” **only Elven Passage's record differs** from `143ec1d`.
+
+**Verification (all 7 acceptance checks pass):** all pt8 repairs preserved (Rhovanion/Bolg/Sackville optional-ungated, Misty `controls_count`, Last Light `counter_threshold`); **69 accepted Phase-4a/4b records byte-identical** to `b0759cb`; 211 effects / 132 faces / 7,950 pairs, **zero** `SACRIFICES` fan-out; reconcile 311 â†’ 207 extracted, 4 deferred, **0 unresolved**; two deterministic builds (`e78fa201`); **383 tests pass**; frozen manifest green; `git diff --check 143ec1d..42d5000` clean; reports byte-identical (a cost-atom addition, not a count change).
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4c-repair2` / `Addresses-Review: e1546861` / `Addresses-Implementation: 143ec1d` / `Validation` trailers; staged only my own paths; `sac_schema.py` and reviewer artifacts untouched.
+
+This is a small, surgical completeness fix (cost-vs-effect fidelity â€” preserving a printed co-cost). The repair awaits re-review. Remaining Phase-4 families (search/tutor, exile/movement, counterspells, complete `SUPPLIES_RESOURCE` review) stay open.
+
+### [2026-08-18 19:58] USER
+ok review_pt10 is up. read that
+
+### [2026-08-18 19:58] ASSISTANT
+pt10 is an **ACCEPT** of my SHA `42d5000` (0 blocking, 0 nonblocking, `phase_may_proceed: true`). Let me read the full doc:
+
+Phase 4c (sacrifice) is **ACCEPTED** â€” pt10 verdict ACCEPT of my exact SHA `42d5000`, **0 blocking, 0 nonblocking, 0 deferred**, `phase_may_proceed: true`.
+
+## What the reviewer confirmed
+- **Elven Passage**: activated-cost branch contains tap + `pay_life:"1"` + self-sacrifice, condition still `null`.
+- All pt8 repairs preserved: Rhovanion/Bolg/Sackville optional-ungated; Misty `controls_count` (four Treasures); Last Light `counter_threshold` (six quest counters); Crude Bent Blade edict targeted; Bolg's Company subtype fodder without the sibling-haste leak.
+- All invariants green: **69 accepted 4a/4b records byte-identical** (`dae5c1a3â€¦`), 211 effects / 7,950 pairs, **zero** sacrifice/resource fan-out, reconcile 311 â†’ 207 extracted / 4 deferred / **0 unresolved**, two deterministic builds (`e78fa201â€¦`), frozen manifest clean, 383 tests pass.
+- Confirmed the fix is a generic `Pay N life` cost augmentation, not a card-name branch.
+
+Per the protocol, ACCEPT is terminal for this bounded task â€” **no repair to make**. I've taken no further action.
+
+## Phase 4 status
+Phase 4 is **not closed**. Accepted: 4a (draw/life), 4b (discard/mill), 4c (sacrifice). Remaining bounded sub-tasks under the governing spec:
+
+- **Search / tutor** â€” project to *eligible choices* (deterministic, so unlike draw/mill this one may fan out per the spec), distinct from stochastic library movement.
+- **Counterspells** â€” including "counter unless its controller pays" alternatives (small: ~3 clauses).
+- **Exile / movement / recursion** â€” bounce, blink, reanimation; source/destination zones and same-object identity.
+- **Complete `SUPPLIES_RESOURCE` review** â€” the cross-cutting report the spec requires: audit every existing `SUPPLIES_RESOURCE` edge so cost-consumption, event-triggering, and coincident resource-production aren't conflated (not limited to the already-corrected KÃ­li / Uncover / Plunder cases).
+
+Want me to proceed to the next bounded sub-task? My recommendation is **search/tutor** next â€” it's a coherent family that introduces the *deterministic* projection case (eligible choices fan out, unlike the participant-level resource families), which is a meaningful new capability and well-scoped. Alternatively, **counterspells** is the smallest quick win, or I can take on the **`SUPPLIES_RESOURCE` review** report. Say the word (or name a different subset) and I'll implement it with record-level regression tests before requesting review.
+
+## 2026-08-18 Review Agent - New Commit Check
+
+User reported a new commit was available. Ran `git status --short --branch`,
+`git fetch origin`, `git log --oneline --decorate -20 --all`, `git branch -avv`,
+and `git for-each-ref` over local and remote branches. No new implementation
+commit was visible: local `main` remained at review commit
+`caecefad5e41d91c3e9c6ef7639b7b3c7833e89c`, and `origin/main` remained at the
+already-reviewed worker commit `42d5000e9df2cfc756cb563c68173e5fb23087fc`.
+No review document was created because there was no new exact SHA to review.
+
+### [2026-08-18 20:47] USER
+yes do search/tutor next

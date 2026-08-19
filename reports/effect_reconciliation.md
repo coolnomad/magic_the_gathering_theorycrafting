@@ -1,13 +1,13 @@
-# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice)
+# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice + 4d search)
 
 Every `(clause_id, family)` carrying a Phase-3 object family or a Phase-4 participant family (draw, life, discard, mill) is EXTRACTED or DISPOSITIONED. Deferred / non-executable dispositions (life-payment / discard / cycling costs, draw/life/mill *triggers*, recruit) are counted separately from `unresolved`.
 
-- (clause, family) pairs: **311**  · extracted: **207**  · deferred/nonexecutable: **4**  · unresolved: **0**
+- (clause, family) pairs: **324**  · extracted: **218**  · deferred/nonexecutable: **4**  · unresolved: **0**
 
 | disposition | (clause,family) |
 |---|---:|
-| extracted | 207 |
-| reminder_text (family appears only in reminder text) | 40 |
+| extracted | 218 |
+| reminder_text (family appears only in reminder text) | 42 |
 | attachment_static (equip/aura layer) | 22 |
 | amass (counters on an Army token — token/mechanism layer) | 13 |
 | participant_effect (Phase 4: player-directed) | 5 |

@@ -974,12 +974,68 @@ def _sacrifice_effects(face):
     return out
 
 
+# Phase 4d — SEARCH / tutor. UNLIKE the participant-level resource families, a tutor is DETERMINISTIC:
+# per the spec it 'projects to eligible choices', so the searched-for card selector fans out to every
+# eligible card (a real card→card `SEARCHES_FOR` relation), reusing the Phase-3 object projection.
+# group(1)=zone phrase (contains 'library', maybe 'hand and/or library'); group(2)=searched-for card
+_SEARCH_RE = re.compile(r"search(?:es)?\s+(?:your|their|his or her|its owner's)\s+"
+                        r"([^.,;]*?\blibrar(?:y|ies)\b[^.,;]*?)\s+for\s+"
+                        r"(.+?)(?:,|\.|;| and (?:put|shuffle|exile)\b| then\b|$)", re.I)
+
+
+def _search_dest(rest: str):
+    """(destination zone, tapped) for the searched card, from the text after the search phrase."""
+    if "onto the battlefield" in rest:
+        head = rest[:rest.find("onto the battlefield") + 40]
+        return "battlefield", "tapped" in head
+    if "into your hand" in rest or "into their hand" in rest or "into its owner's hand" in rest:
+        return "hand", False
+    if re.search(r"\bexile (them|it|those)\b", rest):
+        return "exile", False
+    if re.search(r"\bon top\b", rest):                        # 'reveal … then shuffle and put that card on top'
+        return "library_top", False
+    return None, False
+
+
+def _search_effects(face):
+    text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))   # cycling-reminder tutors are keyword-layer
+    out = []
+    for cl in _ability_clauses(text):
+        clause_id = f"{face['id']}#a{cl['ability_index']}" + (f".m{cl['mode_index']}" if cl["mode_index"] is not None else "")
+        crange = text[cl["start"]:cl["end"]]
+        low = crange.lower()
+        for i, m in enumerate(_SEARCH_RE.finditer(low)):
+            phrase = crange[m.start(2):m.end(2)].strip()
+            zp = m.group(1).lower()
+            src = "hand_and_library" if "hand" in zp else ("library_and_graveyard" if "graveyard" in zp else "library")
+            var = f"obj{i}"
+            sel = _sch.selector(phrase, var=var, targeted=False)
+            rest = low[m.end():m.end() + 140]
+            dest, tapped = _search_dest(rest)
+            part = _participant_at(low, m.start())[0]
+            opt = bool(re.search(r"\bmay\b", low[max(0, low.rfind(". ", 0, m.start()) + 2):m.start()]))
+            qty = "variable" if "that many" in phrase.lower() else (sel.get("quantifier") or "1")
+            out.append({"effect_id": f"{clause_id}#SEARCH#{i}", "op": "SEARCH", "relation": "SEARCHES_FOR",
+                        "participant": part, "selector": sel, "object_var": var,
+                        "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
+                                 "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
+                        "condition": _sch.condition(_op_sentence(crange, low, m.start())),
+                        "duration": None, "optional": opt, "targeted": False, "affects_each": False,
+                        "binding": None, "clause_id": clause_id,
+                        "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
+                        "source_zone": src, "dest_zone": dest, "dest_tapped": tapped,
+                        "event": "search", "quantity": qty, "reveal": "reveal" in rest,
+                        "shuffle": "shuffle" in rest})
+    return out
+
+
 _PHASE3_FAMILIES = {"deal_damage", "destroy", "add_counter", "remove_counter", "modify_pt",
                     "set_switch_pt", "grant_ability", "remove_ability", "fight", "prevent",
                     "control_change", "type_change", "tap_untap"}
 _PHASE4A_FAMILIES = {"draw", "life"}
 _PHASE4B_FAMILIES = {"discard", "mill"}
 _PHASE4C_FAMILIES = {"sacrifice"}
+_PHASE4D_FAMILIES = {"tutor_search"}
 
 
 _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER": "add_counter",
@@ -988,7 +1044,7 @@ _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER":
               "UNTAP": "tap_untap", "FIGHT": "fight", "CHANGE_TYPE": "type_change",
               "CONTROL_CHANGE": "control_change", "PREVENT_DAMAGE": "prevent",
               "DRAW": "draw", "GAIN_LIFE": "life", "LOSE_LIFE": "life",
-              "DISCARD": "discard", "MILL": "mill", "SACRIFICE": "sacrifice"}
+              "DISCARD": "discard", "MILL": "mill", "SACRIFICE": "sacrifice", "SEARCH": "tutor_search"}
 _DEFERRED_DISP = {"divided_damage", "grants_nonkeyword_ability", "remove_counter", "source_power_bound_damage"}
 
 
@@ -1001,12 +1057,12 @@ def reconcile(repo: Path = REPO) -> dict:
     faces = _load_dicts(repo / "data/normalized/faces.jsonl")
     extracted_cf = set()
     for f in faces:
-        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f):
+        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f):
             extracted_cf.add((e["clause_id"], _OP_FAMILY.get(e["op"], e["op"].lower())))
     rows, counts = [], {}
     for c in census:
         low = c["clause_text"].lower()
-        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES | _PHASE4C_FAMILIES)):
+        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES | _PHASE4C_FAMILIES | _PHASE4D_FAMILIES)):
             fam_matches = [m for m in c["matches"] if m["family"] == fam]
             if (c["clause_id"], fam) in extracted_cf:
                 disp = "extracted"
@@ -1072,7 +1128,7 @@ def reconcile(repo: Path = REPO) -> dict:
                          "disposition": disp, "clause": c["clause_text"][:90]})
     unresolved = [r for r in rows if r["disposition"] == "unresolved"]
     deferred = sum(v for k, v in counts.items() if k in _DEFERRED_DISP)
-    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice)", "",
+    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice + 4d search)", "",
          "Every `(clause_id, family)` carrying a Phase-3 object family or a Phase-4 participant family "
          "(draw, life, discard, mill) is EXTRACTED or DISPOSITIONED. Deferred / non-executable "
          "dispositions (life-payment / discard / cycling costs, draw/life/mill *triggers*, recruit) are "
@@ -1123,7 +1179,7 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
                 _add(src, tgt, relation, family, support)
 
     for f in sorted(faces, key=lambda x: x["id"]):
-        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f):
+        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f):
             errors += [f"{eff['effect_id']}: {e}" for e in _sch.validate_effect(eff)]
             sel = eff["selector"]
             family = eff["op"].lower()
@@ -1180,12 +1236,19 @@ def _effects_report(repo, structured, pairs):
          "self-sacrifice), with the eligibility `card_selector` (self / fodder type / subtype / OR) and "
          "no card-pair fan-out; Saga 'Sacrifice after N' self-timers, quoted token abilities, and "
          "'Whenever you sacrifice …' triggers are dispositioned, not extracted. "
+         "**Phase-4d:** SEARCH/tutor is the DETERMINISTIC family — per the spec it 'projects to "
+         "eligible choices', so the searched-for card selector fans out to every eligible HOB card as "
+         "a `SEARCHES_FOR` relation (source `library`/`hand_and_library`, destination hand / "
+         "battlefield(±tapped) / exile / library_top, with quantity, reveal, shuffle, and the searcher "
+         "participant — Settle the Wreckage binds `target_player` + a variable count); cycling-reminder "
+         "tutors are keyword-layer (not extracted). "
          "Each effect is a validated record; projection aggregates all supporting "
          "effects/modes per pair (`supports`). Frozen core untouched. **Proposed schema extensions "
          "(documented, not casually invented):** `CAN_FIGHT`, `CHANGES_TYPE_OF`, `SETS_BASE_PT`, "
          "`SWITCHES_PT`, `REMOVES_ABILITY_FROM`, `EXCHANGES_CONTROL_OF`/`GAINS_CONTROL_OF`, "
          "`PREVENTS_DAMAGE_FROM`, `DRAWS_CARDS`, `GAINS_LIFE`/`LOSES_LIFE`, `DISCARDS_CARDS`, `MILLS_CARDS`, "
-         "`SACRIFICES`. Every census clause in scope is reconciled (`reports/effect_reconciliation.md`, 0 unresolved).", "",
+         "`SACRIFICES`, `SEARCHES_FOR`. Every census clause in scope is reconciled "
+         "(`reports/effect_reconciliation.md`, 0 unresolved).", "",
          f"- effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  · "
          f"pairs: **{len(pairs)}**", "",
          "| relation | pairs |  | op | effects |", "|---|---:|---|---|---:|"]
