@@ -6576,3 +6576,94 @@ No review document was created because there was no new exact SHA to review.
 
 ### [2026-08-18 20:47] USER
 yes do search/tutor next
+
+### [2026-08-18 21:22] ASSISTANT
+Proceeding to **search/tutor** â€” the deterministic-projection case (tutors project to eligible choices, unlike the participant-level resource families). Let me dump the census clauses and re-read the governing spec:
+
+13 search clauses. Search/tutor is the **deterministic** case â€” per spec, tutors project to eligible choices (fan-out via an object selector), unlike the participant-level resource families. Let me re-read the spec and test how `_sch.selector` parses the searched-for phrases:
+
+`_sch.selector` parses the search phrases cleanly (types/supertypes/subtypes/quantifier). Per spec, SEARCH **fans out** to eligible cards (deterministic) â€” the first Phase-4 family that projects. Let me check the face structure and what's eligible in the HOB pool:
+
+The HOB pool has real eligible targets (48 legendary creatures, 9 Halflings, basic lands), so tutors project meaningfully. Cycling searches live in reminder text (blanked â†’ mechanism layer, like recruit). Let me write `_search_effects` â€” an **object-projecting** family. Let me find where to add it:
+
+Now wire it into the build/reconcile loops, `_OP_FAMILY`, and the family set:
+
+Excellent â€” 10 SEARCH records, 85 new `SEARCHES_FOR` pairs (7950 â†’ 8035, the intended deterministic fan-out), including Settle the Wreckage bound to `target_player` with variable quantity. Only Old Thrush's dest is missed ("put that card on top" = library top). Let me add that and verify pair preservation + reconcile:
+
+Existing 7950 pairs byte-identical, 85 new `SEARCHES_FOR`, accepted 91 records preserved â€” but **1 unresolved** search clause. Let me find it:
+
+2 cycling searches are correctly dispositioned as reminder; the 1 unresolved is Last Light's `#a0` â€” a *real* search in the quest-counter payoff my extractor missed. Let me inspect it:
+
+Last Light's real search is "search your **hand and/or library** for a Dragon card" â€” my regex required "library" immediately after the possessive. Let me broaden it to allow a zone list (and capture the source zone), and stop the searched-phrase at "and put"/"then":
+
+Now update `_search_effects` to use group(2) for the phrase and derive the source zone from group(1):
+
+Last Light now extracted (Dragon, `hand_and_library` â†’ battlefield), Old Thrush dest `library_top`, **0 unresolved**. Now determinism, the fan-out guard (search fans out; other families must not), and full suite:
+
+Deterministic (`4e3b632c`); **SEARCH fans out (89 pairs) while all participant families stay at 0** â€” the spec's deterministic-vs-stochastic distinction holds. 383 pass. Now the search regression tests:
+
+13 pass. Let me update the report headers for Phase 4d, then run the full suite and regenerate reports:
+
+Now update the reconciliation report heading and regenerate everything:
+
+Full suite 396 (+13), coverage Phase-6. Let me get final metrics and append the Phase 4d LABNOTEBOOK entry:
+
+`pair_index.jsonl` also changed (it composes the effect projection, now including the 89 new `SEARCHES_FOR` pairs) â€” I need to regenerate it deterministically and stage it. Let me do that:
+
+pair_index deterministic (`4e93f673`, includes 89 `SEARCHES_FOR`), staged. Let me do a final full-suite check with all artifacts current, then commit:
+
+pytest clobbered coverage.md to Phase-1 (the known pipeline-test behavior); pair_index is staged and current. Let me regenerate coverage last and commit:
+
+Coverage back to Phase-6, staged set is exactly my 9 Phase-4d files, only the reviewer's handoff doc left unstaged. Commit and push:
+
+Committed and pushed as `300260e` (remote confirmed). Let me run the final acceptance verification against the committed records:
+
+All acceptance checks pass against the committed records. Phase 4d (SEARCH/tutor) is committed and pushed.
+
+## Summary
+
+Phase 4c was accepted (pt10); I proceeded to the next bounded sub-task â€” **Phase 4d: SEARCH/tutor** â€” committed and pushed as `300260e`.
+
+**The deterministic-projection family.** Unlike the participant-level resource families (draw/life/discard/mill/sacrifice, which never fan out), the spec says *"tutors project to eligible choices."* So `_search_effects` emits `SEARCH` records whose searched-for card selector **fans out** to every eligible HOB card as a `SEARCHES_FOR` cardâ†’card relation, reusing the Phase-3 object-projection path.
+
+**Records** carry: searched selector (via `_sch.selector`), participant/searcher, `source_zone` (`library` / `hand_and_library`), `dest_zone` (`hand` / `battlefield`Â±`tapped` / `exile` / `library_top`), `quantity` (`1`/`up_to_2`/`variable`), `optional`, `reveal`, `shuffle`, condition. Cycling-reminder tutors are keyword-layer (dispositioned, like recruit).
+- Seek the Heart â†’ legendary creature â†’ hand; Wood Elves â†’ Forest â†’ battlefield; Roads â†’ basic Plains Ã—up_to_2 â†’ **exile**; Old Thrush â†’ optional â†’ **library_top**; Last Light â†’ Dragon (`hand_and_library`) â†’ battlefield.
+- **Settle the Wreckage** (spec's mandated case): binds `target_player`, `optional`, `quantity:variable` ("that many"), basic land â†’ battlefield tapped.
+
+**Projection discipline** (the key invariant): SEARCH is the first Phase-4 fan-out family (89 `SEARCHES_FOR` pairs); the **7,950 non-search pairs are byte-identical** to `42d5000`, and the participant families still emit **0** pairs. All **91 accepted 4a/4b/4c records byte-identical**.
+
+**Verification (all checks pass):** 222 effects / 135 faces / 8,039 pairs; reconcile 324 â†’ 218 extracted, 4 deferred, **0 unresolved**; three deterministic artifacts (`effect_records 4e3b632c`, `pairs 61c409d3`, `pair_index 4e93f673`, each byte-identical across two builds); **396 tests pass** (+13 in `tests/test_effect_search.py`); frozen manifest green; `git diff --check 42d5000..300260e` clean; coverage Phase-6.
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4d` / `Implements` / `Addresses-Review: caecefa` / `Addresses-Implementation: 42d5000` / `Validation` trailers (including `pair-index`, now that a family fans out); staged only my own paths; reviewer artifacts untouched.
+
+Remaining Phase-4: exile/movement/recursion, counterspells, complete `SUPPLIES_RESOURCE` review. This commit awaits review.
+
+## 2026-08-18 Review Agent - Phase 4d pt11
+
+Reviewed worker commit `300260e0307218f77646958175b7a2946a0111a2`
+against parent/review commit `caecefad5e41d91c3e9c6ef7639b7b3c7833e89c`.
+Created and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt11.md`
+as review commit `db7751f75b6831e511fbe5ab0bce5d979244ed56`.
+Verdict: `REPAIR`.
+
+Verification performed: targeted Phase 4 search/sacrifice/resource/participant/object/destroy tests
+passed (`126 passed`), full suite passed (`396 passed`), frozen manifest check
+reported `frozen_failures 0`, two consecutive `effect-build` runs were
+byte-identical (`effect_records` hash
+`4e3b632c4bd43f573172fef661a5a66938dc8a0916e6a81b0663f336cac75bcf`; pairs hash
+`61c409d350d6e1d3e340c03ab8ae4894b7850df9eb7ed089300cd4d087a25e35`; pair-index hash
+`4e93f673be65e051913ee7356c7410703551d34ce5f5168cc4889965f5be66ce`),
+reconciliation reported 324 clause/family pairs, 218 extracted, 4 deferred, and
+0 unresolved. Accepted Phase 4a/4b/4c records and non-search pair projections
+remained byte-identical.
+
+Blocking findings: all generated SEARCH selectors still have `zone: battlefield`
+despite library or hand/library search sources; `Settle the Wreckage` has
+`quantity: variable` but no binding to the count of creatures exiled by the
+prior instruction; `Last Light of Durin's Day` uses only generic
+`conditional_effect` rather than binding the search to the prior successful
+self-sacrifice. Updated advisory `docs/review_events/review_ready.json` to signal
+the pt11 `REPAIR` result.
+
+### [2026-08-18 21:39] USER
+ok review_pt11 is up. read that

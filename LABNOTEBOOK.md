@@ -1910,3 +1910,19 @@ Phase 4c sacrifice **accepted** (review `PHASE4_review_pt10`, verdict ACCEPT, re
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4d`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt10/42d5000. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_search_effects`); `tests/test_effect_search.py`; `data/graph_global/{effect_records,card_pair_projection_effect}.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt10.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4d repair: search selector zone + antecedent bindings (review PHASE4_review_pt11)
+
+Review `PHASE4_review_pt11.md` (verdict **REPAIR**, reviewed_commit `300260e`) accepted the deterministic `SEARCHES_FOR` projection and the preserved accepted records/non-search pairs, but flagged 3 blocking SEARCH-record defects. All fixed; the projection is untouched (89 `SEARCHES_FOR` pairs byte-identical, `matches_card` is zone-agnostic), accepted 4a/4b/4c records byte-identical, non-search pairs byte-identical.
+
+1. **Searched selector zone corrected** (blocker 1): `_sch.selector` defaults `zone:"battlefield"`, so every SEARCH record wrongly said the searched card was a battlefield permanent. Now `sel["zone"] = source_zone` — every SEARCH selector's zone matches its `source_zone` (`library` or `hand_and_library`), never `battlefield`. Projection is unaffected (type-based `matches_card`).
+2. **Settle the Wreckage "that many" antecedent binding** (blocker 2): the variable quantity now carries `quantity_formula:{kind:variable, source:"prior_exile_count", of:"target_player", binding:"the number of attacking creatures exiled this way"}` — tying "that many" to the count exiled by the prior "Exile all attacking creatures target player controls" instruction, and preserving that the searcher is that same target player.
+3. **Last Light of Durin's Day prior-action gate** (blocker 3): the search's condition was the generic `conditional_effect`; it is now `{kind:prior_action_taken, detail:"gated by the prior action (self-sacrifice)"}` (a leading `if you do` in the search's own sentence), binding the search to the successful self-sacrifice; `source_zone`/selector zone remain `hand_and_library`.
+
+**Numbers unchanged in shape:** 222 effects on 135 faces; 8,039 pairs (89 `SEARCHES_FOR` + 7,950 non-search, all byte-identical to `300260e`/`42d5000`). Reconcile 324 → 218 extracted, 4 deferred, 0 unresolved (`reports/*`, `card_pair_projection_effect`, `pair_index` byte-identical — the fix corrects SEARCH *record* fields, not projection). Two serial `effect-build` runs byte-identical (`effect_records` `7686ad90…`; pairs `61c409d3…`; `pair-index` `4e93f673…`). **399 tests pass** (+3 pt11 record-level regressions: selector-zone-matches-source, Settle exile-count binding, Last-Light prior-action gate). Accepted Phase-4a/4b/4c byte-identical. Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4d-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt11/300260e. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_search_effects`); `tests/test_effect_search.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt11.md`; [[phase4-frozen]]

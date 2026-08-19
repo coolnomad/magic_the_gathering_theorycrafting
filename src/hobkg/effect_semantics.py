@@ -1010,22 +1010,40 @@ def _search_effects(face):
             src = "hand_and_library" if "hand" in zp else ("library_and_graveyard" if "graveyard" in zp else "library")
             var = f"obj{i}"
             sel = _sch.selector(phrase, var=var, targeted=False)
+            sel["zone"] = src                                # the searched card is in the LIBRARY / hand+library,
+            #                                                  NOT the battlefield (selector() default) — review pt11 #1
             rest = low[m.end():m.end() + 140]
             dest, tapped = _search_dest(rest)
             part = _participant_at(low, m.start())[0]
-            opt = bool(re.search(r"\bmay\b", low[max(0, low.rfind(". ", 0, m.start()) + 2):m.start()]))
+            lead = low[max(0, low.rfind(". ", 0, m.start()) + 2):m.start()]   # the search's own leading text
+            opt = bool(re.search(r"\bmay\b", lead))
             qty = "variable" if "that many" in phrase.lower() else (sel.get("quantifier") or "1")
-            out.append({"effect_id": f"{clause_id}#SEARCH#{i}", "op": "SEARCH", "relation": "SEARCHES_FOR",
-                        "participant": part, "selector": sel, "object_var": var,
-                        "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
-                                 "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
-                        "condition": _sch.condition(_op_sentence(crange, low, m.start())),
-                        "duration": None, "optional": opt, "targeted": False, "affects_each": False,
-                        "binding": None, "clause_id": clause_id,
-                        "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
-                        "source_zone": src, "dest_zone": dest, "dest_tapped": tapped,
-                        "event": "search", "quantity": qty, "reveal": "reveal" in rest,
-                        "shuffle": "shuffle" in rest})
+            rec = {"effect_id": f"{clause_id}#SEARCH#{i}", "op": "SEARCH", "relation": "SEARCHES_FOR",
+                   "participant": part, "selector": sel, "object_var": var,
+                   "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
+                            "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
+                   "condition": None, "duration": None, "optional": opt, "targeted": False,
+                   "affects_each": False, "binding": None, "clause_id": clause_id,
+                   "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
+                   "source_zone": src, "dest_zone": dest, "dest_tapped": tapped,
+                   "event": "search", "quantity": qty, "reveal": "reveal" in rest,
+                   "shuffle": "shuffle" in rest}
+            # condition: a leading 'if you do' gates the search on a prior action (Last Light's
+            # self-sacrifice); else the operation-scoped condition — review pt11 #3
+            if "if you do" in lead:
+                rec["condition"] = {"kind": "prior_action_taken",
+                                    "detail": "gated by the prior action (self-sacrifice)"}
+            else:
+                rec["condition"] = _sch.condition(_op_sentence(crange, low, m.start()))
+            # 'that many' binds to the count established by a prior instruction (Settle: exiled
+            # attacking creatures) — review pt11 #2
+            if qty == "variable":
+                if re.search(r"\bexile all\b", low[:m.start()]):
+                    rec["quantity_formula"] = {"kind": "variable", "source": "prior_exile_count", "of": part,
+                                               "binding": "the number of attacking creatures exiled this way"}
+                else:
+                    rec["quantity_formula"] = {"kind": "variable", "binding": "that many"}
+            out.append(rec)
     return out
 
 

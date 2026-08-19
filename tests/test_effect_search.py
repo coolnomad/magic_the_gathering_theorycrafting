@@ -106,3 +106,28 @@ def test_search_records_validate():
 def test_accepted_participant_families_unchanged_and_search_added():
     ops = {s["op"] for s in es.build_effects(write=False)["_structured"]}
     assert {"DRAW", "GAIN_LIFE", "DISCARD", "MILL", "SACRIFICE", "SEARCH"} <= ops
+
+
+# ================================================================================================
+#  Phase 4d REPAIR (review PHASE4_review_pt11)
+# ================================================================================================
+def test_repair_pt11_searched_selector_zone_matches_source_not_battlefield():
+    # the searched card lives in the library / hand+library, never the battlefield
+    for s in es.build_effects(write=False)["_structured"]:
+        if s["op"] == "SEARCH":
+            assert s["selector"].get("zone") == s["source_zone"], (s["name"], s["selector"].get("zone"))
+            assert s["selector"].get("zone") != "battlefield", s["name"]
+
+
+def test_repair_pt11_settle_binds_that_many_to_exiled_attackers():
+    e = _one("Settle the Wreckage")
+    qf = e["quantity_formula"]
+    assert qf["kind"] == "variable" and qf["source"] == "prior_exile_count"
+    assert qf["of"] == "target_player" and "attacking creatures exiled" in qf["binding"]
+    assert e["participant"] == "target_player"                # same target player whose creatures were exiled
+
+
+def test_repair_pt11_last_light_search_gated_by_prior_self_sacrifice():
+    e = _one("Last Light of Durin's Day")
+    assert e["condition"]["kind"] == "prior_action_taken"     # not a generic conditional_effect marker
+    assert e["source_zone"] == "hand_and_library" and e["selector"]["zone"] == "hand_and_library"
