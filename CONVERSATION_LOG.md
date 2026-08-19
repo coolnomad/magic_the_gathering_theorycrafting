@@ -6714,3 +6714,77 @@ This continues the reviewer's consistent operation-scoping discipline (zones, an
 
 ### [2026-08-18 22:21] USER
 ok review_pt12 is up. read that
+
+### [2026-08-18 22:32] ASSISTANT
+Phase 4 pt12 on my SHA `203315d`, verdict **REPAIR** with 2 blocking findings (both about search destinations/shuffle). Let me read it:
+
+Two findings on search: (1) Troop of Ponies collapses its split destinations ("put one onto the battlefield tapped **and the other into your hand**"), and (2) Last Light's shuffle is unconditional but should be gated on actually searching the library (a hand-or-library search). Let me add a `destinations` parser and a `shuffle_condition`. First the current function:
+
+Now wire `destinations` and `shuffle_condition` into the record builder:
+
+Both fixes correct â€” Troop preserves the battlefield-tapped + hand split; Last Light gets `shuffle_condition:{searched_zone, library}`. Let me verify invariance, determinism, projection:
+
+Deterministic (`8b70ec04`, pairs unchanged), 91 accepted + 7950 non-search pairs preserved. Now the pt12 regression tests:
+
+20 search tests, full suite 403, pair_index unchanged. Let me append the LABNOTEBOOK entry:
+
+Staged exactly my 5 files (projection/reports byte-identical, reviewer handoff untouched). Commit and push:
+
+The commit+push backgrounded (slow network). Let me confirm it landed and run the pt12 acceptance checks:
+
+Commit `2b06642` is on the remote (local and `origin/main` both at `2b0664216657`), and all pt12 acceptance checks pass. The repair is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt12** (verdict REPAIR on my SHA `203315d`, 2 blocking findings â€” both search destinations/shuffle) is addressed in commit `2b06642`:
+
+**Blocker 1 â€” Troop of Ponies collapsed its split destinations.** "put ONE onto the battlefield tapped and THE OTHER into your hand" flattened to a single battlefield-tapped output. New `_search_destinations` parses per-object roles; every SEARCH record now carries a `destinations` list. Troop â†’ `[{battlefield, tapped, one}, {hand, the other}]` (single-destination tutors get a one-element list); `dest_zone`/`dest_tapped` keep the primary for continuity.
+
+**Blocker 2 â€” Last Light's shuffle was unconditional.** A hand-or-library search shuffles only if the library was actually searched. Added `shuffle_condition:{kind:searched_zone, zone:library}` when `source_zone == hand_and_library`; pure-library tutors keep `shuffle_condition:null` (unconditional, correct).
+
+**Verification (all checks pass, pt11 preserved):** the deterministic `SEARCHES_FOR` projection is **untouched** (89 pairs byte-identical); **91 accepted 4a/4b/4c records** and **7,950 non-search pairs byte-identical**; participant families still emit **0** fan-out; reconcile 324 â†’ 218 extracted, 4 deferred, **0 unresolved**; three deterministic artifacts (`effect_records 8b70ec04`, `pairs 61c409d3`, `pair_index 4e93f673`); **403 tests pass** (+4 pt12 regressions); frozen manifest green; `git diff --check 203315d..2b06642` clean; projection files/`pair_index`/reports byte-identical (the fix enriches SEARCH *records*, not projection).
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4d-repair2` / `Addresses-Review: ecd6025` / `Addresses-Implementation: 203315d` / `Validation` trailers; staged only my own paths; reviewer artifacts untouched.
+
+This continues the reviewer's per-operation fidelity discipline (destinations and shuffle must reflect the exact Oracle semantics). The repair awaits re-review. Remaining Phase-4: exile/movement/recursion, counterspells, complete `SUPPLIES_RESOURCE` review.
+
+## 2026-08-18 - Review agent
+- Reviewed worker commit `2b06642166571bddb59de368b62eab6784d4db08` for Phase 4d repair 2 against parent/review commit `ecd60259149a44ea3e24c06645b8d1e82724df5c`.
+- Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt13.md` with verdict `ACCEPT`; review commit `ec73e08de560c875f11487e253165bf2711b4288`.
+- Verification: targeted Phase 4 tests `133 passed`; full suite `403 passed`; frozen manifest `frozen_failures 0`; effect-reconcile `324 clause_family_pairs, 218 extracted, 4 deferred, 0 unresolved`; effect-build deterministic with hashes `effect_records=8b70ec0465cdb54b3fc2a276aa9b2605fe9564d5eedb58b11acd8dfd0a3adaf8`, `card_pair_projection_effect=61c409d350d6e1d3e340c03ab8ae4894b7850df9eb7ed089300cd4d087a25e35`, `pair_index=4e93f673be65e051913ee7356c7410703551d34ce5f5168cc4889965f5be66ce`.
+- Direct SEARCH inspection confirmed `Troop of Ponies` split destinations, `Last Light of Durin's Day` conditional library-search shuffle, `Settle the Wreckage` variable prior-exile binding, and 89 deterministic `SEARCHES_FOR` pairs.
+- Updated advisory `docs/review_events/review_ready.json` to signal `ACCEPT` for reviewed commit `2b06642166571bddb59de368b62eab6784d4db08`; Phase 4 remains open beyond this bounded Phase 4d acceptance.
+
+### [2026-08-18 22:44] USER
+ok review_pt13 is up. read that
+
+### [2026-08-18 22:45] ASSISTANT
+pt13 is an **ACCEPT** of my SHA `2b06642` (0 blocking, 0 nonblocking, `phase_may_proceed: true`). Let me read the full doc:
+
+Phase 4d (search/tutor) is **ACCEPTED** â€” pt13 verdict ACCEPT of my exact SHA `2b06642`, **0 blocking, 0 nonblocking, 0 deferred**, `phase_may_proceed: true`.
+
+## What the reviewer confirmed
+- **Troop of Ponies** preserves both destination roles: `{one, battlefield, tapped:true}` and `{the other, hand, tapped:false}`.
+- **Last Light** preserves `hand_and_library` source/selector zone, the prior-action gate, battlefield destination, and `shuffle_condition:{searched_zone, library}`.
+- **Settle the Wreckage** keeps target-player participant, optional, battlefield-tapped, and the variable quantity bound to exiled attackers.
+- Pure-library searches keep unconditional shuffle (`shuffle_condition:null`).
+- `SEARCHES_FOR` deterministic at 89 pairs; accepted 91 4a/4b/4c records and 7,950 non-search pairs byte-identical; three deterministic artifacts; frozen manifest clean; 403 tests pass.
+
+Per the protocol, ACCEPT is terminal for this bounded task â€” **no repair to make**. I've taken no further action.
+
+## Phase 4 status
+Phase 4 is **not closed**. Accepted so far: **4a** (draw/life), **4b** (discard/mill), **4c** (sacrifice), **4d** (search/tutor). Remaining bounded sub-tasks under the governing spec:
+
+- **Exile / movement / recursion** â€” bounce, blink, reanimation, "exile and return", death-replacement exile, countered-spell exile, exile-and-play permission (source/destination zones + same-object identity + duration).
+- **Counterspells** â€” including "counter unless its controller pays {N}" alternatives (small: ~3 clauses).
+- **Complete `SUPPLIES_RESOURCE` review** â€” the cross-cutting report the spec requires: audit every existing `SUPPLIES_RESOURCE` edge so cost-consumption, event-triggering, and coincident resource-production aren't conflated (not limited to KÃ­li / Uncover / Plunder).
+
+Want me to proceed? My recommendation is **exile / movement / recursion** next â€” it's the largest remaining family (census: exile 33, return_move 13, and the spec's detailed taxonomy for blink/reanimation/exile-and-play), and it pairs zone-movement with same-object identity (a meaningful new capability). Alternatively, **counterspells** is the smallest quick win (~3 clauses), or I can take on the **`SUPPLIES_RESOURCE` review** report. Say the word (or name a different subset) and I'll implement it with record-level regression tests before requesting review.
+
+## 2026-08-18 - Review agent
+- User reported a new commit, but no new worker implementation commit was visible after `git fetch origin`.
+- Current local `HEAD` remains review commit `ec73e08de560c875f11487e253165bf2711b4288`; `origin/main` remains worker commit `2b06642166571bddb59de368b62eab6784d4db08`.
+- No review document was created because there was no newer implementation SHA to review.
+
+### [2026-08-18 23:07] USER
+ok proceed to the next recommendation

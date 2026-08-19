@@ -1941,3 +1941,25 @@ Review `PHASE4_review_pt12.md` (verdict **REPAIR**, reviewed_commit `203315d`) c
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4d-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt12/203315d. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_search_destinations`); `tests/test_effect_search.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt12.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] BUILD — Effect-semantics Phase 4e: RETURN / recursion (bounce + reanimation)
+
+Phase 4d search/tutor **accepted** (review `PHASE4_review_pt13`, verdict ACCEPT, review commit `ec73e08`, 0 blocking/nonblocking). Next bounded Phase-4 sub-task per the governing spec §Movement/recursion: the **`return_move` family** (bounce + reanimation). Bounded deliberately to the *return* half — the coupled exile family (Adventure/Flashback self-exile reminders, targeted/mass exile, stochastic top-library exile, death-replacement) remains a later slice.
+
+RETURN is **object-directed** (moves a specific card between zones), so — like removal/search — it PROJECTS to eligible objects (`CAN_RETURN`), NOT a participant-level no-fan-out record. New `_return_effects` parses `return <object> [from <source>] to <dest>` with source inference:
+- **Reanimation / recursion** (graveyard → hand/battlefield, a targeted card): The Mountain-king's Return (creature → battlefield), Along the Crooked Way / Gathering of Darkness (creature → hand) — project to eligible creature cards.
+- **Self-return** (`this card` / dies-`them`, source→source only): Silvan Reveler, Gollum the Abandoned, Eagle's Rescue (graveyard → hand/battlefield), Tom, Bert, and William (dies → battlefield).
+- **Bounce** (battlefield → hand, a targeted permanent): Mirkwood Nurturer (optional up-to-1 permanent), The Eagles Are Coming! (creature) — project to eligible permanents/creatures.
+- **Dispositioned (deferred), not extracted:** blink = exile-and-return coupled to the deferred exile slice (Elrond, Moon-Reader; Roll-Roll-Roll-Roll; Gone Fishing → `blink`); stack-object spell-bounce (Bilbo's Gambit "Return target spell" → `spell_bounce`).
+
+Each RETURN record carries: object selector (self / card_types / generic_permanent, zone = source), `source_zone`, `dest_zone`, `event:return`, participant, targeted, quantity (`1`/`up_to_1`/`up_to_2`), optional, condition (leading `if you do` → prior_action_taken). Self-returns project source→source only (Phase-3 self convention).
+
+**Projection discipline preserved:** RETURN fans out (615 `CAN_RETURN` pairs — reanimation → all creature cards, bounce → all permanents); the participant families (draw/life/discard/mill/sacrifice) still emit **0** pairs; all pre-4e pairs (including the 89 `SEARCHES_FOR`) are byte-identical. All **102 accepted Phase-4a…4d records byte-identical** to `2b06642`.
+
+**Numbers:** +9 RETURN records → **231 effects on 138 faces; 8,654 pairs** (8,039 prior + 615 `CAN_RETURN`). Reconcile spans Phase-3 ∪ 4a…4e `{return_move}`: **337 (clause,family) → 227 extracted, 4 deferred (incl. blink/spell-bounce), 0 unresolved**. Two serial `effect-build` runs byte-identical (`effect_records` `6893fb3d…`, pairs `9f8150b9…`, `pair-index` `e9128570…`). **414 tests pass** (+11 in `tests/test_effect_return.py`: reanimation, recursion-to-hand, self-return, dies-return, optional bounce, blink/spell deferred, projection self-source-only, validation, participant-families-0-fanout). Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest. Remaining Phase-4: exile/movement (incl. blink's exile), counterspells, complete `SUPPLIES_RESOURCE` review.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4e`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt13/2b06642. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_return_effects`); `tests/test_effect_return.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt13.md`; [[phase4-frozen]]

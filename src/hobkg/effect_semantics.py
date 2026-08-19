@@ -1072,6 +1072,61 @@ def _search_effects(face):
     return out
 
 
+# Phase 4e — RETURN / recursion (bounce + reanimation). Object-directed movement TO hand/battlefield
+# FROM graveyard/battlefield → it PROJECTS to eligible objects (like removal). Blink (exile-and-return,
+# which is coupled to the deferred exile family) and stack-object spell-bounce are dispositioned here.
+_RETURN_RE = re.compile(r"returns?\s+(.+?)\s+"
+                        r"(?:from\s+(?:your |their |its owner's |an? )?(graveyard|exile|battlefield)\s+)?"
+                        r"to\s+(?:the\s+|your\s+|their\s+|its owner's\s+)?(battlefield|hand)", re.I)
+
+
+def _return_effects(face):
+    text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))
+    short = face["name"].split(",")[0].split(" //")[0].strip().lower()
+    out = []
+    for cl in _ability_clauses(text):
+        clause_id = f"{face['id']}#a{cl['ability_index']}" + (f".m{cl['mode_index']}" if cl["mode_index"] is not None else "")
+        crange = text[cl["start"]:cl["end"]]
+        low = crange.lower()
+        for i, m in enumerate(_RETURN_RE.finditer(low)):
+            obj = crange[m.start(1):m.end(1)].strip()
+            ol = obj.lower()
+            dest = m.group(3).lower()
+            if re.search(r"\bexile\b", low[:m.start()]):
+                continue                                     # blink (exile-and-return) — deferred to exile slice
+            if re.search(r"\bspell\b", ol):
+                continue                                     # stack-object bounce (Bilbo's Gambit) — deferred
+            # source zone
+            src = m.group(2).lower() if m.group(2) else None
+            if src is None:
+                src = "graveyard" if dest == "battlefield" else ("graveyard" if "card" in ol else "battlefield")
+            # object selector: self (this card / the source's own name) vs a targeted card/permanent
+            self_ref = bool(re.search(r"\bthis card\b|\bthis permanent\b", ol)) or \
+                (short and short.split()[0] in ol and "target" not in ol) or \
+                (re.fullmatch(r"(them|it|those cards|those)", ol) and "target" not in low[:m.start()])
+            if self_ref:
+                sel = _self_selector(); var = "self"
+            else:
+                var = f"obj{i}"
+                sel = _sch.selector(obj, var=var, targeted=("target" in ol))
+                sel["zone"] = src
+            part = _participant_at(low, m.start())[0]
+            lead = low[max(0, low.rfind(". ", 0, m.start()) + 2):m.start()]
+            opt = bool(re.search(r"\bmay\b", lead)) or "up to" in ol
+            out.append({"effect_id": f"{clause_id}#RETURN#{i}", "op": "RETURN", "relation": "CAN_RETURN",
+                        "participant": part, "selector": sel, "object_var": var,
+                        "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
+                                 "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
+                        "condition": ({"kind": "prior_action_taken", "detail": "gated by the prior action"}
+                                      if "if you do" in lead else _sch.condition(_op_sentence(crange, low, m.start()))),
+                        "duration": None, "optional": opt, "targeted": ("target" in ol and not self_ref),
+                        "affects_each": False, "binding": None, "clause_id": clause_id,
+                        "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
+                        "source_zone": src, "dest_zone": dest, "event": "return",
+                        "quantity": "up_to_1" if "up to one" in ol else ("up_to_2" if "up to two" in ol else "1")})
+    return out
+
+
 _PHASE3_FAMILIES = {"deal_damage", "destroy", "add_counter", "remove_counter", "modify_pt",
                     "set_switch_pt", "grant_ability", "remove_ability", "fight", "prevent",
                     "control_change", "type_change", "tap_untap"}
@@ -1079,6 +1134,7 @@ _PHASE4A_FAMILIES = {"draw", "life"}
 _PHASE4B_FAMILIES = {"discard", "mill"}
 _PHASE4C_FAMILIES = {"sacrifice"}
 _PHASE4D_FAMILIES = {"tutor_search"}
+_PHASE4E_FAMILIES = {"return_move"}
 
 
 _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER": "add_counter",
@@ -1087,7 +1143,7 @@ _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER":
               "UNTAP": "tap_untap", "FIGHT": "fight", "CHANGE_TYPE": "type_change",
               "CONTROL_CHANGE": "control_change", "PREVENT_DAMAGE": "prevent",
               "DRAW": "draw", "GAIN_LIFE": "life", "LOSE_LIFE": "life",
-              "DISCARD": "discard", "MILL": "mill", "SACRIFICE": "sacrifice", "SEARCH": "tutor_search"}
+              "DISCARD": "discard", "MILL": "mill", "SACRIFICE": "sacrifice", "SEARCH": "tutor_search", "RETURN": "return_move"}
 _DEFERRED_DISP = {"divided_damage", "grants_nonkeyword_ability", "remove_counter", "source_power_bound_damage"}
 
 
@@ -1100,12 +1156,12 @@ def reconcile(repo: Path = REPO) -> dict:
     faces = _load_dicts(repo / "data/normalized/faces.jsonl")
     extracted_cf = set()
     for f in faces:
-        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f):
+        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f) + _return_effects(f):
             extracted_cf.add((e["clause_id"], _OP_FAMILY.get(e["op"], e["op"].lower())))
     rows, counts = [], {}
     for c in census:
         low = c["clause_text"].lower()
-        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES | _PHASE4C_FAMILIES | _PHASE4D_FAMILIES)):
+        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES | _PHASE4C_FAMILIES | _PHASE4D_FAMILIES | _PHASE4E_FAMILIES)):
             fam_matches = [m for m in c["matches"] if m["family"] == fam]
             if (c["clause_id"], fam) in extracted_cf:
                 disp = "extracted"
@@ -1140,6 +1196,10 @@ def reconcile(repo: Path = REPO) -> dict:
                 disp = "sacrifice_trigger (a trigger event, not a sacrifice effect)"
             elif fam == "sacrifice" and re.search(r"sacrifice after\b", low):
                 disp = "saga_cleanup (Saga 'Sacrifice after N' self-timer — mechanism layer)"
+            elif fam == "return_move" and re.search(r"\bexile\b.*\breturn", low):
+                disp = "blink (exile-and-return — coupled to the deferred exile/movement slice)"
+            elif fam == "return_move" and re.search(r"return target spell\b", low):
+                disp = "spell_bounce (a stack-object bounce, not a card-identity move — deferred)"
             elif fam == "life" and re.search(r"\bpay(?:s)?\s+(?:\d+\s+|x\s+)?life\b", low):
                 disp = "life_payment_cost (a cost, not a life effect)"
             elif fam == "draw" and re.search(r"^\s*(?:whenever|when)\b.*\bdraws?\b.*,", low):
@@ -1171,7 +1231,7 @@ def reconcile(repo: Path = REPO) -> dict:
                          "disposition": disp, "clause": c["clause_text"][:90]})
     unresolved = [r for r in rows if r["disposition"] == "unresolved"]
     deferred = sum(v for k, v in counts.items() if k in _DEFERRED_DISP)
-    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice + 4d search)", "",
+    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice + 4d search + 4e return)", "",
          "Every `(clause_id, family)` carrying a Phase-3 object family or a Phase-4 participant family "
          "(draw, life, discard, mill) is EXTRACTED or DISPOSITIONED. Deferred / non-executable "
          "dispositions (life-payment / discard / cycling costs, draw/life/mill *triggers*, recruit) are "
@@ -1222,7 +1282,7 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
                 _add(src, tgt, relation, family, support)
 
     for f in sorted(faces, key=lambda x: x["id"]):
-        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f):
+        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f) + _return_effects(f):
             errors += [f"{eff['effect_id']}: {e}" for e in _sch.validate_effect(eff)]
             sel = eff["selector"]
             family = eff["op"].lower()
@@ -1259,7 +1319,7 @@ def _effects_report(repo, structured, pairs):
     from collections import Counter
     byrel = Counter(p["relation"] for p in pairs)
     byop = Counter(s["op"] for s in structured)
-    L = ["# Effect-semantics — structured effects (Phase 3 object families + Phase 4a/4b participant families)", "",
+    L = ["# Effect-semantics — structured effects (Phase 3 object families + Phase 4a-4e families)", "",
          "Additive `effect_semantics` layer over the frozen reference. **ABILITY-scoped** extraction "
          "(one clause per (ability, mode); targets never leak across abilities; real `clause_id`), with "
          "**same-object variable binding**, **per-operation duration/condition**, explicit self-effects, "
@@ -1284,13 +1344,13 @@ def _effects_report(repo, structured, pairs):
          "a `SEARCHES_FOR` relation (source `library`/`hand_and_library`, destination hand / "
          "battlefield(±tapped) / exile / library_top, with quantity, reveal, shuffle, and the searcher "
          "participant — Settle the Wreckage binds `target_player` + a variable count); cycling-reminder "
-         "tutors are keyword-layer (not extracted). "
+         "tutors are keyword-layer (not extracted). **Phase-4e:** RETURN/recursion (bounce + reanimation) is object-directed — it PROJECTS to eligible objects (`CAN_RETURN`), moving a card graveyard→hand/battlefield (reanimation/recursion), battlefield→hand (bounce), or source→source (self-return); blink (exile-and-return) and stack-object spell-bounce are dispositioned pending the exile slice. "
          "Each effect is a validated record; projection aggregates all supporting "
          "effects/modes per pair (`supports`). Frozen core untouched. **Proposed schema extensions "
          "(documented, not casually invented):** `CAN_FIGHT`, `CHANGES_TYPE_OF`, `SETS_BASE_PT`, "
          "`SWITCHES_PT`, `REMOVES_ABILITY_FROM`, `EXCHANGES_CONTROL_OF`/`GAINS_CONTROL_OF`, "
          "`PREVENTS_DAMAGE_FROM`, `DRAWS_CARDS`, `GAINS_LIFE`/`LOSES_LIFE`, `DISCARDS_CARDS`, `MILLS_CARDS`, "
-         "`SACRIFICES`, `SEARCHES_FOR`. Every census clause in scope is reconciled "
+         "`SACRIFICES`, `SEARCHES_FOR`, `CAN_RETURN`. Every census clause in scope is reconciled "
          "(`reports/effect_reconciliation.md`, 0 unresolved).", "",
          f"- effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  · "
          f"pairs: **{len(pairs)}**", "",
