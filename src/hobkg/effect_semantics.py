@@ -1104,26 +1104,55 @@ def _return_effects(face):
             self_ref = bool(re.search(r"\bthis card\b|\bthis permanent\b", ol)) or \
                 (short and short.split()[0] in ol and "target" not in ol) or \
                 (re.fullmatch(r"(them|it|those cards|those)", ol) and "target" not in low[:m.start()])
+            binding, extra = None, {}
+            chosen = re.fullmatch(r"(them|it|those cards|those|each chosen creature|those creatures)", ol) \
+                and "target" not in ol
             if self_ref:
                 sel = _self_selector(); var = "self"
+                sel["zone"] = src                            # graveyard self-return is NOT a battlefield object (pt14 #3)
+            elif chosen:                                     # 'return each chosen creature' — the prior chosen target(s)
+                var = f"obj{i}"
+                pm = re.search(r"choose (?:any number of )?target ([^.,]+?)\s+you own", low[:m.start()])
+                sel = _sch.selector(pm.group(1) if pm else obj, var=var, targeted=True)
+                if "you own" in low[:m.start()]:
+                    sel["owner"] = "you"                     # the returned objects are owned by the caster (pt14 #2)
+                sel["zone"] = src
+                binding = {"kind": "chosen_target", "of": "you"}
+                if "if this spell was kicked" in low:        # non-kicked one target; kicked any number (pt14 #2)
+                    extra["quantity_alt"] = {"non_kicked": "1", "kicked": "any"}
             else:
                 var = f"obj{i}"
                 sel = _sch.selector(obj, var=var, targeted=("target" in ol))
                 sel["zone"] = src
+                mv = re.search(r"mana value (\d+) or less", ol)
+                if mv:
+                    sel["predicates"]["mana_value_lte"] = int(mv.group(1))   # pt14 #1
+                if "you own" in ol:
+                    sel["owner"] = "you"
+            # an Aura self-return that comes back attached to a target (Eagle's Rescue) — pt14 #4
+            am = re.search(r"attached to ([^.,]+)", crange[m.end():m.end() + 100], re.I)
+            if am:
+                asel = _sch.selector(am.group(1), var="attach", targeted=True)
+                ple = re.search(r"power (\d+) or less", am.group(1), re.I)
+                if ple:
+                    asel["predicates"]["power_le"] = int(ple.group(1))
+                extra["attach_to"] = {"selector": asel, "deferred": True}
             part = _participant_at(low, m.start())[0]
             lead = low[max(0, low.rfind(". ", 0, m.start()) + 2):m.start()]
             opt = bool(re.search(r"\bmay\b", lead)) or "up to" in ol
+            qty = ("1" if extra.get("quantity_alt") else                      # non-kicked base; alt holds kicked=any
+                   "up_to_1" if "up to one" in ol else "up_to_2" if "up to two" in ol else "1")
             out.append({"effect_id": f"{clause_id}#RETURN#{i}", "op": "RETURN", "relation": "CAN_RETURN",
                         "participant": part, "selector": sel, "object_var": var,
                         "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
                                  "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
                         "condition": ({"kind": "prior_action_taken", "detail": "gated by the prior action"}
                                       if "if you do" in lead else _sch.condition(_op_sentence(crange, low, m.start()))),
-                        "duration": None, "optional": opt, "targeted": ("target" in ol and not self_ref),
-                        "affects_each": False, "binding": None, "clause_id": clause_id,
+                        "duration": None, "optional": opt, "targeted": (("target" in ol or bool(chosen)) and not self_ref),
+                        "affects_each": False, "binding": binding, "clause_id": clause_id,
                         "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
                         "source_zone": src, "dest_zone": dest, "event": "return",
-                        "quantity": "up_to_1" if "up to one" in ol else ("up_to_2" if "up to two" in ol else "1")})
+                        "quantity": qty, **extra})
     return out
 
 

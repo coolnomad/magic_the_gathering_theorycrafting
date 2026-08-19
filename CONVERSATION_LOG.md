@@ -6788,3 +6788,65 @@ Want me to proceed? My recommendation is **exile / movement / recursion** next �
 
 ### [2026-08-18 23:07] USER
 ok proceed to the next recommendation
+
+### [2026-08-18 23:24] ASSISTANT
+Proceeding to **exile / movement / recursion**. Let me dump the census clauses for the exile and return_move families and re-read the governing spec taxonomy:
+
+This is a large, varied family. To keep it bounded and reviewable, I'll scope this slice to **return / recursion (bounce + reanimation)** â€” the `return_move` family (13 clauses, coherent: "return X from Y to Z") â€” and leave the exile family (Adventure reminders, death-replacement, stochastic top-library, targeted exile) for a subsequent slice. Return is object-directed, so it projects to eligible cards (like removal). Let me prototype the extraction to get the zones right:
+
+The regex captures all 13. Now I'll scope this cleanly: **extract** reanimation/recursion (graveyardâ†’hand/battlefield), self-return, dies-return, and bounce (battlefieldâ†’hand); **disposition** blink (exile-and-return, which needs the deferred exile family) and spell-bounce (a stack object). These are object-directed and project to eligible cards. Let me write `_return_effects` and test it:
+
+Extraction looks good (reanimation, self-return, bounce all correct; blink and spell-bounce dispositioned). Let me wire it in and check Mirkwood's permanent selector validates/projects:
+
+Mirkwood's `generic_permanent` selector validates. Now build and check projection + reconcile:
+
+9 RETURN records / 615 `CAN_RETURN` pairs (reanimation â†’ all creatures, bounce â†’ all permanents â€” correct object fan-out); accepted 102 records + non-return pairs byte-identical. The **4 unresolved** are the blink/spell clauses I deferred â€” I need reconcile dispositions. Let me add them:
+
+`_return_effects` is wired into reconcile. Now add dispositions for blink and spell-bounce. Let me find the disposition chain and add branches:
+
+Reconcile 0 unresolved, deterministic (`6893fb3d`), full suite 403. Now the return regression tests:
+
+11 pass. Let me update the report headers, regenerate all artifacts (including pair-index since `CAN_RETURN` adds pairs), and run the full suite:
+
+414 pass (+11), pair_index regenerated, coverage Phase-6. Let me append the Phase 4e LABNOTEBOOK entry:
+
+Staged exactly my 9 Phase-4e files (coverage.md already Phase-6, reviewer handoff untouched), diff-check clean. Commit and push:
+
+Committed and pushed as `a5e4be8` (remote confirmed). Let me run the final acceptance verification against the committed records:
+
+All acceptance checks pass against the committed records. Phase 4e (RETURN/recursion) is committed and pushed.
+
+## Summary
+
+Phase 4d was accepted (pt13); I proceeded to the next recommendation â€” **Phase 4e: RETURN / recursion (bounce + reanimation)** â€” committed and pushed as `a5e4be8`.
+
+**Scope.** The `return_move` family (13 clauses), bounded to the *return* half; the coupled exile family (Adventure reminders, targeted/stochastic exile, death-replacement) is a later slice. RETURN is **object-directed**, so â€” like removal/search â€” it projects to eligible objects (`CAN_RETURN`).
+
+`_return_effects` parses `return <object> [from <source>] to <dest>` with source inference:
+- **Reanimation/recursion** (graveyard â†’ hand/battlefield, target card): Mountain-king's Return, Along the Crooked Way, Gathering of Darkness â†’ project to creature cards.
+- **Self-return** (`this card` / dies-`them`, sourceâ†’source only): Silvan Reveler, Gollum, Eagle's Rescue, Tom Bert & William.
+- **Bounce** (battlefield â†’ hand, target permanent): Mirkwood Nurturer (optional up-to-1), The Eagles Are Coming!.
+- **Deferred/dispositioned:** blink exile-and-return (Elrond, Roll, Gone Fishing â€” coupled to the exile slice) and stack-object spell-bounce (Bilbo's Gambit).
+
+**Projection discipline** (all verified): RETURN fans out (615 `CAN_RETURN` pairs); participant families still emit **0**; all pre-4e pairs (incl. 89 `SEARCHES_FOR`) byte-identical; **102 accepted 4aâ€“4d records byte-identical**.
+
+**Verification:** 231 effects / 138 faces / 8,654 pairs; reconcile 337 â†’ 227 extracted, 4 deferred, **0 unresolved**; three deterministic artifacts (`effect_records 6893fb3d`, `pairs 9f8150b9`, `pair_index e9128570`); **414 tests pass** (+11 in `tests/test_effect_return.py`); frozen manifest green; `git diff --check 2b06642..a5e4be8` clean; coverage Phase-6.
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4e` / `Implements` / `Addresses-Review: ec73e08` / `Addresses-Implementation: 2b06642` / `Validation` trailers (incl. `pair-index`); staged only my own paths; reviewer artifacts untouched.
+
+Remaining Phase-4: exile/movement (incl. blink's exile), counterspells, complete `SUPPLIES_RESOURCE` review. This commit awaits review.
+
+## 2026-08-18 - Review agent
+- Reviewed worker commit `a5e4be8f8985c50d4eb39443b56c2f675ab2846e` for Phase 4e RETURN/recursion against parent/review commit `ec73e08de560c875f11487e253165bf2711b4288`.
+- Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt14.md` with verdict `REPAIR`; review commit `7dcd692c7b26b7bd67834e7b72d50a4bd74002af`.
+- Verification: targeted Phase 4/return tests `144 passed`; full suite `414 passed`; frozen manifest `frozen_failures 0`; effect-reconcile `337 clause_family_pairs, 227 extracted, 4 deferred, 0 unresolved`; effect-build deterministic with hashes `effect_records=6893fb3de14b9c5e5022a29006271a5f8ac64c045e3599ebe914cfb2eab94273`, `card_pair_projection_effect=9f8150b946b63e2bb8be715caf2cdd31da05b2480230536560ec409f4e7d675b`, `pair_index=e91285701f24496032010b6143d842adefc9c6076ade676cb7ca7568af34c98a`.
+- Blocking findings: `The Mountain-king's Return` drops mana-value restriction; `The Eagles Are Coming!` drops chosen-target/owner/kicker quantity semantics; graveyard self-return records retain battlefield selector zone; `Eagle's Rescue` drops attached-to destination binding.
+- Updated advisory `docs/review_events/review_ready.json` to signal `REPAIR` for reviewed commit `a5e4be8f8985c50d4eb39443b56c2f675ab2846e`.
+
+## Review monitor update (2026-08-19)
+- User reported a new commit, but no new worker commit was visible after `git fetch origin`.
+- Visible refs: `origin/main=a5e4be8f8985c50d4eb39443b56c2f675ab2846e`; local `HEAD=7dcd692c7b26b7bd67834e7b72d50a4bd74002af`.
+- No review was performed and no review document was created because the exact new implementation SHA was unavailable.
+
+### [2026-08-19 01:14] USER
+do exile/movement next

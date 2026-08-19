@@ -279,6 +279,22 @@ def _type_ok(sel, obj_types):
     return any(ct in obj_types for ct in cts) if sel.get("or_types") else all(ct in obj_types for ct in cts)
 
 
+def _cmc(face) -> int:
+    """Converted mana value of a face from its printed mana cost ({2}{G} → 3; X → 0; hybrid → 1)."""
+    mc = face.get("mana_cost_raw") or face.get("mana_cost") or ""
+    if isinstance(mc, dict):
+        mc = mc.get("raw", "")
+    total = 0
+    for sym in re.findall(r"\{([^}]+)\}", mc or ""):
+        if sym.isdigit():
+            total += int(sym)
+        elif sym in ("X", "Y", "Z"):
+            total += 0
+        else:
+            total += 1                                       # colored / hybrid / phyrexian pip = 1
+    return total
+
+
 def matches_card(sel: dict, face: dict) -> bool:
     t = _face_types(face)
     if not t["types"]:
@@ -305,6 +321,9 @@ def matches_card(sel: dict, face: dict) -> bool:
     pg = sel["predicates"].get("power_ge")
     if pg is not None and (_power(face) is None or _power(face) < pg):
         return False
+    mv = sel["predicates"].get("mana_value_lte")
+    if mv is not None and _cmc(face) > mv:
+        return False                                         # 'mana value N or less' restriction
     return True
 
 

@@ -1963,3 +1963,20 @@ Each RETURN record carries: object selector (self / card_types / generic_permane
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4e`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt13/2b06642. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_return_effects`); `tests/test_effect_return.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt13.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-19] CORRECTION — Effect-semantics Phase 4e repair: RETURN restrictions/bindings/zones (review PHASE4_review_pt14)
+
+Review `PHASE4_review_pt14.md` (verdict **REPAIR**, reviewed_commit `a5e4be8`) accepted the deterministic `CAN_RETURN` projection but flagged 4 blocking RETURN-record defects. All fixed; accepted 4a-4d records and non-return pairs byte-identical.
+
+1. **Mana-value restriction preserved + projected** (blocker 1): The Mountain-king's Return "Return target creature card **with mana value 3 or less**" now carries `selector.predicates.mana_value_lte:3`; a new `effect_schema._cmc(face)` computes CMC and `matches_card` honors the predicate — `CAN_RETURN` projection drops from 112 → **65** eligible creatures (all cmc ≤ 3).
+2. **Eagles Are Coming! owner/choice/kicked** (blocker 2): the returned objects are the previously chosen target creatures — record now has `selector.owner:"you"`, `targeted:true`, `binding:{kind:chosen_target, of:you}`, and `quantity_alt:{non_kicked:"1", kicked:"any"}` (base `quantity:"1"`), no longer a bare all-creature `each` return.
+3. **Graveyard self-return selector zone** (blocker 3): `_self_selector` defaults `zone:battlefield`; self-returns now set `selector.zone = source_zone` — Silvan Reveler, Gollum, Eagle's Rescue, Tom/Bert all `graveyard` (the same authoritative-zone fix Phase 4d applied to SEARCH).
+4. **Eagle's Rescue attached-to binding** (blocker 4): the Aura returns "attached to target creature you control with power 1 or less" — record now carries `attach_to:{selector:<creature you control, power_le:1, targeted>, deferred:true}` rather than silently dropping the attachment destination.
+
+**Projection change is intentional & isolated:** `CAN_RETURN` 615 → **568** (only Mountain-king's Return narrowed by the mana-value filter); **non-return pairs byte-identical** to `2b06642` (the `mana_value_lte` predicate only fires when present). All **102 accepted Phase-4a…4d records byte-identical**. 231 effects / 138 faces / 8,607 pairs. Reconcile 227 extracted, 4 deferred, 0 unresolved. Two serial `effect-build` runs byte-identical (`effect_records` `13777f47…`, pairs `673fde56…`, `pair-index` `e751f291…`). **418 tests pass** (+4 pt14 regressions: mana-value predicate+projection, Eagles owner/binding/kicked, self-return-zone-matches-source, Eagle's-Rescue attach binding). Frozen manifest green; `git diff --check` clean.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4e-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt14/a5e4be8. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_return.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt14.md`; [[phase4-frozen]]

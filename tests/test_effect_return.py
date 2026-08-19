@@ -100,3 +100,41 @@ def test_participant_families_still_do_not_fan_out():
 def test_accepted_families_present_with_return_added():
     ops = {s["op"] for s in es.build_effects(write=False)["_structured"]}
     assert {"DRAW", "DISCARD", "MILL", "SACRIFICE", "SEARCH", "RETURN"} <= ops
+
+
+# ================================================================================================
+#  Phase 4e REPAIR (review PHASE4_review_pt14)
+# ================================================================================================
+def test_repair_pt14_mana_value_restriction_preserved_and_projected():
+    from hobkg import effect_schema as _sch
+    e = _one("The Mountain-king's Return")
+    assert e["selector"]["predicates"].get("mana_value_lte") == 3
+    out = es.build_effects(write=False)
+    faces = _faces()
+    by_card = {}
+    for f in faces.values():
+        by_card.setdefault(f["card_id"], []).append(f)
+    mk = faces["The Mountain-king's Return"]["card_id"]
+    for p in out["_pairs"]:
+        if p["relation"] == "CAN_RETURN" and p["source_card"] == mk:
+            assert any(_sch._cmc(cf) <= 3 for cf in by_card[p["target_card"]]), p["target_card"]
+
+
+def test_repair_pt14_eagles_owner_choice_binding_and_kicked_quantity():
+    e = _one("The Eagles Are Coming!")
+    assert e["selector"]["card_types"] == ["creature"] and e["selector"].get("owner") == "you"
+    assert e["targeted"] is True and e["binding"] == {"kind": "chosen_target", "of": "you"}
+    assert e["quantity"] == "1" and e["quantity_alt"] == {"non_kicked": "1", "kicked": "any"}
+
+
+def test_repair_pt14_graveyard_self_return_selector_zone_matches_source():
+    for s in es.build_effects(write=False)["_structured"]:
+        if s["op"] == "RETURN" and s["selector"].get("self"):
+            assert s["selector"]["zone"] == s["source_zone"], (s["name"], s["selector"]["zone"])
+
+
+def test_repair_pt14_eagles_rescue_attached_to_binding():
+    e = _one("Eagle's Rescue")
+    at = e["attach_to"]
+    assert at["selector"]["card_types"] == ["creature"] and at["selector"].get("controller") == "you"
+    assert at["selector"]["predicates"].get("power_le") == 1
