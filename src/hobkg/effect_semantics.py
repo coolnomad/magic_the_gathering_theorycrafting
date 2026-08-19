@@ -1318,14 +1318,18 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
             support = {"effect_id": eff["effect_id"], "mode": eff["mode"], "op": eff["op"],
                        "object_var": eff.get("object_var"), "oracle_span": eff["oracle_span"],
                        "targeted": eff["targeted"], "face_id": f["id"], "name": f["name"]}
-            participant_level = sel.get("participant_level", False)
-            elig_tokens = [] if participant_level else sorted(t["id"] for t in tokens if _sch.matches_token(sel, t))
+            # an effect bound to a PRIOR CHOSEN target is a runtime object, not a static card-identity
+            # set — it must NOT fan out to every eligible card (review pt15: Eagles Are Coming!)
+            chosen_bound = (eff.get("binding") or {}).get("kind") == "chosen_target"
+            no_project = sel.get("participant_level", False) or chosen_bound
+            elig_tokens = [] if no_project else sorted(t["id"] for t in tokens if _sch.matches_token(sel, t))
             structured.append({**eff, "face_id": f["id"], "card": f["card_id"], "name": f["name"],
                                "eligible_token_specs": elig_tokens,
                                "provenance": {**support, "rule": f"effect_semantics.{family}",
-                                              "layer": "effect_semantics"}})
-            if participant_level:
-                continue                                     # participant-level fact — NO card-pair fan-out
+                                              "layer": "effect_semantics"},
+                               **({"projection": "not_projected (bound to a prior chosen target)"} if chosen_bound else {})})
+            if no_project:
+                continue                                     # participant-level / chosen-target — NO card-pair fan-out
             project(f["card_id"], sel, eff["relation"], family, support)
             if eff["op"] == "FIGHT" and eff.get("fight_target_selector"):
                 project(f["card_id"], eff["fight_target_selector"], "CAN_FIGHT", "fight",

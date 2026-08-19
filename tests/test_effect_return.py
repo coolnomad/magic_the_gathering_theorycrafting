@@ -138,3 +138,25 @@ def test_repair_pt14_eagles_rescue_attached_to_binding():
     at = e["attach_to"]
     assert at["selector"]["card_types"] == ["creature"] and at["selector"].get("controller") == "you"
     assert at["selector"]["predicates"].get("power_le") == 1
+
+
+# ================================================================================================
+#  Phase 4e REPAIR 2 (review PHASE4_review_pt15)
+# ================================================================================================
+def test_repair_pt15_chosen_target_return_is_not_projected_but_record_kept():
+    out = es.build_effects(write=False)
+    ea = _faces()["The Eagles Are Coming!"]["card_id"]
+    # NO generic all-creatures fan-out for a chosen-target return
+    assert not [p for p in out["_pairs"] if p["relation"] == "CAN_RETURN" and p["source_card"] == ea]
+    # but the full structured record is retained, with an explicit non-projection reason
+    rec = [s for s in out["_structured"] if s["card"] == ea and s["op"] == "RETURN"][0]
+    assert rec["selector"].get("owner") == "you" and rec["binding"] == {"kind": "chosen_target", "of": "you"}
+    assert rec["quantity_alt"] == {"non_kicked": "1", "kicked": "any"}
+    assert "not_projected" in rec.get("projection", "")
+
+
+def test_repair_pt15_ordinary_returns_still_project():
+    # reanimation/bounce (not chosen-target-bound) must still fan out
+    out = es.build_effects(write=False)
+    mk = _faces()["The Mountain-king's Return"]["card_id"]
+    assert [p for p in out["_pairs"] if p["relation"] == "CAN_RETURN" and p["source_card"] == mk]

@@ -1980,3 +1980,17 @@ Review `PHASE4_review_pt14.md` (verdict **REPAIR**, reviewed_commit `a5e4be8`) a
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4e-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt14/a5e4be8. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/{effect_schema,effect_semantics}.py`; `tests/test_effect_return.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt14.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-19] CORRECTION — Effect-semantics Phase 4e repair 2: chosen-target return not projected (review PHASE4_review_pt15)
+
+Review `PHASE4_review_pt15.md` (verdict **REPAIR**, reviewed_commit `3ba4808`) accepted all four pt14 record repairs but left one blocking projection defect: **The Eagles Are Coming!** still projected **112** generic `CAN_RETURN` pairs (every creature) despite the correct `owner:you` + `binding:{chosen_target}` fields — because `matches_card`/`project()` ignore owner and have no chosen-object identity. The returned object is a *prior runtime choice*, not a static card-identity set.
+
+**Fix (the reviewer's option B — don't project, keep the record):** `build_effects` now skips card-pair fan-out for any effect whose `binding.kind == "chosen_target"` (alongside the existing participant-level skip), and stamps the retained record with `projection: "not_projected (bound to a prior chosen target)"` as the explicit disposition. Eagles keeps its full structured record (owner, chosen-target binding, kicked `quantity_alt`) but emits **0** `CAN_RETURN` pairs; ordinary reanimation/bounce returns still project (Mountain-king's Return still fans out to its 65 mana-value-eligible creatures). Reconciliation still counts Eagles `extracted` (the return effect exists) — the record + `projection` reason document why it isn't projected.
+
+**Isolated projection change:** `CAN_RETURN` 568 → **456** (only Eagles' 112 removed); **non-return pairs byte-identical** to `2b06642`; all **102 accepted Phase-4a…4d records byte-identical**. 231 effects / 138 faces / 8,495 pairs. Reconcile 227 extracted, 4 deferred, 0 unresolved. Two serial `effect-build` runs byte-identical (`effect_records` `36804534…`, pairs `3da8fe4d…`, `pair-index` `6db68fa1…`). **420 tests pass** (+2 pt15 regressions: chosen-target-not-projected-but-record-kept, ordinary-returns-still-project). Frozen manifest green; `git diff --check` clean.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4e-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt15/3ba4808. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`build_effects` chosen-target skip); `tests/test_effect_return.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt15.md`; [[phase4-frozen]]
