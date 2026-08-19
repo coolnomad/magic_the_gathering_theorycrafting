@@ -131,3 +131,34 @@ def test_repair_pt11_last_light_search_gated_by_prior_self_sacrifice():
     e = _one("Last Light of Durin's Day")
     assert e["condition"]["kind"] == "prior_action_taken"     # not a generic conditional_effect marker
     assert e["source_zone"] == "hand_and_library" and e["selector"]["zone"] == "hand_and_library"
+
+
+# ================================================================================================
+#  Phase 4d REPAIR 2 (review PHASE4_review_pt12)
+# ================================================================================================
+def test_repair_pt12_troop_of_ponies_preserves_split_destinations():
+    # 'put one onto the battlefield tapped and the other into your hand'
+    dz = _one("Troop of Ponies")["destinations"]
+    bf = [d for d in dz if d["zone"] == "battlefield"]
+    hd = [d for d in dz if d["zone"] == "hand"]
+    assert bf and bf[0]["tapped"] is True and bf[0]["count"] == "one"
+    assert hd and hd[0]["count"] == "the other"
+
+
+def test_repair_pt12_last_light_shuffle_is_conditional_on_searching_library():
+    # hand-or-library search: shuffle only if the library was actually searched
+    e = _one("Last Light of Durin's Day")
+    assert e["shuffle"] is True
+    assert e["shuffle_condition"] == {"kind": "searched_zone", "zone": "library"}
+
+
+def test_repair_pt12_pure_library_search_shuffles_unconditionally():
+    for name in ("Seek the Heart", "Wood Elves", "Settle the Wreckage"):
+        e = _one(name)
+        assert e["source_zone"] == "library" and e["shuffle_condition"] is None, name
+
+
+def test_repair_pt12_every_search_has_a_destinations_list():
+    for s in es.build_effects(write=False)["_structured"]:
+        if s["op"] == "SEARCH" and s["dest_zone"] is not None:
+            assert s["destinations"] and all("zone" in d for d in s["destinations"]), s["name"]

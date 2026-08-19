@@ -6667,3 +6667,50 @@ the pt11 `REPAIR` result.
 
 ### [2026-08-18 21:39] USER
 ok review_pt11 is up. read that
+
+### [2026-08-18 21:50] ASSISTANT
+Phase 4 pt11 on my SHA `300260e`, verdict **REPAIR** with 3 blocking findings. Let me read it:
+
+Three findings, all on SEARCH records: (1) the searched selector's `zone` defaults to `battlefield` (should match `source_zone`), (2) Settle's "that many" needs an antecedent binding, (3) Last Light's search condition should be a prior-action gate. Let me first confirm `matches_card` is zone-agnostic (so fixing the zone won't break projection):
+
+`matches_card` is zone-agnostic (type-based), so correcting the selector zone is projection-safe. Let me apply all three fixes to `_search_effects`:
+
+All three fixes verified, projection unchanged (89 pairs). Let me verify invariance, determinism, and the suite:
+
+Deterministic (`7686ad90`), pairs unchanged (`61c409d3`), 91 accepted + 7950 non-search pairs preserved, 89 search pairs unchanged. Now add the pt11 regression tests:
+
+16 search tests pass, full suite 399, pair_index unchanged (`4e93f673`), coverage Phase-6. Let me append the LABNOTEBOOK entry and check what changed:
+
+Only effect_records + code + test changed (projection files and reports byte-identical). Let me append the repair entry:
+
+Staged exactly my 5 files (projection files/reports byte-identical, reviewer artifacts untouched). Commit and push:
+
+Committed and pushed as `203315d` (remote confirmed). Let me run the pt11 acceptance checks against the committed records:
+
+All pt11 acceptance checks pass against the committed records. The repair is committed and pushed.
+
+## Summary
+
+**Review PHASE4_review_pt11** (verdict REPAIR on my SHA `300260e`, 3 blocking findings â€” all on SEARCH records) is addressed in commit `203315d`:
+
+| # | Finding | Fix |
+|---|---------|-----|
+| 1 | Searched selector said `zone: battlefield` | `sel["zone"] = source_zone` â€” every SEARCH selector now reflects `library`/`hand_and_library`, never `battlefield` (projection unaffected â€” `matches_card` is type-based) |
+| 2 | Settle lost the "that many" antecedent | `quantity_formula:{kind:variable, source:prior_exile_count, of:target_player, binding:"attacking creatures exiled this way"}`; searcher stays the same `target_player` |
+| 3 | Last Light search used generic `conditional_effect` | now `{kind:prior_action_taken}` (gated by the prior self-sacrifice); `source_zone`/selector zone stay `hand_and_library` |
+
+**Verification (all checks pass):** the deterministic `SEARCHES_FOR` projection is **untouched** (89 pairs byte-identical); **91 accepted 4a/4b/4c records byte-identical**; **7,950 non-search pairs byte-identical**; participant families still emit **0** fan-out; reconcile 324 â†’ 218 extracted, 4 deferred, **0 unresolved**; three deterministic artifacts (`effect_records 7686ad90`, `pairs 61c409d3`, `pair_index 4e93f673`); **399 tests pass** (+3 pt11 regressions); frozen manifest green; `git diff --check 300260e..203315d` clean; projection files, `pair_index`, and reports byte-identical (the fix corrects SEARCH *record* fields, not projection).
+
+**Protocol:** commit carries `Role: worker` / `Phase: Phase 4` / `Iteration: 4d-repair1` / `Addresses-Review: db7751f` / `Addresses-Implementation: 300260e` / `Validation` trailers; staged only my own paths; reviewer artifacts untouched.
+
+This continues the reviewer's consistent operation-scoping discipline (zones, antecedents, and conditions must be faithful to the exact operation). The repair awaits re-review. Remaining Phase-4: exile/movement/recursion, counterspells, complete `SUPPLIES_RESOURCE` review.
+
+## 2026-08-18 - Review agent
+- Reviewed worker commit `203315dc40a9c54f6196fca7bfffecf388db5ac2` for Phase 4d repair against parent `db7751f75b6831e511fbe5ab0bce5d979244ed56`.
+- Wrote and committed `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt12.md` with verdict `REPAIR`; review commit `ecd60259149a44ea3e24c06645b8d1e82724df5c`.
+- Verification: targeted Phase 4 tests `129 passed`; full suite `399 passed`; frozen manifest `frozen_failures 0`; effect-build deterministic with hashes `effect_records=7686ad90c7ccafb93e74d5874c47bb57b5207ef4be1e45a3d6484d4ca8f8166`, `card_pair_projection_effect=61c409d350d6e1d3e340c03ab8ae4894b7850df9eb7ed089300cd4d087a25e35`, `pair_index=4e93f673be65e051913ee7356c7410703551d34ce5f5168cc4889965f5be66ce`.
+- Blocking findings: `Troop of Ponies` collapses split SEARCH destinations; `Last Light of Durin's Day` encodes conditional library-search shuffle as unconditional.
+- Updated advisory `docs/review_events/review_ready.json` to point the worker at review commit `ecd60259149a44ea3e24c06645b8d1e82724df5c` and reviewed commit `203315dc40a9c54f6196fca7bfffecf388db5ac2`.
+
+### [2026-08-18 22:21] USER
+ok review_pt12 is up. read that

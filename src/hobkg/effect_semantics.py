@@ -997,6 +997,23 @@ def _search_dest(rest: str):
     return None, False
 
 
+def _search_destinations(rest: str):
+    """Per-object searched-card destinations (review pt12): a split like 'put ONE onto the battlefield
+    tapped and THE OTHER into your hand' has two distinct destination roles that must not collapse
+    into a single battlefield-tapped output. Returns a list of {zone, tapped, count}."""
+    dests = []
+    for m in re.finditer(r"\b(one|the other|the rest|them|it|those cards|that card)\b[^.,]*?"
+                         r"(onto the battlefield(?:\s+tapped)?|into (?:your|their) hand|on top)", rest, re.I):
+        cnt, d = m.group(1).lower(), m.group(2).lower()
+        if "battlefield" in d:
+            dests.append({"zone": "battlefield", "tapped": "tapped" in d, "count": cnt})
+        elif "hand" in d:
+            dests.append({"zone": "hand", "tapped": False, "count": cnt})
+        elif "on top" in d:
+            dests.append({"zone": "library_top", "tapped": False, "count": cnt})
+    return dests
+
+
 def _search_effects(face):
     text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))   # cycling-reminder tutors are keyword-layer
     out = []
@@ -1013,11 +1030,19 @@ def _search_effects(face):
             sel["zone"] = src                                # the searched card is in the LIBRARY / hand+library,
             #                                                  NOT the battlefield (selector() default) — review pt11 #1
             rest = low[m.end():m.end() + 140]
-            dest, tapped = _search_dest(rest)
+            dests = _search_destinations(rest)               # per-object split destinations (review pt12 #1)
+            if dests:
+                dest, tapped = dests[0]["zone"], dests[0].get("tapped", False)
+            else:
+                dest, tapped = _search_dest(rest)
+                dests = [{"zone": dest, "tapped": tapped, "count": "all"}] if dest else []
             part = _participant_at(low, m.start())[0]
             lead = low[max(0, low.rfind(". ", 0, m.start()) + 2):m.start()]   # the search's own leading text
             opt = bool(re.search(r"\bmay\b", lead))
             qty = "variable" if "that many" in phrase.lower() else (sel.get("quantifier") or "1")
+            shuffle = "shuffle" in rest
+            # a hand-or-library search shuffles only if the LIBRARY was actually searched — review pt12 #2
+            shuffle_cond = {"kind": "searched_zone", "zone": "library"} if (shuffle and src == "hand_and_library") else None
             rec = {"effect_id": f"{clause_id}#SEARCH#{i}", "op": "SEARCH", "relation": "SEARCHES_FOR",
                    "participant": part, "selector": sel, "object_var": var,
                    "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
@@ -1025,9 +1050,9 @@ def _search_effects(face):
                    "condition": None, "duration": None, "optional": opt, "targeted": False,
                    "affects_each": False, "binding": None, "clause_id": clause_id,
                    "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
-                   "source_zone": src, "dest_zone": dest, "dest_tapped": tapped,
+                   "source_zone": src, "dest_zone": dest, "dest_tapped": tapped, "destinations": dests,
                    "event": "search", "quantity": qty, "reveal": "reveal" in rest,
-                   "shuffle": "shuffle" in rest}
+                   "shuffle": shuffle, "shuffle_condition": shuffle_cond}
             # condition: a leading 'if you do' gates the search on a prior action (Last Light's
             # self-sacrifice); else the operation-scoped condition — review pt11 #3
             if "if you do" in lead:

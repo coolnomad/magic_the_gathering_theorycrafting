@@ -1926,3 +1926,18 @@ Review `PHASE4_review_pt11.md` (verdict **REPAIR**, reviewed_commit `300260e`) a
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4d-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt11/300260e. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_search_effects`); `tests/test_effect_search.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt11.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-18] CORRECTION — Effect-semantics Phase 4d repair 2: split search destinations + conditional shuffle (review PHASE4_review_pt12)
+
+Review `PHASE4_review_pt12.md` (verdict **REPAIR**, reviewed_commit `203315d`) confirmed the pt11 fixes (selector zones, Settle binding, Last Light prior-action gate) and left 2 blocking SEARCH-record defects. Both fixed; projection untouched (89 `SEARCHES_FOR` pairs byte-identical), accepted 4a/4b/4c + non-search pairs byte-identical.
+
+1. **Troop of Ponies split destinations** (blocker 1): "put ONE onto the battlefield tapped and THE OTHER into your hand" collapsed to a single battlefield-tapped destination, overstating battlefield placement. New `_search_destinations(rest)` parses per-object destination roles; every SEARCH record now carries a `destinations` list. Troop → `[{zone:battlefield, tapped:true, count:one}, {zone:hand, tapped:false, count:the other}]` (single-destination tutors get a one-element list). `dest_zone`/`dest_tapped` keep the primary destination for continuity.
+2. **Last Light conditional shuffle** (blocker 2): "put it onto the battlefield. If you search your library this way, shuffle." — the shuffle was unconditional but a hand-or-library search shuffles only if the library was actually searched. Added `shuffle_condition:{kind:searched_zone, zone:library}` when `source_zone == hand_and_library`; pure-library tutors keep `shuffle_condition:null` (unconditional shuffle, correct).
+
+**Numbers unchanged in shape:** 222 effects on 135 faces; 8,039 pairs (89 `SEARCHES_FOR` + 7,950 non-search, byte-identical to `42d5000`/`203315d`). Reconcile 324 → 218 extracted, 4 deferred, 0 unresolved (`card_pair_projection_effect`, `pair_index`, `reports/*` byte-identical — the fix enriches SEARCH *records*, not projection). Two serial `effect-build` runs byte-identical (`effect_records` `8b70ec04…`; pairs `61c409d3…`; `pair-index` `4e93f673…`). **403 tests pass** (+4 pt12 regressions: Troop split destinations, Last-Light conditional shuffle, pure-library unconditional shuffle, every-search-has-destinations). Accepted Phase-4a/4b/4c byte-identical. Frozen manifest green; `git diff --check` clean; coverage regenerated via `cli coverage` after pytest.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4d-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt12/203315d. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_search_destinations`); `tests/test_effect_search.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt12.md`; [[phase4-frozen]]
