@@ -1168,7 +1168,8 @@ def _return_effects(face):
 _EXILE_TOP_RE = re.compile(r"exiles?\s+the\s+top\s+(?:(\w+|x)\s+)?cards?\s+of\s+"
                            r"(your|target opponent's|an opponent's|their)\s+librar", re.I)
 _EXILE_OBJ_RE = re.compile(r"exiles?\s+(all|up to \w+|two|those|an?|one)\s+((?:other )?(?:target )?[^.,;]+?)"
-                           r"(?:\s+from\s+(?:your |their |an? |its owner's )?(graveyard|exile|battlefield|hand))?"
+                           r"(?:\s+from\s+(?:your |their |an? |its owner's |an opponent's |a player's |"
+                           r"target opponent's |target player's )?(graveyard|exile|battlefield|hand))?"
                            r"(?=[.,;]|\s+then\b|\s+until\b|\s+this way\b|\s+face down\b|$)", re.I)
 
 
@@ -1215,16 +1216,32 @@ def _exile_effects(face):
             if "top " in opl or "them, then" in low[m.end():m.end() + 12]:
                 continue                                     # top-library (handled) / search-destination exile
             cnt = m.group(1).lower()
+            # source zone from an explicit 'from <owner> <zone>' — 'an opponent's graveyard' etc. (pt17 #2)
             src = m.group(3).lower() if m.group(3) else "battlefield"
             var = f"obj{j}"
             sel = _sch.selector(objp, var=var, targeted=("target" in opl))
             sel["zone"] = src
+            if "attacking" in opl:
+                sel["predicates"]["attacking"] = True         # 'all ATTACKING creatures …' (pt17 #1)
+            # controller/owner restriction embedded in the object phrase ('target player controls',
+            # 'that player controls', 'you control', 'an opponent's …') — pt17 #1/#2
+            mtext = low[m.start():m.end()]                    # the full 'exile … from …' match
+            if re.search(r"target player controls?\b", opl):
+                sel["controller"], part = "target_player", "target_player"
+            elif re.search(r"that player controls?\b", opl):
+                sel["controller"], part = "controller", "controller"
+            elif re.search(r"you control\b", opl):
+                sel["controller"], part = "you", "you"
+            elif "opponent" in mtext:                         # 'from an opponent's graveyard' (pt17 #2)
+                sel["owner"], part = "opponent", "you"
+            else:
+                part = _participant_at(low, m.start())[0]
             # generic 'card' with no type constraint is not a static card-identity set → not projected
             generic_card = not (sel["card_types"] or sel["subtypes"] or sel.get("generic_permanent"))
             qty = ("all" if cnt == "all" else "up_to_2" if "up to two" in cnt else "up_to_1" if "up to one" in cnt
                    else "2" if cnt == "two" else "1")
             rec = {"effect_id": f"{clause_id}#EXILE#{j}", "op": "EXILE", "relation": "CAN_EXILE",
-                   "participant": _participant_at(low, m.start())[0], "selector": sel, "object_var": var,
+                   "participant": part, "selector": sel, "object_var": var,
                    "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
                             "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
                    "condition": _sch.condition(_op_sentence(crange, low, m.start())), "duration":

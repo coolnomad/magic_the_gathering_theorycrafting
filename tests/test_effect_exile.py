@@ -31,6 +31,31 @@ def test_mass_exile_of_attacking_creatures():
     assert e["quantity"] == "all" and (e["source_zone"], e["dest_zone"]) == ("battlefield", "exile")
 
 
+def test_repair_pt17_settle_binds_target_player_controller_and_attacking():
+    e = _one("Settle the Wreckage")
+    assert e["participant"] == "target_player"                # bound to the same target player as the search
+    assert e["selector"].get("controller") == "target_player"
+    assert e["selector"]["predicates"].get("attacking") is True
+    # projection restricted to creatures — no non-creature (nonmatching) card is exiled
+    out = es.build_effects(write=False)
+    faces = _faces()
+    by_card = {}
+    for f in faces.values():
+        by_card.setdefault(f["card_id"], []).append(f)
+    sid = faces["Settle the Wreckage"]["card_id"]
+    for p in out["_pairs"]:
+        if p["relation"] == "CAN_EXILE" and p["source_card"] == sid:
+            assert any("creature" in [t.lower() for t in (cf.get("type_line") or {}).get("types", [])]
+                       for cf in by_card[p["target_card"]]), p["target_card"]
+
+
+def test_repair_pt17_gollum_graveyard_source_and_opponent_restriction():
+    e = _one("Gollum the Abandoned")
+    assert e["source_zone"] == "graveyard" and e["selector"]["zone"] == "graveyard"
+    assert e["selector"].get("owner") == "opponent"
+    assert e["binding"] == {"kind": "generic_card"}          # still non-projected, but zone-faithful
+
+
 def test_targeted_nonland_permanent_exile():
     e = _one("Elrond, Moon-Reader")
     assert e["selector"].get("generic_permanent") is True and e["quantity"] == "up_to_2"

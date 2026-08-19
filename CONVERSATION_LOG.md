@@ -7000,3 +7000,71 @@ This repair (`cec6764`) now awaits re-review. Once 4e clears, I'll start the **e
 
 ### [2026-08-19 11:52] USER
 ok review_pt16 is up. read that
+
+### [2026-08-19 13:28] ASSISTANT
+pt16 is an **ACCEPT** of my SHA `cec6764` (0 blocking, 0 nonblocking, `phase_may_proceed: true`). Let me read the full doc:
+
+Phase 4e (RETURN/recursion) is **ACCEPTED** â€” pt16 verdict ACCEPT of my SHA `cec6764`, 0 blocking/nonblocking. The reviewer confirmed the Eagles record is retained with its bindings while excluded from static projection, and ordinary RETURN projection (Mountain-king mana-value filter, etc.) stays intact.
+
+Now that the blocker cleared, I'll fulfill your standing request and proceed to **exile/movement** (which completes blink). Let me confirm HEAD and dump the exile clauses with full text to design precisely:
+
+HEAD is the pt16 ACCEPT commit `ea7c3c7` (accepted base). The exile family splits cleanly into: **stochastic top-library exile** (participant-level, no fan-out, play-permission), **targeted/mass permanent exile** (object-directed, projects), plus **blink completion** (un-defer the Elrond/Roll/Gone Fishing returns), and **dispositions** (Adventure/Flashback reminders, death/counter-replacement, generic-card exile). Let me write `_exile_effects`:
+
+First let me un-defer blink in `_return_effects` (bind them to `exiled_this_way` rather than skipping). Let me read the current body:
+
+Now update `build_effects` to skip projection for `exiled_this_way` too, then add `_exile_effects`. First the skip:
+
+Now add `_exile_effects` handling top-library (stochastic) and targeted/mass (object-directed) exile. Let me find the insertion point:
+
+Now update the projection skip to include `generic_card`, and wire `_exile_effects` into the loops/family map:
+
+Most exile cases extract well (Settle mass, Elrond/Roll/Gone Fishing blink, Gollum generic-card not-projected, stochastic top-library with play-permission). Flameshape ("exile them face down") isn't caught. Let me build and check blink returns un-deferred + reconcile, then handle Flameshape + dispositions:
+
+10 EXILE records, RETURN now 12 (blink un-deferred, bound `exiled_this_way`, not projected); stochastic exiles emit no fan-out (`EXILES None`). **7 unresolved** exile clauses need dispositions. Let me find them:
+
+7 unresolved: death/counter replacements (Head of the Hunt, Gnashing, Pinecone, Thranduil), Roads (search-destination exile), Bilbo (cast-from-graveyard), Flameshape (stochastic look-exile). Let me add reconcile dispositions:
+
+Down to **1 unresolved** (was 7), deterministic, accepted preserved, 0 stochastic fan-out. Let me find the remaining unresolved clause:
+
+Bilbo's exile is in a separate sentence from "cast â€¦ from your graveyard". Let me broaden that disposition:
+
+Reconcile 0 unresolved. One test now outdated â€” my 4e `test_blink_returns_are_deferred_not_extracted` asserted blink returns are deferred, but 4f **un-defers** them. Let me update it to the new behavior:
+
+Let me check I didn't duplicate `test_spell_bounce_is_deferred`:
+
+Duplicate â€” the original already had it. Let me remove the one I just re-added:
+
+Now let me add the exile test file and run the full suite:
+
+28 pass. Let me update the report headers for 4f, run the full suite, and regenerate all artifacts:
+
+431 pass, coverage Phase-6. Let me verify the projection invariant and get final metrics for the LABNOTEBOOK entry:
+
+All invariants hold (non-exile/non-return pairs byte-identical, deterministic `02e96d00`/`e53243e4`/`d5cc080e`). Let me append the Phase 4f LABNOTEBOOK entry:
+
+Staged exactly my 10 Phase-4f files, diff-check clean. Commit and push:
+
+Commit `c107682` created and all Phase 4f acceptance checks pass. Push is in flight â€” let me confirm it lands on the remote:
+
+The push landed â€” remote and local are both at `c107682` ("Everything up-to-date" confirms the background push already delivered it). Phase 4f (EXILE + blink completion) is committed and pushed.
+
+## Summary
+
+You asked for exile/movement â€” I did the necessary **pt14/pt15 4e repairs first** (they cleared to ACCEPT at pt16), then implemented **Phase 4f: EXILE (+ blink completion)**, committed and pushed as `c107682`.
+
+**Two sub-families** in `_exile_effects`:
+- **Stochastic top-library exile** (`EXILES`, participant-level â†’ **no fan-out**, with structured `play_permission`): Gundabad, Great Goblin, Snowslope, Inside Information (target opponent's library, play this turn).
+- **Targeted/mass permanent/card exile** (`CAN_EXILE`, object-directed â†’ **projects**, sourceâ†’exile): Settle (mass attackers), Elrond/Roll/Gone Fishing (blink), Celebrate (mass edict, `duration:until-source-leaves`). Gollum's generic "target card" â†’ `binding:generic_card`, not projected.
+
+**Blink completed:** `_return_effects` un-defers exile-and-return â€” Elrond/Roll/Gone Fishing RETURN records now extract (`exile â†’ battlefield`, `binding:exiled_this_way`), and `build_effects` skips their fan-out (like pt15's chosen-target rule). RETURN 9â†’12; `CAN_RETURN` stays 456.
+
+**Dispositioned (0 unresolved):** Adventure/Flashback reminders, death-replacement (Head of the Hunt, Gnashing, Pinecone), counter-replacement (Thranduil's Decree), search-destination exile (Roads), flashback play-from-graveyard (Bilbo), stochastic look-exile (Flameshape).
+
+**Verification (all checks pass):** `CAN_EXILE` 537 new pairs; stochastic `EXILES` 0; **non-exile/non-return pairs byte-identical**; **102 accepted 4aâ€“4d records byte-identical**; reconcile 370 â†’ 240 extracted, 4 deferred, **0 unresolved**; three deterministic artifacts (`02e96d00`/`e53243e4`/`d5cc080e`); **431 tests pass** (+11 in `tests/test_effect_exile.py`); frozen manifest green; `git diff --check` clean; coverage Phase-6.
+
+**Protocol:** `Role: worker` / `Phase: Phase 4` / `Iteration: 4f` / `Addresses-Review: ea7c3c7` / `Addresses-Implementation: cec6764` trailers; staged only my own paths; reviewer artifacts untouched.
+
+Remaining Phase-4: **counterspells**, the complete **`SUPPLIES_RESOURCE` review**, and the deferred replacement/flashback/spell-bounce items. This commit awaits review.
+
+### [2026-08-19 14:13] USER
+ok review_pt17 is up. read that

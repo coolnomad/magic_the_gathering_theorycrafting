@@ -2014,3 +2014,18 @@ New `_exile_effects` handles two sub-families:
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4f`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt16/cec6764. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_exile_effects`, `_return_effects` blink); `tests/{test_effect_exile,test_effect_return}.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt16.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-19] CORRECTION — Effect-semantics Phase 4f repair: EXILE participant/controller/zone restrictions (review PHASE4_review_pt17)
+
+Review `PHASE4_review_pt17.md` (verdict **REPAIR**, reviewed_commit `c107682`) accepted the EXILE coverage but flagged 2 blocking record defects (participant/zone restrictions). Both fixed; projection is metadata-only-changed (pairs byte-identical), accepted records byte-identical.
+
+1. **Settle the Wreckage** (blocker 1): "Exile all attacking creatures target player controls" had `participant:you`, `controller:any`, no predicate. Now the controller/owner restriction is parsed from the object phrase — `participant:target_player`, `selector.controller:target_player`, `selector.predicates.attacking:true` (bound to the same `target_player` the pt11 search quantity_formula references). Projection stays creatures (attacking/controller are runtime states, not static card-identity filters); a new negative test asserts only creatures (no non-creature) are projected.
+2. **Gollum the Abandoned** (blocker 2): "exile up to one target card from **an opponent's** graveyard" defaulted to `source_zone:battlefield` because `_EXILE_OBJ_RE`'s source-zone prefix couldn't consume "an opponent's". Added possessive-participant prefixes (`an opponent's`, `a player's`, `target opponent's`, `target player's`); Gollum now has `source_zone:graveyard`, `selector.zone:graveyard`, `selector.owner:opponent`, while retaining the explicit `binding:generic_card` non-projection disposition.
+
+**Metadata-only change:** `card_pair_projection_effect.jsonl` and `pair_index.jsonl` **byte-identical** to `c107682` (Settle still projects to creatures, Gollum still not projected); **non-exile/non-return pairs byte-identical** to `2b06642`; all **102 accepted Phase-4a…4d records byte-identical**; other exile/blink records unchanged. 244 effects / 144 faces / 9,032 pairs; `CAN_EXILE` 537. Reconcile 240 extracted, 4 deferred, 0 unresolved. Two serial `effect-build` runs byte-identical (`effect_records` `1c86ff6b…`, pairs `e53243e4…`, `pair-index` `d5cc080e…`). **433 tests pass** (+2 pt17 regressions: Settle target-player/controller/attacking + creature-only projection, Gollum graveyard-source + opponent restriction). Frozen manifest green; `git diff --check` clean.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4f-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt17/c107682. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_exile_effects`); `tests/test_effect_exile.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt17.md`; [[phase4-frozen]]
