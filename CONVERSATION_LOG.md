@@ -6935,3 +6935,68 @@ Let me know which â€” or if a review of `3ba4808` is up, point me to it and
 
 ### [2026-08-19 11:23] USER
 ok review_pt15 is up. read that
+
+### [2026-08-19 11:33] ASSISTANT
+Phase 4 pt15 on my repair SHA `3ba4808`, verdict **REPAIR** with a single blocking finding (Eagles projection). Let me read it:
+
+Single finding: the Eagles record fields are correct, but it still **projects 112 `CAN_RETURN` pairs** because `matches_card`/`project()` ignore the `chosen_target` binding â€” the returned object is a prior runtime *choice*, not a static card-identity set. The reviewer's cleaner option: **don't project chosen-target returns** (keep the full record + a reconciliation reason). Let me find the `build_effects` projection loop:
+
+Eagles now projects **0** `CAN_RETURN` pairs (was 112) while keeping the full record + a `projection: not_projected` reason; total `CAN_RETURN` 568â†’456; non-return pairs and accepted records byte-identical. Let me add the projection regression test and verify:
+
+17 return tests, deterministic (`36804534`), reconcile 0 unresolved, full suite 420. Let me regenerate coverage and append the pt15 repair LABNOTEBOOK entry:
+
+Staged 8 files (schema unchanged this round; reconciliation.md byte-identical), diff-check clean. Commit and push:
+
+Commit `cec6764` created and all pt15 acceptance checks pass. Let me confirm the push landed on the remote:
+
+Commit landed locally; the background push is still completing. Let me push explicitly:
+
+Both push attempts are in flight (they'll converge). Let me verify the remote once they settle:
+
+The pt15 repair is committed as `cec6764` with all acceptance checks passing; the push is in flight (slow network â€” it will land shortly, as the prior ones did; range diff-check is clean).
+
+## Summary
+
+**Review PHASE4_review_pt15** (verdict REPAIR on my repair SHA `3ba4808`, single blocking finding) is addressed in commit `cec6764`:
+
+**Blocking finding â€” Eagles Are Coming! still projected 112 generic `CAN_RETURN` pairs** despite its correct `owner:you` + `chosen_target` binding, because `matches_card`/`project()` ignore owner and have no chosen-object identity. The returned object is a *prior runtime choice*, not a static card-identity set.
+
+**Fix (reviewer's option B â€” don't project, keep the record):** `build_effects` now skips card-pair fan-out for any effect bound to a `chosen_target` (alongside the existing participant-level skip) and stamps the retained record with `projection: "not_projected (bound to a prior chosen target)"`. Eagles keeps its full record (owner, chosen-target binding, kicked `quantity_alt`) but emits **0** `CAN_RETURN` pairs; ordinary reanimation/bounce still project (Mountain-king's Return still fans out to its 65 eligible creatures). Reconcile still counts Eagles `extracted`.
+
+**Verification (all checks pass):** `CAN_RETURN` 568â†’456 (only Eagles' 112 removed); **non-return pairs byte-identical**; **102 accepted 4aâ€“4d records byte-identical**; reconcile 227 extracted, 4 deferred, **0 unresolved**; three deterministic artifacts (`36804534`/`3da8fe4d`/`6db68fa1`); **420 tests pass** (+2 pt15 regressions); frozen manifest green; `git diff --check 3ba4808..cec6764` clean.
+
+**Protocol:** `Role: worker` / `Phase: Phase 4` / `Iteration: 4e-repair2` / `Addresses-Review: 8a840d3` / `Addresses-Implementation: 3ba4808` trailers; staged only my own paths; reviewer artifacts untouched.
+
+This is the second consecutive single-finding 4e repair (pt14 4 findings â†’ pt15 1 finding â†’ now resolved), each converging. The repair awaits re-review.
+
+On the coupling I flagged earlier: once 4e clears review, the **exile/movement** slice (which you asked for) will complete blink and is ready to go â€” I'll start it on the accepted base. If a pt16 review is already up, point me to it.
+
+### [2026-08-19 11:34] USER
+<task-notification>
+<task-id>bo3qeiiyi</task-id>
+<tool-use-id>toolu_01DS8Y1bnkEZbju7RePivpMB</tool-use-id>
+<output-file>C:\Users\dimuc\AppData\Local\Temp\claude\C--GitHub-magic-the-gathering-theorycrafting\e6d97ada-5ff0-4cce-b520-83302da376af\tasks\bo3qeiiyi.output</output-file>
+<status>completed</status>
+<summary>Background command "Ensure push lands" completed (exit code 0)</summary>
+</task-notification>
+
+### [2026-08-19 11:34] ASSISTANT
+The push background task completed. Let me confirm the remote is now at `cec6764`:
+
+Confirmed â€” remote and local are both at `cec6764`. The pt15 4e repair is committed and pushed.
+
+**Phase 4e repair 2 (pt15) is complete and on the remote:**
+- The Eagles Are Coming! now emits **0** `CAN_RETURN` pairs (chosen-target return not projected) while keeping its full structured record + explicit `projection: not_projected` reason.
+- All invariants hold: non-return pairs and 102 accepted 4aâ€“4d records byte-identical; 420 tests pass; deterministic; frozen manifest green.
+
+This repair (`cec6764`) now awaits re-review. Once 4e clears, I'll start the **exile/movement** slice you requested (which completes blink) on the accepted base â€” or if a pt16 review lands, point me to it and I'll act on that first.
+
+## Review monitor update (2026-08-19)
+- Reviewed worker commit `cec67643efd6ef13a3eabe9302c8001727f9e669` against parent `8a840d39b290632ecae3999aab844eb90750ef1d`.
+- Verdict: `ACCEPT` for bounded Phase 4e RETURN/recursion; review document committed as `ea7c3c7a348facc458448d2d7c9a6153216e5687` at `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt16.md`.
+- The Eagles Are Coming! remains fully represented in structured semantics with explicit chosen-target non-projection, and emits zero generic CAN_RETURN pairs. Ordinary RETURN projection remains correct.
+- Verification: targeted 150 passed; full 420 passed; reconciliation 337/227/4/0; frozen failures 0; two effect builds byte-identical; accepted Phase 4a-4d and non-RETURN projection hashes unchanged.
+- Advisory signal updated at `docs/review_events/review_ready.json`; broader Phase 4 remains open.
+
+### [2026-08-19 11:52] USER
+ok review_pt16 is up. read that

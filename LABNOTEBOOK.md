@@ -1994,3 +1994,23 @@ Review `PHASE4_review_pt15.md` (verdict **REPAIR**, reviewed_commit `3ba4808`) a
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4e-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt15/3ba4808. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`build_effects` chosen-target skip); `tests/test_effect_return.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt15.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-19] BUILD — Effect-semantics Phase 4f: EXILE (+ blink completion)
+
+Phase 4e RETURN/recursion **accepted** (review `PHASE4_review_pt16`, verdict ACCEPT, review commit `ea7c3c7`, 0 blocking/nonblocking). Next bounded Phase-4 sub-task (user-directed): the **exile family** — the movement half coupled to 4e's return, which this slice completes.
+
+New `_exile_effects` handles two sub-families:
+- **Stochastic top-library exile** (`EXILE`/`EXILES`, participant-level → NO card-pair fan-out, with a structured `play_permission:{allowed, duration}`): Gundabad Opportunist, The Great Goblin, Snowslope Hunter (top card, may play until end of next turn), Inside Information (top X of a **target opponent's** library, may play this turn). Source `library` → `exile`.
+- **Targeted/mass permanent/card exile** (`EXILE`/`CAN_EXILE`, object-directed → PROJECTS to eligible objects, source→`exile`): Settle the Wreckage (mass: all attacking creatures), Elrond, Moon-Reader (up-to-2 nonland permanents — blink), Celebrate the Mountain-king (mass edict: nonland permanent per opponent, `duration:as_long_as_source_on_battlefield`), Roll-Roll-Roll-Roll / Gone Fishing (creature-or-land — blink). Gollum the Abandoned's "exile up to one **target card** from a graveyard" has no static card-identity constraint → `binding:{kind:generic_card}`, `projection:not_projected`.
+
+**Blink completed:** `_return_effects` no longer skips exile-and-return — Elrond/Roll/Gone Fishing RETURN records are now extracted with `source_zone:exile → battlefield` and `binding:{kind:exiled_this_way}`; `build_effects` skips card-pair fan-out for `exiled_this_way` (and `generic_card`) bindings, mirroring pt15's chosen-target rule (the returned/exiled objects are prior runtime objects, not static card-identity sets). RETURN 9 → **12**; `CAN_RETURN` stays **456** (blink returns not projected).
+
+**Dispositioned, not extracted** (all reconciled, 0 unresolved): Adventure/Flashback self-exile reminders (blanked → reminder); death-replacement `would die … exile it instead` (Head of the Hunt, Gnashing, Pinecone — the last two already Phase-3 `replacement`); counter-replacement `countered this way … exile` (Thranduil's Decree); search-destination exile (Roads — see its SEARCH record); flashback play-from-graveyard exile (Bilbo, Thief in the Night); stochastic look-then-exile (Flameshape).
+
+**Projection discipline:** `CAN_EXILE` **537** new pairs; stochastic `EXILES` emit **0** (participant-level); all participant families still **0**; **non-exile/non-return pairs byte-identical** to `2b06642`; all **102 accepted Phase-4a…4d records byte-identical**. 244 effects / 144 faces / 9,032 pairs. Reconcile spans Phase-3 ∪ 4a…4f `{exile}`: **370 (clause,family) → 240 extracted, 4 deferred, 0 unresolved**. Two serial `effect-build` runs byte-identical (`effect_records` `02e96d00…`, pairs `e53243e4…`, `pair-index` `d5cc080e…`). **431 tests pass** (+11 in `tests/test_effect_exile.py`; the 4e blink-deferred test updated to blink-now-extracted). Frozen manifest green; `git diff --check` clean. Remaining Phase-4: counterspells, complete `SUPPLIES_RESOURCE` review, and the deferred replacement/flashback/spell-bounce items.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4f`, `Addresses-Review:`/`Addresses-Implementation:` for the accepting pt16/cec6764. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_exile_effects`, `_return_effects` blink); `tests/{test_effect_exile,test_effect_return}.py`; `data/graph_global/{effect_records,card_pair_projection_effect,pair_index}.jsonl`; `reports/{effect_semantics,effect_reconciliation}.md`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt16.md`; [[phase4-frozen]]

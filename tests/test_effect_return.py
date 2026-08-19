@@ -62,15 +62,21 @@ def test_optional_permanent_bounce_to_hand():
     assert (e["source_zone"], e["dest_zone"]) == ("battlefield", "hand")
 
 
-# ---- deferred cases (dispositioned, not extracted) --------------------------------------------
-def test_blink_returns_are_deferred_not_extracted():
-    # Elrond / Roll / Gone Fishing exile-and-return: coupled to the deferred exile slice
+# ---- blink returns (Phase 4f un-defers these; bound to the exiled objects, not projected) -----
+def test_blink_returns_bind_to_exiled_objects_and_are_not_projected():
     for name in ("Elrond, Moon-Reader", "Roll-Roll-Roll-Roll", "Gone Fishing"):
-        assert _ret(name) == [], name
+        e = _one(name)
+        assert (e["source_zone"], e["dest_zone"]) == ("exile", "battlefield"), name
+        assert e["binding"] == {"kind": "exiled_this_way"}, name
+    # the blink return object is a prior runtime object → no static CAN_RETURN fan-out
+    out = es.build_effects(write=False)
+    for name in ("Elrond, Moon-Reader", "Roll-Roll-Roll-Roll", "Gone Fishing"):
+        cid = _faces()[name]["card_id"]
+        assert not [p for p in out["_pairs"] if p["relation"] == "CAN_RETURN" and p["source_card"] == cid], name
 
 
 def test_spell_bounce_is_deferred():
-    assert _ret("Bilbo's Gambit") == []                       # 'Return target spell to its owner's hand'
+    assert _ret("Bilbo's Gambit") == []                       # 'Return target spell' — stack object, deferred
 
 
 # ---- projection + invariants ------------------------------------------------------------------

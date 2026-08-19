@@ -1092,22 +1092,27 @@ def _return_effects(face):
             obj = crange[m.start(1):m.end(1)].strip()
             ol = obj.lower()
             dest = m.group(3).lower()
-            if re.search(r"\bexile\b", low[:m.start()]):
-                continue                                     # blink (exile-and-return) — deferred to exile slice
+            blink = bool(re.search(r"\bexile\b", low[:m.start()]))   # exile-and-return (blink) — 4f completes it
             if re.search(r"\bspell\b", ol):
                 continue                                     # stack-object bounce (Bilbo's Gambit) — deferred
             # source zone
             src = m.group(2).lower() if m.group(2) else None
             if src is None:
-                src = "graveyard" if dest == "battlefield" else ("graveyard" if "card" in ol else "battlefield")
+                src = "exile" if blink else ("graveyard" if dest == "battlefield" else
+                                             ("graveyard" if "card" in ol else "battlefield"))
             # object selector: self (this card / the source's own name) vs a targeted card/permanent
-            self_ref = bool(re.search(r"\bthis card\b|\bthis permanent\b", ol)) or \
-                (short and short.split()[0] in ol and "target" not in ol) or \
-                (re.fullmatch(r"(them|it|those cards|those)", ol) and "target" not in low[:m.start()])
+            self_ref = not blink and (bool(re.search(r"\bthis card\b|\bthis permanent\b", ol)) or
+                (short and short.split()[0] in ol and "target" not in ol) or
+                (re.fullmatch(r"(them|it|those cards|those)", ol) and "target" not in low[:m.start()]))
             binding, extra = None, {}
-            chosen = re.fullmatch(r"(them|it|those cards|those|each chosen creature|those creatures)", ol) \
+            chosen = not blink and re.fullmatch(r"(them|it|those cards|those|each chosen creature|those creatures)", ol) \
                 and "target" not in ol
-            if self_ref:
+            if blink:                                        # the returned objects ARE the ones exiled this way
+                var = f"obj{i}"
+                sel = _sch.selector(obj, var=var, targeted=False)
+                sel["zone"] = "exile"
+                binding = {"kind": "exiled_this_way"}
+            elif self_ref:
                 sel = _self_selector(); var = "self"
                 sel["zone"] = src                            # graveyard self-return is NOT a battlefield object (pt14 #3)
             elif chosen:                                     # 'return each chosen creature' — the prior chosen target(s)
@@ -1156,6 +1161,86 @@ def _return_effects(face):
     return out
 
 
+# Phase 4f — EXILE. Two sub-families: (a) STOCHASTIC top-library exile (participant-level, no fan-out,
+# with a play-permission) and (b) targeted/mass permanent/card exile (object-directed → PROJECTS to
+# eligible objects, source→exile). Adventure/Flashback self-exile reminders and death/counter
+# 'exile … instead' replacements are dispositioned, not extracted.
+_EXILE_TOP_RE = re.compile(r"exiles?\s+the\s+top\s+(?:(\w+|x)\s+)?cards?\s+of\s+"
+                           r"(your|target opponent's|an opponent's|their)\s+librar", re.I)
+_EXILE_OBJ_RE = re.compile(r"exiles?\s+(all|up to \w+|two|those|an?|one)\s+((?:other )?(?:target )?[^.,;]+?)"
+                           r"(?:\s+from\s+(?:your |their |an? |its owner's )?(graveyard|exile|battlefield|hand))?"
+                           r"(?=[.,;]|\s+then\b|\s+until\b|\s+this way\b|\s+face down\b|$)", re.I)
+
+
+def _exile_effects(face):
+    text = _blank_quoted(_blank_reminders(face.get("oracle_text") or ""))
+    out, pv, vc = [], {}, [0]
+    for cl in _ability_clauses(text):
+        clause_id = f"{face['id']}#a{cl['ability_index']}" + (f".m{cl['mode_index']}" if cl["mode_index"] is not None else "")
+        crange = text[cl["start"]:cl["end"]]
+        low = crange.lower()
+        spans, j = set(), 0
+        # (a) stochastic top-library exile (participant-level → no card-pair fan-out)
+        for m in _EXILE_TOP_RE.finditer(low):
+            spans.add((m.start(), m.end()))
+            owner = "you" if "your" in m.group(2) else "target_opponent"
+            n = _amount(m.group(1)) if m.group(1) else "1"
+            rest = low[m.end():m.end() + 130]
+            play = "may play" in rest or "may play" in low
+            dur = "until_end_of_next_turn" if "next turn" in rest else ("this_turn" if "this turn" in rest else None)
+            if owner not in pv:
+                pv[owner] = f"p{vc[0]}"; vc[0] += 1
+            out.append({"effect_id": f"{clause_id}#EXILE#{j}", "op": "EXILE", "relation": "EXILES",
+                        "participant": owner,
+                        "selector": _sch.participant_selector(pv[owner], targeted=owner.startswith("target")),
+                        "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
+                                 "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
+                        "condition": _sch.condition(_op_sentence(crange, low, m.start())), "duration": None,
+                        "optional": False, "targeted": owner.startswith("target"), "affects_each": False,
+                        "binding": None, "clause_id": clause_id,
+                        "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
+                        "source_zone": "library", "dest_zone": "exile", "event": "exile", "quantity": n,
+                        "stochastic": True,
+                        "play_permission": {"allowed": True, "duration": dur} if play else None})
+            j += 1
+        # (b) targeted / mass object exile (object-directed → projects)
+        for m in _EXILE_OBJ_RE.finditer(low):
+            if any(s <= m.start() < e for s, e in spans):
+                continue                                     # already a top-library exile
+            objp = crange[m.start(2):m.end(2)].strip()
+            opl = objp.lower()
+            pre = low[max(0, m.start() - 45):m.start()]
+            if "would die" in pre or "would be dealt" in pre or "countered this way" in low:
+                continue                                     # death/counter replacement — dispositioned
+            if "top " in opl or "them, then" in low[m.end():m.end() + 12]:
+                continue                                     # top-library (handled) / search-destination exile
+            cnt = m.group(1).lower()
+            src = m.group(3).lower() if m.group(3) else "battlefield"
+            var = f"obj{j}"
+            sel = _sch.selector(objp, var=var, targeted=("target" in opl))
+            sel["zone"] = src
+            # generic 'card' with no type constraint is not a static card-identity set → not projected
+            generic_card = not (sel["card_types"] or sel["subtypes"] or sel.get("generic_permanent"))
+            qty = ("all" if cnt == "all" else "up_to_2" if "up to two" in cnt else "up_to_1" if "up to one" in cnt
+                   else "2" if cnt == "two" else "1")
+            rec = {"effect_id": f"{clause_id}#EXILE#{j}", "op": "EXILE", "relation": "CAN_EXILE",
+                   "participant": _participant_at(low, m.start())[0], "selector": sel, "object_var": var,
+                   "mode": {"kind": cl["mode_kind"], "index": cl["mode_index"],
+                            "exclusive": bool(cl["mode_kind"] and "choose" in cl["mode_kind"])},
+                   "condition": _sch.condition(_op_sentence(crange, low, m.start())), "duration":
+                   ("as_long_as_source_on_battlefield" if "until this" in low[m.end():m.end() + 40] else None),
+                   "optional": "up to" in cnt or "may" in pre, "targeted": ("target" in opl),
+                   "affects_each": ("each" in opl or cnt == "all"), "binding": None, "clause_id": clause_id,
+                   "oracle_span": [cl["start"] + m.start(), cl["start"] + m.end()],
+                   "source_zone": src, "dest_zone": "exile", "event": "exile", "quantity": qty}
+            if generic_card:
+                rec["binding"] = {"kind": "generic_card"}    # any card in a zone — not projected
+                rec["projection"] = "not_projected (generic card, no static card-identity constraint)"
+            out.append(rec)
+            j += 1
+    return out
+
+
 _PHASE3_FAMILIES = {"deal_damage", "destroy", "add_counter", "remove_counter", "modify_pt",
                     "set_switch_pt", "grant_ability", "remove_ability", "fight", "prevent",
                     "control_change", "type_change", "tap_untap"}
@@ -1164,6 +1249,7 @@ _PHASE4B_FAMILIES = {"discard", "mill"}
 _PHASE4C_FAMILIES = {"sacrifice"}
 _PHASE4D_FAMILIES = {"tutor_search"}
 _PHASE4E_FAMILIES = {"return_move"}
+_PHASE4F_FAMILIES = {"exile"}
 
 
 _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER": "add_counter",
@@ -1172,7 +1258,7 @@ _OP_FAMILY = {"DEAL_DAMAGE": "deal_damage", "DESTROY": "destroy", "ADD_COUNTER":
               "UNTAP": "tap_untap", "FIGHT": "fight", "CHANGE_TYPE": "type_change",
               "CONTROL_CHANGE": "control_change", "PREVENT_DAMAGE": "prevent",
               "DRAW": "draw", "GAIN_LIFE": "life", "LOSE_LIFE": "life",
-              "DISCARD": "discard", "MILL": "mill", "SACRIFICE": "sacrifice", "SEARCH": "tutor_search", "RETURN": "return_move"}
+              "DISCARD": "discard", "MILL": "mill", "SACRIFICE": "sacrifice", "SEARCH": "tutor_search", "RETURN": "return_move", "EXILE": "exile"}
 _DEFERRED_DISP = {"divided_damage", "grants_nonkeyword_ability", "remove_counter", "source_power_bound_damage"}
 
 
@@ -1185,12 +1271,12 @@ def reconcile(repo: Path = REPO) -> dict:
     faces = _load_dicts(repo / "data/normalized/faces.jsonl")
     extracted_cf = set()
     for f in faces:
-        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f) + _return_effects(f):
+        for e in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f) + _return_effects(f) + _exile_effects(f):
             extracted_cf.add((e["clause_id"], _OP_FAMILY.get(e["op"], e["op"].lower())))
     rows, counts = [], {}
     for c in census:
         low = c["clause_text"].lower()
-        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES | _PHASE4C_FAMILIES | _PHASE4D_FAMILIES | _PHASE4E_FAMILIES)):
+        for fam in sorted(set(c["families"]) & (_PHASE3_FAMILIES | _PHASE4A_FAMILIES | _PHASE4B_FAMILIES | _PHASE4C_FAMILIES | _PHASE4D_FAMILIES | _PHASE4E_FAMILIES | _PHASE4F_FAMILIES)):
             fam_matches = [m for m in c["matches"] if m["family"] == fam]
             if (c["clause_id"], fam) in extracted_cf:
                 disp = "extracted"
@@ -1225,10 +1311,18 @@ def reconcile(repo: Path = REPO) -> dict:
                 disp = "sacrifice_trigger (a trigger event, not a sacrifice effect)"
             elif fam == "sacrifice" and re.search(r"sacrifice after\b", low):
                 disp = "saga_cleanup (Saga 'Sacrifice after N' self-timer — mechanism layer)"
-            elif fam == "return_move" and re.search(r"\bexile\b.*\breturn", low):
-                disp = "blink (exile-and-return — coupled to the deferred exile/movement slice)"
             elif fam == "return_move" and re.search(r"return target spell\b", low):
                 disp = "spell_bounce (a stack-object bounce, not a card-identity move — deferred)"
+            elif fam == "exile" and re.search(r"would die[^.]*exile it instead", low):
+                disp = "death_replacement (exile-instead-of-dying — a replacement effect)"
+            elif fam == "exile" and re.search(r"countered this way[^.]*exile", low):
+                disp = "counter_replacement (exile-instead-of-graveyard on a countered spell — replacement)"
+            elif fam == "exile" and re.search(r"search your library[^.]*exile", low):
+                disp = "search_destination (the searched cards are exiled — see the SEARCH record)"
+            elif fam == "exile" and re.search(r"cast\b[^.]*from your graveyard", low):
+                disp = "play_from_graveyard (flashback-style exile after casting from graveyard — mechanism/deferred)"
+            elif fam == "exile" and re.search(r"look at the top [^.]*exile them", low):
+                disp = "stochastic_look_exile (look-then-exile from library — deferred)"
             elif fam == "life" and re.search(r"\bpay(?:s)?\s+(?:\d+\s+|x\s+)?life\b", low):
                 disp = "life_payment_cost (a cost, not a life effect)"
             elif fam == "draw" and re.search(r"^\s*(?:whenever|when)\b.*\bdraws?\b.*,", low):
@@ -1260,7 +1354,7 @@ def reconcile(repo: Path = REPO) -> dict:
                          "disposition": disp, "clause": c["clause_text"][:90]})
     unresolved = [r for r in rows if r["disposition"] == "unresolved"]
     deferred = sum(v for k, v in counts.items() if k in _DEFERRED_DISP)
-    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice + 4d search + 4e return)", "",
+    L = ["# Effect-semantics — (clause_id, family) reconciliation (Phase 3 + Phase 4a draw/life + 4b discard/mill + 4c sacrifice + 4d search + 4e return + 4f exile)", "",
          "Every `(clause_id, family)` carrying a Phase-3 object family or a Phase-4 participant family "
          "(draw, life, discard, mill) is EXTRACTED or DISPOSITIONED. Deferred / non-executable "
          "dispositions (life-payment / discard / cycling costs, draw/life/mill *triggers*, recruit) are "
@@ -1311,16 +1405,17 @@ def build_effects(repo: Path = REPO, faces=None, tokens=None, write=True) -> dic
                 _add(src, tgt, relation, family, support)
 
     for f in sorted(faces, key=lambda x: x["id"]):
-        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f) + _return_effects(f):
+        for eff in _destroy_effects(f) + _object_effects(f) + _participant_effects(f) + _sacrifice_effects(f) + _search_effects(f) + _return_effects(f) + _exile_effects(f):
             errors += [f"{eff['effect_id']}: {e}" for e in _sch.validate_effect(eff)]
             sel = eff["selector"]
             family = eff["op"].lower()
             support = {"effect_id": eff["effect_id"], "mode": eff["mode"], "op": eff["op"],
                        "object_var": eff.get("object_var"), "oracle_span": eff["oracle_span"],
                        "targeted": eff["targeted"], "face_id": f["id"], "name": f["name"]}
-            # an effect bound to a PRIOR CHOSEN target is a runtime object, not a static card-identity
-            # set — it must NOT fan out to every eligible card (review pt15: Eagles Are Coming!)
-            chosen_bound = (eff.get("binding") or {}).get("kind") == "chosen_target"
+            # an effect bound to a PRIOR runtime object (a chosen target, or the objects exiled this
+            # way for a blink) is not a static card-identity set — it must NOT fan out to every
+            # eligible card (review pt15: Eagles; blink returns bind to the exiled objects)
+            chosen_bound = (eff.get("binding") or {}).get("kind") in ("chosen_target", "exiled_this_way", "generic_card")
             no_project = sel.get("participant_level", False) or chosen_bound
             elig_tokens = [] if no_project else sorted(t["id"] for t in tokens if _sch.matches_token(sel, t))
             structured.append({**eff, "face_id": f["id"], "card": f["card_id"], "name": f["name"],
@@ -1377,13 +1472,13 @@ def _effects_report(repo, structured, pairs):
          "a `SEARCHES_FOR` relation (source `library`/`hand_and_library`, destination hand / "
          "battlefield(±tapped) / exile / library_top, with quantity, reveal, shuffle, and the searcher "
          "participant — Settle the Wreckage binds `target_player` + a variable count); cycling-reminder "
-         "tutors are keyword-layer (not extracted). **Phase-4e:** RETURN/recursion (bounce + reanimation) is object-directed — it PROJECTS to eligible objects (`CAN_RETURN`), moving a card graveyard→hand/battlefield (reanimation/recursion), battlefield→hand (bounce), or source→source (self-return); blink (exile-and-return) and stack-object spell-bounce are dispositioned pending the exile slice. "
+         "tutors are keyword-layer (not extracted). **Phase-4e:** RETURN/recursion (bounce + reanimation) is object-directed — it PROJECTS to eligible objects (`CAN_RETURN`), moving a card graveyard→hand/battlefield (reanimation/recursion), battlefield→hand (bounce), or source→source (self-return); blink (exile-and-return) and stack-object spell-bounce are dispositioned pending the exile slice. **Phase-4f:** EXILE — stochastic top-library exile (participant-level, no fan-out, with a play-permission) and targeted/mass permanent/card exile (object-directed → `CAN_EXILE`, source→exile); blink is completed (its RETURN binds to the exiled objects) and Adventure/Flashback reminders + death/counter `exile … instead` replacements are dispositioned. "
          "Each effect is a validated record; projection aggregates all supporting "
          "effects/modes per pair (`supports`). Frozen core untouched. **Proposed schema extensions "
          "(documented, not casually invented):** `CAN_FIGHT`, `CHANGES_TYPE_OF`, `SETS_BASE_PT`, "
          "`SWITCHES_PT`, `REMOVES_ABILITY_FROM`, `EXCHANGES_CONTROL_OF`/`GAINS_CONTROL_OF`, "
          "`PREVENTS_DAMAGE_FROM`, `DRAWS_CARDS`, `GAINS_LIFE`/`LOSES_LIFE`, `DISCARDS_CARDS`, `MILLS_CARDS`, "
-         "`SACRIFICES`, `SEARCHES_FOR`, `CAN_RETURN`. Every census clause in scope is reconciled "
+         "`SACRIFICES`, `SEARCHES_FOR`, `CAN_RETURN`, `CAN_EXILE`, `EXILES`. Every census clause in scope is reconciled "
          "(`reports/effect_reconciliation.md`, 0 unresolved).", "",
          f"- effects: **{len(structured)}** on {len({s['face_id'] for s in structured})} faces  · "
          f"pairs: **{len(pairs)}**", "",
