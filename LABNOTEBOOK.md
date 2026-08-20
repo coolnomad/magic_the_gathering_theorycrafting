@@ -2029,3 +2029,17 @@ Review `PHASE4_review_pt17.md` (verdict **REPAIR**, reviewed_commit `c107682`) a
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4f-repair1`, `Addresses-Review:`/`Addresses-Implementation:` for pt17/c107682. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_exile_effects`); `tests/test_effect_exile.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt17.md`; [[phase4-frozen]]
+
+---
+
+## [2026-08-19] CORRECTION — Effect-semantics Phase 4f repair 2: preserve Celebrate's each-opponent edict (review PHASE4_review_pt18)
+
+Review `PHASE4_review_pt18.md` (verdict **REPAIR**, reviewed_commit `a8ead2f`) confirmed the pt17 Settle/Gollum fixes but found that the new generic `that player controls` branch regressed **Celebrate the Mountain-king**: it overwrote the outer `for each opponent` participant (`each_opponent`) with `controller`, collapsing the per-opponent mass-edict into an unspecified controller-bound effect.
+
+**Fix:** the controller/owner block now computes the **base participant via `_participant_at` first** (which correctly resolves `for each opponent, … exile …` → `each_opponent`), then sets only the selector's controller/owner WITHOUT clobbering the outer participant. Only the explicit `target player controls` rebinds the participant (Settle). For `that player controls`, the selector controller is set to the iterated participant (`each_opponent` for Celebrate) rather than a generic `controller`. Celebrate → `participant:each_opponent`, `selector.controller:each_opponent`; Settle (`target_player` + `attacking`) and Gollum (`graveyard` + `owner:opponent`) pt17 repairs remain intact.
+
+**Metadata-only:** `card_pair_projection_effect.jsonl`/`pair_index.jsonl` **byte-identical** to `c107682`/`a8ead2f` (Celebrate still projects to nonland permanents; controller is runtime metadata); **non-exile/non-return pairs byte-identical** to `2b06642`; all **102 accepted Phase-4a…4d records byte-identical**. 244 effects / 144 faces / 9,032 pairs; `CAN_EXILE` 537. Reconcile 240 extracted, 4 deferred, 0 unresolved. Two serial `effect-build` runs byte-identical (`effect_records` `efc74748…`, pairs `e53243e4…`, `pair-index` `d5cc080e…`). **434 tests pass** (+1 pt18 regression: Celebrate each_opponent + controller, Settle/Gollum still fixed). (The `test_suppressions`/`test_pair_index` failures the reviewer saw are the known cross-test generated-artifact interference — green on a clean ordered run; passes in isolation.) Frozen manifest green; `git diff --check` clean.
+
+Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4f-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt18/a8ead2f. Reviewer's uncommitted artifacts left untouched.
+
+Refs: `src/hobkg/effect_semantics.py` (`_exile_effects` controller block); `tests/test_effect_exile.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt18.md`; [[phase4-frozen]]

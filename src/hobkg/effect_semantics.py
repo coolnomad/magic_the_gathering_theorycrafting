@@ -1223,19 +1223,21 @@ def _exile_effects(face):
             sel["zone"] = src
             if "attacking" in opl:
                 sel["predicates"]["attacking"] = True         # 'all ATTACKING creatures …' (pt17 #1)
-            # controller/owner restriction embedded in the object phrase ('target player controls',
-            # 'that player controls', 'you control', 'an opponent's …') — pt17 #1/#2
+            # controller/owner restriction embedded in the object phrase — set the selector's
+            # controller/owner WITHOUT clobbering the OUTER participant (review pt18: Celebrate's
+            # 'for each opponent … that player controls' keeps participant each_opponent). Only the
+            # explicit 'target player controls' rebinds the participant (Settle).
             mtext = low[m.start():m.end()]                    # the full 'exile … from …' match
+            part = _participant_at(low, m.start())[0]         # base: finds 'each opponent', etc.
             if re.search(r"target player controls?\b", opl):
                 sel["controller"], part = "target_player", "target_player"
             elif re.search(r"that player controls?\b", opl):
-                sel["controller"], part = "controller", "controller"
+                # 'that player' = the iterated participant (each opponent for Celebrate)
+                sel["controller"] = part if part in ("each_opponent", "each_player", "target_opponent") else "controller"
             elif re.search(r"you control\b", opl):
-                sel["controller"], part = "you", "you"
+                sel["controller"] = "you"
             elif "opponent" in mtext:                         # 'from an opponent's graveyard' (pt17 #2)
-                sel["owner"], part = "opponent", "you"
-            else:
-                part = _participant_at(low, m.start())[0]
+                sel["owner"] = "opponent"
             # generic 'card' with no type constraint is not a static card-identity set → not projected
             generic_card = not (sel["card_types"] or sel["subtypes"] or sel.get("generic_permanent"))
             qty = ("all" if cnt == "all" else "up_to_2" if "up to two" in cnt else "up_to_1" if "up to one" in cnt

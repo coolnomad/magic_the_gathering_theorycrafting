@@ -7068,3 +7068,62 @@ Remaining Phase-4: **counterspells**, the complete **`SUPPLIES_RESOURCE` review*
 
 ### [2026-08-19 14:13] USER
 ok review_pt17 is up. read that
+
+### [2026-08-19 14:42] ASSISTANT
+The signal file still shows pt16 (not yet updated), but the pt17 doc exists. Let me read it directly:
+
+Phase 4f REPAIR (pt17, 2 findings): (1) Settle loses `target_player`/controller/`attacking`; (2) Gollum's source zone is `battlefield` but should be `graveyard` (the regex can't consume "an opponent's"). Let me fix both in `_exile_effects`. First the source-zone prefix and the object-exile section:
+
+Now the object-exile record builder â€” add participant/controller/attacking (Settle) and owner (Gollum). Let me read that section:
+
+Settle is fully fixed. Gollum's zone is now `graveyard`, but the "opponent" owner restriction wasn't captured (it's in the regex's consumed prefix). Let me detect it from the full match text:
+
+Both fixes verified (Gollum: graveyard + owner opponent; Settle: target_player + controller + attacking). Deterministic, pairs hash unchanged (metadata-only), non-exile/non-return byte-identical, 0 unresolved. Let me update the exile tests with the pt17 restrictions:
+
+13 exile tests, full suite 433, pair_index unchanged (metadata-only fix). Let me append the pt17 repair LABNOTEBOOK entry:
+
+Staged exactly my 5 files (projection files byte-identical, confirming metadata-only). Let me get the pt17 review commit SHA and commit:
+
+Commit `a8ead2f` created and all pt17 acceptance checks pass. Push is in flight â€” let me confirm it reaches the remote:
+
+The push is still completing (remote at `c107682`, catching up to local `a8ead2f`) â€” consistent with the slow-network pattern; it'll land shortly, and both push tasks are in flight. Everything is verified locally.
+
+## Summary
+
+**Review PHASE4_review_pt17** (verdict REPAIR on my 4f SHA `c107682`, 2 blocking findings) is addressed in commit `a8ead2f`:
+
+**Blocker 1 â€” Settle the Wreckage lost target-player/attacking restrictions.** The record now parses the controller restriction from the object phrase: `participant:target_player`, `selector.controller:target_player`, `selector.predicates.attacking:true` (bound to the same `target_player` the search's `quantity_formula` references). Projection stays creatures (attacking/controller are runtime states, not static card-identity filters); a negative test asserts only creatures are exiled.
+
+**Blocker 2 â€” Gollum's exile had wrong source zone.** "exile â€¦ from **an opponent's** graveyard" defaulted to `battlefield` because the source-zone regex couldn't consume "an opponent's". Added possessive-participant prefixes; Gollum now has `source_zone:graveyard`, `selector.zone:graveyard`, `selector.owner:opponent`, while keeping its `binding:generic_card` non-projection disposition.
+
+**Metadata-only change (verified):** `card_pair_projection_effect.jsonl` and `pair_index.jsonl` **byte-identical**; non-exile/non-return pairs and **102 accepted 4aâ€“4d records byte-identical**; reconcile 240 extracted, 4 deferred, **0 unresolved**; deterministic (`1c86ff6b`/`e53243e4`/`d5cc080e`); **433 tests pass** (+2 pt17 regressions); frozen manifest green; `git diff --check` clean.
+
+**Protocol:** `Role: worker` / `Phase: Phase 4` / `Iteration: 4f-repair1` / `Addresses-Review: 107060c` / `Addresses-Implementation: c107682` trailers; staged only my own paths; reviewer artifacts untouched.
+
+This 4f repair awaits re-review. Remaining Phase-4: counterspells, complete `SUPPLIES_RESOURCE` review, and the deferred replacement/flashback/spell-bounce items. (I'll confirm the remote reaches `a8ead2f` when the push task notifies.)
+
+### [2026-08-19 14:53] USER
+<task-notification>
+<task-id>bw1idrou3</task-id>
+<tool-use-id>toolu_014apJTWY6cJme949wVC4du6</tool-use-id>
+<output-file>C:\Users\dimuc\AppData\Local\Temp\claude\C--GitHub-magic-the-gathering-theorycrafting\e6d97ada-5ff0-4cce-b520-83302da376af\tasks\bw1idrou3.output</output-file>
+<status>completed</status>
+<summary>Background command "Ensure push lands" completed (exit code 0)</summary>
+</task-notification>
+
+### [2026-08-19 14:53] ASSISTANT
+The push task completed. Let me confirm the remote is now at `a8ead2f`:
+
+Confirmed â€” remote and local are both at `a8ead2f`. The Phase 4f pt17 repair is committed and pushed.
+
+**Phase 4f repair (pt17) is complete and on the remote:**
+- **Settle the Wreckage** now binds `target_player` + `controller:target_player` + `predicates.attacking:true`, with a creature-only projection.
+- **Gollum the Abandoned** now has `source_zone:graveyard` / `selector.zone:graveyard` / `owner:opponent`, still non-projected (generic card).
+- Metadata-only: projection pairs, pair-index, non-exile/non-return pairs, and 102 accepted 4aâ€“4d records all byte-identical; 433 tests pass; deterministic; frozen manifest green.
+
+Committed with `Iteration: 4f-repair1` / `Addresses-Review: 107060c` / `Addresses-Implementation: c107682`; only my own paths staged; reviewer artifacts untouched.
+
+This repair (`a8ead2f`) now awaits re-review. Remaining Phase-4 work when you're ready: **counterspells**, the complete **`SUPPLIES_RESOURCE` review**, and the deferred replacement/flashback/spell-bounce items. If a pt18 review lands, point me to it and I'll act on it first.
+
+### [2026-08-19 17:28] USER
+ok review_pt18 is up. read that

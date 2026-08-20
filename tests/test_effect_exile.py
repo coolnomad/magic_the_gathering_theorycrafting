@@ -56,6 +56,17 @@ def test_repair_pt17_gollum_graveyard_source_and_opponent_restriction():
     assert e["binding"] == {"kind": "generic_card"}          # still non-projected, but zone-faithful
 
 
+def test_repair_pt18_celebrate_keeps_each_opponent_mass_edict():
+    # 'for each opponent, exile up to one target nonland permanent that player controls …'
+    e = _one("Celebrate the Mountain-king")
+    assert e["participant"] == "each_opponent"                # outer per-opponent scope not clobbered
+    assert e["selector"].get("controller") == "each_opponent"   # the permanent is controlled by that opponent
+    assert e["dest_zone"] == "exile"                          # (each opponent exiles up to ONE permanent)
+    # pt17 repairs remain intact
+    assert _one("Settle the Wreckage")["participant"] == "target_player"
+    assert _one("Gollum the Abandoned")["source_zone"] == "graveyard"
+
+
 def test_targeted_nonland_permanent_exile():
     e = _one("Elrond, Moon-Reader")
     assert e["selector"].get("generic_permanent") is True and e["quantity"] == "up_to_2"
