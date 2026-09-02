@@ -137,6 +137,79 @@ that says "Phase 4" without saying which is ambiguous, and the `Phase:` trailer
 inherits that ambiguity. **Pick one namespace and qualify it** — `effect-4f`,
 `buildspec-6` — before the first card runs.
 
+### What remains, measured
+
+The spec mandates a deterministic census in which every candidate clause carries
+one of four dispositions. `data/graph_global/effect_census.jsonl` holds 408
+clauses and **every one is still `pending_structuring` (326) or
+`pending_classification` (82)**. Acceptance gate 1 -- "all candidate clauses have
+a recorded disposition" -- is therefore unmet by the census's own accounting,
+whatever `effect-reconcile` reports.
+
+Cross-referencing the census against `effect_records.jsonl` (244 records over 178
+distinct clauses):
+
+| | clauses |
+| --- | --- |
+| census clauses | 408 |
+| produced at least one effect record | 178 |
+| produced none | 230 |
+| ... of those, reminder text | 14 |
+| ... of those, unclassified (no family assigned) | 82 |
+
+Wholly unstructured clauses by family, reminder text excluded:
+
+| family | clauses | note |
+| --- | --- | --- |
+| *(unclassified)* | 82 | must be classified before they can be scoped |
+| `token_create` | 40 | no dedicated op; the largest single family gap |
+| `attachment` | 20 | handled in the equip tier, not the structured layer |
+| `restriction` | 16 | no dedicated op |
+| `mana_production` | 15 | no dedicated op |
+| `add_counter` | 13 | op exists (32 built) |
+| `amass` | 12 | handled in the mechanism tier |
+| `discard` | 12 | op exists (11 built), Phase 4b |
+| `play_cast_permission` | 12 | no dedicated op |
+| `exile` | 11 | op exists (10 built), Phase 4f |
+| `cost_modification` | 11 | no dedicated op |
+| `scry_look_reveal` | 11 | no dedicated op |
+| `modify_pt` | 11 | op exists (31 built) |
+| `draw` | 11 | op exists (34 built), Phase 4a |
+| `grant_ability` | 8 | op exists (20 built) |
+
+Twenty-one ops are built. Fourteen declared families have **no dedicated op at
+all**: `token_create`, `counterspell`, `play_cast_permission`,
+`cost_modification`, `scry_look_reveal`, `mana_production`, `restriction`,
+`replacement`, `amass`, `attachment`, `copy`, `additional_land`,
+`remove_counter`, `remove_ability`.
+
+Three readings matter more than the totals.
+
+**Phases 4a-4f opened families; they did not close them.** `draw` (Phase 4a) has
+11 unstructured clauses, `discard` (4b) 12, `sacrifice` (4c) 5, `exile` (4f) 11.
+The phases delivered each family's mechanism against its mandatory regression
+cases, which is a different achievement from exhausting its clauses. Any card
+that reads "the effect-semantics phases are done" is reading the mechanism, not
+the census.
+
+**"No dedicated op" is not the same as "absent from the graph."** Token entry
+appears in the completeness and mechanism tiers as ~479 `ENABLES_TRIGGER`
+relations, and attachment carries 3,250 records in the equip tier. What is
+missing for those families is representation in the *structured* effect layer --
+with selector, participant, binding, mode and duration -- not representation
+outright. Scoping them as greenfield work would double-build.
+
+**The 82 unclassified clauses are the first card, not the last.** They cannot be
+estimated, sequenced or deferred until they have a family, and gate 1 blocks
+acceptance until each has a disposition. Classification is cheap, deterministic,
+and unblocks the estimate for everything else.
+
+A caution on the table: a clause carries a *list* of families, so "produced at
+least one effect record" credits every family on that clause. Per-family
+completion is therefore optimistic where clauses are multi-family, and the
+honest reading of the right-hand column is "clauses this family still has no
+structured representation for at all."
+
 ---
 
 ## 4. The epoch
