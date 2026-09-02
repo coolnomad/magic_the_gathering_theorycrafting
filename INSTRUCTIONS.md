@@ -89,7 +89,7 @@ Keep entries self-contained and dated. Prefer many small entries over one giant 
 - **Define before you build.** Ambiguous terms ("value", "bomb", "curve") get a `DEFINITION` entry before they're used load-bearingly.
 - **Cite reality.** Ground claims in game rules, real draft/game data, or explicit reasoning — not vibes.
 - **Preserve dead ends.** Wrong turns are recorded, not erased (§3).
-- **Small, frequent commits.** Commit after meaningful changes with clear messages.
+- **Small, frequent commits.** Commit after meaningful changes with clear messages. Handshake commits additionally carry a machine-readable trailer block -- see section 8.
 
 ---
 
@@ -102,3 +102,74 @@ Keep entries self-contained and dated. Prefer many small entries over one giant 
   - These are Windows/PowerShell scripts. They fail silently (never block a turn) and locate `CONVERSATION_LOG.md` relative to themselves.
 - **Caveat:** Claude Code only watches `.claude/` for settings changes if a settings file existed when the session started. After first adding/enabling these hooks, open `/hooks` once (or restart) to activate them; the turn in which they are created is not auto-logged and should be appended by hand.
 - On a non-Windows machine, port the two scripts (e.g. to `jq`+shell) and update the `command`/`shell` fields accordingly.
+
+---
+
+## 8. Commit Trailers (machine-readable)
+
+A commit that is part of the implement/review handshake carries a trailer block
+that **git's own parser can read**. Putting the lines in the message is not the
+same thing, and the difference is invisible until something tries to read them.
+
+### The rules
+
+1. **The trailer block is the last paragraph.** Nothing comes after it.
+2. **`Co-Authored-By` goes inside that block**, not in a paragraph of its own.
+   It is a trailer; git treats it as one; it belongs with the others.
+3. **Keys.** `Role` (`worker` | `reviewer`), `Phase`, `Iteration`;
+   `Reviewed-Commit` on reviewer commits; `Addresses-Review` and
+   `Addresses-Implementation` on repair commits; `Verdict` on reviewer commits;
+   `Validation`, repeatable, one per command.
+4. **`Phase` is namespace-qualified.** Two numbering schemes are live in this
+   repository -- the build spec's Phases 0-6 and the effect-semantics repair's
+   Phases 1-4f, and both have a "Phase 4". Write `effect-4f` or `buildspec-6`,
+   never a bare `Phase 4`.
+5. **Verify after committing.** One command, below.
+
+### Correct
+
+    Effect-semantics <phase>: <what changed>
+
+    <body paragraphs explaining the change>
+
+    Role: worker
+    Phase: effect-4f
+    Iteration: repair2
+    Addresses-Review: <sha>
+    Validation: pytest (434 passed)
+    Co-Authored-By: <name> <email>
+
+### Wrong -- and this is what 36 of the 80 commits before `0315399` do
+
+    ...
+    Role: worker
+    Phase: Phase 4
+    Iteration: 4f-repair2
+
+    Co-Authored-By: <name> <email>
+
+The blank line makes `Co-Authored-By` its own paragraph. Git reads the last
+paragraph and nothing else, so it reports that one trailer and the entire
+handshake block is invisible. Measured on 2026-09-02: 36 of the last 80 commits
+carried a complete, correct block; **zero were readable** by git or by
+`ratchet.gitstate.trailers.parse_trailers`, which follows the same rule.
+
+The discipline was being followed. The lab notebook entry for `0315399` even
+records the trailers as present, which is true of the text and false of the
+commit. Nothing would have caught the difference -- which is the whole argument
+for a check.
+
+### Verify
+
+```
+git log -1 --format='%(trailers:key=Role,valueonly,separator=;)'
+```
+
+Empty output on a handshake commit means the block is shadowed. Fix it with
+`git commit --amend` before moving on.
+
+`tests/test_commit_trailers.py` enforces this over every commit since the epoch
+`0315399b8a28defb7d3c7a9117a7a339a38a03b5`. Commits before the epoch predate the
+convention and are out of scope; they are not rewritten, because
+`tests/fixtures/MANIFEST.json` and `src/ratchet/replay.py` in the orchestrator
+both pin HOB SHAs and a history rewrite would invalidate them.
