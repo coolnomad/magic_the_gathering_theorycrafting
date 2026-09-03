@@ -11,7 +11,6 @@ import pathlib
 import re
 
 import pytest
-
 from hobkg import ports
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -124,7 +123,7 @@ def test_holdout_stability() -> None:
 
     assert len(pilot_alone_sorted) == len(pilot_from_combined_sorted)
 
-    for p1, p2 in zip(pilot_alone_sorted, pilot_from_combined_sorted):
+    for p1, p2 in zip(pilot_alone_sorted, pilot_from_combined_sorted, strict=True):
         assert p1 == p2, f"Mismatch for {p1['face_id']}"
 
 
@@ -284,3 +283,93 @@ def test_every_clause_covered() -> None:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for iteration-1 review findings (2026-09-03).
+# Reviewer report: docs/cycles/2026-09-03_ports-v1_iter1.md
+# ---------------------------------------------------------------------------
+
+_ELROND_FACE = "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0"
+_BIFUR_FACE = "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0"
+_MOUNTAIN_KING_FACE = "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0"
+
+
+def _port_by_face(face_id: str) -> dict:
+    for record in ports.derive_all():
+        if record["face_id"] == face_id:
+            return record
+    raise AssertionError(f"pilot did not emit a port record for {face_id}")
+
+
+def test_regression_selector_other_not_another() -> None:
+    """F1: Elrond EXILES must carry the 'another: True' restriction.
+
+    Oracle: "Exile up to two OTHER target nonland permanents you control."
+    Before the fix, the selector builder only matched the word "another" and
+    silently dropped the exclusion for the "other" spelling.
+    """
+    elrond = _port_by_face(_ELROND_FACE)
+    exiles = [
+        e for e in elrond.get("produces", []) if e.get("predicate") == "EXILES"
+    ]
+    assert exiles, "Elrond has no EXILES edge"
+    for edge in exiles:
+        restrictions = edge.get("selector", {}).get("restriction", [])
+        assert {"another": True} in restrictions, (
+            f"Elrond EXILES selector missing {{'another': True}}: {edge}"
+        )
+
+
+def test_regression_bifur_single_installs_watcher() -> None:
+    """F2a: Bifur emits exactly ONE INSTALLS_WATCHER for gate:storied.
+
+    Before the fix, the keyword branch emitted the correct edge and then the
+    effect processor ran again on the extraction's op='storied' effect,
+    producing a second, malformed edge with no target field.
+    """
+    bifur = _port_by_face(_BIFUR_FACE)
+    installs_watcher = [
+        e for e in bifur.get("installs", [])
+        if e.get("predicate") == "INSTALLS_WATCHER"
+    ]
+    assert len(installs_watcher) == 1, (
+        f"Bifur has {len(installs_watcher)} INSTALLS_WATCHER edges, "
+        f"expected exactly 1: {installs_watcher}"
+    )
+    assert installs_watcher[0].get("target") == "gate:storied", (
+        f"Bifur INSTALLS_WATCHER target is not gate:storied: {installs_watcher[0]}"
+    )
+
+
+def test_regression_installs_watcher_has_target() -> None:
+    """F2b: EVERY INSTALLS_WATCHER edge across the pilot has a target field.
+
+    A targetless install edge is uninterpretable; the port schema requires
+    every edge to name what it relates to.
+    """
+    for record in ports.derive_all():
+        for edge in record.get("installs", []):
+            if edge.get("predicate") == "INSTALLS_WATCHER":
+                assert "target" in edge and edge["target"], (
+                    f"targetless INSTALLS_WATCHER on {record['face_id']}: {edge}"
+                )
+
+
+def test_regression_saga_chapter_triggers_reach_consumes() -> None:
+    """F3: The Mountain-king's Return has 3 consumes for its chapter triggers.
+
+    Before the fix, map_trigger_to_event had no case for 'lore_count_reaches'
+    and returned None, so the three chapter triggers were silently dropped --
+    not in produces, not in consumes, not in unresolved.
+    """
+    saga = _port_by_face(_MOUNTAIN_KING_FACE)
+    chapter_triggers = [
+        e for e in saga.get("consumes", [])
+        if e.get("predicate") == "TRIGGERS_ON"
+        and e.get("target") == "event:saga-chapter"
+    ]
+    assert len(chapter_triggers) == 3, (
+        f"Mountain-king's Return has {len(chapter_triggers)} saga-chapter "
+        f"triggers in consumes, expected 3: {chapter_triggers}"
+    )

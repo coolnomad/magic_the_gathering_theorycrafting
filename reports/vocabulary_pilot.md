@@ -109,8 +109,12 @@ costs (Wizard's Staff) all appear under `costs`, not `produces`.
 
 ### Modality
 
-Pinecone Strike carries `modality: "choose_one_or_both"` with two mode entries.
-Mode structure preserved from extraction.
+The Phase 3 extraction does not currently emit modal structure -- Pinecone
+Strike's extraction has `modality: null` and two independent `spell_effect`
+abilities rather than a modality object with numbered modes. The port record
+preserves this faithfully (`modality: null`) rather than inventing structure
+the extraction does not carry. Adding modal parsing is a separate task; when
+the extraction gains modes, ports.py will surface them.
 
 ### Conditions
 

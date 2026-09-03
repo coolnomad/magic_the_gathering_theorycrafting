@@ -1,30 +1,31 @@
-{"concept_id": "obj:category:permanent", "kind": "ObjectClass", "rule": "CR 110.4a", "note": "Artifact, battle, creature, enchantment, land, or planeswalker"}
-{"concept_id": "obj:category:nonpermanent", "kind": "ObjectClass", "rule": "CR 110.4", "note": "Instant and sorcery can't enter battlefield"}
-{"concept_id": "obj:category:spell", "kind": "ObjectClass", "rule": "CR 112.1", "note": "Any card type that can be cast"}
-{"concept_id": "obj:type:artifact", "kind": "ObjectClass", "rule": "CR 301", "note": "Artifact permanent type"}
-{"concept_id": "obj:type:creature", "kind": "ObjectClass", "rule": "CR 302", "note": "Creature permanent type"}
-{"concept_id": "obj:type:enchantment", "kind": "ObjectClass", "rule": "CR 303", "note": "Enchantment permanent type"}
-{"concept_id": "obj:type:instant", "kind": "ObjectClass", "rule": "CR 304", "note": "Instant spell type"}
-{"concept_id": "obj:type:sorcery", "kind": "ObjectClass", "rule": "CR 307", "note": "Sorcery spell type"}
-{"concept_id": "obj:type:land", "kind": "ObjectClass", "rule": "CR 305", "note": "Land permanent type"}
-{"concept_id": "zone:battlefield", "kind": "Zone", "rule": "CR 403.1", "note": "The in-play zone"}
-{"concept_id": "zone:exile", "kind": "Zone", "rule": "CR 406", "note": "Exile zone"}
-{"concept_id": "zone:graveyard", "kind": "Zone", "rule": "CR 404", "note": "Graveyard zone"}
-{"concept_id": "zone:hand", "kind": "Zone", "rule": "CR 402", "note": "Hand zone"}
-{"concept_id": "counter:+1/+1", "kind": "CounterType", "rule": "CR 122.1a", "note": "+1/+1 counter"}
-{"concept_id": "counter:lore", "kind": "CounterType", "rule": "CR 714", "note": "Lore counter for Sagas"}
-{"concept_id": "event:this-creature-attacks", "kind": "Event", "rule": "CR 508", "note": "Creature declared as attacker"}
-{"concept_id": "event:this-creature-dies", "kind": "Event", "rule": "CR 700.4", "note": "Creature put into graveyard from battlefield"}
-{"concept_id": "event:this-creature-enters", "kind": "Event", "rule": "CR 603.6a", "note": "Creature enters the battlefield"}
-{"concept_id": "event:this-creature-enters-or-attacks", "kind": "Event", "rule": "CR 603.2", "note": "Creature enters or attacks"}
-{"concept_id": "event:you-cast-spell", "kind": "Event", "rule": "CR 601", "note": "You cast a spell"}
-{"concept_id": "event:you-activate-creature-ability", "kind": "Event", "rule": "CR 602", "note": "You activate ability of a creature"}
-{"concept_id": "gate:storied", "kind": "Gate", "rule": "HOB mechanic", "note": "Three or more artifacts/legendaries/Sagas"}
-{"concept_id": "keyword:flying", "kind": "Keyword", "rule": "CR 702.9", "note": "Flying keyword"}
-{"concept_id": "keyword:hexproof", "kind": "Keyword", "rule": "CR 702.11", "note": "Hexproof keyword"}
-{"concept_id": "keyword:indestructible", "kind": "Keyword", "rule": "CR 702.12", "note": "Indestructible keyword"}
-{"concept_id": "keyword:lifelink", "kind": "Keyword", "rule": "CR 702.15", "note": "Lifelink keyword"}
-{"concept_id": "keyword:prowess", "kind": "Keyword", "rule": "CR 702.108", "note": "Prowess keyword"}
-{"concept_id": "token:treasure", "kind": "TokenSpec", "rule": "CR 111.10", "note": "Treasure artifact token"}
-{"concept_id": "token:human-soldier", "kind": "TokenSpec", "rule": "CR 111.1", "note": "1/1 white Human Soldier token"}
-{"concept_id": "resource:mana", "kind": "Resource", "rule": "CR 106", "note": "Mana resource"}
+{"concept_id": "obj:category:permanent", "kind": "ObjectClass", "note": "Artifact, battle, creature, enchantment, land, or planeswalker", "rule": "CR 110.4a"}
+{"concept_id": "obj:category:nonpermanent", "kind": "ObjectClass", "note": "Instant and sorcery can't enter battlefield", "rule": "CR 110.4"}
+{"concept_id": "obj:category:spell", "kind": "ObjectClass", "note": "Any card type that can be cast", "rule": "CR 112.1"}
+{"concept_id": "obj:type:artifact", "kind": "ObjectClass", "note": "Artifact permanent type", "rule": "CR 301"}
+{"concept_id": "obj:type:creature", "kind": "ObjectClass", "note": "Creature permanent type", "rule": "CR 302"}
+{"concept_id": "obj:type:enchantment", "kind": "ObjectClass", "note": "Enchantment permanent type", "rule": "CR 303"}
+{"concept_id": "obj:type:instant", "kind": "ObjectClass", "note": "Instant spell type", "rule": "CR 304"}
+{"concept_id": "obj:type:sorcery", "kind": "ObjectClass", "note": "Sorcery spell type", "rule": "CR 307"}
+{"concept_id": "obj:type:land", "kind": "ObjectClass", "note": "Land permanent type", "rule": "CR 305"}
+{"concept_id": "zone:battlefield", "kind": "Zone", "note": "The in-play zone", "rule": "CR 403.1"}
+{"concept_id": "zone:exile", "kind": "Zone", "note": "Exile zone", "rule": "CR 406"}
+{"concept_id": "zone:graveyard", "kind": "Zone", "note": "Graveyard zone", "rule": "CR 404"}
+{"concept_id": "zone:hand", "kind": "Zone", "note": "Hand zone", "rule": "CR 402"}
+{"concept_id": "counter:+1/+1", "kind": "CounterType", "note": "+1/+1 counter", "rule": "CR 122.1a"}
+{"concept_id": "counter:lore", "kind": "CounterType", "note": "Lore counter for Sagas", "rule": "CR 714"}
+{"concept_id": "event:this-creature-attacks", "kind": "Event", "note": "Creature declared as attacker", "rule": "CR 508"}
+{"concept_id": "event:this-creature-dies", "kind": "Event", "note": "Creature put into graveyard from battlefield", "rule": "CR 700.4"}
+{"concept_id": "event:this-creature-enters", "kind": "Event", "note": "Creature enters the battlefield", "rule": "CR 603.6a"}
+{"concept_id": "event:this-creature-enters-or-attacks", "kind": "Event", "note": "Creature enters or attacks", "rule": "CR 603.2"}
+{"concept_id": "event:you-cast-spell", "kind": "Event", "note": "You cast a spell", "rule": "CR 601"}
+{"concept_id": "event:you-activate-creature-ability", "kind": "Event", "note": "You activate ability of a creature", "rule": "CR 602"}
+{"concept_id": "gate:storied", "kind": "Gate", "note": "Three or more artifacts/legendaries/Sagas", "rule": "HOB mechanic"}
+{"concept_id": "keyword:flying", "kind": "Keyword", "note": "Flying keyword", "rule": "CR 702.9"}
+{"concept_id": "keyword:hexproof", "kind": "Keyword", "note": "Hexproof keyword", "rule": "CR 702.11"}
+{"concept_id": "keyword:indestructible", "kind": "Keyword", "note": "Indestructible keyword", "rule": "CR 702.12"}
+{"concept_id": "keyword:lifelink", "kind": "Keyword", "note": "Lifelink keyword", "rule": "CR 702.15"}
+{"concept_id": "keyword:prowess", "kind": "Keyword", "note": "Prowess keyword", "rule": "CR 702.108"}
+{"concept_id": "token:treasure", "kind": "TokenSpec", "note": "Treasure artifact token", "rule": "CR 111.10"}
+{"concept_id": "token:human-soldier", "kind": "TokenSpec", "note": "1/1 white Human Soldier token", "rule": "CR 111.1"}
+{"concept_id": "resource:mana", "kind": "Resource", "note": "Mana resource", "rule": "CR 106"}
+{"concept_id": "event:saga-chapter", "kind": "Event", "label": "Saga chapter ability trigger", "note": "Fires when a lore counter added to a Saga causes a chapter to become current", "rule": "CR 714.3a"}

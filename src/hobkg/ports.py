@@ -113,8 +113,10 @@ def build_selector(effect: dict[str, Any]) -> dict[str, Any]:
         selector.setdefault("target", {})["count"] = 1
 
     # Restriction
-    restrictions = []
-    if "another" in target_str.lower():
+    restrictions: list[dict[str, Any]] = []
+    # "another" and " other " both mean the target excludes self (CR 109.2).
+    # Space-guarded " other " avoids matching "mother", "otherwise", "other than".
+    if "another" in target_str.lower() or " other " in target_str.lower():
         restrictions.append({"another": True})
     if "nonland" in target_str.lower():
         restrictions.append({"excludes_type": "Land"})
@@ -131,7 +133,7 @@ def derive_properties(
     face: dict[str, Any], type_categories: dict[str, list[dict[str, Any]]]
 ) -> list[dict[str, Any]]:
     """Derive IS_A edges from type line."""
-    edges = []
+    edges: list[dict[str, Any]] = []
     type_line = face.get("type_line", {})
     if not type_line:
         return edges
@@ -177,6 +179,10 @@ def map_trigger_to_event(trigger: dict[str, Any]) -> str | None:
         return "event:you-cast-spell"
     if "activate" in event.lower() and "creature" in event.lower():
         return "event:you-activate-creature-ability"
+    # F3 saga.silent_chapter_loss: Saga chapter abilities trigger when a lore
+    # counter causes the chapter to become current (CR 714.3a).
+    if "lore_count_reaches" in event_norm or "lore counter" in event.lower():
+        return "event:saga-chapter"
 
     return None
 
@@ -212,7 +218,9 @@ def derive_port(
 
     for ab in abilities:
         ab_id = ab.get("ability_id", "")
-        kind = ab.get("kind", "")
+        # 'kind' from the extraction (static / triggered / activated / spell_effect /
+        # replacement) is not currently branched on -- the disposition falls out of
+        # the trigger, cost and effect shape. Kept out of the loop until we need it.
 
         # Map triggers to consumes
         trigger = ab.get("trigger")
@@ -232,8 +240,11 @@ def derive_port(
                         "oracle_span": ab.get("oracle_spans", [[0, 0]])[0],
                     })
 
-        # Keyword abilities
+        # Keyword abilities. When the keyword branch itself emits the semantic
+        # action, record the verb so the effect loop below does not emit a
+        # second, malformed edge for the same fact (F2 watcher.duplicate_install).
         keyword = ab.get("keyword")
+        consumed_verbs: set[str] = set()
         if keyword:
             kw_lower = keyword.lower()
             kw_id = f"keyword:{kw_lower}"
@@ -245,6 +256,7 @@ def derive_port(
                     "oracle_span": ab.get("oracle_spans", [[0, 0]])[0],
                     "note": "Storied keyword installs watcher",
                 })
+                consumed_verbs.add("storied")
             elif kw_id in declared_concepts:
                 port["properties"].append({
                     "predicate": "HAS_KEYWORD",
@@ -271,7 +283,22 @@ def derive_port(
                 })
                 continue
 
-            # Look up predicate
+            # F2: if the keyword branch above already emitted the semantic edge
+            # for this verb (e.g. "storied" -> INSTALLS_WATCHER gate:storied),
+            # skip re-emitting it here as a targetless duplicate.
+            if isinstance(verb, str) and verb.lower() in consumed_verbs:
+                continue
+
+            # Look up predicate. Coerce to str for the dict key -- verb comes
+            # from json.loads (Any-typed) and source_key is str | None; we only
+            # got here because verb is truthy, so it is a real string.
+            if not isinstance(verb, str) or source_key is None:
+                port["unresolved"].append({
+                    "ability_id": ab_id,
+                    "reason": f"Non-string verb {verb!r} on key {source_key!r}",
+                    "clause_text": json.dumps(effect, sort_keys=True),
+                })
+                continue
             map_entry = op_map.get((verb, source_key))
             if not map_entry:
                 port["unresolved"].append({
@@ -331,9 +358,9 @@ def derive_all(
 ) -> list[dict[str, Any]]:
     """Derive port records for pilot faces or specified faces."""
 
-    # Load pilot face set
+    # Load pilot face set. face_ids-arg mode falls through to the full-set
+    # faces.jsonl below, so we do not need a per-slice id filter here.
     pilot_faces = read_jsonl(data_dir / "pilot" / "faces.jsonl")
-    pilot_face_ids = {f["id"] for f in pilot_faces}
 
     # Determine which faces to process
     if face_ids:
@@ -388,7 +415,7 @@ def derive_all(
 def validate_ports(ports: list[dict[str, Any]], vocab_dir: pathlib.Path) -> dict[str, Any]:
     """Validate port records and return stats."""
     declared_concepts = load_concepts(vocab_dir)
-    stats = {
+    stats: dict[str, Any] = {
         "total_ports": len(ports),
         "total_edges": 0,
         "undeclared_concepts": [],
