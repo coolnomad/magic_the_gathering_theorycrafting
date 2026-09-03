@@ -23,8 +23,13 @@ data/llm/tasks_index.jsonl
 # Per-machine Claude Code permission allowlist (absolute Windows paths; not portable)
 .claude/settings.local.json
 
-# Orchestrator run artifacts: raw executor transcript streams, regenerable per cycle
-audit/
+# Compact runtime state is committed on purpose: audit/*.md, the executor
+# transcripts and artifacts.db are the record of what ran. This matches the
+# convention in adaptive_orchestrator and control_plane, which track all three.
+# Only the SQLite sidecars are ignored.
+audit/artifacts.db-journal
+audit/artifacts.db-wal
+audit/artifacts.db-shm
 
 # Runtime signal files written by tools/review_commit_watch.ps1 and consumed by
 # tools/wait_review_ready.ps1 -- IPC scratch, not part of the record
