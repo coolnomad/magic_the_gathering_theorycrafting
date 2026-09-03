@@ -1,0 +1,15 @@
+{"type": "Artifact", "category": "obj:category:permanent", "rule": "CR 110.4a"}
+{"type": "Battle", "category": "obj:category:permanent", "rule": "CR 110.4a"}
+{"type": "Creature", "category": "obj:category:permanent", "rule": "CR 110.4a"}
+{"type": "Enchantment", "category": "obj:category:permanent", "rule": "CR 110.4a"}
+{"type": "Land", "category": "obj:category:permanent", "rule": "CR 110.4a"}
+{"type": "Planeswalker", "category": "obj:category:permanent", "rule": "CR 110.4a"}
+{"type": "Instant", "category": "obj:category:nonpermanent", "rule": "CR 110.4"}
+{"type": "Sorcery", "category": "obj:category:nonpermanent", "rule": "CR 110.4"}
+{"type": "Artifact", "category": "obj:category:spell", "rule": "CR 110.4b"}
+{"type": "Battle", "category": "obj:category:spell", "rule": "CR 110.4b"}
+{"type": "Creature", "category": "obj:category:spell", "rule": "CR 110.4b"}
+{"type": "Enchantment", "category": "obj:category:spell", "rule": "CR 110.4b"}
+{"type": "Planeswalker", "category": "obj:category:spell", "rule": "CR 110.4b"}
+{"type": "Instant", "category": "obj:category:spell", "rule": "CR 112.1"}
+{"type": "Sorcery", "category": "obj:category:spell", "rule": "CR 112.1"}

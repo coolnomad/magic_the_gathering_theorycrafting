@@ -1,0 +1,33 @@
+{"verb": "add_counter", "source_key": "op", "predicate": "ADDS_COUNTER", "note": "Put counters on a permanent"}
+{"verb": "amass", "source_key": "op", "predicate": "AMASS", "note": "Keyword action - amass Goblins/Orcs/etc"}
+{"verb": "attach", "source_key": "op", "predicate": "ATTACHES_TO", "note": "Equipment/Aura attaches to a target"}
+{"verb": "create_token", "source_key": "op", "predicate": "CREATES_TOKEN", "note": "Create a creature/artifact token"}
+{"verb": "deal_damage", "source_key": "op", "predicate": "DEALS_DAMAGE", "note": "Deal damage to target"}
+{"verb": "destroy", "source_key": "op", "predicate": "DESTROYS", "note": "Destroy target permanent"}
+{"verb": "discard", "source_key": "op", "predicate": "DISCARDS", "note": "Discard cards from hand"}
+{"verb": "draw", "source_key": "op", "predicate": "DRAWS", "note": "Draw cards"}
+{"verb": "exile", "source_key": "op", "predicate": "EXILES", "note": "Exile a permanent, card, or spell"}
+{"verb": "grant_ability", "source_key": "op", "predicate": "GRANTS", "note": "Grant keyword or ability to a target"}
+{"verb": "grant_keyword", "source_key": "op", "predicate": "GRANTS", "note": "Grant keyword ability"}
+{"verb": "grants_keyword", "source_key": "effect", "predicate": "GRANTS", "note": "Grant keyword ability (effect key)"}
+{"verb": "lose_life", "source_key": "op", "predicate": "LOSES_LIFE", "note": "Player loses life"}
+{"verb": "modify_pt", "source_key": "op", "predicate": "MODIFIES_PT", "note": "Modify power/toughness"}
+{"verb": "pay_mana", "source_key": "op", "predicate": "CONSUMES_MANA", "note": "Mana cost"}
+{"verb": "put_counter", "source_key": "op", "predicate": "ADDS_COUNTER", "note": "Put counters (alternate phrasing)"}
+{"verb": "recruit", "source_key": "effect", "predicate": "RECRUIT", "note": "Keyword action - draw then discard"}
+{"verb": "replacement", "source_key": "op", "predicate": "REPLACES", "note": "Replacement effect"}
+{"verb": "return_to_battlefield", "source_key": "op", "predicate": "RETURNS", "note": "Return from zone to battlefield"}
+{"verb": "sacrifice", "source_key": "op", "predicate": "SACRIFICES", "note": "Sacrifice a permanent"}
+{"verb": "storied", "source_key": "op", "predicate": "INSTALLS_WATCHER", "note": "Storied keyword - installs watcher"}
+{"verb": "additional_cost", "source_key": "op", "predicate": "ADDITIONAL_COST", "note": "Additional cost to cast"}
+{"verb": "additional_cost_definition", "source_key": "effect", "predicate": "ADDITIONAL_COST", "note": "Additional cost definition"}
+{"verb": "double_triggered_ability", "source_key": "op", "predicate": "DOUBLES_TRIGGER", "note": "Triggered ability triggers additional time"}
+{"verb": "duplicate_trigger", "source_key": "op", "predicate": "DOUBLES_TRIGGER", "note": "Duplicate trigger"}
+{"verb": "exile_this_card", "source_key": "effect", "predicate": "EXILES", "note": "Adventure exile"}
+{"verb": "grant_protection", "source_key": "action", "predicate": "GRANTS", "note": "Grant hexproof/indestructible"}
+{"verb": "lore_count_reaches", "source_key": "effect", "predicate": "SAGA_CHAPTER", "note": "Saga chapter ability"}
+{"verb": "saga_lore_counter_management", "source_key": "effect", "predicate": "SAGA_LORE", "note": "Saga lore counter reminder"}
+{"verb": "put_counter", "source_key": "effect", "predicate": "ADDS_COUNTER", "note": "Put counters (effect key variant)"}
+{"verb": "return_to_battlefield", "source_key": "effect", "predicate": "RETURNS", "note": "Return from zone to battlefield (effect key)"}
+{"verb": "grant_keyword", "source_key": "effect", "predicate": "GRANTS", "note": "Grant keyword (effect key variant)"}
+{"verb": "additional_cost_definition", "source_key": "op", "predicate": "ADDITIONAL_COST", "note": "Additional cost definition (op key)"}

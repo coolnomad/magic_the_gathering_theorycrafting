@@ -144,6 +144,9 @@ def main(argv: list[str] | None = None) -> int:
     elif cmd == "query-mechanism":
         from . import query
         print(query.query_mechanism(argv[1]))
+    elif cmd == "ports":
+        from . import ports
+        return ports.main(argv[1:])
     else:
         print(f"unknown command: {cmd}", file=sys.stderr)
         return 2
