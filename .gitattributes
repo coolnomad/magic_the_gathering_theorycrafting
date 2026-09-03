@@ -27,3 +27,14 @@ data/raw/** -text
 *.parquet binary
 *.npy binary
 *.npz binary
+# Append-only session logs (INSTRUCTIONS.md section 3) that grow without bound
+# every session. Marked -diff so git diff renders them as
+# "Binary files a/CONVERSATION_LOG.md and b/CONVERSATION_LOG.md differ"
+# instead of the full content. The files stay fully tracked and human-readable
+# in the working tree; only the diff representation changes. Without this,
+# every worker commit's diff would include the whole session's turn-by-turn
+# capture and blow the reviewer's context budget (measured 2026-09-03: iter2
+# review at 462k tokens against a 200k limit, driven almost entirely by an
+# 11,563-line append to CONVERSATION_LOG.md).
+CONVERSATION_LOG.md -diff
+LABNOTEBOOK.md -diff
