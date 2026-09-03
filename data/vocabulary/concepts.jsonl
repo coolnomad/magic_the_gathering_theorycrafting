@@ -29,3 +29,4 @@
 {"concept_id": "token:human-soldier", "kind": "TokenSpec", "note": "1/1 white Human Soldier token", "rule": "CR 111.1"}
 {"concept_id": "resource:mana", "kind": "Resource", "note": "Mana resource", "rule": "CR 106"}
 {"concept_id": "event:saga-chapter", "kind": "Event", "label": "Saga chapter ability trigger", "note": "Fires when a lore counter added to a Saga causes a chapter to become current", "rule": "CR 714.3a"}
+{"concept_id": "state:enduring_story", "kind": "State", "label": "Enduring Story", "note": "Set once by the Storied gate; persists for the rest of the game", "rule": "HOB mechanics article: Storied"}

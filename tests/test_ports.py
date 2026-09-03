@@ -373,3 +373,177 @@ def test_regression_saga_chapter_triggers_reach_consumes() -> None:
         f"Mountain-king's Return has {len(chapter_triggers)} saga-chapter "
         f"triggers in consumes, expected 3: {chapter_triggers}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for iteration-2 completeness audit (2026-09-03).
+# These six were preselected (fully or partially) by card 001 but not tested
+# structurally in iteration 2. Reviewer sonnet-4-5 verdict ACCEPT'd anyway.
+# Post-audit found the derivation was emitting incomplete records in six ways.
+# See docs/cycles/2026-09-03_ports-v1_iter1.md for context.
+# ---------------------------------------------------------------------------
+
+_WIZARDS_STAFF_FACE = "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0"
+_BOFUR_FACE = "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0"
+_CONCERTED_CARE_FACE = "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1"
+_PINECONE_FACE = "face:961e3023-39ea-4141-99b6-738280a2815d:0"
+_STIR_FACE = "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0"
+_SMAUG_FACE = "face:20535126-f811-4386-bdce-d73f30691724:0"
+
+
+def test_regression_supertypes_and_subtypes_emitted() -> None:
+    """Iter-2 gap 1: derive_properties must walk type_line.supertypes and
+    .subtypes, not just .types. Bifur is "Legendary Creature -- Dwarf Bard"
+    and needs 4 IS_A edges beyond the primary type and its categories.
+    """
+    bifur = _port_by_face(_BIFUR_FACE)
+    targets = {p["target"] for p in bifur.get("properties", []) if p.get("predicate") == "IS_A"}
+    assert "obj:supertype:legendary" in targets, f"missing supertype IS_A: {targets}"
+    assert "obj:subtype:dwarf" in targets, f"missing subtype:dwarf IS_A: {targets}"
+    assert "obj:subtype:bard" in targets, f"missing subtype:bard IS_A: {targets}"
+    # Wizard's Staff is "Artifact -- Equipment" -> needs subtype:equipment
+    ws = _port_by_face(_WIZARDS_STAFF_FACE)
+    ws_targets = {p["target"] for p in ws.get("properties", []) if p.get("predicate") == "IS_A"}
+    assert "obj:subtype:equipment" in ws_targets, (
+        f"Wizard's Staff missing subtype:equipment: {ws_targets}"
+    )
+
+
+def test_regression_mana_costs_populated() -> None:
+    """Iter-2 gap 2: every face's cast cost and every activated-ability mana
+    cost belongs in the costs section. Layer 4 capacity vectors depend on
+    knowing what things actually cost.
+    """
+    ws = _port_by_face(_WIZARDS_STAFF_FACE)
+    # Cast cost {1}{U} plus two equip costs {1} (equip Wizard) and {3} (equip)
+    mana_costs = [
+        c for c in ws.get("costs", []) if c.get("predicate") == "CONSUMES_MANA"
+    ]
+    assert len(mana_costs) >= 3, (
+        f"Wizard's Staff has {len(mana_costs)} mana-cost entries, expected 3+"
+    )
+    amounts = {c.get("amount") for c in mana_costs}
+    assert "{1}{U}" in amounts, f"Wizard's Staff missing cast cost: {amounts}"
+    assert "{1}" in amounts, f"Wizard's Staff missing equip Wizard cost: {amounts}"
+    assert "{3}" in amounts, f"Wizard's Staff missing equip cost: {amounts}"
+    # Bifur has a mana cost too, even without activated abilities
+    bifur = _port_by_face(_BIFUR_FACE)
+    bifur_mana = [
+        c for c in bifur.get("costs", [])
+        if c.get("predicate") == "CONSUMES_MANA" and c.get("purpose") == "cast"
+    ]
+    assert bifur_mana, "Bifur has no cast-cost entry"
+
+
+def test_regression_grants_names_keyword() -> None:
+    """Iter-2 gap 3: every GRANTS edge names the specific keyword it grants.
+    Extraction uses either `keyword` (single) or `keywords` (plural). Concerted
+    Care uses the plural form to grant both hexproof and indestructible in one
+    clause; the port record must emit one GRANTS entry per keyword.
+    """
+    bofur = _port_by_face(_BOFUR_FACE)
+    bofur_grants = [
+        p for p in bofur.get("produces", []) if p.get("predicate") == "GRANTS"
+    ]
+    assert bofur_grants, "Bofur has no GRANTS edge"
+    for g in bofur_grants:
+        assert g.get("target") == "keyword:lifelink", (
+            f"Bofur GRANTS not naming keyword:lifelink: {g}"
+        )
+    smaug = _port_by_face(_SMAUG_FACE)
+    smaug_grants = [
+        p for p in smaug.get("produces", []) if p.get("predicate") == "GRANTS"
+    ]
+    smaug_targets = {g.get("target") for g in smaug_grants}
+    assert "keyword:flying" in smaug_targets, (
+        f"Smaug GRANTS not naming keyword:flying: {smaug_targets}"
+    )
+    cc = _port_by_face(_CONCERTED_CARE_FACE)
+    cc_grants = [
+        p for p in cc.get("produces", []) if p.get("predicate") == "GRANTS"
+    ]
+    cc_targets = {g.get("target") for g in cc_grants}
+    assert "keyword:hexproof" in cc_targets and "keyword:indestructible" in cc_targets, (
+        f"Concerted Care missing granted keywords: {cc_targets}"
+    )
+
+
+def test_regression_pinecone_modality_detected() -> None:
+    """Iter-2 gap 4: when the extraction has modality: null but two or more
+    spell_effect abilities share a leading oracle span (the "Choose one"
+    preamble), ports.py must synthesise the modality object.
+    """
+    pinecone = _port_by_face(_PINECONE_FACE)
+    modality = pinecone.get("modality")
+    assert modality is not None, "Pinecone modality is null; should be inferred"
+    assert modality.get("kind") == "choose_one_or_both", (
+        f"Pinecone modality kind is {modality.get('kind')!r}; expected choose_one_or_both"
+    )
+    modes = modality.get("modes") or []
+    assert len(modes) == 2, f"Pinecone should have 2 modes; got {len(modes)}"
+
+
+def test_regression_bifur_a3_gated_on_enduring_story() -> None:
+    """Iter-2 gap 5: Bifur's a3 (the Dwarf trigger-doubler) has a state-typed
+    condition in the extraction. That condition must land on the port entry as
+    gated_on: state:enduring_story, so layer 4 knows the doubling is
+    conditional on Storied being on, not unconditional.
+    """
+    bifur = _port_by_face(_BIFUR_FACE)
+    doubles = [
+        p for p in bifur.get("produces", []) if p.get("predicate") == "DOUBLES_TRIGGER"
+    ]
+    assert doubles, "Bifur has no DOUBLES_TRIGGER produce"
+    for d in doubles:
+        gated = d.get("gated_on")
+        assert gated == "state:enduring_story" or (
+            isinstance(gated, list) and "state:enduring_story" in gated
+        ), f"Bifur DOUBLES_TRIGGER not gated on state:enduring_story: {d}"
+
+
+def test_regression_stir_alternatives_as_branches() -> None:
+    """Iter-2 gap 6: Stir Up Trouble's additional cost has two alternatives
+    (sacrifice an artifact or creature, or pay {4}). The port entry must carry
+    a `branches` array with typed peers and a `choose: 1` marker.
+    """
+    stir = _port_by_face(_STIR_FACE)
+    ac = [c for c in stir.get("costs", []) if c.get("predicate") == "ADDITIONAL_COST"]
+    assert ac, "Stir has no ADDITIONAL_COST cost entry"
+    for entry in ac:
+        branches = entry.get("branches") or []
+        assert branches, f"Stir ADDITIONAL_COST has no branches: {entry}"
+        assert entry.get("choose") == 1, "Stir ADDITIONAL_COST missing choose=1"
+        preds = {b.get("predicate") for b in branches}
+        assert "SACRIFICES" in preds, f"Stir branches missing SACRIFICES: {preds}"
+        assert "CONSUMES_MANA" in preds, f"Stir branches missing CONSUMES_MANA: {preds}"
+        # {4} is present as a peer branch, not a string in a node id
+        mana_amounts = {b.get("amount") for b in branches if b.get("predicate") == "CONSUMES_MANA"}
+        assert "{4}" in mana_amounts, f"Stir pay-{{4}} branch missing: {mana_amounts}"
+
+
+def test_regression_activated_cost_schema_variants() -> None:
+    """Iter-3 follow-up: activated-ability mana costs use two extraction
+    shapes across the set --
+        {"op": "pay_mana", "amount": "{X}"}    (Wizard's Staff shape)
+        {"type": "mana",   "detail": "{X}"}    (Glamdring shape)
+    Both must produce a CONSUMES_MANA cost entry. Glamdring is out of the
+    pilot; running the derivation against it verifies the fix generalises.
+    """
+    # Glamdring, Foe-hammer -- not in the pilot slice, so this exercises
+    # derive_all()'s ability to run on arbitrary faces from the full sources.
+    _GLAMDRING = "face:2802069f-201e-43a7-b5d3-43a95951a2ec:0"
+    result = ports.derive_all(face_ids=[_GLAMDRING])
+    assert result, "derive_all produced no record for Glamdring"
+    glamdring = result[0]
+    mana_costs = [
+        c for c in glamdring.get("costs", [])
+        if c.get("predicate") == "CONSUMES_MANA"
+    ]
+    # Expect two: cast {2} and equip {2}
+    amounts_by_purpose = {c.get("purpose"): c.get("amount") for c in mana_costs}
+    assert amounts_by_purpose.get("cast") == "{2}", (
+        f"Glamdring cast cost wrong: {amounts_by_purpose}"
+    )
+    assert amounts_by_purpose.get("activation") == "{2}", (
+        f"Glamdring equip {{2}} activation cost missing: {amounts_by_purpose}"
+    )

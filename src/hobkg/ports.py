@@ -129,33 +129,64 @@ def build_selector(effect: dict[str, Any]) -> dict[str, Any]:
     return selector if selector else {}
 
 
+# F5 gating: map a state-condition's "requirement" prose to a declared State
+# concept id. Keep additions here rather than inline so the mapping is auditable
+# and extendable per set.
+STATE_REQUIREMENT_MAP: dict[str, str] = {
+    "you have an enduring story": "state:enduring_story",
+}
+
+
 def derive_properties(
     face: dict[str, Any], type_categories: dict[str, list[dict[str, Any]]]
 ) -> list[dict[str, Any]]:
-    """Derive IS_A edges from type line."""
+    """Derive IS_A edges from the type line.
+
+    Walks all three sibling arrays on type_line -- supertypes (Legendary,
+    Snow), types (Creature, Instant, Artifact ...), subtypes (Dwarf, Equipment,
+    Saga, Adventure ...) -- and, for each primary type, appends the derived
+    categorical concepts from type_categories (obj:category:permanent etc.).
+    """
     edges: list[dict[str, Any]] = []
     type_line = face.get("type_line", {})
     if not type_line:
         return edges
+    span = [0, len(face.get("oracle_text", ""))]
 
-    # Printed types
-    for typ in type_line.get("types", []):
+    # Supertypes (Legendary, Snow, ...)
+    for st in type_line.get("supertypes", []) or []:
+        edges.append({
+            "predicate": "IS_A",
+            "target": f"obj:supertype:{st.lower()}",
+            "oracle_span": span,
+            "note": "Printed supertype",
+        })
+
+    # Primary types plus their derived categories (permanent, spell, ...)
+    for typ in type_line.get("types", []) or []:
         edges.append({
             "predicate": "IS_A",
             "target": f"obj:type:{typ.lower()}",
-            "oracle_span": [0, len(face.get("oracle_text", ""))],
+            "oracle_span": span,
             "note": "Printed type",
         })
-
-        # Derived categories
         for cat_row in type_categories.get(typ, []):
             edges.append({
                 "predicate": "IS_A",
                 "target": cat_row["category"],
-                "oracle_span": [0, len(face.get("oracle_text", ""))],
+                "oracle_span": span,
                 "note": f"Derived from {typ} ({cat_row['rule']})",
                 "rule": cat_row["rule"],
             })
+
+    # Subtypes (Dwarf, Equipment, Saga, Adventure, Bear, ...)
+    for sub in type_line.get("subtypes", []) or []:
+        edges.append({
+            "predicate": "IS_A",
+            "target": f"obj:subtype:{sub.lower()}",
+            "oracle_span": span,
+            "note": "Printed subtype",
+        })
 
     return edges
 
@@ -210,6 +241,19 @@ def derive_port(
         "unresolved": [],
     }
 
+    # Cast cost from the face's own mana_cost. Present on every non-land face
+    # in the pilot. Costs section was empty on every non-Rampager/Stir face
+    # before this lift -- layer 4 needs mana costs to compute deck capacity.
+    mana_cost_raw = (face.get("mana_cost") or {}).get("raw")
+    if mana_cost_raw:
+        port["costs"].append({
+            "predicate": "CONSUMES_MANA",
+            "amount": mana_cost_raw,
+            "class": "resource:mana",
+            "purpose": "cast",
+            "oracle_span": [0, 0],
+        })
+
     if not extraction:
         # Vanilla creature or empty oracle
         return port
@@ -221,6 +265,31 @@ def derive_port(
         # 'kind' from the extraction (static / triggered / activated / spell_effect /
         # replacement) is not currently branched on -- the disposition falls out of
         # the trigger, cost and effect shape. Kept out of the loop until we need it.
+
+        # Lift ability-level mana costs (activated abilities' mana costs like
+        # Wizard's Staff's two equip costs {1} and {3}, or Glamdring's equip
+        # {2}). The extraction is schema-loose here -- costs use either
+        #   {"op": "pay_mana", "amount": "{X}"}    (Wizard's Staff shape)
+        #   {"type": "mana",   "detail": "{X}"}    (Glamdring shape)
+        # -- so we accept either. Sacrifice costs and additional_cost
+        # definitions are handled by the effect processor further down; here
+        # we only surface the mana entries the effect loop doesn't touch.
+        for _cost in ab.get("costs", []) or []:
+            if not isinstance(_cost, dict):
+                continue
+            _cop = _cost.get("op")
+            _ctype = _cost.get("type")
+            _camt = _cost.get("amount") or _cost.get("detail")
+            _is_mana = (_cop == "pay_mana") or (_ctype == "mana")
+            if _is_mana and _camt:
+                port["costs"].append({
+                    "predicate": "CONSUMES_MANA",
+                    "amount": _camt,
+                    "class": "resource:mana",
+                    "purpose": "activation",
+                    "ability": ab_id,
+                    "oracle_span": ab.get("oracle_spans", [[0, 0]])[0],
+                })
 
         # Map triggers to consumes
         trigger = ab.get("trigger")
@@ -339,14 +408,125 @@ def derive_port(
             conditions = ab.get("conditions", [])
             if conditions:
                 entry["conditions"] = conditions
+                # F5: promote state-typed conditions to a machine-readable
+                # gated_on: state:<id>. Lets layer 4 see that Bifur's a3
+                # duplicate_trigger fires only when state:enduring_story is on.
+                _state_gates = []
+                for _c in conditions:
+                    if isinstance(_c, dict) and _c.get("type") == "state":
+                        _req = (_c.get("requirement") or "").strip().lower()
+                        _sid = STATE_REQUIREMENT_MAP.get(_req)
+                        if _sid and _sid in declared_concepts:
+                            _state_gates.append(_sid)
+                if _state_gates:
+                    entry["gated_on"] = (
+                        _state_gates[0] if len(_state_gates) == 1 else _state_gates
+                    )
 
-            # Categorize by predicate
+            # F6: for an ADDITIONAL_COST effect, unpack the ability's
+            # costs.alternatives array into a `branches` field on the entry.
+            # Stir Up Trouble's "sacrifice X or pay {4}" becomes two typed
+            # branches with a `choose: 1` marker rather than an opaque node id.
+            if predicate == "ADDITIONAL_COST":
+                _branches: list[dict[str, Any]] = []
+                for _cost in ab.get("costs", []) or []:
+                    if not isinstance(_cost, dict):
+                        continue
+                    if _cost.get("type") != "additional_cost":
+                        continue
+                    for _alt in _cost.get("alternatives", []) or []:
+                        if not isinstance(_alt, dict):
+                            continue
+                        _atype = _alt.get("type")
+                        if _atype == "sacrifice":
+                            _det = (_alt.get("detail") or "").lower()
+                            _classes = []
+                            if "artifact" in _det:
+                                _classes.append("obj:type:artifact")
+                            if "creature" in _det:
+                                _classes.append("obj:type:creature")
+                            if not _classes:
+                                _classes.append("obj:category:permanent")
+                            for _cls in _classes:
+                                _branches.append({
+                                    "predicate": "SACRIFICES",
+                                    "class": _cls,
+                                    "selector": {"controller": "you"},
+                                })
+                        elif _atype == "mana":
+                            _amt = _alt.get("amount")
+                            if _amt:
+                                _branches.append({
+                                    "predicate": "CONSUMES_MANA",
+                                    "amount": _amt,
+                                    "class": "resource:mana",
+                                })
+                if _branches:
+                    entry["branches"] = _branches
+                    entry["choose"] = 1
+
+            # Categorize by predicate.
             if predicate in ("CONSUMES_MANA", "SACRIFICES", "ADDITIONAL_COST"):
                 port["costs"].append(entry)
             elif predicate == "INSTALLS_WATCHER":
                 port["installs"].append(entry)
+            elif predicate == "GRANTS":
+                # F3: every GRANTS edge names the specific keyword(s). The
+                # extraction uses either `keyword` (single string) or `keywords`
+                # (plural array); Concerted Care uses the plural form to grant
+                # both hexproof and indestructible in one clause.
+                _kws = effect.get("keywords")
+                if _kws is None:
+                    _kw = effect.get("keyword")
+                    _kws = [_kw] if _kw else []
+                if _kws:
+                    for _kw in _kws:
+                        _target = f"keyword:{str(_kw).lower()}"
+                        _e = dict(entry)
+                        _e["target"] = _target
+                        port["produces"].append(_e)
+                else:
+                    port["produces"].append(entry)
             else:
                 port["produces"].append(entry)
+
+    # F4: detect modality when the extraction did not emit it. Signal: two or
+    # more spell_effect abilities on the same face share a leading oracle span
+    # (the "Choose one" / "Choose one or both" preamble). Read that shared
+    # span from the face's oracle text to name the modality kind, and each
+    # ability becomes a mode.
+    if port["modality"] is None and abilities and len(abilities) >= 2:
+        _kinds = {a.get("kind") for a in abilities}
+        if _kinds == {"spell_effect"}:
+            _first_spans = [
+                tuple((a.get("oracle_spans") or [[0, 0]])[0]) for a in abilities
+            ]
+            if all(s == _first_spans[0] and s != (0, 0) for s in _first_spans):
+                _preamble = _first_spans[0]
+                _oracle = face.get("oracle_text", "")
+                _ptxt = _oracle[_preamble[0]:_preamble[1]].strip().lower()
+                _kind = None
+                if "choose one or both" in _ptxt:
+                    _kind = "choose_one_or_both"
+                elif "choose two" in _ptxt:
+                    _kind = "choose_two"
+                elif "choose one" in _ptxt:
+                    _kind = "choose_one"
+                if _kind:
+                    _modes = []
+                    for _i, _a in enumerate(abilities):
+                        _spans = _a.get("oracle_spans") or [[0, 0]]
+                        _mode_span = _spans[1] if len(_spans) > 1 else _spans[0]
+                        _modes.append({
+                            "index": _i,
+                            "ability_id": _a.get("ability_id"),
+                            "oracle_span": list(_mode_span),
+                        })
+                    port["modality"] = {
+                        "kind": _kind,
+                        "preamble_span": list(_preamble),
+                        "modes": _modes,
+                    }
 
     return port
 
