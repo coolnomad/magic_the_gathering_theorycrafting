@@ -34,3 +34,9 @@ audit/artifacts.db-shm
 # Runtime signal files written by tools/review_commit_watch.ps1 and consumed by
 # tools/wait_review_ready.ps1 -- IPC scratch, not part of the record
 docs/review_events/
+# audit/executor_output/*.output.txt is the raw JSONL transcript per Compact
+# session -- 300KB-1MB each on this project. Tracking them puts the entire
+# prior transcript into every subsequent review's diff and blows the reviewer's
+# 200k-token context budget (measured 2026-09-03, ports-v1 iter2). The audit
+# record lives in audit/*.md (small, tracked); the transcripts stay on disk.
+audit/executor_output/
