@@ -19,3 +19,13 @@ venv/
 data/llm/tasks/
 data/llm/shared_context.json
 data/llm/tasks_index.jsonl
+
+# Per-machine Claude Code permission allowlist (absolute Windows paths; not portable)
+.claude/settings.local.json
+
+# Orchestrator run artifacts: raw executor transcript streams, regenerable per cycle
+audit/
+
+# Runtime signal files written by tools/review_commit_watch.ps1 and consumed by
+# tools/wait_review_ready.ps1 -- IPC scratch, not part of the record
+docs/review_events/

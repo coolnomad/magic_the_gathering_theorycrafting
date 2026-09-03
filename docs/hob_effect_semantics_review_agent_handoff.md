@@ -283,23 +283,35 @@ Be explicit whether each finding affects:
 
 Do not commit the review unless the user explicitly asks.
 
+## File-Based Review Signals
+
+Use `docs/review_event_protocol.md` for coordination with the executor terminal.
+
+After writing each review document, update:
+
+- `docs/review_events/review_ready.json`
+
+The executor can poll that file, or run:
+
+```powershell
+.\tools\wait_review_ready.ps1 -Commit <commit-sha>
+```
+
+A review terminal may optionally run:
+
+```powershell
+.\tools\review_commit_watch.ps1 -Ref origin/main
+```
+
+That watcher detects a new commit and writes `docs/review_events/new_commit.json`; it does not perform the review automatically.
+
 ## Current Recommended Next Review
 
-Look for a cleanup commit after `d0047e4`.
+Phase 3 is now accepted through `7ea96b1` once `docs/hob_effect_semantics_repair_instructions_PHASE3_review_pt5.md` exists and `docs/review_events/review_ready.json` reports that commit as accepted.
 
-The cleanup commit should:
+For the next review, look for the first Phase 4 commit after `7ea96b1`.
 
-- restore `reports/coverage.md` to the prior richer coverage report, or regenerate it through the current documented pipeline with a clear rationale;
-- fix `git diff --check 8dd2d7d..<cleanup-commit>`;
-- preserve the accepted Phase 3c semantic records;
-- pass:
-  - `python -m hobkg.cli effect-build`
-  - `python -m hobkg.cli effect-reconcile`
-  - `pytest`
-  - frozen-manifest checks;
-- leave two serial `effect-build` outputs byte-identical.
-
-If those hold, Phase 3 can be accepted and the executor may proceed to Phase 4.
+Phase 4 scope: draw, discard, sacrifice, life, mill, search, counterspells, complete `SUPPLIES_RESOURCE` review, and `sac_schema` integration.
 
 ## Later Phase Focus
 
