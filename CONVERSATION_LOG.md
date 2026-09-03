@@ -28987,3 +28987,1458 @@ reason is the failure mode this revision exists to catch.
 
 Cite the comprehensive rule by number. A finding without a rule citation or an
 oracle span is not actionable.
+
+### [2026-09-03 10:57] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: PLANNED
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-02
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: HOB Mechanistic Knowledge Graph
+
+## Description
+
+A mechanistic knowledge graph for Magic: The Gathering -- The Hobbit (HOB): a typed
+multigraph of cards, faces, abilities, operations, conditions and gates, plus the
+derived card-pair projections over it.
+
+This registry brings the project under `ratchet`, the adaptive epistemic
+development orchestrator. The build itself long predates that: phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen, and the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+has reached Phase 4f. What changes is how the remaining work is governed  -- 
+implement, verify, review, classify, route -- rather than what the work is.
+
+Read `docs/hob_orchestration_scope.md` before working any card. The trailer
+defect in section 2 is the first thing to fix and the reason this registry
+exists at all.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] data/pilot/faces.jsonl
+
+{"card_id": "card:008a11c1-d283-49fe-abd7-ff4fe8b1fe79", "id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "index": 0, "mana_cost": {"generic": 2, "has_variable": false, "pips": {"B": 1}, "raw": "{2}{B}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{2}", "value": 2}, {"colors": ["B"], "kind": "colored", "phyrexian": false, "raw": "{B}", "value": null}]}, "mana_cost_raw": "{2}{B}", "name": "Rhovanion Rampager", "oracle_text": "Whenever this creature attacks, you may sacrifice another creature. If you do, put a number of +1/+1 counters on this creature equal to the sacrificed creature's power.\nWhen this creature dies, amass Goblins X, where X is this creature's power. (Put X +1/+1 counters on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first.)", "power": "3", "produced_mana": [], "provenance": {"card_id": "card:008a11c1-d283-49fe-abd7-ff4fe8b1fe79", "face_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": "2", "type_line": {"raw": "Creature ΓÇö Wolf", "subtypes": ["Wolf"], "supertypes": [], "types": ["Creature"]}, "type_line_raw": "Creature ΓÇö Wolf"}
+{"card_id": "card:20535126-f811-4386-bdce-d73f30691724", "id": "face:20535126-f811-4386-bdce-d73f30691724:0", "index": 0, "mana_cost": {"generic": 3, "has_variable": false, "pips": {"B": 1, "R": 1}, "raw": "{3}{B}{R}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{3}", "value": 3}, {"colors": ["B"], "kind": "colored", "phyrexian": false, "raw": "{B}", "value": null}, {"colors": ["R"], "kind": "colored", "phyrexian": false, "raw": "{R}", "value": null}]}, "mana_cost_raw": "{3}{B}{R}", "name": "Smaug, Wicked Worm", "oracle_text": "Flying\nWhen Smaug enters, create X tapped Treasure tokens, where X is the number of artifacts your opponents control.\nWhenever you cast a spell, if mana from a Treasure was spent to cast it, you draw a card and lose 1 life.", "power": "5", "produced_mana": [], "provenance": {"card_id": "card:20535126-f811-4386-bdce-d73f30691724", "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": "5", "type_line": {"raw": "Legendary Creature ΓÇö Dragon", "subtypes": ["Dragon"], "supertypes": ["Legendary"], "types": ["Creature"]}, "type_line_raw": "Legendary Creature ΓÇö Dragon"}
+{"card_id": "card:30c3c700-46f4-4a77-8c45-5c7e3a21bd62", "id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "index": 0, "mana_cost": {"generic": 1, "has_variable": false, "pips": {"U": 1}, "raw": "{1}{U}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{1}", "value": 1}, {"colors": ["U"], "kind": "colored", "phyrexian": false, "raw": "{U}", "value": null}]}, "mana_cost_raw": "{1}{U}", "name": "Wizard's Staff", "oracle_text": "Equipped creature has prowess. (Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn.)\nIf a triggered ability of equipped creature triggers, that ability triggers an additional time.\nEquip Wizard {1}\nEquip {3}", "power": null, "produced_mana": [], "provenance": {"card_id": "card:30c3c700-46f4-4a77-8c45-5c7e3a21bd62", "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": null, "type_line": {"raw": "Artifact ΓÇö Equipment", "subtypes": ["Equipment"], "supertypes": [], "types": ["Artifact"]}, "type_line_raw": "Artifact ΓÇö Equipment"}
+{"card_id": "card:32ad5b3e-92c0-45be-b2e4-6f1794552f36", "id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "index": 0, "mana_cost": {"generic": 2, "has_variable": false, "pips": {"W": 1}, "raw": "{2}{W}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{2}", "value": 2}, {"colors": ["W"], "kind": "colored", "phyrexian": false, "raw": "{W}", "value": null}]}, "mana_cost_raw": "{2}{W}", "name": "The Mountain-king's Return", "oracle_text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.)\nI ΓÇö Recruit. (Draw a card, then discard a card. If you discarded a nonland card, create a 1/1 white Human Soldier creature token.)\nII ΓÇö Return target creature card with mana value 3 or less from your graveyard to the battlefield.\nIII ΓÇö Put a +1/+1 counter on up to one target creature.", "power": null, "produced_mana": [], "provenance": {"card_id": "card:32ad5b3e-92c0-45be-b2e4-6f1794552f36", "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": null, "type_line": {"raw": "Enchantment ΓÇö Saga", "subtypes": ["Saga"], "supertypes": [], "types": ["Enchantment"]}, "type_line_raw": "Enchantment ΓÇö Saga"}
+{"card_id": "card:3f4d6f91-95ad-4687-8899-5a21a0abb49e", "id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "index": 0, "mana_cost": {"generic": 2, "has_variable": false, "pips": {"U": 1}, "raw": "{2}{U}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{2}", "value": 2}, {"colors": ["U"], "kind": "colored", "phyrexian": false, "raw": "{U}", "value": null}]}, "mana_cost_raw": "{2}{U}", "name": "Elrond, Moon-Reader", "oracle_text": "Whenever you activate an ability of a creature, draw a card. This ability triggers only once each turn.\n{5}{U}{U}: Exile up to two other target nonland permanents you control. Return those cards to the battlefield under their owner's control at the beginning of the next end step.", "power": "3", "produced_mana": [], "provenance": {"card_id": "card:3f4d6f91-95ad-4687-8899-5a21a0abb49e", "face_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": "3", "type_line": {"raw": "Legendary Creature ΓÇö Elf Noble", "subtypes": ["Elf", "Noble"], "supertypes": ["Legendary"], "types": ["Creature"]}, "type_line_raw": "Legendary Creature ΓÇö Elf Noble"}
+{"card_id": "card:89a2fab8-b074-42aa-a871-d9c5de2d0895", "id": "face:89a2fab8-b074-42aa-a871-d9c5de2d0895:0", "index": 0, "mana_cost": {"generic": 3, "has_variable": false, "pips": {"G": 1}, "raw": "{3}{G}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{3}", "value": 3}, {"colors": ["G"], "kind": "colored", "phyrexian": false, "raw": "{G}", "value": null}]}, "mana_cost_raw": "{3}{G}", "name": "Ordinary Bear", "oracle_text": "", "power": "4", "produced_mana": [], "provenance": {"card_id": "card:89a2fab8-b074-42aa-a871-d9c5de2d0895", "face_id": "face:89a2fab8-b074-42aa-a871-d9c5de2d0895:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": "5", "type_line": {"raw": "Creature ΓÇö Bear", "subtypes": ["Bear"], "supertypes": [], "types": ["Creature"]}, "type_line_raw": "Creature ΓÇö Bear"}
+{"card_id": "card:8a0e35ac-6c03-4922-b3b4-e419419fe3d7", "id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0", "index": 0, "mana_cost": {"generic": 0, "has_variable": false, "pips": {"W": 1}, "raw": "{W}", "symbols": [{"colors": ["W"], "kind": "colored", "phyrexian": false, "raw": "{W}", "value": null}]}, "mana_cost_raw": "{W}", "name": "Bofur, Reliable Guardian", "oracle_text": "Lifelink", "power": "1", "produced_mana": [], "provenance": {"card_id": "card:8a0e35ac-6c03-4922-b3b4-e419419fe3d7", "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": "1", "type_line": {"raw": "Legendary Creature ΓÇö Dwarf Scout", "subtypes": ["Dwarf", "Scout"], "supertypes": ["Legendary"], "types": ["Creature"]}, "type_line_raw": "Legendary Creature ΓÇö Dwarf Scout"}
+{"card_id": "card:8a0e35ac-6c03-4922-b3b4-e419419fe3d7", "id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "index": 1, "mana_cost": {"generic": 1, "has_variable": false, "pips": {"W": 1}, "raw": "{1}{W}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{1}", "value": 1}, {"colors": ["W"], "kind": "colored", "phyrexian": false, "raw": "{W}", "value": null}]}, "mana_cost_raw": "{1}{W}", "name": "Concerted Care", "oracle_text": "Target artifact or creature you control gains hexproof and indestructible until end of turn. (Then exile this card. You may cast the creature later from exile.)", "power": null, "produced_mana": [], "provenance": {"card_id": "card:8a0e35ac-6c03-4922-b3b4-e419419fe3d7", "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "adventure", "toughness": null, "type_line": {"raw": "Instant ΓÇö Adventure", "subtypes": ["Adventure"], "supertypes": [], "types": ["Instant"]}, "type_line_raw": "Instant ΓÇö Adventure"}
+{"card_id": "card:961e3023-39ea-4141-99b6-738280a2815d", "id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "index": 0, "mana_cost": {"generic": 1, "has_variable": false, "pips": {"R": 1}, "raw": "{1}{R}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{1}", "value": 1}, {"colors": ["R"], "kind": "colored", "phyrexian": false, "raw": "{R}", "value": null}]}, "mana_cost_raw": "{1}{R}", "name": "Pinecone Strike", "oracle_text": "Choose one or both ΓÇö\nΓÇó Pinecone Strike deals 3 damage to target creature. If that creature would die this turn, exile it instead.\nΓÇó Destroy target artifact token.", "power": null, "produced_mana": [], "provenance": {"card_id": "card:961e3023-39ea-4141-99b6-738280a2815d", "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": null, "type_line": {"raw": "Instant", "subtypes": [], "supertypes": [], "types": ["Instant"]}, "type_line_raw": "Instant"}
+{"card_id": "card:b8d563e4-e2bc-4e8b-8841-6655beff9138", "id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "index": 0, "mana_cost": {"generic": 4, "has_variable": false, "pips": {}, "raw": "{4}{R/W}{R/W}", "symbols": [{"colors": [], "kind": "generic", "phyrexian": false, "raw": "{4}", "value": 4}, {"colors": ["R", "W"], "kind": "hybrid", "phyrexian": false, "raw": "{R/W}", "value": null}, {"colors": ["R", "W"], "kind": "hybrid", "phyrexian": false, "raw": "{R/W}", "value": null}]}, "mana_cost_raw": "{4}{R/W}{R/W}", "name": "Bifur, Melodic Rider", "oracle_text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)\nWhenever Bifur enters or attacks, put a +1/+1 counter on target creature.\nAs long as you have an enduring story, if a triggered ability of a Dwarf you control triggers, that ability triggers an additional time.", "power": "4", "produced_mana": [], "provenance": {"card_id": "card:b8d563e4-e2bc-4e8b-8841-6655beff9138", "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": "5", "type_line": {"raw": "Legendary Creature ΓÇö Dwarf Bard", "subtypes": ["Dwarf", "Bard"], "supertypes": ["Legendary"], "types": ["Creature"]}, "type_line_raw": "Legendary Creature ΓÇö Dwarf Bard"}
+{"card_id": "card:dda607bd-f419-4b7f-b052-a5ce6ce22bfe", "id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "index": 0, "mana_cost": {"generic": 0, "has_variable": false, "pips": {"B": 1}, "raw": "{B}", "symbols": [{"colors": ["B"], "kind": "colored", "phyrexian": false, "raw": "{B}", "value": null}]}, "mana_cost_raw": "{B}", "name": "Stir Up Trouble", "oracle_text": "As an additional cost to cast this spell, sacrifice an artifact or creature or pay {4}.\nDestroy target creature.", "power": null, "produced_mana": [], "provenance": {"card_id": "card:dda607bd-f419-4b7f-b052-a5ce6ce22bfe", "face_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "rule_ref": null, "source": "scryfall.card", "span": null, "text": null}, "role": "primary", "toughness": null, "type_line": {"raw": "Sorcery", "subtypes": [], "supertypes": [], "types": ["Sorcery"]}, "type_line_raw": "Sorcery"}
+
+
+[READ-ONLY INPUT] data/pilot/llm_accepted.jsonl
+
+{"abilities": [{"ability_id": "rampager-attack-sac", "conditions": [], "confidence": "high", "costs": [], "effects": [{"detail": "You may sacrifice another creature.", "op": "sacrifice", "optional": true, "target": "another creature"}, {"amount": "equal to the sacrificed creature's power", "condition": "if you sacrifice a creature this way", "counter_type": "+1/+1", "op": "add_counter", "scales_with": "sacrificed creature's power", "target": "this creature"}], "kind": "triggered", "oracle_spans": [[0, 168]], "trigger": {"controller": "you", "event": "this creature attacks"}, "unresolved": []}, {"ability_id": "rampager-dies-amass", "conditions": [], "confidence": "high", "costs": [], "effects": [{"amount": "X, where X is this creature's power", "detail": "Put X +1/+1 counters on an Army you control (it becomes a Goblin); if you control no Army, first create a 0/0 black Goblin Army creature token.", "op": "amass", "references_mechanic": "Amass", "scales_with": "this creature's power", "subtype": "Goblins"}], "kind": "triggered", "oracle_spans": [[169, 394]], "trigger": {"controller": "you", "event": "this creature dies"}, "unresolved": []}], "face_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "proposed_edges": [{"certainty": "rules_explicit", "condition": "if you sacrifice another creature this way", "predicate": "ADDS_COUNTER", "provenance": {"oracle_span": [68, 168], "text": "If you do, put a number of +1/+1 counters on this creature equal to the sacrificed creature's power."}, "source": "ability:rampager-attack-sac", "target": "counter:+1/+1"}, {"predicate": "HAS_ABILITY", "provenance": {"oracle_span": [169, 394], "text": "When this creature dies, amass Goblins X, where X is this creature's power."}, "source": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "target": "ability:rampager-dies-amass"}, {"certainty": "rules_explicit", "predicate": "TRIGGERS", "provenance": {"oracle_span": [169, 193], "text": "When this creature dies"}, "source": "event:this-creature-dies", "target": "ability:rampager-dies-amass"}, {"certainty": "rules_explicit", "predicate": "TRIGGERS", "provenance": {"oracle_span": [0, 31], "text": "Whenever this creature attacks"}, "source": "event:this-creature-attacks", "target": "ability:rampager-attack-sac"}, {"certainty": "rules_explicit", "predicate": "INSTANTIATES", "provenance": {"oracle_span": [194, 244], "rule_ref": "HOB mechanics article: Amass (keyword action)", "text": "amass Goblins X, where X is this creature's power."}, "scope": "amass Goblins X; Army subtype = Goblin; X = this creature's power", "source": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "target": "rule:amass"}, {"predicate": "HAS_ABILITY", "provenance": {"oracle_span": [0, 168], "text": "Whenever this creature attacks, you may sacrifice another creature. If you do, put a number of +1/+1 counters on this creature equal to the sacrificed creature's power."}, "source": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "target": "ability:rampager-attack-sac"}, {"certainty": "rules_explicit", "predicate": "SCALES_WITH", "provenance": {"note": "Number of counters equals the sacrificed creature's power.", "oracle_span": [68, 168], "text": "put a number of +1/+1 counters on this creature equal to the sacrificed creature's power."}, "source": "ability:rampager-attack-sac", "target": "counter:+1/+1"}, {"certainty": "rules_explicit", "optional": true, "predicate": "CONSUMES", "provenance": {"oracle_span": [32, 67], "text": "you may sacrifice another creature."}, "source": "ability:rampager-attack-sac", "target": "another creature"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "a3", "conditions": [{"note": "intervening-if: mana from a Treasure was spent to cast that spell"}], "confidence": "high", "controller": "you", "costs": [], "effects": [{"amount": 1, "op": "draw", "required": true}, {"amount": 1, "controller": "you", "op": "lose_life", "required": true}], "kind": "triggered", "oracle_spans": [[118, 223]], "trigger": {"event": "you_cast_spell", "text": "Whenever you cast a spell"}, "unresolved": []}, {"ability_id": "a1", "confidence": "high", "effects": [{"keyword": "flying", "op": "grant_keyword", "required": true}], "kind": "static", "oracle_spans": [[0, 6]], "unresolved": []}, {"ability_id": "a2", "conditions": [], "confidence": "high", "controller": "you", "costs": [], "effects": [{"amount": "X", "detail": "X is the number of artifacts your opponents control", "op": "create_token", "required": true, "state": "tapped", "token": "token:treasure"}], "kind": "triggered", "oracle_spans": [[7, 117]], "trigger": {"event": "this_creature_enters", "text": "When Smaug enters"}, "unresolved": []}], "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "proposed_edges": [{"certainty": "rules_explicit", "predicate": "CREATES_OBJECT", "provenance": {"oracle_span": [26, 116], "text": "create X tapped Treasure tokens, where X is the number of artifacts your opponents control"}, "source": "a2", "target": "token:treasure"}, {"certainty": "rules_explicit", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [7, 117], "text": "When Smaug enters, create X tapped Treasure tokens, where X is the number of artifacts your opponents control."}, "source": "face:20535126-f811-4386-bdce-d73f30691724:0", "target": "a2"}, {"certainty": "rules_explicit", "predicate": "HAS_KEYWORD", "provenance": {"oracle_span": [0, 6], "text": "Flying"}, "source": "face:20535126-f811-4386-bdce-d73f30691724:0", "target": "keyword:flying"}, {"certainty": "rules_explicit", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [118, 223], "text": "Whenever you cast a spell, if mana from a Treasure was spent to cast it, you draw a card and lose 1 life."}, "source": "face:20535126-f811-4386-bdce-d73f30691724:0", "target": "a3"}, {"certainty": "rules_explicit", "predicate": "REQUIRES", "provenance": {"note": "trigger conditioned on Treasure mana having been spent", "oracle_span": [145, 189], "text": "if mana from a Treasure was spent to cast it"}, "source": "a3", "target": "token:treasure"}, {"certainty": "rules_explicit", "predicate": "SCALES_WITH", "provenance": {"note": "token count scales with opponents' artifact count", "oracle_span": [65, 116], "text": "X is the number of artifacts your opponents control"}, "source": "a2", "target": "token:treasure"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "a2", "confidence": "high", "effects": [{"affects": "equipped creature", "note": "If a triggered ability of equipped creature triggers, that ability triggers an additional time.", "op": "double_triggered_ability"}], "kind": "static", "oracle_spans": [[125, 223]], "trigger": null, "unresolved": []}, {"ability_id": "a4", "confidence": "high", "costs": [{"amount": "{3}", "op": "pay_mana"}, {"note": "equip only as a sorcery", "op": "restriction"}], "effects": [{"op": "attach", "target": "target creature you control"}], "kind": "activated", "oracle_spans": [[241, 250]], "unresolved": []}, {"ability_id": "a1", "confidence": "high", "effects": [{"affects": "equipped creature", "keyword": "prowess", "note": "Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn.", "op": "grant_keyword"}], "kind": "static", "oracle_spans": [[0, 124]], "trigger": null, "unresolved": []}, {"ability_id": "a3", "confidence": "high", "costs": [{"amount": "{1}", "op": "pay_mana"}, {"note": "attach only to a Wizard; equip only as a sorcery", "op": "restriction"}], "effects": [{"op": "attach", "target": "target Wizard creature you control"}], "kind": "activated", "oracle_spans": [[224, 240]], "unresolved": []}], "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "proposed_edges": [{"predicate": "HAS_ABILITY", "provenance": {"oracle_span": [241, 250], "text": "Equip {3}"}, "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "target": "a4"}, {"predicate": "HAS_ABILITY", "provenance": {"oracle_span": [224, 240], "text": "Equip Wizard {1}"}, "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "target": "a3"}, {"certainty": "rules_explicit", "predicate": "ATTACHED_TO", "provenance": {"note": "Equip attaches this Equipment to a creature you control.", "oracle_span": [241, 250], "text": "Equip {3}"}, "scope": "target creature you control", "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "target": "obj:creature-you-control"}, {"certainty": "rules_explicit", "predicate": "ATTACHED_TO", "provenance": {"note": "Equip Wizard attaches this Equipment to a Wizard creature you control.", "oracle_span": [224, 240], "text": "Equip Wizard {1}"}, "scope": "target Wizard creature you control", "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "target": "obj:wizard-creature-you-control"}, {"certainty": "rules_explicit", "note": "Causes each triggered ability of the equipped creature to trigger one additional time.", "predicate": "MODIFIES", "provenance": {"oracle_span": [128, 223], "text": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."}, "source": "a2", "target": "equipped_creature:triggered_ability"}, {"predicate": "HAS_ABILITY", "provenance": {"oracle_span": [125, 223], "text": "If a triggered ability of equipped creature triggers, that ability triggers an additional time."}, "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "target": "a2"}, {"predicate": "HAS_ABILITY", "provenance": {"oracle_span": [0, 124], "text": "Equipped creature has prowess. (Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn.)"}, "source": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "target": "a1"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "chapter_III_plus_counter", "confidence": "high", "effects": [{"controller": "you", "counter_type": "+1/+1", "effect": "put_counter", "optional_target": true, "quantity": 1, "target": "up to one target creature"}], "kind": "triggered", "oracle_spans": [[319, 374]], "trigger": {"chapter": "III", "detail": "Third and final chapter ability; triggers when the number of lore counters reaches III. Saga is sacrificed after this chapter resolves.", "event": "lore_count_reaches"}, "unresolved": []}, {"ability_id": "chapter_II_reanimate", "conditions": [{"condition": "target_is_creature_card_in_your_graveyard_with_mana_value_3_or_less", "detail": "The target must be a creature card in your graveyard whose mana value is 3 or less."}], "confidence": "high", "effects": [{"controller": "you", "effect": "return_to_battlefield", "from_zone": "graveyard", "object": "target creature card with mana value 3 or less", "to_zone": "battlefield"}], "kind": "triggered", "oracle_spans": [[220, 318]], "trigger": {"chapter": "II", "detail": "Second chapter ability; triggers when the number of lore counters reaches II.", "event": "lore_count_reaches"}, "unresolved": []}, {"ability_id": "chapter_I_recruit", "confidence": "high", "effects": [{"controller": "you", "detail": "Perform the Recruit keyword action: draw a card, then discard a card; if the discarded card was a nonland card, create a 1/1 white Human Soldier creature token.", "effect": "recruit", "references_mechanic": "Recruit"}], "kind": "triggered", "oracle_spans": [[89, 219]], "trigger": {"chapter": "I", "detail": "First chapter ability; triggers when the number of lore counters reaches I (per Saga rules).", "event": "lore_count_reaches"}, "unresolved": []}, {"ability_id": "saga_lore_reminder", "confidence": "high", "effects": [{"controller": "you", "detail": "As this Saga enters and after the controller's draw step, add a lore counter; sacrifice this permanent after chapter III. This is the standard Saga rules templating (reminder text), not a card-specific ability.", "effect": "saga_lore_counter_management"}], "kind": "static", "oracle_spans": [[0, 88]], "trigger": null, "unresolved": []}], "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "proposed_edges": [{"certainty": "rules_explicit", "predicate": "REFERENCES_RULE", "provenance": {"oracle_span": [89, 219], "rule_ref": "HOB release notes / mechanics article: Recruit", "text": "I ΓÇö Recruit. (Draw a card, then discard a card. If you discarded a nonland card, create a 1/1 white Human Soldier creature token.)"}, "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "target": "rule:recruit"}, {"certainty": "rules_explicit", "condition": "up to one target creature (may choose zero targets)", "optional": true, "predicate": "ADDS_COUNTER", "provenance": {"oracle_span": [319, 374], "text": "Put a +1/+1 counter on up to one target creature."}, "source": "chapter_III_plus_counter", "target": "counter:plus1plus1"}, {"certainty": "rules_explicit", "predicate": "MOVES_TO", "provenance": {"note": "The returned creature card enters the battlefield under your control (it is returned from your graveyard).", "oracle_span": [220, 318], "text": "Return target creature card with mana value 3 or less from your graveyard to the battlefield."}, "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "target": "zone:battlefield"}, {"certainty": "rules_explicit", "predicate": "REQUIRES", "provenance": {"note": "Target restriction: creature card whose mana value is 3 or less.", "oracle_span": [220, 318], "text": "target creature card with mana value 3 or less"}, "source": "chapter_II_reanimate", "target": "state:mana_value_3_or_less"}, {"certainty": "rules_explicit", "predicate": "MOVES_FROM", "provenance": {"oracle_span": [220, 318], "text": "Return target creature card with mana value 3 or less from your graveyard to the battlefield."}, "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "target": "zone:graveyard"}, {"certainty": "rules_explicit", "condition": "the discarded card during Recruit was a nonland card", "optional": false, "predicate": "CREATES_OBJECT", "provenance": {"note": "Token creation is conditional on the Recruit discard being nonland.", "oracle_span": [89, 219], "text": "If you discarded a nonland card, create a 1/1 white Human Soldier creature token."}, "source": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "target": "token:human-soldier"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "a1", "conditions": [{"note": "This ability triggers only once each turn", "type": "frequency_limit"}], "confidence": "high", "effects": [{"amount": 1, "controller": "you", "op": "draw", "required": true}], "kind": "triggered", "oracle_spans": [[0, 59], [60, 102]], "trigger": {"controller_of_ability_source": "any", "event": "you activate an ability of a creature", "note": "triggers when you activate an ability of any creature (yours or an opponent's)"}, "unresolved": []}, {"ability_id": "a2", "confidence": "high", "costs": [{"type": "mana", "value": "{5}{U}{U}"}], "effects": [{"controller": "you", "op": "exile", "ordering": 1, "required": true, "target": "up to two other target nonland permanents you control"}, {"controller": "you", "op": "return_to_battlefield", "ordering": 2, "required": true, "target": "those cards", "timing": "at the beginning of the next end step", "under_control": "owner"}], "kind": "activated", "oracle_spans": [[104, 280]], "unresolved": []}], "face_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "proposed_edges": [{"certainty": "high", "predicate": "PRODUCES", "provenance": {"oracle_span": [48, 59], "text": "draw a card."}, "source": "a1", "target": "resource:card-in-hand"}, {"certainty": "rules_explicit", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [104, 280], "text": "{5}{U}{U}: Exile up to two other target nonland permanents you control. Return those cards to the battlefield under their owner's control at the beginning of the next end step."}, "source": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "target": "a2"}, {"certainty": "rules_explicit", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [0, 59], "text": "Whenever you activate an ability of a creature, draw a card."}, "source": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "target": "a1"}, {"certainty": "rules_explicit", "condition": "only once each turn", "predicate": "TRIGGERS", "provenance": {"oracle_span": [0, 46], "text": "Whenever you activate an ability of a creature,"}, "source": "event:activate-creature-ability", "target": "a1"}, {"certainty": "high", "predicate": "MOVES_TO", "provenance": {"oracle_span": [115, 175], "text": "Exile up to two other target nonland permanents you control."}, "source": "a2", "target": "zone:exile"}, {"certainty": "high", "predicate": "MOVES_TO", "provenance": {"note": "blink effect; permanents return as new objects at the next end step", "oracle_span": [176, 280], "text": "Return those cards to the battlefield under their owner's control at the beginning of the next end step."}, "source": "a2", "target": "zone:battlefield", "timing": "at the beginning of the next end step"}], "schema_extension_requests": []}
+{"abilities": [], "face_id": "face:89a2fab8-b074-42aa-a871-d9c5de2d0895:0", "proposed_edges": [], "reason": "No Oracle text requiring semantic extraction ΓÇö vanilla creature (Creature ΓÇö Bear); Scryfall returns empty oracle_text for cards with no printed rules text.", "schema_extension_requests": [], "status": "reviewed_empty", "unresolved": []}
+{"abilities": [{"ability_id": "lifelink", "confidence": "high", "effects": [{"effect": "grants_keyword", "keyword": "Lifelink", "note": "Damage dealt by this creature also causes its controller to gain that much life."}], "kind": "static", "oracle_spans": [[0, 8]], "unresolved": []}], "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0", "proposed_edges": [{"certainty": "rules_explicit", "predicate": "REFERENCES_RULE", "provenance": {"note": "Card layout is adventure; permanent face pairs with the Adventure face Concerted Care.", "rule_ref": "CR 715 (Adventurer cards)"}, "source": "card:8a0e35ac-6c03-4922-b3b4-e419419fe3d7", "target": "rule:adventure"}, {"certainty": "rules_explicit", "predicate": "HAS_KEYWORD", "provenance": {"oracle_span": [0, 8], "text": "Lifelink"}, "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0", "target": "kw:lifelink"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "adventure_exile", "confidence": "high", "effects": [{"effect": "exile_this_card", "note": "On resolution the Adventure card is exiled instead of going to the graveyard; the creature face may later be cast from exile.", "references_rule": "rule:adventure"}], "kind": "replacement", "oracle_spans": [[93, 160]], "unresolved": []}, {"ability_id": "grant_protection", "confidence": "high", "effects": [{"duration": "until end of turn", "effect": "grant_keyword", "keywords": ["hexproof", "indestructible"], "target": "target artifact or creature you control"}], "kind": "spell_effect", "oracle_spans": [[0, 92]], "unresolved": []}], "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "proposed_edges": [{"certainty": "rules_explicit", "polarity": "positive", "predicate": "MODIFIES", "provenance": {"oracle_span": [46, 54], "text": "hexproof"}, "source": "ability:grant_protection", "target": "kw:hexproof", "timing": "until end of turn"}, {"certainty": "rules_explicit", "predicate": "HAS_ABILITY", "provenance": {"oracle_span": [0, 92], "text": "Target artifact or creature you control gains hexproof and indestructible until end of turn."}, "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "target": "ability:grant_protection"}, {"certainty": "rules_explicit", "predicate": "MOVES_TO", "provenance": {"oracle_span": [99, 114], "text": "exile this card"}, "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "target": "zone:exile"}, {"certainty": "rules_explicit", "predicate": "REFERENCES_RULE", "provenance": {"oracle_span": [93, 160], "rule_ref": "CR 715 (Adventurer cards)", "text": "(Then exile this card. You may cast the creature later from exile.)"}, "source": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "target": "rule:adventure"}, {"certainty": "rules_explicit", "polarity": "positive", "predicate": "MODIFIES", "provenance": {"oracle_span": [59, 73], "text": "indestructible"}, "source": "ability:grant_protection", "target": "kw:indestructible", "timing": "until end of turn"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "modal-damage-exile", "conditions": [{"condition": "mode chosen: this mode is one of 'one or both'"}], "confidence": "high", "controller": "you", "costs": [], "effects": [{"amount": 3, "op": "deal_damage", "target": "target creature"}, {"detail": "if that creature would die this turn, exile it instead", "op": "replacement", "replaces": "that creature dying this turn"}], "kind": "spell_effect", "oracle_spans": [[0, 20], [21, 129]], "trigger": null, "unresolved": []}, {"ability_id": "modal-destroy-artifact-token", "conditions": [{"condition": "mode chosen: this mode is one of 'one or both'"}], "confidence": "high", "controller": "you", "costs": [], "effects": [{"op": "destroy", "target": "target artifact token"}], "kind": "spell_effect", "oracle_spans": [[0, 20], [130, 162]], "trigger": null, "unresolved": []}], "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "proposed_edges": [{"certainty": "rules_explicit", "predicate": "MOVES_TO", "provenance": {"oracle_span": [74, 129], "text": "If that creature would die this turn, exile it instead."}, "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "target": "zone:exile"}, {"certainty": "rules_explicit", "note": "3 damage", "predicate": "CAUSES", "provenance": {"oracle_span": [23, 73], "text": "Pinecone Strike deals 3 damage to target creature."}, "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "target": "obj:target-creature"}, {"certainty": "rules_explicit", "note": "death of the damaged creature this turn is replaced by exile", "predicate": "REPLACES", "provenance": {"oracle_span": [74, 129], "text": "If that creature would die this turn, exile it instead."}, "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "target": "zone:exile"}, {"certainty": "rules_explicit", "note": "destroy", "predicate": "CAUSES", "provenance": {"oracle_span": [132, 162], "text": "Destroy target artifact token."}, "source": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "target": "obj:target-artifact-token"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "a1", "confidence": "high", "controller": "you", "effects": [{"note": "if you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game", "op": "storied"}], "keyword": "Storied", "kind": "static", "oracle_spans": [[0, 128]], "unresolved": []}, {"ability_id": "a2", "confidence": "high", "controller": "you", "effects": [{"counter_type": "+1/+1", "op": "put_counter", "quantity": 1, "target": "target creature"}], "kind": "triggered", "oracle_spans": [[129, 203]], "trigger": {"event": "enters_or_attacks", "subject": "Bifur"}, "unresolved": []}, {"ability_id": "a3", "conditions": [{"requirement": "you have an enduring story", "type": "state"}], "confidence": "high", "controller": "you", "effects": [{"note": "if a triggered ability of a Dwarf you control triggers, that ability triggers an additional time", "op": "duplicate_trigger", "target": "triggered abilities of Dwarves you control"}], "kind": "static", "oracle_spans": [[204, 340]], "unresolved": []}], "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "proposed_edges": [{"certainty": "rules_explicit", "predicate": "ENABLES", "provenance": {"note": "enduring story gates the Dwarf trigger-doubling static ability", "oracle_span": [204, 340], "text": "As long as you have an enduring story, if a triggered ability of a Dwarf you control triggers, that ability triggers an additional time."}, "source": "state:enduring_story", "target": "a3"}, {"certainty": "rules_explicit", "predicate": "HAS_STATE", "provenance": {"oracle_span": [9, 128], "text": "If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game."}, "source": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "target": "state:enduring_story"}, {"certainty": "rules_explicit", "predicate": "REFERENCES_RULE", "provenance": {"oracle_span": [0, 7], "text": "Storied"}, "source": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "target": "rule:storied"}, {"certainty": "rules_explicit", "predicate": "ADDS_COUNTER", "provenance": {"note": "'Bifur' = this creature", "oracle_span": [130, 203], "text": "Whenever Bifur enters or attacks, put a +1/+1 counter on target creature."}, "source": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "target": "counter:+1/+1"}], "schema_extension_requests": []}
+{"abilities": [{"ability_id": "stir-destroy", "conditions": [], "confidence": "high", "costs": [], "effects": [{"op": "destroy", "target": "target creature"}], "kind": "spell_effect", "oracle_spans": [[88, 112]], "trigger": null, "unresolved": []}, {"ability_id": "stir-additional-cost", "conditions": [], "confidence": "high", "costs": [{"alternatives": [{"detail": "Sacrifice an artifact or creature", "type": "sacrifice"}, {"amount": "{4}", "type": "mana"}], "detail": "Sacrifice an artifact or creature, or pay {4}.", "type": "additional_cost"}], "effects": [{"detail": "As an additional cost to cast this spell, sacrifice an artifact or creature or pay {4}.", "op": "additional_cost_definition"}], "kind": "static", "oracle_spans": [[0, 87]], "trigger": null, "unresolved": []}], "face_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "proposed_edges": [{"certainty": "rules_explicit", "polarity": "negative", "predicate": "CAUSES", "provenance": {"oracle_span": [88, 112], "text": "Destroy target creature."}, "source": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "target": "target creature"}, {"certainty": "rules_explicit", "predicate": "HAS_COST", "provenance": {"note": "Additional cost with two alternatives: sacrifice an artifact or creature, or pay {4}.", "oracle_span": [0, 87], "text": "As an additional cost to cast this spell, sacrifice an artifact or creature or pay {4}."}, "source": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "target": "cost:sacrifice-artifact-or-creature-or-pay-4"}, {"certainty": "rules_explicit", "condition": "if the sacrifice alternative is chosen for the additional cost", "predicate": "CONSUMES", "provenance": {"oracle_span": [42, 87], "text": "sacrifice an artifact or creature or pay {4}."}, "source": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "target": "an artifact or creature"}], "schema_extension_requests": []}
+
+
+[READ-ONLY INPUT] data/pilot/effect_census.jsonl
+
+{"ability_index": 0, "clause_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0#a0", "clause_in_reminder": false, "clause_span": [0, 168], "clause_text": "Whenever this creature attacks, you may sacrifice another creature. If you do, put a number of +1/+1 counters on this creature equal to the sacrificed creature's power.", "disposition": "pending_structuring", "face_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "families": ["add_counter", "sacrifice"], "matches": [{"family": "sacrifice", "in_reminder": false, "match_span": [40, 49], "sentence_index": 0, "snippet": "sacrifice"}, {"family": "add_counter", "in_reminder": false, "match_span": [79, 109], "sentence_index": 1, "snippet": "put a number of +1/+1 counters"}], "mode_index": null, "mode_kind": null, "name": "Rhovanion Rampager"}
+{"ability_index": 1, "clause_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0#a1", "clause_in_reminder": false, "clause_span": [169, 394], "clause_text": "When this creature dies, amass Goblins X, where X is this creature's power. (Put X +1/+1 counters on an Army you control. It's also a Goblin. If you don't control an Army, create a 0/0 black Goblin Army creature token first.)", "disposition": "pending_structuring", "face_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "families": ["add_counter", "amass", "token_create"], "matches": [{"family": "amass", "in_reminder": false, "match_span": [194, 199], "sentence_index": 0, "snippet": "amass"}, {"family": "add_counter", "in_reminder": false, "match_span": [194, 199], "sentence_index": 0, "snippet": "amass"}, {"family": "add_counter", "in_reminder": true, "match_span": [246, 266], "sentence_index": 1, "snippet": "Put X +1/+1 counters"}, {"family": "token_create", "in_reminder": true, "match_span": [341, 386], "sentence_index": 3, "snippet": "create a 0/0 black Goblin Army creature token"}], "mode_index": null, "mode_kind": null, "name": "Rhovanion Rampager"}
+{"ability_index": 0, "clause_id": "face:20535126-f811-4386-bdce-d73f30691724:0#a0", "clause_in_reminder": false, "clause_span": [0, 6], "clause_text": "Flying", "disposition": "pending_classification", "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "families": [], "matches": [], "mode_index": null, "mode_kind": null, "name": "Smaug, Wicked Worm"}
+{"ability_index": 1, "clause_id": "face:20535126-f811-4386-bdce-d73f30691724:0#a1", "clause_in_reminder": false, "clause_span": [7, 117], "clause_text": "When Smaug enters, create X tapped Treasure tokens, where X is the number of artifacts your opponents control.", "disposition": "pending_structuring", "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "families": ["token_create"], "matches": [{"family": "token_create", "in_reminder": false, "match_span": [26, 57], "sentence_index": 0, "snippet": "create X tapped Treasure tokens"}], "mode_index": null, "mode_kind": null, "name": "Smaug, Wicked Worm"}
+{"ability_index": 2, "clause_id": "face:20535126-f811-4386-bdce-d73f30691724:0#a2", "clause_in_reminder": false, "clause_span": [118, 223], "clause_text": "Whenever you cast a spell, if mana from a Treasure was spent to cast it, you draw a card and lose 1 life.", "disposition": "pending_structuring", "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "families": ["draw", "life", "play_cast_permission"], "matches": [{"family": "play_cast_permission", "in_reminder": false, "match_span": [182, 189], "sentence_index": 0, "snippet": "cast it"}, {"family": "draw", "in_reminder": false, "match_span": [195, 206], "sentence_index": 0, "snippet": "draw a card"}, {"family": "life", "in_reminder": false, "match_span": [211, 222], "sentence_index": 0, "snippet": "lose 1 life"}], "mode_index": null, "mode_kind": null, "name": "Smaug, Wicked Worm"}
+{"ability_index": 0, "clause_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0#a0", "clause_in_reminder": false, "clause_span": [0, 127], "clause_text": "Equipped creature has prowess. (Whenever its controller casts a noncreature spell, that creature gets +1/+1 until end of turn.)", "disposition": "pending_structuring", "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "families": ["grant_ability", "modify_pt"], "matches": [{"family": "grant_ability", "in_reminder": false, "match_span": [18, 29], "sentence_index": 0, "snippet": "has prowess"}, {"family": "modify_pt", "in_reminder": true, "match_span": [97, 107], "sentence_index": 1, "snippet": "gets +1/+1"}], "mode_index": null, "mode_kind": null, "name": "Wizard's Staff"}
+{"ability_index": 1, "clause_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0#a1", "clause_in_reminder": false, "clause_span": [128, 223], "clause_text": "If a triggered ability of equipped creature triggers, that ability triggers an additional time.", "disposition": "pending_classification", "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "families": [], "matches": [], "mode_index": null, "mode_kind": null, "name": "Wizard's Staff"}
+{"ability_index": 2, "clause_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0#a2", "clause_in_reminder": false, "clause_span": [224, 240], "clause_text": "Equip Wizard {1}", "disposition": "pending_structuring", "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "families": ["attachment"], "matches": [{"family": "attachment", "in_reminder": false, "match_span": [224, 229], "sentence_index": 0, "snippet": "Equip"}], "mode_index": null, "mode_kind": null, "name": "Wizard's Staff"}
+{"ability_index": 3, "clause_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0#a3", "clause_in_reminder": false, "clause_span": [241, 250], "clause_text": "Equip {3}", "disposition": "pending_structuring", "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "families": ["attachment"], "matches": [{"family": "attachment", "in_reminder": false, "match_span": [241, 246], "sentence_index": 0, "snippet": "Equip"}], "mode_index": null, "mode_kind": null, "name": "Wizard's Staff"}
+{"ability_index": 0, "clause_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0#a0", "clause_in_reminder": true, "clause_span": [0, 88], "clause_text": "(As this Saga enters and after your draw step, add a lore counter. Sacrifice after III.)", "disposition": "pending_structuring", "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "families": ["replacement", "sacrifice"], "matches": [{"family": "replacement", "in_reminder": true, "match_span": [1, 20], "sentence_index": 0, "snippet": "As this Saga enters"}, {"family": "sacrifice", "in_reminder": true, "match_span": [67, 76], "sentence_index": 1, "snippet": "Sacrifice"}], "mode_index": null, "mode_kind": null, "name": "The Mountain-king's Return"}
+{"ability_index": 1, "clause_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0#a1", "clause_in_reminder": false, "clause_span": [89, 219], "clause_text": "I ΓÇö Recruit. (Draw a card, then discard a card. If you discarded a nonland card, create a 1/1 white Human Soldier creature token.)", "disposition": "pending_structuring", "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "families": ["discard", "draw", "token_create"], "matches": [{"family": "draw", "in_reminder": true, "match_span": [103, 114], "sentence_index": 1, "snippet": "Draw a card"}, {"family": "discard", "in_reminder": true, "match_span": [121, 128], "sentence_index": 1, "snippet": "discard"}, {"family": "token_create", "in_reminder": true, "match_span": [170, 217], "sentence_index": 2, "snippet": "create a 1/1 white Human Soldier creature token"}], "mode_index": null, "mode_kind": null, "name": "The Mountain-king's Return"}
+{"ability_index": 2, "clause_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0#a2", "clause_in_reminder": false, "clause_span": [220, 318], "clause_text": "II ΓÇö Return target creature card with mana value 3 or less from your graveyard to the battlefield.", "disposition": "pending_structuring", "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "families": ["return_move"], "matches": [{"family": "return_move", "in_reminder": false, "match_span": [225, 298], "sentence_index": 0, "snippet": "Return target creature card with mana value 3 or less from y"}], "mode_index": null, "mode_kind": null, "name": "The Mountain-king's Return"}
+{"ability_index": 3, "clause_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0#a3", "clause_in_reminder": false, "clause_span": [319, 374], "clause_text": "III ΓÇö Put a +1/+1 counter on up to one target creature.", "disposition": "pending_structuring", "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "families": ["add_counter"], "matches": [{"family": "add_counter", "in_reminder": false, "match_span": [325, 344], "sentence_index": 0, "snippet": "Put a +1/+1 counter"}], "mode_index": null, "mode_kind": null, "name": "The Mountain-king's Return"}
+{"ability_index": 0, "clause_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0#a0", "clause_in_reminder": false, "clause_span": [0, 103], "clause_text": "Whenever you activate an ability of a creature, draw a card. This ability triggers only once each turn.", "disposition": "pending_structuring", "face_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "families": ["draw"], "matches": [{"family": "draw", "in_reminder": false, "match_span": [48, 59], "sentence_index": 0, "snippet": "draw a card"}], "mode_index": null, "mode_kind": null, "name": "Elrond, Moon-Reader"}
+{"ability_index": 1, "clause_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0#a1", "clause_in_reminder": false, "clause_span": [104, 280], "clause_text": "{5}{U}{U}: Exile up to two other target nonland permanents you control. Return those cards to the battlefield under their owner's control at the beginning of the next end step.", "disposition": "pending_structuring", "face_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "families": ["delayed", "exile", "return_move"], "matches": [{"family": "exile", "in_reminder": false, "match_span": [115, 120], "sentence_index": 0, "snippet": "Exile"}, {"family": "return_move", "in_reminder": false, "match_span": [176, 213], "sentence_index": 1, "snippet": "Return those cards to the battlefield"}, {"family": "delayed", "in_reminder": false, "match_span": [242, 270], "sentence_index": 1, "snippet": "at the beginning of the next"}], "mode_index": null, "mode_kind": null, "name": "Elrond, Moon-Reader"}
+{"ability_index": 0, "clause_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0#a0", "clause_in_reminder": false, "clause_span": [0, 8], "clause_text": "Lifelink", "disposition": "pending_classification", "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0", "families": [], "matches": [], "mode_index": null, "mode_kind": null, "name": "Bofur, Reliable Guardian"}
+{"ability_index": 0, "clause_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1#a0", "clause_in_reminder": false, "clause_span": [0, 160], "clause_text": "Target artifact or creature you control gains hexproof and indestructible until end of turn. (Then exile this card. You may cast the creature later from exile.)", "disposition": "pending_structuring", "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "families": ["exile", "grant_ability", "play_cast_permission"], "matches": [{"family": "grant_ability", "in_reminder": false, "match_span": [40, 54], "sentence_index": 0, "snippet": "gains hexproof"}, {"family": "exile", "in_reminder": true, "match_span": [99, 104], "sentence_index": 1, "snippet": "exile"}, {"family": "play_cast_permission", "in_reminder": true, "match_span": [120, 128], "sentence_index": 2, "snippet": "may cast"}, {"family": "exile", "in_reminder": true, "match_span": [153, 158], "sentence_index": 2, "snippet": "exile"}], "mode_index": null, "mode_kind": null, "name": "Concerted Care"}
+{"ability_index": 0, "clause_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0#a0", "clause_in_reminder": false, "clause_span": [0, 20], "clause_text": "Choose one or both ΓÇö", "disposition": "pending_classification", "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "families": [], "matches": [], "mode_index": null, "mode_kind": "choose_one_or_both", "name": "Pinecone Strike"}
+{"ability_index": 1, "clause_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0#a1.m0", "clause_in_reminder": false, "clause_span": [21, 129], "clause_text": "ΓÇó Pinecone Strike deals 3 damage to target creature. If that creature would die this turn, exile it instead.", "disposition": "pending_structuring", "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "families": ["deal_damage", "exile", "replacement"], "matches": [{"family": "deal_damage", "in_reminder": false, "match_span": [39, 53], "sentence_index": 0, "snippet": "deals 3 damage"}, {"family": "replacement", "in_reminder": false, "match_span": [91, 128], "sentence_index": 1, "snippet": "would die this turn, exile it instead"}, {"family": "exile", "in_reminder": false, "match_span": [112, 117], "sentence_index": 1, "snippet": "exile"}], "mode_index": 0, "mode_kind": "choose_one_or_both", "name": "Pinecone Strike"}
+{"ability_index": 2, "clause_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0#a2.m1", "clause_in_reminder": false, "clause_span": [130, 162], "clause_text": "ΓÇó Destroy target artifact token.", "disposition": "pending_structuring", "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "families": ["destroy"], "matches": [{"family": "destroy", "in_reminder": false, "match_span": [132, 139], "sentence_index": 0, "snippet": "Destroy"}], "mode_index": 1, "mode_kind": "choose_one_or_both", "name": "Pinecone Strike"}
+{"ability_index": 0, "clause_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0#a0", "clause_in_reminder": false, "clause_span": [0, 129], "clause_text": "Storied (If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.)", "disposition": "pending_classification", "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "families": [], "matches": [], "mode_index": null, "mode_kind": null, "name": "Bifur, Melodic Rider"}
+{"ability_index": 1, "clause_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0#a1", "clause_in_reminder": false, "clause_span": [130, 203], "clause_text": "Whenever Bifur enters or attacks, put a +1/+1 counter on target creature.", "disposition": "pending_structuring", "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "families": ["add_counter"], "matches": [{"family": "add_counter", "in_reminder": false, "match_span": [164, 183], "sentence_index": 0, "snippet": "put a +1/+1 counter"}], "mode_index": null, "mode_kind": null, "name": "Bifur, Melodic Rider"}
+{"ability_index": 2, "clause_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0#a2", "clause_in_reminder": false, "clause_span": [204, 340], "clause_text": "As long as you have an enduring story, if a triggered ability of a Dwarf you control triggers, that ability triggers an additional time.", "disposition": "pending_classification", "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "families": [], "matches": [], "mode_index": null, "mode_kind": null, "name": "Bifur, Melodic Rider"}
+{"ability_index": 0, "clause_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0#a0", "clause_in_reminder": false, "clause_span": [0, 87], "clause_text": "As an additional cost to cast this spell, sacrifice an artifact or creature or pay {4}.", "disposition": "pending_structuring", "face_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "families": ["sacrifice"], "matches": [{"family": "sacrifice", "in_reminder": false, "match_span": [42, 51], "sentence_index": 0, "snippet": "sacrifice"}], "mode_index": null, "mode_kind": null, "name": "Stir Up Trouble"}
+{"ability_index": 1, "clause_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0#a1", "clause_in_reminder": false, "clause_span": [88, 112], "clause_text": "Destroy target creature.", "disposition": "pending_structuring", "face_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "families": ["destroy"], "matches": [{"family": "destroy", "in_reminder": false, "match_span": [88, 95], "sentence_index": 0, "snippet": "Destroy"}], "mode_index": null, "mode_kind": null, "name": "Stir Up Trouble"}
+
+
+[READ-ONLY INPUT] data/pilot/vocabulary_seed.jsonl
+
+{"cards": 125, "concept_id": "obj:type:creature", "hub": true, "kind": "ObjectClass"}
+{"cards": 74, "concept_id": "gate:storied", "hub": true, "kind": "Gate"}
+{"cards": 55, "concept_id": "obj:supertype:legendary", "hub": true, "kind": "ObjectClass"}
+{"cards": 42, "concept_id": "zone:graveyard", "hub": true, "kind": "Zone"}
+{"cards": 34, "concept_id": "zone:hand", "hub": true, "kind": "Zone"}
+{"cards": 33, "concept_id": "zone:exile", "hub": true, "kind": "Zone"}
+{"cards": 28, "concept_id": "zone:battlefield", "hub": true, "kind": "Zone"}
+{"cards": 25, "concept_id": "counter:+1/+1", "hub": true, "kind": "CounterType"}
+{"cards": 24, "concept_id": "event:token-you-control-enters", "hub": true, "kind": "Event"}
+{"cards": 24, "concept_id": "obj:type:instant", "hub": true, "kind": "ObjectClass"}
+{"cards": 23, "concept_id": "obj:target-creature", "hub": true, "kind": null}
+{"cards": 23, "concept_id": "obj:type:artifact", "hub": true, "kind": "ObjectClass"}
+{"cards": 23, "concept_id": "obj:type:sorcery", "hub": true, "kind": "ObjectClass"}
+{"cards": 22, "concept_id": "obj:subtype:dwarf", "hub": true, "kind": "ObjectClass"}
+{"cards": 20, "concept_id": "obj:type:enchantment", "hub": true, "kind": "ObjectClass"}
+{"cards": 18, "concept_id": "zone:stack", "hub": true, "kind": "Zone"}
+{"cards": 17, "concept_id": "obj:creature-you-control", "hub": true, "kind": "ObjectClass"}
+{"cards": 17, "concept_id": "obj:subtype:adventure", "hub": true, "kind": "ObjectClass"}
+{"cards": 17, "concept_id": "zone:library", "hub": true, "kind": "Zone"}
+{"cards": 16, "concept_id": "obj:subtype:elf", "hub": true, "kind": "ObjectClass"}
+{"cards": 15, "concept_id": "state:cards-drawn-this-turn", "hub": true, "kind": "State"}
+{"cards": 14, "concept_id": "obj:subtype:equipment", "hub": true, "kind": "ObjectClass"}
+{"cards": 14, "concept_id": "op:amass", "hub": true, "kind": "Operation"}
+{"cards": 13, "concept_id": "obj:subtype:goblin", "hub": true, "kind": "ObjectClass"}
+{"cards": 13, "concept_id": "obj:subtype:human", "hub": true, "kind": "ObjectClass"}
+{"cards": 13, "concept_id": "obj:subtype:soldier", "hub": true, "kind": "ObjectClass"}
+{"cards": 13, "concept_id": "obj:type:land", "hub": true, "kind": "ObjectClass"}
+{"cards": 12, "concept_id": "keyword:trample", "hub": true, "kind": "ObjectClass"}
+{"cards": 12, "concept_id": "resource:mana", "hub": true, "kind": "Resource"}
+{"cards": 11, "concept_id": "obj:subtype:wolf", "hub": true, "kind": "ObjectClass"}
+{"cards": 11, "concept_id": "resource:life", "hub": true, "kind": "Resource"}
+{"cards": 10, "concept_id": "event:dies", "hub": true, "kind": "Event"}
+{"cards": 10, "concept_id": "obj:subtype:noble", "hub": true, "kind": "ObjectClass"}
+{"cards": 10, "concept_id": "op:recruit", "hub": true, "kind": "Operation"}
+{"cards": 10, "concept_id": "token:treasure", "hub": true, "kind": "TokenSpec"}
+{"cards": 9, "concept_id": "event:this-creature-dies", "hub": true, "kind": "Event"}
+{"cards": 9, "concept_id": "event:this_creature_dies", "hub": true, "kind": "Event"}
+{"cards": 9, "concept_id": "obj:subtype:halfling", "hub": true, "kind": "ObjectClass"}
+{"cards": 9, "concept_id": "obj:subtype:warrior", "hub": true, "kind": "ObjectClass"}
+{"cards": 9, "concept_id": "state:enduring_story", "hub": true, "kind": "State"}
+{"cards": 8, "concept_id": "counter:lore", "hub": true, "kind": "CounterType"}
+{"cards": 8, "concept_id": "event:enters_the_battlefield", "hub": true, "kind": "Event"}
+{"cards": 8, "concept_id": "obj:subtype:bard", "hub": true, "kind": "ObjectClass"}
+{"cards": 8, "concept_id": "obj:subtype:saga", "hub": true, "kind": "ObjectClass"}
+{"cards": 7, "concept_id": "event:this-creature-enters", "hub": true, "kind": "Event"}
+{"cards": 7, "concept_id": "keyword:reach", "hub": true, "kind": "ObjectClass"}
+{"cards": 7, "concept_id": "obj:subtype:citizen", "hub": true, "kind": "ObjectClass"}
+{"cards": 6, "concept_id": "obj:subtype:bear", "hub": true, "kind": "ObjectClass"}
+{"cards": 6, "concept_id": "obj:subtype:bird", "hub": true, "kind": "ObjectClass"}
+{"cards": 6, "concept_id": "obj:subtype:scout", "hub": true, "kind": "ObjectClass"}
+{"cards": 6, "concept_id": "resource:card", "hub": true, "kind": "Resource"}
+{"cards": 6, "concept_id": "resource:card-in-hand", "hub": true, "kind": "Resource"}
+{"cards": 5, "concept_id": "event:player-loses-life", "hub": true, "kind": "Event"}
+{"cards": 5, "concept_id": "keyword:equip", "hub": true, "kind": "ObjectClass"}
+{"cards": 5, "concept_id": "keyword:flying", "hub": true, "kind": "ObjectClass"}
+{"cards": 5, "concept_id": "keyword:haste", "hub": true, "kind": "ObjectClass"}
+{"cards": 5, "concept_id": "obj:equipped-creature", "hub": true, "kind": "ObjectClass"}
+{"cards": 5, "concept_id": "obj:subtype:wizard", "hub": true, "kind": "ObjectClass"}
+{"cards": 5, "concept_id": "obj:supertype:basic", "hub": true, "kind": "ObjectClass"}
+{"cards": 5, "concept_id": "op:deal-damage", "hub": true, "kind": "Operation"}
+{"cards": 4, "concept_id": "event:draw", "hub": true, "kind": "Event"}
+{"cards": 4, "concept_id": "event:etb", "hub": true, "kind": "Event"}
+{"cards": 4, "concept_id": "keyword:flash", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "keyword:menace", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "kw:flying", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "obj:subtype:advisor", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "obj:subtype:avatar", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "obj:subtype:dragon", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "obj:subtype:rogue", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "obj:you", "hub": true, "kind": "ObjectClass"}
+{"cards": 4, "concept_id": "token:dwarf", "hub": true, "kind": "TokenSpec"}
+{"cards": 3, "concept_id": "event:attack", "hub": true, "kind": "Event"}
+{"cards": 3, "concept_id": "event:this-creature-attacks", "hub": true, "kind": "Event"}
+{"cards": 3, "concept_id": "event:this-equipment-enters", "hub": true, "kind": "Event"}
+{"cards": 3, "concept_id": "keyword:deathtouch", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "keyword:ferocious", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "keyword:hexproof", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "keyword:landfall", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "keyword:lifelink", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "keyword:vigilance", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "kw:vigilance", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "obj:any-target", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "obj:objectclass-creatures-you-control", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "obj:subtype:horror", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "obj:subtype:ranger", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "obj:target-creature-you-control", "hub": true, "kind": "ObjectClass"}
+{"cards": 3, "concept_id": "resource:card_in_hand", "hub": true, "kind": "Resource"}
+{"cards": 3, "concept_id": "resource:cards", "hub": true, "kind": "Resource"}
+{"cards": 2, "concept_id": "cost:equip", "hub": true, "kind": "Cost"}
+{"cards": 2, "concept_id": "counter:hone", "hub": true, "kind": "CounterType"}
+{"cards": 2, "concept_id": "counter:plus1plus1", "hub": true, "kind": "CounterType"}
+{"cards": 2, "concept_id": "event:activate-creature-ability", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:attacks", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:beginning-of-combat", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:cast_noncreature_spell", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:counters-placed", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:creature_destroyed", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:damage", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:land-enters", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:land-enters-you-control", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:opponent-spell-or-ability", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:opponent-targets-this", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "event:spell_countered", "hub": true, "kind": "Event"}
+{"cards": 2, "concept_id": "keyword:first-strike", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "keyword:ward", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:draw", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:archer", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:artificer", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:aura", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:druid", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:insect", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:mountain", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:shapeshifter", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "obj:subtype:spider", "hub": true, "kind": "ObjectClass"}
+{"cards": 2, "concept_id": "op:typecycling", "hub": true, "kind": "Operation"}
+{"cards": 2, "concept_id": "state:cast-from-graveyard", "hub": true, "kind": "State"}
+{"cards": 2, "concept_id": "state:hone-count:E", "hub": true, "kind": "State"}
+{"cards": 2, "concept_id": "token:axe", "hub": true, "kind": "TokenSpec"}
+{"cards": 2, "concept_id": "token:elf", "hub": true, "kind": "TokenSpec"}
+{"cards": 2, "concept_id": "token:wolf", "hub": true, "kind": "TokenSpec"}
+{"cards": 1, "concept_id": "cost:instant-sorcery-spells", "hub": false, "kind": "Cost"}
+{"cards": 1, "concept_id": "counter:trample", "hub": false, "kind": "CounterType"}
+{"cards": 1, "concept_id": "event:another-dwarf-or-equipment-enters", "hub": false, "kind": null}
+{"cards": 1, "concept_id": "event:artifact-enters-you-control", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:axe-created", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:azog_enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:begin-first-main-phase", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:block", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:bolg_enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:cast-creature-spell", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:cast-noncreature-spell", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:cast-spell", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:cast_spell", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:creature-dies", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:creature_card_leaves_graveyard", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:creature_sacrificed", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:dain-attacks", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:dain-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:destroy", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:draw-second-card", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:draw-second-card-each-turn", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:draw_second_card_each_turn", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:dwarf_or_equipment_enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:enters-or-attacks", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:equipment-attached-this-way", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:equipped-creature-deals-combat-damage-to-player", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:fight", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:gollum-ab-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:master-dies", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:mountain-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:opponent-casts-spell", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:opponent-creature-dies", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:opponent-creature-exiled", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:opponent_discards", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:other-creatures-die", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:permanent-spell-exiled", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:player_draws_card", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:sackville-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:sacrifice", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:sacrifice-token", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:sting-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:this-artifact-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:this-creature-enters-or-attacks", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:thorin-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:throrsmap-enters", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:token_creation", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:you-attack", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:you-sacrifice-a-creature", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:you_attack", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "event:you_draw_a_card", "hub": false, "kind": "Event"}
+{"cards": 1, "concept_id": "keyword:affinity", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "keyword:crew", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "keyword:double-strike", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "keyword:enchant", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:deathtouch", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:double_strike", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:equip", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:flash", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:hexproof", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:indestructible", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:kicker", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:lifelink", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:menace", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "kw:reach", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:a-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:an-artifact-or-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:another-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:another-creature-or-artifact", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:another-creature-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:another-elf-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:another-goblin", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:another-target-creature-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:creatures-target-player-controls", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:creatures-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:creatures-you-control-of-the-chosen-type", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:each_opponent", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:enchanted-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:equipped-creature-triggered-ability", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:food", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:legendary-card-with-the-same-name-as-a-legendary-permanent-y", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:legendary-creature-card", "hub": false, "kind": null}
+{"cards": 1, "concept_id": "obj:number-of-attacking-creatures-exiled", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:number-of-plains-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:objectclass-equipped-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:objectclass-food-artifact", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:objectclass-mountain", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:objectclass-other-creatures-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:one-or-two-target-creatures", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:one-target-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:opponent-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:opponent-s-first-noncreature-spell-each-turn", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:sacrificed-artifact", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:spells-you-cast-from-anywhere-other-than-your-hand", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:bat", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:cleric", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:dog", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:forest", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:giant", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:horse", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:island", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:pilot", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:plains", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:rabbit", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:swamp", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:troll", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:vehicle", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:subtype:wurm", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:target-artifact-or-enchantment", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:target-artifact-token", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:target-creature-with-power-4-or-greater", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:target-dwarf-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:target-permanent", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:that-dragon", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:that-land", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:two-target-nonland-permanents-that-share-a-card-type", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:up-to-one-target-creature", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:wizard-creature-you-control", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:x", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "obj:you-ve-drawn-two-or-more-cards-this-turn", "hub": false, "kind": "ObjectClass"}
+{"cards": 1, "concept_id": "op:additional-combat-phase", "hub": false, "kind": "Operation"}
+{"cards": 1, "concept_id": "op:destroy", "hub": false, "kind": "Operation"}
+{"cards": 1, "concept_id": "op:discard", "hub": false, "kind": "Operation"}
+{"cards": 1, "concept_id": "op:discard-hand", "hub": false, "kind": "Operation"}
+{"cards": 1, "concept_id": "op:draw", "hub": false, "kind": "Operation"}
+{"cards": 1, "concept_id": "op:untap", "hub": false, "kind": "Operation"}
+{"cards": 1, "concept_id": "resource:cards-in-graveyard", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "resource:mana-black", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "resource:mana-blue", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "resource:mana-colorless", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "resource:mana-green", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "resource:mana-red", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "resource:mana-white", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "resource:power-of-flyers-you-control", "hub": false, "kind": "Resource"}
+{"cards": 1, "concept_id": "state:artifact-creature", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:control-human", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:graveyard_seven_or_more_cards", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:hexproof", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:is-bear", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:azog-moria-s-ruin", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:balin-loremaster", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bard-king-of-dale", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bard-the-bowman", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:belladonna-took", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:beorn-reluctant-host", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:beorn-the-fierce", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bifur-melodic-rider", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bilbo-baggins-burglar", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bilbo-luckwearer", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bilbo-thief-in-the-night", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bofur-reliable-guardian", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bolg-of-the-north", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:bombur-gentle-dreamer", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:d-in-ironfoot", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:d-in-lord-of-the-iron-hills", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:dori-bearer-of-friends", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:dwalin-weaponmaster", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:elrond-moon-reader", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:f-li-the-pathfinder", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:galion-elvenking-s-butler", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:gandalf-goblins-bane", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:gandalf-spark-starter", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:gandalf-wandering-wizard", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:gl-in-the-mighty", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:glamdring-foe-hammer", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:gollum-riddle-master", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:gollum-silent-slinker", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:gollum-the-abandoned", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:in-the-brave", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:k-li-the-resourceful", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:my-precious", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:nori-teller-of-tales", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:orcrist-goblin-cleaver", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:ori-keeper-of-songs", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:radagast-of-rhosgobel", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:smaug-the-great-calamity", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:smaug-the-magnificent", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:smaug-wicked-worm", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:sting-bilbo-s-sword", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-arkenstone", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-black-arrow", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-chief-warg", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-great-goblin", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-lord-of-the-eagles", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-master-of-lake-town", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-notary-hobbits", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-queen-of-dale", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:the-sackville-bagginses", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:thorin-mountain-king", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:thorin-oakenshield", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:thr-r-s-map", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:thranduil-sindarin-liege", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:thranduil-the-elvenking", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:legend-conflict:tom-bert-and-william", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:mana_value_3_or_less", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:tapped", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:tapped_creature", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "state:unblockable", "hub": false, "kind": "State"}
+{"cards": 1, "concept_id": "token:bear", "hub": false, "kind": "TokenSpec"}
+{"cards": 1, "concept_id": "token:bird-soldier", "hub": false, "kind": "TokenSpec"}
+{"cards": 1, "concept_id": "token:copy", "hub": false, "kind": "TokenSpec"}
+{"cards": 1, "concept_id": "token:dragon", "hub": false, "kind": "TokenSpec"}
+{"cards": 1, "concept_id": "token:goblin-army", "hub": false, "kind": "TokenSpec"}
+{"cards": 1, "concept_id": "token:stone-boulder", "hub": false, "kind": "TokenSpec"}
+
+
+[READ-ONLY INPUT] data/pilot/frozen_control.jsonl
+
+{"ability_id": "ability:face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0:rampager-attack-sac", "dead_in_frozen_graph": false, "face_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0:rampager-dies-amass", "dead_in_frozen_graph": true, "face_id": "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:20535126-f811-4386-bdce-d73f30691724:0:a1", "dead_in_frozen_graph": true, "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:20535126-f811-4386-bdce-d73f30691724:0:a2", "dead_in_frozen_graph": false, "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:20535126-f811-4386-bdce-d73f30691724:0:a3", "dead_in_frozen_graph": false, "face_id": "face:20535126-f811-4386-bdce-d73f30691724:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0:a1", "dead_in_frozen_graph": true, "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0:a2", "dead_in_frozen_graph": false, "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0:a3", "dead_in_frozen_graph": true, "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0:a4", "dead_in_frozen_graph": true, "face_id": "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0:chapter_III_plus_counter", "dead_in_frozen_graph": false, "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0:chapter_II_reanimate", "dead_in_frozen_graph": false, "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0:chapter_I_recruit", "dead_in_frozen_graph": true, "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0:saga_lore_reminder", "dead_in_frozen_graph": true, "face_id": "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0:a1", "dead_in_frozen_graph": false, "face_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0:a2", "dead_in_frozen_graph": false, "face_id": "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0:lifelink", "dead_in_frozen_graph": true, "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1:adventure_exile", "dead_in_frozen_graph": true, "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "outgoing_edges": 0}
+{"ability_id": "ability:face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1:grant_protection", "dead_in_frozen_graph": false, "face_id": "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1", "outgoing_edges": 1}
+{"ability_id": "ability:face:961e3023-39ea-4141-99b6-738280a2815d:0:modal-damage-exile", "dead_in_frozen_graph": false, "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:961e3023-39ea-4141-99b6-738280a2815d:0:modal-destroy-artifact-token", "dead_in_frozen_graph": false, "face_id": "face:961e3023-39ea-4141-99b6-738280a2815d:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0:a1", "dead_in_frozen_graph": true, "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0:a2", "dead_in_frozen_graph": false, "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0:a3", "dead_in_frozen_graph": true, "face_id": "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0", "outgoing_edges": 0}
+{"ability_id": "ability:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0:stir-additional-cost", "dead_in_frozen_graph": false, "face_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "outgoing_edges": 1}
+{"ability_id": "ability:face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0:stir-destroy", "dead_in_frozen_graph": false, "face_id": "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0", "outgoing_edges": 1}
+
+
+[READ-ONLY INPUT] tools/make_pilot_slices.py
+
+"""Build the small, prompt-sized input slices for the task 001 layer-2 pilot.
+
+Compact inlines every declared Input into the executor prompt. The full graph
+and the comprehensive rules are ~1.0M tokens together, which exceeds the model's
+context on its own. This script cuts each source down to the eleven pilot faces
+so the card can declare real Inputs that fit.
+
+Deterministic: sorted keys, sorted rows, LF endings. Two runs agree byte for byte.
+
+    python tools/make_pilot_slices.py
+"""
+
+from __future__ import annotations
+
+import collections
+import json
+import pathlib
+import re
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+GG = ROOT / "data" / "graph_global"
+OUT = ROOT / "data" / "pilot"
+
+PILOT_FACES: tuple[str, ...] = (
+    "face:89a2fab8-b074-42aa-a871-d9c5de2d0895:0",  # Ordinary Bear
+    "face:961e3023-39ea-4141-99b6-738280a2815d:0",  # Pinecone Strike
+    "face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0",  # Bifur, Melodic Rider
+    "face:20535126-f811-4386-bdce-d73f30691724:0",  # Smaug, Wicked Worm
+    "face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0",  # Stir Up Trouble
+    "face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0",  # Elrond, Moon-Reader
+    "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0",  # Bofur, Reliable Guardian
+    "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1",  # Concerted Care (adventure)
+    "face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0",  # The Mountain-king's Return
+    "face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0",  # Wizard's Staff
+    "face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0",  # Rhovanion Rampager
+)
+
+UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+FACE_RE = re.compile(r"face:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:\d+")
+PLUMBING = frozenset(
+    {"HAS_ABILITY", "HAS_FACE", "HAS_COST", "CAN_LEAD_TO", "CAN_UNDERGO",
+     "REFERENCES_RULE", "HAS_ALTERNATIVE"}
+)
+PROPERTY_PREDICATES = frozenset({"HAS_TYPE", "HAS_KEYWORD", "HAS_STATE", "HAS_COUNTER_TYPE"})
+
+
+def read(path: pathlib.Path) -> list[dict]:
+    rows = []
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
+
+
+def write(path: pathlib.Path, rows: list[dict]) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
+    print(f"{path.stat().st_size:>9,} B  {len(rows):>4} rows  {path.relative_to(ROOT)}")
+
+
+def owner(node_id: object) -> str | None:
+    match = UUID_RE.search(str(node_id or ""))
+    return match.group(0) if match else None
+
+
+def main() -> None:
+    OUT.mkdir(parents=True, exist_ok=True)
+    wanted = set(PILOT_FACES)
+    card_uuids = {UUID_RE.search(f).group(0) for f in PILOT_FACES}  # type: ignore[union-attr]
+
+    faces = [r for r in read(ROOT / "data/normalized/faces.jsonl") if r["id"] in wanted]
+    missing = wanted - {r["id"] for r in faces}
+    if missing:
+        raise SystemExit(f"pilot faces absent from faces.jsonl: {sorted(missing)}")
+    write(OUT / "faces.jsonl", sorted(faces, key=lambda r: r["id"]))
+
+    accepted = [r for r in read(ROOT / "data/review/llm_accepted.jsonl") if r["face_id"] in wanted]
+    write(OUT / "llm_accepted.jsonl", sorted(accepted, key=lambda r: r["face_id"]))
+
+    census = [r for r in read(GG / "effect_census.jsonl") if r["face_id"] in wanted]
+    write(OUT / "effect_census.jsonl", sorted(census, key=lambda r: r["clause_id"]))
+
+    # Vocabulary seed: every shared concept, its kind, and how many cards touch it.
+    edges: list[dict] = []
+    for path in sorted(GG.glob("*edges*.jsonl")):
+        edges.extend(read(path))
+    node_kind = {r["id"]: r.get("type") for r in read(GG / "nodes.jsonl")}
+    for path in sorted(GG.glob("*_nodes.jsonl")):
+        node_kind.update({r["id"]: r.get("type") for r in read(path)})
+
+    touched: dict[str, set[str]] = collections.defaultdict(set)
+    for edge in edges:
+        if edge["predicate"] in PLUMBING:
+            continue
+        source, target = owner(edge.get("source")), owner(edge.get("target"))
+        if source and not target:
+            touched[edge["target"]].add(source)
+        elif target and not source:
+            touched[edge["source"]].add(target)
+    seed = [
+        {
+            "concept_id": concept,
+            "kind": node_kind.get(concept),
+            "cards": len(cards),
+            "hub": len(cards) > 1,
+        }
+        for concept, cards in touched.items()
+    ]
+    write(OUT / "vocabulary_seed.jsonl", sorted(seed, key=lambda r: (-r["cards"], r["concept_id"])))
+
+    # Control: the frozen graph's view of the pilot faces, and which abilities are dead.
+    outgoing = collections.Counter(e["source"] for e in edges)
+    control = []
+    for row in read(GG / "nodes.jsonl"):
+        if owner(row["id"]) not in card_uuids:
+            continue
+        if not str(row["id"]).startswith("ability:"):
+            continue
+        match = FACE_RE.search(row["id"])
+        if match is None or match.group(0) not in wanted:
+            continue
+        control.append(
+            {
+                "ability_id": row["id"],
+                "face_id": match.group(0),
+                "outgoing_edges": outgoing.get(row["id"], 0),
+                "dead_in_frozen_graph": outgoing.get(row["id"], 0) == 0,
+            }
+        )
+    write(OUT / "frozen_control.jsonl", sorted(control, key=lambda r: r["ability_id"]))
+    dead = sum(1 for r in control if r["dead_in_frozen_graph"])
+    print(f"\n  {len(control)} abilities across {len(faces)} faces; {dead} dead in the frozen graph")
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+[CURRENT STATE - TO BE EDITED] src/hobkg/cli.py
+
+"""Minimal CLI for the Phase 1 pipeline.
+
+Usage:
+    python -m hobkg.cli normalize   # run normalization + extraction + reports
+    python -m hobkg.cli validate    # reload and re-validate all emitted jsonl
+    python -m hobkg.cli schemas      # (re)export JSON Schemas only
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+
+from . import pipeline
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = argv if argv is not None else sys.argv[1:]
+    cmd = argv[0] if argv else "normalize"
+    try:                                                  # card names carry accents (D├íin, F├¡li)
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+    if cmd == "normalize":
+        stats = pipeline.run()
+        print(json.dumps(stats, indent=2))
+    elif cmd in ("templates", "expand-rules"):
+        print(json.dumps(pipeline.build_templates(), indent=2))
+    elif cmd == "build":
+        pipeline.run()
+        print(json.dumps(pipeline.build_templates(), indent=2))
+    elif cmd == "validate":
+        print(json.dumps(pipeline.validate(), indent=2))
+    elif cmd == "schemas":
+        print(json.dumps(pipeline.export_schemas(), indent=2))
+    elif cmd == "build-tasks":
+        from . import phase3
+        print(json.dumps(phase3.build_tasks(), indent=2))
+    elif cmd == "build-prompt":
+        from . import phase3
+        print(phase3.build_prompt(argv[1]))
+    elif cmd == "ingest":
+        from . import phase3
+        print(json.dumps(phase3.ingest(), indent=2))
+    elif cmd == "reconcile":
+        from . import phase3
+        print(json.dumps(phase3.reconcile(), indent=2))
+    elif cmd == "apply-dispositions":
+        from . import phase3
+        print(json.dumps(phase3.apply_dispositions(), indent=2))
+    elif cmd == "finalize-faces":
+        from . import phase3
+        print(json.dumps(phase3.finalize_faces(), indent=2))
+    elif cmd == "assemble":
+        from . import assemble
+        stats = assemble.assemble()
+        stats.pop("_violations", None)
+        print(json.dumps(stats, indent=2))
+    elif cmd == "project":
+        from . import project
+        print(json.dumps(project.project(), indent=2))
+    elif cmd == "audit-candidates":
+        from . import audit
+        print(json.dumps(audit.build_candidates(), indent=2))
+    elif cmd == "audit-batches":
+        from . import audit
+        print(json.dumps(audit.build_batches(), indent=2))
+    elif cmd == "audit-ingest":
+        from . import audit
+        print(json.dumps(audit.ingest(), indent=2))
+    elif cmd == "graph-repair":
+        from . import graph_repair
+        s = graph_repair.repair(); s.pop("_skipped", None); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject":
+        from . import graph_repair
+        print(json.dumps(graph_repair.reproject(), indent=2))
+    elif cmd == "modules":
+        from . import modules
+        print(json.dumps(modules.build_modules(), indent=2))
+    elif cmd == "coverage":
+        from . import coverage
+        print(json.dumps(coverage.coverage(), indent=2))
+    elif cmd in ("structural-validation", "gold-set"):
+        from . import coverage
+        print(json.dumps(coverage.structural_validation_set(), indent=2))
+    elif cmd == "pair-index":
+        from . import coverage
+        print(json.dumps(coverage.pair_index(), indent=2))
+    elif cmd == "complete-mechanisms":
+        from . import complete_mechanisms
+        s = complete_mechanisms.materialize(); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject-mechanisms":
+        from . import complete_mechanisms
+        print(json.dumps(complete_mechanisms.reproject(), indent=2))
+    elif cmd == "equip":
+        from . import equip
+        s = equip.materialize(); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject-equip":
+        from . import equip
+        print(json.dumps(equip.reproject(), indent=2))
+    elif cmd == "completeness":
+        from . import completeness
+        s = completeness.materialize(); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "reproject-completeness":
+        from . import completeness
+        print(json.dumps(completeness.reproject(), indent=2))
+    elif cmd == "lifecycle":
+        from . import lifecycle
+        s = lifecycle.materialize(); s.pop("_violations", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "sac-extract":
+        from . import sac_extract
+        print(json.dumps(sac_extract.report(), indent=2))
+    elif cmd == "sac-schema":
+        from . import sac_schema
+        print(json.dumps(sac_schema.report(), indent=2))
+    elif cmd == "audit-repair":
+        from . import audit_repair
+        print(json.dumps(audit_repair.materialize(), indent=2))
+    elif cmd == "effect-census":
+        from . import effect_semantics
+        s = effect_semantics.census(); s.pop("summary", None)
+        print(json.dumps(s, indent=2))
+    elif cmd == "effect-build":
+        from . import effect_semantics
+        print(json.dumps(effect_semantics.build_effects(), indent=2))
+    elif cmd == "effect-reconcile":
+        from . import effect_semantics
+        print(json.dumps(effect_semantics.reconcile(), indent=2))
+    elif cmd == "reproject-lifecycle":
+        from . import lifecycle
+        print(json.dumps(lifecycle.reproject(), indent=2))
+    elif cmd == "query-card":
+        from . import query
+        print(query.query_card(argv[1]))
+    elif cmd == "query-pair":
+        from . import query
+        print(query.query_pair(argv[1], argv[2]))
+    elif cmd == "query-mechanism":
+        from . import query
+        print(query.query_mechanism(argv[1]))
+    else:
+        print(f"unknown command: {cmd}", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+[CURRENT STATE - TO BE EDITED] pyproject.toml
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hobkg"
+version = "0.1.0"
+description = "Mechanistic knowledge-graph builder for MTGΓÇöThe Hobbit (HOB). Phase 1: deterministic normalization."
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2", "jsonschema>=4"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] docs/hob_orchestration_scope.md
+
+# Running HOB under Ratchet ΓÇö v1.1 Scope
+
+*Drafted 2026-09-02 against HOB at `0315399` and ratchet at v1. Every factual
+claim below was measured, and the command that measured it is given.*
+
+---
+
+## 1. What we are building
+
+Ratchet v1 is finished and proven: it replays the recorded HOB Phase 4a-4e loop
+exactly ΓÇö sixteen reviews, verdict sequence, repair profile 3/2/2/2/2, two
+recurrences, byte-identical ledger. But it proved that against a **synthesized**
+git history, because HOB's own commits could not be read.
+
+v1.1 makes HOB itself drivable. Four pieces of work, in dependency order:
+
+1. Repair the commit trailer defect (┬º2) ΓÇö the single blocking issue.
+2. Declare the epoch and bring HOB under Compact (┬º4).
+3. Write the phase contract and the verification config (┬º5, ┬º6).
+4. Seed the regression ratchet from the arc that already happened (┬º7).
+
+Nothing here changes ratchet. If a ratchet change turns out to be needed, that
+is a finding to report, not a thing to do quietly ΓÇö the whole point of the
+instrument is that the specification and the implementation disagree out loud.
+
+---
+
+## 2. The finding that makes this possible
+
+**HOB's commits carry correct handshake trailers. No machine can read them.**
+
+Measured over the last 80 commits:
+
+```
+commits examined                    : 80
+message CONTAINS a Role: line       : 36
+ratchet parse_trailers sees a Role  : 0
+SHADOWED (block present, unreadable): 36
+```
+
+The cause is one blank line. `0315399` ends like this:
+
+```
+Role: worker
+Phase: Phase 4
+Iteration: 4f-repair2
+Addresses-Review: b2697b084f595b76ca315a8b75cc8d514493d9c0
+Addresses-Implementation: a8ead2f780fa6f0ef79fd6e6b30f0c333bf3f962
+Validation: pytest (434 passed)
+Validation: python -m hobkg.cli effect-build (x2, byte-identical)
+Validation: python -m hobkg.cli effect-reconcile (0 unresolved)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+```
+
+Git's trailer parser reads the **last paragraph** and nothing else. That
+paragraph holds only `Co-Authored-By`, so `git log --format='%(trailers)'`
+returns just that line and the entire handshake block is invisible.
+`ratchet.gitstate.trailers.parse_trailers` uses the same last-paragraph rule and
+agrees: zero of thirty-six.
+
+Three things follow, and they matter more than the fix.
+
+**The discipline was followed.** This is not a project that ignored the
+protocol. Thirty-six commits carry a complete, correct, well-formed block with
+role, phase, iteration and both address trailers. The failure is entirely in
+paragraph placement.
+
+**The lab notebook records it as working.** The entry for `0315399` states
+"Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4f-repair2`,
+`Addresses-Review`/`Addresses-Implementation` for pt18/a8ead2f." That is true of
+the text and false of the machine-readable commit, and nothing anywhere would
+have caught the difference. Scope ┬º17.6 of the orchestrator already names this
+species ΓÇö "any generated status artifact in this system needs a machine-checked
+freshness assertion or it will do the same" ΓÇö and here it is again, in the
+append-only log that was supposed to be the reliable surface.
+
+**Nothing in `INSTRUCTIONS.md` asks for trailers at all.** Line 92 says "small,
+frequent commits with clear messages." The trailer convention lives in
+`review_event_protocol.md`, which the commit author was following from memory
+while the tool appended `Co-Authored-By` as its own paragraph underneath.
+
+### The fix
+
+`Co-Authored-By` moves into the same paragraph as the other trailers. It is a
+trailer; git treats it as one; it belongs in the block. One line of convention,
+written down in `INSTRUCTIONS.md` where the commit rule already lives, with a
+worked example.
+
+### What NOT to do
+
+**Do not rewrite history to repair the thirty-six.** Two committed artifacts pin
+HOB SHAs and would break:
+
+- `tests/fixtures/MANIFEST.json` in the orchestrator pins `source_commit`
+  `0315399b8a28defb7d3c7a9117a7a339a38a03b5` for all 39 vendored review files.
+- `src/ratchet/replay.py` pins `HOB_BASE_SHA = cec67643efd6ef13a3eabe9302c8001727f9e669`
+  and asserts every recorded `reviewed_commit` is an ancestor of it.
+
+A filter-branch would invalidate both and break the keystone replay that is the
+project's only end-to-end proof. The past stays as it is.
+
+**Do not loosen ratchet's parser to read a shadowed block.** Reading the
+second-to-last paragraph when the last one looks like trailers is exactly the
+"tolerate malformed input" move that scope ┬º15 forbids, and it would make
+`parse_trailers` disagree with git ΓÇö two readers, two answers, which is the
+condition this system exists to eliminate.
+
+---
+
+## 3. HOB as it actually stands
+
+Verified, not taken from `HANDOFF.md`:
+
+| | |
+| --- | --- |
+| HEAD | `0315399` ΓÇö "Effect-semantics Phase 4f repair 2" |
+| Working tree | 7 dirty entries, including two untracked watcher scripts |
+| Tests | **434** test functions across 38 files |
+| Effect layer | 244 effects on 144 faces; 9,032 pairs; `CAN_EXILE` 537 |
+| Reconciliation | 240 extracted, 4 deferred, 0 unresolved |
+| Determinism | two serial `effect-build` runs byte-identical |
+| Compact project? | **No** ΓÇö no `registry.md`, no `tasks/`, no `audit/` |
+
+**`HANDOFF.md` is stale, again.** It reports the graph "FROZEN at `8201109`,
+ALL reviews pt1-pt11 resolved, 227 tests pass." That describes the build-spec
+Phase 6 freeze. The effect-semantics arc came afterwards and is now at 434 tests
+and Phase 4f. Arc A pt9 found this file stale in 2026-08; it is stale again.
+
+**Two phase numbering schemes are in circulation and they collide.** The build
+spec has Phases 0-6, where Phase 4 is graph assembly and Phase 6 is higher-order
+mechanism assembly. The effect-semantics repair has its own Phase 1-4 with
+sub-phases 4a-4f. The orchestrator's vendored corpus contains both: `arc_a` is
+`hob-kg-phase6-*` (build spec Phase 6) and the Phase 4 corpus is
+`hob_effect_semantics_..._PHASE4_*` (effect-semantics 4a-4f). A phase contract
+that says "Phase 4" without saying which is ambiguous, and the `Phase:` trailer
+inherits that ambiguity. **Pick one namespace and qualify it** ΓÇö `effect-4f`,
+`buildspec-6` ΓÇö before the first card runs.
+
+### What remains, measured
+
+The spec mandates a deterministic census in which every candidate clause carries
+one of four dispositions. `data/graph_global/effect_census.jsonl` holds 408
+clauses and **every one is still `pending_structuring` (326) or
+`pending_classification` (82)**. Acceptance gate 1 -- "all candidate clauses have
+a recorded disposition" -- is therefore unmet by the census's own accounting,
+whatever `effect-reconcile` reports.
+
+Cross-referencing the census against `effect_records.jsonl` (244 records over 178
+distinct clauses):
+
+| | clauses |
+| --- | --- |
+| census clauses | 408 |
+| produced at least one effect record | 178 |
+| produced none | 230 |
+| ... of those, reminder text | 14 |
+| ... of those, unclassified (no family assigned) | 82 |
+
+Wholly unstructured clauses by family, reminder text excluded:
+
+| family | clauses | note |
+| --- | --- | --- |
+| *(unclassified)* | 82 | must be classified before they can be scoped |
+| `token_create` | 40 | no dedicated op; the largest single family gap |
+| `attachment` | 20 | handled in the equip tier, not the structured layer |
+| `restriction` | 16 | no dedicated op |
+| `mana_production` | 15 | no dedicated op |
+| `add_counter` | 13 | op exists (32 built) |
+| `amass` | 12 | handled in the mechanism tier |
+| `discard` | 12 | op exists (11 built), Phase 4b |
+| `play_cast_permission` | 12 | no dedicated op |
+| `exile` | 11 | op exists (10 built), Phase 4f |
+| `cost_modification` | 11 | no dedicated op |
+| `scry_look_reveal` | 11 | no dedicated op |
+| `modify_pt` | 11 | op exists (31 built) |
+| `draw` | 11 | op exists (34 built), Phase 4a |
+| `grant_ability` | 8 | op exists (20 built) |
+
+Twenty-one ops are built. Fourteen declared families have **no dedicated op at
+all**: `token_create`, `counterspell`, `play_cast_permission`,
+`cost_modification`, `scry_look_reveal`, `mana_production`, `restriction`,
+`replacement`, `amass`, `attachment`, `copy`, `additional_land`,
+`remove_counter`, `remove_ability`.
+
+Three readings matter more than the totals.
+
+**Phases 4a-4f opened families; they did not close them.** `draw` (Phase 4a) has
+11 unstructured clauses, `discard` (4b) 12, `sacrifice` (4c) 5, `exile` (4f) 11.
+The phases delivered each family's mechanism against its mandatory regression
+cases, which is a different achievement from exhausting its clauses. Any card
+that reads "the effect-semantics phases are done" is reading the mechanism, not
+the census.
+
+**"No dedicated op" is not the same as "absent from the graph."** Token entry
+appears in the completeness and mechanism tiers as ~479 `ENABLES_TRIGGER`
+relations, and attachment carries 3,250 records in the equip tier. What is
+missing for those families is representation in the *structured* effect layer --
+with selector, participant, binding, mode and duration -- not representation
+outright. Scoping them as greenfield work would double-build.
+
+**The 82 unclassified clauses are the first card, not the last.** They cannot be
+estimated, sequenced or deferred until they have a family, and gate 1 blocks
+acceptance until each has a disposition. Classification is cheap, deterministic,
+and unblocks the estimate for everything else.
+
+A caution on the table: a clause carries a *list* of families, so "produced at
+least one effect record" credits every family on that clause. Per-family
+completion is therefore optimistic where clauses are multi-family, and the
+honest reading of the right-hand column is "clauses this family still has no
+structured representation for at all."
+
+---
+
+## 4. The epoch
+
+The declared epoch is HOB's HEAD at the moment the trailer convention lands.
+Commits before it are pre-protocol and out of scope for the ledger; commits
+after it must satisfy the guard.
+
+This is the same move ratchet made on its own history at `da1cc9a`, for the same
+reason, and `ledger.rebuild(root, since=...)` from card 023 is the mechanism.
+Record the epoch SHA in this document when the convention commit lands.
+
+The guard is not relaxed. A commit inside the epoch with no `Phase` trailer
+raises `LedgerError` naming it ΓÇö `tests/test_ledger_rebuild.py::
+test_unbounded_rebuild_raises_naming_the_phaseless_commit` fails if anyone
+weakens that.
+
+---
+
+## 5. The phase contract
+
+Card 015 built the artifact type; HOB supplies the content, and it already
+exists in prose.
+
+**Invariants** come from `docs/hob-knowledge-graph-build-spec.md` ┬º"Semantic
+invariants" ΓÇö seventeen numbered, card-specific, individually testable claims,
+each already phrased as a testable proposition (Recruit always yields draw then
+discard; a legendary artifact counts once, not twice, for Storied; equipped-creature
+bonuses resolve to the *same* bound creature). This is the exact shape card 015's
+template was modelled on, and the mapping to named tests is mostly discoverable:
+38 test files whose names track the families.
+
+**Acceptance cases** come from `docs/hob_effect_semantics_repair_instructions.md`
+┬º"Acceptance Gates" ΓÇö thirteen numbered conditions, several already machine-checkable
+(frozen artifact hashes unchanged; two clean rebuilds byte-identical; zero provenance
+gaps and zero unresolved condition references).
+
+Card 015 requires each acceptance case to be **individually addressable by id**,
+so a deferral can be checked against it. Doing that here retires the prose
+word-subset heuristic in `escalation.build_acceptance_case_predicate` ΓÇö see
+`REVIEW_NOTES.md` ┬ºA5 and ┬ºG1. That is the single highest-value cleanup this
+scope enables, and it is a ratchet repair card, not a HOB card.
+
+**Mandatory regressions** come from the same document's ┬º"Mandatory Regression
+Cases": Warg Tactics, Reverent Howl, Pinecone Strike, and the removal/damage,
+buffs, tapping and search families.
+
+The contract is committed **in its own commit**, separate from implementation.
+Scope ┬º17.4 records why: HOB put a spec amendment and a code change in the same
+commit (`bf16c01`), which is why "the contract as of the reviewed SHA" is not
+recoverable for the Phase 6 arc.
+
+---
+
+## 6. The verification config
+
+`ratchet.verification.VerificationConfig` is JSON, `extra="forbid"`, and each
+command is `shlex.split` with `shell=False` ΓÇö **no shell**, so no `&&`, pipes,
+globs or redirects. Hash a produced file by naming it in `artifacts`, not by
+piping to `sha256sum`.
+
+HOB's commands are already known from the lab notebook's own validation lines:
+
+| Kind | Command | What it evidences |
+| --- | --- | --- |
+| `test` | `python -m pytest -q` | 434 tests |
+| `determinism` | `python -m hobkg.cli effect-build` | run twice; artifacts must hash identically |
+| `report` | `python -m hobkg.cli effect-reconcile` | "240 extracted, 4 deferred, 0 unresolved" |
+| `report` | `python -m hobkg.cli coverage` | the coverage report the build spec mandates |
+| `hash` | frozen artifacts with `baseline_sha` | "unchanged since acceptance", machine-checked from git |
+
+The determinism artifacts are the three the notebook already hashes:
+`effect_records`, the projection pairs, and `pair_index`.
+
+**One known hazard.** The notebook records that `test_suppressions` and
+`test_pair_index` exhibit "cross-test generated-artifact interference ΓÇö green on
+a clean ordered run; passes in isolation." A suite that depends on ordering is a
+suite whose green is conditional, and the regression ratchet runs guard tests
+*individually* (`pytest <node_id>`) to check liveness. Order-dependent tests
+should be fixed rather than declared around; if they cannot be, that is a
+finding for the contract's approved deferrals with a stated closure consequence.
+
+---
+
+## 7. Seeding the ratchet
+
+Two defect classes demonstrably recurred and are the reason the ratchet exists:
+
+- **path connectivity** ΓÇö raised at Arc A pt5, repaired, raised again at pt8 in
+  the reviewer's own words as "the same class of failure pt5 exposed";
+- **coverage-union** ΓÇö across pt2 and pt3.
+
+Plus the two the keystone replay detects in the effect-semantics arc:
+`selector.zone_mismatch` (pt14) and `projection.overbroad_binding` (pt15).
+
+Each gets a `class_id`, a named live guard test, and a registration in
+`cycle/regression_ledger.json`. Register them **before** the first cycle, so the
+ratchet starts from what the project already learned instead of relearning it.
+
+Note the caveat in `REVIEW_NOTES.md` ┬ºA7: occurrence counts are seeded at 1 per
+registered class and the live count lives in memory, so a controller restart
+resets a class's recurrence count. With four seeded classes that is a real
+exposure, and it is a ratchet repair card worth doing before a long HOB run.
+
+---
+
+## 8. Standing constraints
+
+- **The frozen base is frozen.** Do not rewrite it; do not minimize edge count
+  at the expense of faithful generic relations; do not patch only the named
+  audit pairs (`repair_instructions` ┬ºNon-Goals).
+- **Coverage is not correctness.** The build spec says so outright. A green
+  suite was wrong in 6 of 11 Arc A rounds.
+- **No card-name or UUID branches in reusable engine code** (acceptance gate 7).
+- **Append-only logs stay append-only.** `LABNOTEBOOK.md` and
+  `CONVERSATION_LOG.md` take corrections as new entries, never edits.
+- **Do not claim full action simulation.** It is acceptable to preserve a
+  semantic fact as structured but nonexecutable, provided that status and the
+  missing capability are explicit.
+
+---
+
+## 9. Task plan
+
+Four cards, to be refined by a `compact greenfield hobkg` session against this
+document.
+
+1. **The trailer convention.** Move `Co-Authored-By` into the trailer block;
+   document the convention in `INSTRUCTIONS.md` with a worked example; add a
+   check that a commit's block is visible to `git log --format='%(trailers)'`.
+   Declare the epoch SHA. *This card's own commit is the first conformant one.*
+2. **Compact adoption.** Land `registry.md` and `tasks/`; express the remaining
+   effect-semantics families as numeric cards; settle the phase-namespace
+   ambiguity (┬º3).
+3. **The phase contract.** Seventeen invariants mapped to named tests, thirteen
+   acceptance gates as addressable cases, mandatory regressions, closure
+   criteria. Committed separately from implementation.
+4. **Verification config and ratchet seeding.** The JSON command set of ┬º6; the
+   four registered defect classes of ┬º7 with live guards.
+
+Then the first real cycle: one bounded slice of the remaining effect-semantics
+work, run end to end, producing an implementation commit, a verification block,
+a committed review at an exact SHA, a derived verdict, and a ledger line that
+rebuilds byte-identically.
+
+That run is the actual milestone. Everything above it is setup.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 001
+status: TODO
+reviewer: sonnet
+---
+# Task 001: Layer 2 -- derive the per-card port interface
+
+## Objective
+
+Build a **derivation** that turns the reviewed extraction into a port record for
+any face: what the card is, what it looks for, what it offers. Prove it on ten
+awkward pilot faces and three holdout faces the derivation has never been tuned
+against.
+
+The deliverable is `src/hobkg/ports.py` as a *procedure*. `card_ports.jsonl` is
+its output and has no independent authority. A record that is correct but was
+typed rather than computed is a failure of this card, because the procedure is
+the thing that has to run on the other 183 faces.
+
+This is layer 2 of four:
+
+    1  card text            data/normalized/faces.jsonl        COMPLETE (210 faces, 193 cards)
+    2  per-card ports       card_ports.jsonl + vocabulary      THIS CARD
+    3  set-wide network     a VIEW over layer 2, never stored
+    4  capacity projection  a sum over layer 2, ~200 dimensions
+
+### What the previous attempt did, and why it does not count
+
+Commit `9abc144` produced eleven structurally excellent port records. It also
+hard-coded them: `_ports()` ran from line 167 to line 722 -- 555 lines of dict
+literals -- containing 11 face-id literals and 25 card names in comments such as
+`# 9 -- Wizard's Staff: grants prowess to a bound role`. `llm_accepted.jsonl`
+was read only by the validator, after the fact. `card_ports.jsonl` was a dump of
+constants, which is why "two serial runs are byte-identical" passed trivially.
+
+That attempt satisfied every criterion the card then carried. The card was at
+fault: an earlier revision required "no card-name or UUID branch in
+`src/hobkg/ports.py`" and the pilot rewrite dropped it. This revision reinstates
+it and adds a test that can actually detect a transcription.
+
+The structural work from `9abc144` is good and should be reused as the *target
+shape* -- see `reports/vocabulary_pilot.md` and `data/vocabulary/selectors.md`
+at that commit. What must change is where the values come from.
+
+### The derivation
+
+For each face: read its `llm_accepted` record, and for each ability map the
+extraction's effect verbs onto port predicates through a declared table, build
+the selector from the extraction's target/controller/restriction language, and
+attach the conditions the extraction already carries.
+
+The extraction's effect schema is not uniform, and normalising it is the job.
+Measured set-wide: 418 abilities, 417 with at least one effect entry; 118
+distinct values under the `op` key; and 112 effect entries that key their verb as
+`effect`, `action` or `type` instead, on 90 abilities. All four keys map through
+the same table.
+
+### The worked example
+
+`Pinecone Strike` (`face:961e3023-...:0`), Instant {1}{R}:
+
+    Choose one or both --
+    - Pinecone Strike deals 3 damage to target creature. If that creature would
+      die this turn, exile it instead.
+    - Destroy target artifact token.
+
+Target output, every value traceable to an extraction field:
+
+    properties: IS_A obj:type:instant
+                IS_A obj:category:nonpermanent   # derived: instant is not a permanent type (CR 110.4a)
+                IS_A obj:category:spell           # derived: castable as a spell
+    cost:       CONSUMES_MANA {1}{R}
+    modality:   choose_one_or_both
+    mode[0]:   DEALS_DAMAGE amount=3 class=obj:type:creature
+                            selector={target:{count:1}, controller:any}
+               REPLACES     when=would_die_this_turn with=(MOVES_TO zone:exile)
+                            subject=@mode[0].target
+    mode[1]:   DESTROYS     class=obj:type:artifact
+                            selector={target:{count:1}, restriction:[{is_token:true}]}
+
+`Ordinary Bear -IS_A-> obj:type:creature` then connects on its own. Nothing
+mints `obj:target-creature`.
+
+### The pilot faces
+
+Read from `data/pilot/faces.jsonl`. Ten cards, eleven faces, each breaking
+something different.
+
+| # | face | why it is in the batch |
+|---|---|---|
+| 1 | `face:89a2fab8-b074-42aa-a871-d9c5de2d0895:0` Ordinary Bear | vanilla: empty oracle, zero abilities. The null case -- properties only, nothing invented |
+| 2 | `face:961e3023-39ea-4141-99b6-738280a2815d:0` Pinecone Strike | modal `choose one or both` + replacement + two classes. The selector-grammar stress test |
+| 3 | `face:b8d563e4-e2bc-4e8b-8841-6655beff9138:0` Bifur, Melodic Rider | installs a watcher AND reads its state; `a3` trigger-doubling the frozen graph lost |
+| 4 | `face:20535126-f811-4386-bdce-d73f30691724:0` Smaug, Wicked Worm | must NOT install storied despite `QUALIFIES_FOR gate:storied`; X scales with artifacts opponents control |
+| 5 | `face:dda607bd-f419-4b7f-b052-a5ce6ce22bfe:0` Stir Up Trouble | additional cast cost with two alternatives (sacrifice or pay {4}) |
+| 6 | `face:3f4d6f91-95ad-4687-8899-5a21a0abb49e:0` Elrond, Moon-Reader | `only once each turn`; `up to two`; blink with delayed end-step return |
+| 7 | `face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:0` + `:1` Bofur // Concerted Care | Adventure: two faces, one card |
+| 8 | `face:32ad5b3e-92c0-45be-b2e4-6f1794552f36:0` The Mountain-king's Return | Saga: three chapters, lore counters, a named mechanic with a reminder parenthetical |
+| 9 | `face:30c3c700-46f4-4a77-8c45-5c7e3a21bd62:0` Wizard's Staff | Equipment: grants to a bound role, doubles that role's triggers, two equip costs |
+| 10 | `face:008a11c1-d283-49fe-abd7-ff4fe8b1fe79:0` Rhovanion Rampager | amass + a sacrifice outlet; ordinal/slug key collision |
+
+### The holdout faces
+
+Three faces the derivation must handle without any code change. They are named
+here so the reviewer can check they were not special-cased; they are **not** in
+`data/pilot/faces.jsonl` and must not be added to it.
+
+- `face:0296d57e-e5b9-456f-bb21-eb584adefb4c:0` Gollum, Silent Slinker -- a bare keyword
+- `face:011da9c5-aa8a-4fa0-b1f2-62b9f3760476:0` Belladonna Took -- branch effects keyed `effect`, not `op`
+- `face:0ea58cfe-b37c-49a6-a3be-7e60065b8238:0` Tom, Bert, and William -- activated ability with a sacrifice cost
+
+## Acceptance Criteria
+
+- [ ] **`src/hobkg/ports.py` contains no face id, no card name, and no per-card branch.** A test greps the module's own source for `face:[0-9a-f]{8}`, for each of the 193 card names in `data/normalized/cards.jsonl`, and for the pilot face ids, and asserts zero matches. This is repair-instructions acceptance gate 7 and it is the criterion the previous attempt was not held to
+- [ ] **The face set is data.** `ports.py` derives which faces to emit from `data/pilot/faces.jsonl` (or a `--face` argument), never from a constant list in the module
+- [ ] **`data/vocabulary/op_map.jsonl` maps every effect verb to a port predicate.** One row per verb, carrying the source key it was found under (`op`, `effect`, `action` or `type`), the target predicate, and a note. An unmapped verb fails the run naming the face, the ability and the verb. It is never silently dropped or defaulted
+- [ ] **The holdout test.** `hobkg ports --face <id>` emits a valid record for each of the three holdout faces above with no change to `ports.py`. A test asserts all three produce records that pass the structural checks below. A holdout that needs a code edit is a failed derivation, and the edit must not be made
+- [ ] **The stability test.** Emitting the pilot set alone and emitting the pilot set plus the three holdouts produce byte-identical rows for the eleven pilot faces. This detects per-face special-casing that a determinism check cannot
+- [ ] `data/graph_global/card_ports.jsonl` carries exactly 11 records with `properties`, `installs`, `consumes`, `produces`, `costs`, `modality` and `unresolved`
+- [ ] **Every edge names a bare class from `concepts.jsonl` and carries its selector as structured edge data.** A test asserts no record references `obj:target-creature`, `obj:creature-you-control`, `obj:up-to-one-target-creature` or any other selector-in-the-name node
+- [ ] **Types come in two flavours: printed and derived.** Every face carries `IS_A` edges for its printed types (from `type_line`) and for the derived categorical concepts those types imply. At minimum: `obj:category:permanent` for the six permanent types (CR 110.4a -- artifact, battle, creature, enchantment, land, planeswalker); `obj:category:nonpermanent` for instant and sorcery; `obj:category:spell` for anything but land. A test asserts Elrond and The Mountain-king's Return and Wizard's Staff all `IS_A obj:category:permanent` (creature, enchantment, artifact respectively); Pinecone Strike and Stir Up Trouble both `IS_A obj:category:nonpermanent` (instant, sorcery). The `obj:category:*` concepts are declared in `concepts.jsonl` with a rule citation
+- [ ] **Triggers are inputs, and they are concepts.** Every trigger resolves to an `Event` concept declared in `concepts.jsonl` and appears under `consumes`, not as a free-text field on a produce entry. The previous attempt emitted six trigger strings (`this_creature_dies`, `you_cast_spell`, `you_activate_creature_ability`, `this_creature_enters`, `this_creature_attacks`, `this_creature_enters_or_attacks`), none declared, leaving `consumes` empty on ten of eleven faces and `Event` absent from the vocabulary entirely
+- [ ] `SCALES_WITH` and cost consumption are also inputs: Smaug's artifact count and Stir Up Trouble's sacrifice branch appear under `consumes`
+- [ ] **Every clause of every emitted face's oracle text is covered by an `oracle_span`.** Uncovered text fails the run naming the face and the character range. Reminder parentheticals may carry `reminder: true` but must still be spanned
+- [ ] Modality is structure: Pinecone Strike carries `modality: choose_one_or_both` with two modes, the 3-damage amount present as a number, and the exile replacement bound to mode 0's target
+- [ ] Alternatives are structure: Stir Up Trouble's additional cost carries both branches with `{4}` as a peer, not a string inside a node id
+- [ ] Conditions land on the port entry they qualify: Elrond's `only_once_each_turn` and `up_to`. A test asserts zero orphans among the emitted conditions
+- [ ] The watcher rule holds: Bifur installs `storied`, Smaug does not, from the same inputs. `QUALIFIES_FOR` is watcher-derived and never a card output
+- [ ] Role bindings are edges: Wizard's Staff grants prowess to `binding: equipped`, not to a concept named `obj:equipped-creature`
+- [ ] **Every ability on every emitted face reaches exactly one disposition** -- produces, installs, grants, cost, or `unresolved` with clause text and a reason. The run prints the tally and fails if any is unaccounted for
+- [ ] The 11 abilities flagged `dead_in_frozen_graph` in `data/pilot/frozen_control.jsonl` resolve to a non-`unresolved` disposition. A test names any that do not
+- [ ] A card agent may propose a concept into `data/vocabulary/proposals.jsonl` with face, clause, rule citation and reason; it may not coin one. A record referencing an undeclared concept fails the run. `concepts.jsonl` is written only by the overseer pass, which emits `reports/vocabulary_pilot.md`
+- [ ] Additive only: `nodes.jsonl`, `edges.jsonl` and `conditions.jsonl` are byte-identical after the run
+- [ ] `src/hobkg/ports.py` imports nothing from `assemble`, `completeness`, `equip`, `effect_semantics`, `audit` or `audit_repair`. A test asserts this
+- [ ] Ruff (`E,F,I,B,UP`, line length 100) and `mypy --strict` report zero on `src/hobkg/ports.py` and `tests/test_ports.py`
+- [ ] The implementer commits its own work with a readable trailer block carrying `Role: worker`, `Phase: ports-v1` and an `Iteration`, per INSTRUCTIONS.md section 8
+- [ ] The commit leaves the working tree clean apart from the paths Compact itself writes
+
+## Inputs
+
+- data/pilot/faces.jsonl
+- data/pilot/llm_accepted.jsonl
+- data/pilot/effect_census.jsonl
+- data/pilot/vocabulary_seed.jsonl
+- data/pilot/frozen_control.jsonl
+- tools/make_pilot_slices.py
+
+## Modifies
+
+- src/hobkg/cli.py
+- pyproject.toml
+
+## See Also
+
+- docs/hob_orchestration_scope.md
+
+## Outputs
+
+- src/hobkg/ports.py
+- tests/test_ports.py
+- data/vocabulary/concepts.jsonl
+- data/vocabulary/op_map.jsonl
+- data/vocabulary/type_categories.jsonl
+- data/vocabulary/selectors.md
+- data/vocabulary/proposals.jsonl
+- data/graph_global/card_ports.jsonl
+- reports/vocabulary_pilot.md
+
+## Requirements
+
+- The deliverable is the derivation. If a value in a port record cannot be traced to a field in `llm_accepted.jsonl`, `faces.jsonl` or a declared table in `data/vocabulary/`, it does not belong in the output
+- Read the holdout faces from `data/review/llm_accepted.jsonl` and `data/normalized/faces.jsonl` on disk. They are deliberately absent from the declared Inputs so that they cannot be read from the prompt and transcribed
+- The declared Inputs are prompt-sized slices cut by `tools/make_pilot_slices.py`. Compact inlines every declared Input into the executor prompt; the full sources total about 1.0M tokens and do not fit. Never declare `data/graph_global/*.jsonl`, `data/review/llm_accepted.jsonl` or `data/raw/comprehensive_rules.txt` as Inputs
+- The comprehensive rules are read from disk, not attached. Grep `data/raw/comprehensive_rules.txt` for the specific rule numbers a card needs
+- Join the extraction to the census by oracle span. The two id families are about 83% disjoint; positional joining is wrong on 75 of 210 faces, and where both look ordinal the extraction is 1-based against a 0-based census. Span overlap resolves 210 of 210, many-to-one
+- Do not widen the selector grammar to make a card fit. Report the card and the construct
+- Do not rewrite the frozen base. This layer is additive
+- A keyword ability is a disposition, not an absence. A watcher-installing ability legitimately produces no operation
+- Derived-type `IS_A` edges are computed from the type line by rule, not typed per face. The mapping from primary type to categorical concept lives in `data/vocabulary/type_categories.jsonl`, one row per primary type, each row citing the comprehensive rule that justifies it. `properties` gets those edges by lookup, never by hand -- layer 4 timing inference will depend on this classification
+- Reuse the record shape and selector grammar from commit `9abc144`; replace only the source of the values
+
+## Checks
+
+- python -m pytest tests/test_ports.py -q
+- python -m hobkg.cli ports --validate
+
+## Skip Default Checks
+
+- python -m pytest -q
+
+## Output Validation
+
+- python -m pytest tests/test_ports.py -q
+- python -m hobkg.cli ports --validate
+- ruff check --select E,F,I,B,UP --line-length 100 src/hobkg/ports.py tests/test_ports.py
+- mypy --strict src/hobkg/ports.py
+
+## Notes
+
+**Why the default check is skipped.** The registry's `python -m pytest -q` runs
+461 tests for an engine this layer imports nothing from. On 2026-09-03 it failed
+on `tests/test_completeness.py::test_deterministic` with
+`OSError: [Errno 22]` opening `card_pair_projection_completeness.jsonl` -- a test
+that calls `materialize()` and `reproject()` twice and hashes the files it writes
+into the real `data/graph_global/`. That test also leaves `llm_accepted.jsonl`,
+`llm_queued.jsonl` and `reports/coverage.md` modified, which is why verification
+refused the tree. The failure predates this card: commit `9abc144` touched
+neither `completeness.py`, its test, nor the projection files. It gets its own
+card. Blocking layer 2 on it is coupling that this layer does not otherwise have.
+
+**Why the pilot exists.** Measured 2026-09-03: layer 2 as a bipartite graph is
+1,459 card-to-concept edges over 323 concepts. Layer 3, the one-mode projection
+of exactly that, is 21,758 distinct ordered pairs -- a 15x expansion. The
+previous build materialised the expansion before the 1,459 were settled, because
+the build spec's completion criteria demand a projection record for all 37,249
+ordered pairs while modelling principle 4 of the same spec says pair relations
+are derived views. The gate contradicted the principle and the gate won. Layer 2
+appears nowhere in that spec as a deliverable, which is why it does not exist.
+
+**What goes wrong without a governed vocabulary.** There are 48 distinct concept
+nodes containing the word "creature": `obj:type:creature` (125 cards),
+`obj:target-creature` (23), `obj:creature-you-control` (17),
+`event:this-creature-dies` (9), `event:this_creature_dies` (9), and 43 more,
+nearly all touched by one card. 203 of the 323 concepts are singletons. String
+normalisation explains only 21 of them. The rest are selectors baked into node
+names: `obj:target-creature` is `obj:type:creature` plus a targeting quantifier
+plus a controller scope.
+
+**Amended four times.** This card began as "classify every unclassified census
+clause"; became a ports layer over the frozen graph; then over `llm_accepted`;
+then a ten-face pilot. This revision makes the derivation the deliverable after
+`9abc144` satisfied the pilot card by transcription.
+
+**Scope note on the 142.** Set-wide, 142 abilities have no outgoing edge in the
+frozen graph and 141 survive every additive tier. That counts silence, not error.
+Stir Up Trouble and Elrond have zero dead abilities and are both wrong: Stir's
+graph says it always sacrifices a permanent when it could pay {4}; Elrond's says
+it draws on every creature-ability activation rather than once each turn.
+
+## Reviewer Notes
+
+Check the derivation before the records. A record that is right for the wrong
+reason is the failure mode this revision exists to catch.
+
+- open `src/hobkg/ports.py` and find where each value in a port record comes from. Any literal that is a card fact rather than a rule is a blocking finding
+- run the holdout faces yourself and read the three records. They were never hand-checked by the implementer, so they are the honest sample
+- an edge's predicate misstating the rules effect (a damage effect recorded as `CAUSES`; a destroy recorded as a zone change)
+- a selector wrong in a way the grammar permits (missing `another`, wrong controller scope, a target count that does not match the text)
+- a replacement or delayed effect modelled as immediate, or its subject bound to the wrong object
+- a cost modelled as an ability, or an ability as a cost
+- a trigger whose event does not match the printed trigger condition, or which is not a declared concept
+- a proposed concept duplicating a seeded one, or a seeded one used for something it does not mean
+- a derived-type `IS_A` edge missing (an enchantment card without `IS_A obj:category:permanent`, an instant without `IS_A obj:category:nonpermanent`) or minted per face rather than looked up from `type_categories.jsonl`
+
+Cite the comprehensive rule by number. A finding without a rule citation or an
+oracle span is not actionable.
