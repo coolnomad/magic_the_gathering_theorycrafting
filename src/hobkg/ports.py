@@ -137,6 +137,11 @@ STATE_REQUIREMENT_MAP: dict[str, str] = {
 }
 
 
+# Keyword-action verbs that appear as top-level *keys* in effect dicts
+# (rather than as values on op/effect/action/type). Card 002.
+KEYWORD_VERB_KEYS: tuple[str, ...] = ("amass",)
+
+
 def derive_properties(
     face: dict[str, Any], type_categories: dict[str, list[dict[str, Any]]]
 ) -> list[dict[str, Any]]:
@@ -192,28 +197,149 @@ def derive_properties(
 
 
 def map_trigger_to_event(trigger: dict[str, Any]) -> str | None:
-    """Map trigger dict to Event concept."""
+    """Map trigger dict to Event concept.
+
+    Card 002: extended from the 001 pilot's 6-event map to cover the 89 distinct
+    trigger phrases observed across all 210 faces. Ordering matters: more
+    specific patterns must come before generic ones (e.g. saga-chapter before
+    'lore counter', dwarf/equipment enters before 'this creature enters').
+    """
     event = trigger.get("event", "")
-
-    # Normalize: handle both underscore and space variants
     event_norm = event.replace(" ", "_").lower()
+    event_lower = event.lower()
 
-    if event_norm == "this_creature_attacks" or "creature attacks" in event.lower():
-        return "event:this-creature-attacks"
-    if event_norm == "this_creature_dies" or "creature dies" in event.lower():
-        return "event:this-creature-dies"
-    if event_norm == "this_creature_enters" or "enters" in event.lower():
-        return "event:this-creature-enters"
-    if "enters_or_attacks" in event_norm or "enters or attacks" in event.lower():
-        return "event:this-creature-enters-or-attacks"
-    if "cast" in event.lower() and "spell" in event.lower():
-        return "event:you-cast-spell"
-    if "activate" in event.lower() and "creature" in event.lower():
-        return "event:you-activate-creature-ability"
-    # F3 saga.silent_chapter_loss: Saga chapter abilities trigger when a lore
-    # counter causes the chapter to become current (CR 714.3a).
-    if "lore_count_reaches" in event_norm or "lore counter" in event.lower():
+    # ---- Saga chapter (matches "lore counter reaches ...", "chapter") ----
+    if "lore_count" in event_norm or "lore counter" in event_lower or event_norm == "chapter":
         return "event:saga-chapter"
+
+    # ---- Phase / step triggers ----
+    if "beginning_of_your_first_main_phase" in event_norm or "beginning of your first main phase" in event_lower:
+        return "event:beginning-of-first-main-phase"
+    if "beginning_of_your_upkeep" in event_norm or "beginning of your upkeep" in event_lower:
+        return "event:beginning-of-your-upkeep"
+    if event_norm == "upkeep" or "beginning of upkeep" in event_lower:
+        return "event:beginning-of-upkeep"
+    if "beginning_of_end_step" in event_norm or "beginning of end step" in event_lower:
+        return "event:beginning-of-end-step"
+    if "beginning_of_combat" in event_norm or "beginning of combat" in event_lower:
+        return "event:beginning-of-combat"
+
+    # ---- Attack triggers ----
+    if ("total_power_12" in event_norm or "total power 12" in event_lower or
+            ("attack_with_creatures" in event_norm and "power_12" in event_norm)):
+        return "event:total-attack-power-12-or-greater"
+    if event_norm == "you_attack" or event_lower.strip() == "you attack":
+        return "event:you-attack"
+    if event_norm == "this_creature_attacks" or "creature attacks" in event_lower:
+        return "event:this-creature-attacks"
+    # Bare "attacks" and subject-name self-references ("Dain attacks", "smaug_attacks")
+    if event_norm == "attacks" or event_norm.endswith("_attacks") or event_lower.strip().endswith(" attacks"):
+        return "event:this-creature-attacks"
+
+    # ---- Combat damage ----
+    if "equipped_creature_deals_combat_damage" in event_norm or "equipped creature deals combat damage" in event_lower:
+        return "event:equipped-creature-deals-combat-damage-to-player"
+    if ("deals_combat_damage_to_a_player" in event_norm or
+            "deals combat damage to a player" in event_lower or
+            "deals_combat_damage_to_player" in event_norm):
+        return "event:this-creature-deals-combat-damage-to-player"
+
+    # ---- Dies triggers ----
+    if "one_or_more_other_creatures_die" in event_norm or "one or more other creatures die" in event_lower:
+        return "event:one-or-more-other-creatures-die"
+    if "nontoken_creature_you_control_dies" in event_norm or "nontoken creature you control dies" in event_lower:
+        return "event:nontoken-creature-you-control-dies"
+    if "another_creature_dies" in event_norm or "another creature dies" in event_lower:
+        return "event:another-creature-dies"
+    if ("this_artifact_is_put_into_a_graveyard" in event_norm or
+            "artifact is put into a graveyard" in event_lower):
+        return "event:this-artifact-dies"
+    if event_norm in ("this_creature_dies", "creature_dies"):
+        return "event:this-creature-dies"
+    # Bare "dies" and subject-name self-references ("The Master of Lake-town dies")
+    if event_norm == "dies" or event_norm.endswith("_dies") or event_lower.strip().endswith(" dies"):
+        return "event:this-creature-dies"
+
+    # ---- Enter-the-battlefield triggers (specific-subject variants first) ----
+    if ("another_dwarf_or_equipment" in event_norm) or ("dwarf you control enters" in event_lower):
+        return "event:another-dwarf-or-equipment-enters"
+    if "land_enters" in event_norm or "land you control enters" in event_lower:
+        return "event:land-enters-under-your-control"
+    if "artifact_you_control_enters" in event_norm or "artifact you control enters" in event_lower:
+        return "event:artifact-enters-under-your-control"
+    # This-permanent (equipment / artifact / enchantment / aura) enters
+    if any(x in event_norm for x in (
+        "this_permanent_enters", "permanent_enters",
+        "this_equipment_enters", "this_artifact_enters",
+        "this_enchantment_enters", "this_aura_enters",
+    )):
+        return "event:this-permanent-enters"
+    if any(x in event_lower for x in (
+        "this equipment enters", "this artifact enters",
+        "this enchantment enters", "this aura enters",
+    )):
+        return "event:this-permanent-enters"
+    # Enters-or-attacks
+    if "enters_or_attacks" in event_norm or "enters or attacks" in event_lower:
+        return "event:this-creature-enters-or-attacks"
+    # This-creature enters (explicit)
+    if event_norm in ("this_creature_enters", "creature_enters",
+                      "enters_the_battlefield", "enters"):
+        return "event:this-creature-enters"
+    if "this creature enters" in event_lower or "creature enters" in event_lower:
+        return "event:this-creature-enters"
+    # Subject-name enters (self-reference: "Dain enters the battlefield", "thorin_enters")
+    if (event_norm.endswith("_enters") or
+            event_lower.strip().endswith("enters the battlefield") or
+            event_lower.strip().endswith(" enters")):
+        return "event:this-creature-enters"
+
+    # ---- Cast triggers ----
+    if "you_cast_a_creature_spell" in event_norm or "you cast a creature spell" in event_lower:
+        return "event:you-cast-creature-spell"
+    if "you_cast_a_noncreature_spell" in event_norm or "you cast a noncreature spell" in event_lower:
+        return "event:you-cast-noncreature-spell"
+    if ("opponent_casts_spell" in event_norm or "opponent casts a spell" in event_lower or
+            "an opponent casts a spell" in event_lower):
+        return "event:opponent-casts-spell"
+    if "cast" in event_lower and "spell" in event_lower:
+        return "event:you-cast-spell"
+
+    # ---- Draw / life / activate / target ----
+    if ("you_draw_your_second_card" in event_norm or "you draw your second card" in event_lower or
+            "draw_second_card" in event_norm):
+        return "event:you-draw-second-card"
+    if "you_draw_a_card" in event_norm or "you draw a card" in event_lower:
+        return "event:you-draw-card"
+    if "player_draws_card" in event_norm or "player draws" in event_lower:
+        return "event:player-draws-card"
+    if "player_loses_life" in event_norm or "player loses life" in event_lower:
+        return "event:player-loses-life"
+    if "activate" in event_lower and "creature" in event_lower:
+        return "event:you-activate-creature-ability"
+    if "becomes_the_target" in event_norm or "becomes the target" in event_lower:
+        return "event:this-creature-becomes-target"
+
+    # ---- Sacrifice / exile replacement ----
+    if "you_sacrifice_a_token" in event_norm or "you sacrifice a token" in event_lower:
+        return "event:you-sacrifice-token"
+    if "you_sacrifice_a_creature_this_way" in event_norm or "you sacrifice a creature this way" in event_lower:
+        return "event:you-sacrifice-creature-this-way"
+    if "you_sacrifice_a_creature" in event_norm or "you sacrifice a creature" in event_lower:
+        return "event:you-sacrifice-creature"
+    if "you_exile_a_creature" in event_norm or "you exile a creature" in event_lower:
+        return "event:you-exile-creature-replacement"
+
+    # ---- Counters / equipment / graveyard-leave ----
+    if "counters_placed" in event_norm or "counters placed" in event_lower:
+        return "event:counters-placed"
+    if ("equipment_become_attached" in event_norm or "equipment become attached" in event_lower or
+            "equipment attached" in event_lower):
+        return "event:equipment-attached-to-that-creature"
+    if ("creature_card_leaves_your_graveyard" in event_norm or
+            "creature card leaves your graveyard" in event_lower or
+            "leaves your graveyard" in event_lower):
+        return "event:creature-card-leaves-graveyard"
 
     return None
 
@@ -335,7 +461,13 @@ def derive_port(
 
         # Process effects
         for effect in ab.get("effects", []):
-            # Find verb
+            # Find verb. Standard source_keys hold the verb as a *value*
+            # (e.g. {"op": "draw_cards"}). Card 002: some Magic keyword-actions
+            # come through with the verb as a top-level *key* whose value is
+            # the parameter block (e.g.
+            # {"amass": {"army_subtype": "Goblins", "n": 2}}). Those are
+            # treated as source_key == verb; op_map declares them the same way
+            # ({"verb": "amass", "source_key": "amass"}).
             verb = None
             source_key = None
             for key in ["op", "effect", "action", "type"]:
@@ -343,6 +475,13 @@ def derive_port(
                     verb = effect[key]
                     source_key = key
                     break
+
+            if verb is None:
+                for kw_key in KEYWORD_VERB_KEYS:
+                    if kw_key in effect:
+                        verb = kw_key
+                        source_key = kw_key
+                        break
 
             if not verb:
                 port["unresolved"].append({
@@ -533,23 +672,31 @@ def derive_port(
 
 def derive_all(
     face_ids: list[str] | None = None,
+    all_faces: bool = False,
     data_dir: pathlib.Path = ROOT / "data",
     vocab_dir: pathlib.Path = ROOT / "data" / "vocabulary",
 ) -> list[dict[str, Any]]:
-    """Derive port records for pilot faces or specified faces."""
+    """Derive port records.
 
-    # Load pilot face set. face_ids-arg mode falls through to the full-set
-    # faces.jsonl below, so we do not need a per-slice id filter here.
+    Modes (mutually exclusive; first-truthy wins):
+      * all_faces=True   -> derive for every face in normalized/faces.jsonl,
+                            using the full Phase-3 extraction (llm_accepted.jsonl).
+                            This is the Card 002 whole-set mode.
+      * face_ids=[...]   -> derive for the specified normalized face ids only.
+      * default          -> pilot slice (11 faces from data/pilot/).
+    """
+
     pilot_faces = read_jsonl(data_dir / "pilot" / "faces.jsonl")
 
     # Determine which faces to process
-    if face_ids:
-        # Load from full sources
-        all_faces = read_jsonl(data_dir / "normalized" / "faces.jsonl")
-        faces = [f for f in all_faces if f["id"] in face_ids]
+    if all_faces:
+        faces = read_jsonl(data_dir / "normalized" / "faces.jsonl")
+        extraction_path = data_dir / "review" / "llm_accepted.jsonl"
+    elif face_ids:
+        all_normalized = read_jsonl(data_dir / "normalized" / "faces.jsonl")
+        faces = [f for f in all_normalized if f["id"] in face_ids]
         extraction_path = data_dir / "review" / "llm_accepted.jsonl"
     else:
-        # Use pilot slices
         faces = pilot_faces
         extraction_path = data_dir / "pilot" / "llm_accepted.jsonl"
 
@@ -557,10 +704,10 @@ def derive_all(
     extractions = read_jsonl(extraction_path)
     extraction_by_face = {e["face_id"]: e for e in extractions}
 
-    # Load census
+    # Load census (full-set path when running --all or with explicit face_ids)
     census_path = (
         data_dir / "pilot" / "effect_census.jsonl"
-        if not face_ids
+        if (not face_ids and not all_faces)
         else data_dir / "graph_global" / "effect_census.jsonl"
     )
     census = read_jsonl(census_path) if census_path.exists() else []
@@ -617,13 +764,19 @@ def validate_ports(ports: list[dict[str, Any]], vocab_dir: pathlib.Path) -> dict
                 stats["total_edges"] += 1
                 target = edge.get("target", "")
 
-                # Check for selector-in-name anti-pattern
-                for pattern in selector_patterns:
-                    if pattern in target:
-                        stats["selector_in_name"].append({
-                            "face": port["face_id"],
-                            "target": target,
-                        })
+                # Check for selector-in-name anti-pattern. Event concepts are
+                # exempt: CR-defined trigger predicates legitimately embed a
+                # subject qualifier ("nontoken creature you control dies",
+                # "equipped creature deals combat damage") and are single,
+                # well-defined trigger patterns rather than compound ObjectClass
+                # names.
+                if not target.startswith("event:") and any(
+                    pattern in target for pattern in selector_patterns
+                ):
+                    stats["selector_in_name"].append({
+                        "face": port["face_id"],
+                        "target": target,
+                    })
 
                 # Check if concept is declared
                 if target and target not in declared_concepts:
@@ -662,18 +815,26 @@ def main(argv: list[str] | None = None) -> int:
 
         return 0
 
-    # Parse --face arguments
+    # Parse --face and --all arguments
     face_ids = []
+    all_faces = False
     i = 0
     while i < len(argv):
         if argv[i] == "--face" and i + 1 < len(argv):
             face_ids.append(argv[i + 1])
             i += 2
+        elif argv[i] == "--all":
+            all_faces = True
+            i += 1
         else:
             i += 1
 
+    if all_faces and face_ids:
+        print("--all and --face are mutually exclusive", file=sys.stderr)
+        return 2
+
     # Derive ports
-    ports = derive_all(face_ids if face_ids else None)
+    ports = derive_all(face_ids if face_ids else None, all_faces=all_faces)
 
     # Write output
     output_path = ROOT / "data" / "graph_global" / "card_ports.jsonl"

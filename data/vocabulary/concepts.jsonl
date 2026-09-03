@@ -30,3 +30,106 @@
 {"concept_id": "resource:mana", "kind": "Resource", "note": "Mana resource", "rule": "CR 106"}
 {"concept_id": "event:saga-chapter", "kind": "Event", "label": "Saga chapter ability trigger", "note": "Fires when a lore counter added to a Saga causes a chapter to become current", "rule": "CR 714.3a"}
 {"concept_id": "state:enduring_story", "kind": "State", "label": "Enduring Story", "note": "Set once by the Storied gate; persists for the rest of the game", "rule": "HOB mechanics article: Storied"}
+{"concept_id": "event:you-attack", "kind": "Event", "label": "You attack (attackers declared)", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:beginning-of-combat", "kind": "Event", "label": "Beginning of combat step (CR 507)", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:beginning-of-upkeep", "kind": "Event", "label": "Beginning of upkeep step (CR 503)", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:beginning-of-end-step", "kind": "Event", "label": "Beginning of end step (CR 513)", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:beginning-of-first-main-phase", "kind": "Event", "label": "Beginning of first main phase", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:beginning-of-your-upkeep", "kind": "Event", "label": "Beginning of your upkeep step", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:upkeep", "kind": "Event", "label": "Upkeep step", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:end-step", "kind": "Event", "label": "End step", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:you-draw-card", "kind": "Event", "label": "You draw a card", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:you-draw-second-card", "kind": "Event", "label": "You draw your second card this turn", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:player-draws-card", "kind": "Event", "label": "A player draws a card", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:player-loses-life", "kind": "Event", "label": "A player loses life", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:you-sacrifice-token", "kind": "Event", "label": "You sacrifice a token", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:you-sacrifice-creature", "kind": "Event", "label": "You sacrifice a creature", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:you-sacrifice-creature-this-way", "kind": "Event", "label": "You sacrifice a creature this way (reflexive)", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:another-creature-dies", "kind": "Event", "label": "Another creature dies", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:one-or-more-other-creatures-die", "kind": "Event", "label": "One or more other creatures die simultaneously", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:nontoken-creature-you-control-dies", "kind": "Event", "label": "A nontoken creature you control dies", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:this-artifact-dies", "kind": "Event", "label": "This artifact is put into a graveyard from the battlefield", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:creature-card-leaves-graveyard", "kind": "Event", "label": "A creature card leaves your graveyard", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:counters-placed", "kind": "Event", "label": "Counters are placed", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:opponent-creature-exiled", "kind": "Event", "label": "You exile an opponent creature via replacement", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:this-creature-becomes-target", "kind": "Event", "label": "This creature becomes the target of an opponent spell or ability", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:deals-combat-damage-to-player", "kind": "Event", "label": "Deals combat damage to a player", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:equipped-creature-deals-combat-damage-to-player", "kind": "Event", "label": "Equipped creature deals combat damage to a player", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:this-creature-deals-combat-damage-to-player", "kind": "Event", "label": "This creature deals combat damage to a player", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:equipment-attached-to-that-creature", "kind": "Event", "label": "One or more equipment become attached to that creature this way", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:total-attack-power-12-or-greater", "kind": "Event", "label": "You attack with creatures with total power 12 or greater for the first time each turn", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:total-power-threshold", "kind": "Event", "label": "Total attack power threshold trigger", "rule": "CR (see rules for phase/trigger event)"}
+{"concept_id": "event:you-cast-creature-spell", "kind": "Event", "note": "You cast a creature spell"}
+{"concept_id": "event:you-cast-noncreature-spell", "kind": "Event", "note": "You cast a noncreature spell"}
+{"concept_id": "event:opponent-casts-spell", "kind": "Event", "note": "An opponent casts a spell"}
+{"concept_id": "event:land-enters-under-your-control", "kind": "Event", "note": "A land you control enters"}
+{"concept_id": "event:artifact-enters-under-your-control", "kind": "Event", "note": "An artifact you control enters"}
+{"concept_id": "event:another-dwarf-or-equipment-enters", "kind": "Event", "note": "Balin/another Dwarf or Equipment you control enters"}
+{"concept_id": "event:this-permanent-enters", "kind": "Event", "note": "This permanent (artifact/enchantment/equipment/aura) enters"}
+{"concept_id": "event:you-exile-creature-replacement", "kind": "Event", "note": "You exile a creature this way via replacement effect"}
+{"concept_id": "obj:supertype:basic", "kind": "ObjectClass", "note": "supertype: basic", "rule": "CR 205.4"}
+{"concept_id": "obj:supertype:legendary", "kind": "ObjectClass", "note": "supertype: legendary", "rule": "CR 205.4"}
+{"concept_id": "obj:subtype:adventure", "kind": "ObjectClass", "note": "subtype: adventure", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:advisor", "kind": "ObjectClass", "note": "subtype: advisor", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:archer", "kind": "ObjectClass", "note": "subtype: archer", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:artificer", "kind": "ObjectClass", "note": "subtype: artificer", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:aura", "kind": "ObjectClass", "note": "subtype: aura", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:avatar", "kind": "ObjectClass", "note": "subtype: avatar", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:bard", "kind": "ObjectClass", "note": "subtype: bard", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:bat", "kind": "ObjectClass", "note": "subtype: bat", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:bear", "kind": "ObjectClass", "note": "subtype: bear", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:bird", "kind": "ObjectClass", "note": "subtype: bird", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:citizen", "kind": "ObjectClass", "note": "subtype: citizen", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:cleric", "kind": "ObjectClass", "note": "subtype: cleric", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:dog", "kind": "ObjectClass", "note": "subtype: dog", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:dragon", "kind": "ObjectClass", "note": "subtype: dragon", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:druid", "kind": "ObjectClass", "note": "subtype: druid", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:dwarf", "kind": "ObjectClass", "note": "subtype: dwarf", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:elf", "kind": "ObjectClass", "note": "subtype: elf", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:equipment", "kind": "ObjectClass", "note": "subtype: equipment", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:forest", "kind": "ObjectClass", "note": "subtype: forest", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:giant", "kind": "ObjectClass", "note": "subtype: giant", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:goblin", "kind": "ObjectClass", "note": "subtype: goblin", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:halfling", "kind": "ObjectClass", "note": "subtype: halfling", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:horror", "kind": "ObjectClass", "note": "subtype: horror", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:horse", "kind": "ObjectClass", "note": "subtype: horse", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:human", "kind": "ObjectClass", "note": "subtype: human", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:insect", "kind": "ObjectClass", "note": "subtype: insect", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:island", "kind": "ObjectClass", "note": "subtype: island", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:mountain", "kind": "ObjectClass", "note": "subtype: mountain", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:noble", "kind": "ObjectClass", "note": "subtype: noble", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:pilot", "kind": "ObjectClass", "note": "subtype: pilot", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:plains", "kind": "ObjectClass", "note": "subtype: plains", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:rabbit", "kind": "ObjectClass", "note": "subtype: rabbit", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:ranger", "kind": "ObjectClass", "note": "subtype: ranger", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:rogue", "kind": "ObjectClass", "note": "subtype: rogue", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:saga", "kind": "ObjectClass", "note": "subtype: saga", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:scout", "kind": "ObjectClass", "note": "subtype: scout", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:shapeshifter", "kind": "ObjectClass", "note": "subtype: shapeshifter", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:soldier", "kind": "ObjectClass", "note": "subtype: soldier", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:spider", "kind": "ObjectClass", "note": "subtype: spider", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:swamp", "kind": "ObjectClass", "note": "subtype: swamp", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:troll", "kind": "ObjectClass", "note": "subtype: troll", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:vehicle", "kind": "ObjectClass", "note": "subtype: vehicle", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:warrior", "kind": "ObjectClass", "note": "subtype: warrior", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:wizard", "kind": "ObjectClass", "note": "subtype: wizard", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:wolf", "kind": "ObjectClass", "note": "subtype: wolf", "rule": "CR 205.3"}
+{"concept_id": "obj:subtype:wurm", "kind": "ObjectClass", "note": "subtype: wurm", "rule": "CR 205.3"}
+{"concept_id": "keyword:deathtouch", "kind": "Keyword", "note": "Deathtouch keyword", "rule": "CR 702"}
+{"concept_id": "keyword:double strike", "kind": "Keyword", "note": "Double strike keyword", "rule": "CR 702"}
+{"concept_id": "keyword:enchant", "kind": "Keyword", "note": "Enchant keyword", "rule": "CR 702"}
+{"concept_id": "keyword:equip", "kind": "Keyword", "note": "Equip keyword", "rule": "CR 702"}
+{"concept_id": "keyword:ferocious", "kind": "Keyword", "note": "Ferocious keyword", "rule": "CR 702"}
+{"concept_id": "keyword:first strike", "kind": "Keyword", "note": "First strike keyword", "rule": "CR 702"}
+{"concept_id": "keyword:flash", "kind": "Keyword", "note": "Flash keyword", "rule": "CR 702"}
+{"concept_id": "keyword:flashback", "kind": "Keyword", "note": "Flashback keyword", "rule": "CR 702"}
+{"concept_id": "keyword:haste", "kind": "Keyword", "note": "Haste keyword", "rule": "CR 702"}
+{"concept_id": "keyword:hone", "kind": "Keyword", "note": "Hone keyword", "rule": "CR 702"}
+{"concept_id": "keyword:kicker", "kind": "Keyword", "note": "Kicker keyword", "rule": "CR 702"}
+{"concept_id": "keyword:menace", "kind": "Keyword", "note": "Menace keyword", "rule": "CR 702"}
+{"concept_id": "keyword:reach", "kind": "Keyword", "note": "Reach keyword", "rule": "CR 702"}
+{"concept_id": "keyword:recruit", "kind": "Keyword", "note": "Recruit keyword", "rule": "CR 702"}
+{"concept_id": "keyword:saga", "kind": "Keyword", "note": "Saga keyword", "rule": "CR 702"}
+{"concept_id": "keyword:storied", "kind": "Keyword", "note": "Storied keyword", "rule": "CR 702"}
+{"concept_id": "keyword:trample", "kind": "Keyword", "note": "Trample keyword", "rule": "CR 702"}
+{"concept_id": "keyword:vigilance", "kind": "Keyword", "note": "Vigilance keyword", "rule": "CR 702"}

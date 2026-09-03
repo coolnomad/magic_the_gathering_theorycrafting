@@ -6,11 +6,14 @@ correct outputs without hard-coded per-card branches.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import pathlib
 import re
 
 import pytest
+
 from hobkg import ports
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -547,3 +550,138 @@ def test_regression_activated_cost_schema_variants() -> None:
     assert amounts_by_purpose.get("activation") == "{2}", (
         f"Glamdring equip {{2}} activation cost missing: {amounts_by_purpose}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Card 002: whole-set (210-face) regression tests
+# ---------------------------------------------------------------------------
+
+
+def test_card_002_all_faces_derive_without_error() -> None:
+    """derive_all(all_faces=True) must produce one port per face."""
+    result = ports.derive_all(all_faces=True)
+    assert len(result) == 210, f"Expected 210 ports; got {len(result)}"
+
+
+def test_card_002_all_faces_zero_unresolved() -> None:
+    """Card 002 gate: every ability across the set is either mapped or
+    explicitly declared out-of-scope. The trigger-mapper + op_map + keyword
+    branches together should leave no ability unresolved.
+    """
+    result = ports.derive_all(all_faces=True)
+    unresolved: list[dict] = []
+    for port in result:
+        for u in port.get("unresolved", []):
+            unresolved.append({"face_id": port["face_id"], **u})
+    assert not unresolved, (
+        f"{len(unresolved)} unresolved abilities across 210 faces; "
+        f"first few: {unresolved[:3]}"
+    )
+
+
+def test_card_002_all_faces_no_undeclared_concepts() -> None:
+    """Every concept referenced by an edge must be declared in
+    data/vocabulary/concepts.jsonl (obj:type: is exempt -- those come from
+    type_categories.jsonl at derivation time)."""
+    result = ports.derive_all(all_faces=True)
+    stats = ports.validate_ports(result, ROOT / "data" / "vocabulary")
+    undeclared = stats.get("undeclared_concepts", [])
+    assert not undeclared, (
+        f"{len(undeclared)} undeclared-concept edges across 210 faces; "
+        f"first few: {undeclared[:3]}"
+    )
+
+
+def test_card_002_all_faces_no_selector_in_name() -> None:
+    """No non-event target may embed a selector qualifier
+    (creature-you-control, equipped-creature, etc). Event: concepts are
+    exempt -- CR-defined triggers legitimately encode subject."""
+    result = ports.derive_all(all_faces=True)
+    stats = ports.validate_ports(result, ROOT / "data" / "vocabulary")
+    hits = stats.get("selector_in_name", [])
+    assert not hits, f"selector-in-name anti-pattern detected: {hits[:3]}"
+
+
+def test_card_002_bare_trigger_forms_map() -> None:
+    """The audit found 38 undeclared trigger phrases; several use bare forms
+    ('dies', 'attacks') or subject-name self-references ('Dain attacks',
+    'smaug_attacks'). These must all resolve to the corresponding
+    this-creature-* event."""
+    assert ports.map_trigger_to_event({"event": "dies"}) == "event:this-creature-dies"
+    assert ports.map_trigger_to_event({"event": "attacks"}) == "event:this-creature-attacks"
+    assert ports.map_trigger_to_event(
+        {"event": "smaug_attacks"}
+    ) == "event:this-creature-attacks"
+    assert ports.map_trigger_to_event(
+        {"event": "The Master of Lake-town dies"}
+    ) == "event:this-creature-dies"
+    assert ports.map_trigger_to_event(
+        {"event": "Dain enters the battlefield"}
+    ) == "event:this-creature-enters"
+
+
+def test_card_002_phase_step_triggers_map() -> None:
+    """Phase-step triggers must land on the phase-step event, not on
+    'this-creature-enters' or similar false positives."""
+    m = ports.map_trigger_to_event
+    assert m({"event": "beginning_of_combat"}) == "event:beginning-of-combat"
+    assert m({"event": "beginning of combat on your turn"}) == "event:beginning-of-combat"
+    assert m({"event": "beginning of your first main phase"}) == "event:beginning-of-first-main-phase"
+    assert m({"event": "beginning_of_your_upkeep"}) == "event:beginning-of-your-upkeep"
+    assert m({"event": "upkeep"}) == "event:beginning-of-upkeep"
+    assert m({"event": "beginning_of_end_step"}) == "event:beginning-of-end-step"
+
+
+def test_card_002_saga_precedence() -> None:
+    """The saga-chapter branch must come before generic patterns; several
+    Saga trigger phrases contain 'counter' which would otherwise collide
+    with the counters_placed branch."""
+    m = ports.map_trigger_to_event
+    for phrase in (
+        "lore counter reaches I",
+        "lore counter reaches I, II, III, or IV",
+        "lore count reaches III and IV (both chapters share this ability)",
+        "chapter",
+    ):
+        assert m({"event": phrase}) == "event:saga-chapter", (
+            f"{phrase!r} did not map to saga-chapter"
+        )
+
+
+def test_card_002_amass_keyword_verb_as_top_level_key() -> None:
+    """Card 002: some Magic keyword-actions present the verb as a top-level
+    KEY in the effect dict (rather than a value on op/effect/action/type).
+    The KEYWORD_VERB_KEYS fallback handles those."""
+    assert "amass" in ports.KEYWORD_VERB_KEYS
+    # Verify Clapsnap (which has an amass effect) resolves rather than
+    # lands in unresolved.
+    _CLAPSNAP = "face:27e17542-549b-4c05-8091-c10a245c916b:1"
+    result = ports.derive_all(face_ids=[_CLAPSNAP])
+    assert result, "Clapsnap face not produced"
+    clapsnap = result[0]
+    unresolved_reasons = [u.get("reason", "") for u in clapsnap.get("unresolved", [])]
+    assert not any(
+        "amass" in r.lower() or "No effect verb found" in r for r in unresolved_reasons
+    ), f"Clapsnap amass still unresolved: {unresolved_reasons}"
+
+
+def test_card_002_gain_life_type_source_key() -> None:
+    """The 'type: gain_life' extraction shape must map to GAINS_LIFE.
+    (Only 'quantity' + 'type' -- no op/effect/action.)"""
+    _FORESTGATE = "face:acfe54b3-10e3-4fdb-b874-d39fde96c40a:0"
+    result = ports.derive_all(face_ids=[_FORESTGATE])
+    assert result, "Forestgate face not produced"
+    port = result[0]
+    unresolved_reasons = [u.get("reason", "") for u in port.get("unresolved", [])]
+    assert not any(
+        "gain_life" in r for r in unresolved_reasons
+    ), f"Forestgate gain_life still unresolved: {unresolved_reasons}"
+
+
+def test_card_002_all_mode_and_face_ids_mutually_exclusive() -> None:
+    """The CLI rejects --all and --face together (exit code 2)."""
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc = ports.main(["--all", "--face", "face:foo:0"])
+    assert rc == 2, f"Expected rc=2 for mutually-exclusive flags; got {rc}"
+    assert "mutually exclusive" in err.getvalue()

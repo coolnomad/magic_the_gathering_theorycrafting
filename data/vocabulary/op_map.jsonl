@@ -31,3 +31,155 @@
 {"verb": "return_to_battlefield", "source_key": "effect", "predicate": "RETURNS", "note": "Return from zone to battlefield (effect key)"}
 {"verb": "grant_keyword", "source_key": "effect", "predicate": "GRANTS", "note": "Grant keyword (effect key variant)"}
 {"verb": "additional_cost_definition", "source_key": "op", "predicate": "ADDITIONAL_COST", "note": "Additional cost definition (op key)"}
+{"note": "alias: put counters on target", "predicate": "ADDS_COUNTER", "source_key": "effect", "verb": "add_counter"}
+{"note": "alias: put counters on target", "predicate": "ADDS_COUNTER", "source_key": "type", "verb": "add_counter"}
+{"note": "alias: grants a keyword ability", "predicate": "GRANTS", "source_key": "type", "verb": "grant_keyword"}
+{"note": "alias: has/grants a keyword", "predicate": "GRANTS", "source_key": "op", "verb": "keyword"}
+{"note": "alias: grants a keyword ability", "predicate": "GRANTS", "source_key": "op", "verb": "keyword_ability"}
+{"note": "alias: grants a keyword ability", "predicate": "GRANTS", "source_key": "effect", "verb": "keyword_ability"}
+{"note": "alias: grants an ability", "predicate": "GRANTS", "source_key": "type", "verb": "grant_ability"}
+{"note": "alias: grants unblockable (a keyword-like restriction)", "predicate": "GRANTS", "source_key": "op", "verb": "grant_unblockable"}
+{"note": "alias: grants hexproof", "predicate": "GRANTS", "source_key": "op", "verb": "grant_hexproof"}
+{"note": "alias: gains abilities", "predicate": "GRANTS", "source_key": "op", "verb": "gain_abilities"}
+{"note": "alias under effect key", "predicate": "MODIFIES_PT", "source_key": "effect", "verb": "modify_pt"}
+{"note": "alias: modify P/T", "predicate": "MODIFIES_PT", "source_key": "op", "verb": "modify_power_toughness"}
+{"note": "alias: modify P/T", "predicate": "MODIFIES_PT", "source_key": "effect", "verb": "power_toughness_modification"}
+{"note": "alias: P/T bonus", "predicate": "MODIFIES_PT", "source_key": "op", "verb": "pt_boost"}
+{"note": "alias: P/T bonus", "predicate": "MODIFIES_PT", "source_key": "type", "verb": "pt_boost"}
+{"note": "alias: modify power only", "predicate": "MODIFIES_PT", "source_key": "op", "verb": "modify_power"}
+{"note": "alias: pump P/T temporarily", "predicate": "MODIFIES_PT", "source_key": "op", "verb": "pump"}
+{"note": "alias: create a token", "predicate": "CREATES_TOKEN", "source_key": "effect", "verb": "create_token"}
+{"note": "alias: create a token", "predicate": "CREATES_TOKEN", "source_key": "type", "verb": "create_token"}
+{"note": "alias: create a delayed-trigger token", "predicate": "CREATES_TOKEN", "source_key": "effect", "verb": "create_delayed_token"}
+{"note": "alias: search library", "predicate": "TUTORS", "source_key": "effect", "verb": "search_library"}
+{"note": "alias: search library", "predicate": "TUTORS", "source_key": "type", "verb": "search_library"}
+{"note": "alias: gain life", "predicate": "GAINS_LIFE", "source_key": "effect", "verb": "gain_life"}
+{"note": "alias: draw", "predicate": "DRAWS", "source_key": "effect", "verb": "draw"}
+{"note": "alias: draw", "predicate": "DRAWS", "source_key": "type", "verb": "draw"}
+{"note": "alias: draw a card", "predicate": "DRAWS", "source_key": "effect", "verb": "draw_card"}
+{"note": "alias: mill", "predicate": "MILLS", "source_key": "effect", "verb": "mill"}
+{"note": "alias: mill", "predicate": "MILLS", "source_key": "type", "verb": "mill"}
+{"note": "alias: attach", "predicate": "ATTACHES_TO", "source_key": "effect", "verb": "attach"}
+{"note": "alias: attach equipment", "predicate": "ATTACHES_TO", "source_key": "op", "verb": "attach_equipment"}
+{"note": "put permanent onto battlefield", "predicate": "PUTS_ONTO_BATTLEFIELD", "source_key": "op", "verb": "put_onto_battlefield"}
+{"note": "put permanent onto battlefield", "predicate": "PUTS_ONTO_BATTLEFIELD", "source_key": "type", "verb": "put_onto_battlefield"}
+{"note": "put a card into hand", "predicate": "MOVES_TO_HAND", "source_key": "op", "verb": "put_into_hand"}
+{"note": "select and move to hand", "predicate": "MOVES_TO_HAND", "source_key": "type", "verb": "select_to_hand"}
+{"note": "alias under effect key", "predicate": "DEALS_DAMAGE", "source_key": "effect", "verb": "deal_damage"}
+{"note": "alias under type key", "predicate": "DEALS_DAMAGE", "source_key": "type", "verb": "deal_damage"}
+{"note": "alias under effect key", "predicate": "EXILES", "source_key": "effect", "verb": "exile"}
+{"note": "exile face-down", "predicate": "EXILES_FACE_DOWN", "source_key": "effect", "verb": "exile_face_down"}
+{"note": "exile from top of library", "predicate": "EXILES_FROM_LIBRARY", "source_key": "op", "verb": "exile_top_of_library"}
+{"note": "exile self after resolution", "predicate": "EXILES_SELF", "source_key": "op", "verb": "exile_after_resolution"}
+{"note": "exile self on resolution", "predicate": "EXILES_SELF", "source_key": "op", "verb": "exile_self_on_resolution"}
+{"note": "add mana of a color/kind", "predicate": "PRODUCES_MANA", "source_key": "op", "verb": "add_mana"}
+{"note": "alias under action key", "predicate": "PRODUCES_MANA", "source_key": "action", "verb": "add_mana"}
+{"note": "alias under type key", "predicate": "PRODUCES_MANA", "source_key": "type", "verb": "add_mana"}
+{"note": "search library for a card", "predicate": "TUTORS", "source_key": "op", "verb": "search_library"}
+{"note": "gain life", "predicate": "GAINS_LIFE", "source_key": "op", "verb": "gain_life"}
+{"note": "untap a permanent", "predicate": "UNTAPS", "source_key": "op", "verb": "untap"}
+{"note": "alias", "predicate": "UNTAPS", "source_key": "type", "verb": "untap"}
+{"note": "tap a permanent", "predicate": "TAPS", "source_key": "op", "verb": "tap"}
+{"note": "scry N", "predicate": "SCRIES", "source_key": "op", "verb": "scry"}
+{"note": "mill cards", "predicate": "MILLS", "source_key": "op", "verb": "mill"}
+{"note": "counter a spell", "predicate": "COUNTERS_SPELL", "source_key": "op", "verb": "counter_spell"}
+{"note": "counter unless controller pays", "predicate": "COUNTERS_UNLESS_PAY", "source_key": "op", "verb": "counter_unless_pay"}
+{"note": "fight another creature", "predicate": "FIGHTS", "source_key": "op", "verb": "fight"}
+{"note": "reveal cards", "predicate": "REVEALS", "source_key": "op", "verb": "reveal"}
+{"note": "reveal hand", "predicate": "REVEALS_HAND", "source_key": "op", "verb": "reveal_hand"}
+{"note": "reveal and take one", "predicate": "REVEALS_AND_TAKES", "source_key": "op", "verb": "reveal_and_take"}
+{"note": "reveal until condition", "predicate": "REVEALS_UNTIL", "source_key": "type", "verb": "reveal_until"}
+{"note": "shuffle library", "predicate": "SHUFFLES", "source_key": "op", "verb": "shuffle"}
+{"note": "shuffle a zone into library", "predicate": "SHUFFLES_INTO_LIBRARY", "source_key": "op", "verb": "shuffle_into_library"}
+{"note": "set object type", "predicate": "SETS_TYPE", "source_key": "op", "verb": "set_type"}
+{"note": "set power", "predicate": "SETS_PT", "source_key": "effect", "verb": "set_power"}
+{"note": "set base P/T", "predicate": "SETS_PT", "source_key": "type", "verb": "set_base_pt"}
+{"note": "set P/T", "predicate": "SETS_PT", "source_key": "type", "verb": "set_pt"}
+{"note": "set base P/T", "predicate": "SETS_PT", "source_key": "op", "verb": "set_base_power_toughness"}
+{"note": "enters tapped replacement", "predicate": "ENTERS_TAPPED", "source_key": "op", "verb": "enters_tapped"}
+{"note": "prevent damage", "predicate": "PREVENTS_DAMAGE", "source_key": "op", "verb": "prevent_damage"}
+{"note": "prevent untap", "predicate": "PREVENTS_UNTAP", "source_key": "op", "verb": "prevent_untap"}
+{"note": "alias: prevent untap", "predicate": "PREVENTS_UNTAP", "source_key": "op", "verb": "restrict_untap"}
+{"note": "prevent casting", "predicate": "PREVENTS_CASTING", "source_key": "effect", "verb": "prevent_casting"}
+{"note": "return to hand (bounce)", "predicate": "RETURNS_TO_HAND", "source_key": "op", "verb": "return_to_hand"}
+{"note": "alias", "predicate": "RETURNS_TO_HAND", "source_key": "effect", "verb": "return_to_hand"}
+{"note": "reanimate/recur", "predicate": "RETURNS_FROM_GRAVEYARD", "source_key": "op", "verb": "return_from_graveyard"}
+{"note": "return from exile", "predicate": "RETURNS_FROM_EXILE", "source_key": "op", "verb": "return_exiled_card"}
+{"note": "move to hand", "predicate": "MOVES_TO_HAND", "source_key": "op", "verb": "move_to_hand"}
+{"note": "move to library", "predicate": "MOVES_TO_LIBRARY", "source_key": "op", "verb": "move_to_library"}
+{"note": "move a card", "predicate": "MOVES_CARD", "source_key": "op", "verb": "move_card"}
+{"note": "move cards", "predicate": "MOVES_CARDS", "source_key": "op", "verb": "move_cards"}
+{"note": "generic zone move", "predicate": "MOVES_ZONE", "source_key": "op", "verb": "move_zone"}
+{"note": "generic move marker", "predicate": "MOVES", "source_key": "type", "verb": "move"}
+{"note": "move the rest", "predicate": "MOVES_REST", "source_key": "op", "verb": "move_rest"}
+{"note": "look at cards", "predicate": "LOOKS_AT", "source_key": "type", "verb": "look"}
+{"note": "look at cards", "predicate": "LOOKS_AT", "source_key": "effect", "verb": "look_at_cards"}
+{"note": "look at (generic)", "predicate": "LOOKS_AT", "source_key": "op", "verb": "look"}
+{"note": "look at top of library", "predicate": "LOOKS_AT", "source_key": "op", "verb": "look_at_top"}
+{"note": "reorder a zone", "predicate": "REORDERS_ZONE", "source_key": "op", "verb": "reorder_zone"}
+{"note": "HOB Recruit keyword action", "predicate": "RECRUIT", "source_key": "op", "verb": "recruit"}
+{"note": "Adventure mechanic marker", "predicate": "ADVENTURE", "source_key": "op", "verb": "adventure"}
+{"note": "Adventure resolution exile", "predicate": "EXILES_SELF", "source_key": "op", "verb": "adventure_exile"}
+{"note": "Storied under effect key (rarely emitted this way)", "predicate": "INSTALLS_WATCHER", "source_key": "effect", "verb": "storied"}
+{"note": "typecycling keyword", "predicate": "TYPECYCLING", "source_key": "op", "verb": "typecycling"}
+{"note": "kicker additional cost marker", "predicate": "KICKER_COST", "source_key": "effect", "verb": "kicker"}
+{"note": "flashback keyword", "predicate": "FLASHBACK", "source_key": "op", "verb": "flashback"}
+{"note": "HOB Behold keyword", "predicate": "BEHOLDS", "source_key": "op", "verb": "behold"}
+{"note": "evasion umbrella (flying, menace, etc.)", "predicate": "GRANTS", "source_key": "op", "verb": "evasion"}
+{"note": "cast-from-graveyard permission", "predicate": "GRANTS_PERMISSION", "source_key": "op", "verb": "cast_from_graveyard"}
+{"note": "saga lore/chapter marker", "predicate": "SAGA_LORE", "source_key": "op", "verb": "saga_mechanic"}
+{"note": "saga rules marker", "predicate": "SAGA_LORE", "source_key": "op", "verb": "saga_rules"}
+{"note": "saga reminder-text marker", "predicate": "SAGA_LORE", "source_key": "op", "verb": "saga_reminder"}
+{"note": "saga lifecycle marker", "predicate": "SAGA_LORE", "source_key": "type", "verb": "saga_lifecycle"}
+{"note": "saga lore progression", "predicate": "SAGA_LORE", "source_key": "op", "verb": "saga_lore_progression"}
+{"note": "designations like enduring story", "predicate": "INSTALLS_STATE", "source_key": "op", "verb": "gain_designation"}
+{"note": "enduring story via effect key", "predicate": "INSTALLS_STATE", "source_key": "effect", "verb": "gain_enduring_story_designation"}
+{"note": "choose odd/even etc.", "predicate": "CHOOSES_DESIGNATION", "source_key": "op", "verb": "choose_designation"}
+{"note": "reduce cost", "predicate": "MODIFIES_COST", "source_key": "op", "verb": "cost_reduction"}
+{"note": "alias", "predicate": "MODIFIES_COST", "source_key": "type", "verb": "cost_reduction"}
+{"note": "conditional cost reduction", "predicate": "MODIFIES_COST", "source_key": "effect", "verb": "cost_reduction_alternative"}
+{"note": "alias: reduce cost", "predicate": "MODIFIES_COST", "source_key": "op", "verb": "reduce_cost"}
+{"note": "alternative cast cost", "predicate": "ALTERNATIVE_COST", "source_key": "op", "verb": "alternative_cost"}
+{"note": "conditional amass", "predicate": "AMASS", "source_key": "op", "verb": "conditional_amass"}
+{"note": "conditional draw", "predicate": "DRAWS", "source_key": "type", "verb": "conditional_draw"}
+{"note": "conditional token creation", "predicate": "CREATES_TOKEN", "source_key": "op", "verb": "conditional_create_token"}
+{"note": "conditional sacrifice", "predicate": "SACRIFICES", "source_key": "op", "verb": "conditional_sacrifice"}
+{"note": "conditional tutor", "predicate": "TUTORS", "source_key": "op", "verb": "conditional_tutor"}
+{"note": "conditional destination", "predicate": "MOVES", "source_key": "type", "verb": "conditional_destination"}
+{"note": "optional sacrifice", "predicate": "SACRIFICES", "source_key": "op", "verb": "may_sacrifice"}
+{"note": "replaces draw with something", "predicate": "REPLACES", "source_key": "op", "verb": "replace_draw"}
+{"note": "replaces token creation", "predicate": "REPLACES", "source_key": "op", "verb": "replace_token_creation"}
+{"note": "modal choice marker (structural)", "predicate": "MODAL_MARKER", "source_key": "op", "verb": "choose"}
+{"note": "modal choice marker", "predicate": "MODAL_MARKER", "source_key": "op", "verb": "choose_mode"}
+{"note": "target selection marker", "predicate": "TARGETS", "source_key": "effect", "verb": "choose_targets"}
+{"note": "modal marker", "predicate": "MODAL_MARKER", "source_key": "op", "verb": "modal"}
+{"note": "generic restriction", "predicate": "RESTRICTION", "source_key": "op", "verb": "restriction"}
+{"note": "opponent chooses", "predicate": "OPPONENT_CHOOSES", "source_key": "op", "verb": "opponent_chooses"}
+{"note": "you choose", "predicate": "YOU_CHOOSE", "source_key": "op", "verb": "you_choose"}
+{"note": "partition into groups", "predicate": "PARTITIONS", "source_key": "op", "verb": "partition"}
+{"note": "attack restriction", "predicate": "RESTRICTS_ATTACK", "source_key": "op", "verb": "attack_restriction"}
+{"note": "alias", "predicate": "RESTRICTS_ATTACK", "source_key": "effect", "verb": "attack_restriction"}
+{"note": "block restriction", "predicate": "RESTRICTS_BLOCK", "source_key": "op", "verb": "block_restriction"}
+{"note": "restricted mana purpose", "predicate": "RESTRICTS_MANA", "source_key": "op", "verb": "restrict_mana_use"}
+{"note": "grant play/cast permission", "predicate": "GRANTS_PERMISSION", "source_key": "op", "verb": "grant_permission"}
+{"note": "grant cast permission", "predicate": "GRANTS_PERMISSION", "source_key": "op", "verb": "grant_cast_permission"}
+{"note": "alias", "predicate": "GRANTS_PERMISSION", "source_key": "type", "verb": "grant_cast_permission"}
+{"note": "grant play permission", "predicate": "GRANTS_PERMISSION", "source_key": "op", "verb": "grant_play_permission"}
+{"note": "cast from exile permission", "predicate": "GRANTS_PERMISSION", "source_key": "effect", "verb": "grant_permission_to_play_from_exile"}
+{"note": "extra land per turn", "predicate": "GRANTS_EXTRA_LAND_PLAY", "source_key": "op", "verb": "grant_extra_land_play"}
+{"note": "swap control", "predicate": "EXCHANGES_CONTROL", "source_key": "op", "verb": "exchange_control"}
+{"note": "remove all counters", "predicate": "REMOVES_COUNTERS", "source_key": "op", "verb": "remove_all_counters"}
+{"note": "loses all abilities", "predicate": "REMOVES_ABILITIES", "source_key": "op", "verb": "lose_all_abilities"}
+{"note": "type becomes artifact creature", "predicate": "CHANGES_TYPE", "source_key": "op", "verb": "become_artifact_creature"}
+{"note": "change characteristics", "predicate": "CHANGES_CHARACTERISTICS", "source_key": "op", "verb": "change_characteristics"}
+{"note": "type change", "predicate": "CHANGES_TYPE", "source_key": "op", "verb": "type_change"}
+{"note": "add a type", "predicate": "ADDS_TYPE", "source_key": "type", "verb": "type_addition"}
+{"note": "cannot be countered", "predicate": "CANNOT_BE_COUNTERED", "source_key": "type", "verb": "cant_be_countered"}
+{"note": "cannot be blocked by (attacker)", "predicate": "CANNOT_BE_BLOCKED_BY", "source_key": "type", "verb": "cant_be_blocked_by"}
+{"note": "enchant target", "predicate": "ENCHANTS", "source_key": "op", "verb": "enchant"}
+{"note": "extra combat phase", "predicate": "ADDS_COMBAT_PHASE", "source_key": "op", "verb": "add_combat_phase"}
+{"note": "delayed-trigger marker", "predicate": "DELAYED_TRIGGER", "source_key": "op", "verb": "delayed_trigger"}
+{"note": "gift mechanic", "predicate": "GIFTS", "source_key": "effect", "verb": "gift"}
+{"note": "graveyard->exile replacement", "predicate": "REPLACES", "source_key": "op", "verb": "exile_instead_of_graveyard"}
+{"verb": "amass", "source_key": "amass", "predicate": "AMASSES", "note": "Amass keyword-action (INSTANTIATES rule:amass)"}
+{"verb": "gain_life", "source_key": "type", "predicate": "GAINS_LIFE", "note": "Life-gain effect declared as {'type': 'gain_life', 'quantity': N}"}
