@@ -15,7 +15,6 @@
 {"concept_id": "counter:lore", "kind": "CounterType", "note": "Lore counter for Sagas", "rule": "CR 714"}
 {"concept_id": "event:this-creature-attacks", "kind": "Event", "note": "Creature declared as attacker", "rule": "CR 508"}
 {"concept_id": "event:this-creature-dies", "kind": "Event", "note": "Creature put into graveyard from battlefield", "rule": "CR 700.4"}
-{"concept_id": "event:this-creature-enters", "kind": "Event", "note": "Creature enters the battlefield", "rule": "CR 603.6a"}
 {"concept_id": "event:this-creature-enters-or-attacks", "kind": "Event", "note": "Creature enters or attacks", "rule": "CR 603.2"}
 {"concept_id": "event:you-cast-spell", "kind": "Event", "note": "You cast a spell", "rule": "CR 601"}
 {"concept_id": "event:you-activate-creature-ability", "kind": "Event", "note": "You activate ability of a creature", "rule": "CR 602"}
@@ -133,3 +132,11 @@
 {"concept_id": "keyword:storied", "kind": "Keyword", "note": "Storied keyword", "rule": "CR 702"}
 {"concept_id": "keyword:trample", "kind": "Keyword", "note": "Trample keyword", "rule": "CR 702"}
 {"concept_id": "keyword:vigilance", "kind": "Keyword", "note": "Vigilance keyword", "rule": "CR 702"}
+{"concept_id": "obj:power", "kind": "Attribute", "note": "The permanent's power (a numeric attribute on creatures and vehicles)", "rule": "CR 208"}
+{"concept_id": "obj:toughness", "kind": "Attribute", "note": "The permanent's toughness (a numeric attribute on creatures and vehicles)", "rule": "CR 208"}
+{"concept_id": "event:this-creature-enters", "kind": "Event", "note": "This card enters the battlefield as a creature (narrower than event:this-permanent-enters)", "rule": "CR 603.6a"}
+{"concept_id": "event:this-enchantment-enters", "kind": "Event", "note": "This card enters the battlefield as an enchantment", "rule": "CR 603.6a"}
+{"concept_id": "event:this-artifact-enters", "kind": "Event", "note": "This card enters the battlefield as an artifact", "rule": "CR 603.6a"}
+{"concept_id": "event:this-aura-enters", "kind": "Event", "note": "This card enters the battlefield as an aura", "rule": "CR 603.6a"}
+{"concept_id": "event:this-equipment-enters", "kind": "Event", "note": "This card enters the battlefield as an equipment", "rule": "CR 603.6a"}
+{"concept_id": "event:this-land-enters", "kind": "Event", "note": "This card enters the battlefield as a land", "rule": "CR 603.6a"}

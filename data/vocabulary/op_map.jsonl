@@ -181,5 +181,5 @@
 {"note": "delayed-trigger marker", "predicate": "DELAYED_TRIGGER", "source_key": "op", "verb": "delayed_trigger"}
 {"note": "gift mechanic", "predicate": "GIFTS", "source_key": "effect", "verb": "gift"}
 {"note": "graveyard->exile replacement", "predicate": "REPLACES", "source_key": "op", "verb": "exile_instead_of_graveyard"}
-{"verb": "amass", "source_key": "amass", "predicate": "AMASSES", "note": "Amass keyword-action (INSTANTIATES rule:amass)"}
+{"verb": "amass", "source_key": "amass", "predicate": "AMASS", "note": "Amass keyword-action (INSTANTIATES rule:amass)"}
 {"verb": "gain_life", "source_key": "type", "predicate": "GAINS_LIFE", "note": "Life-gain effect declared as {'type': 'gain_life', 'quantity': N}"}

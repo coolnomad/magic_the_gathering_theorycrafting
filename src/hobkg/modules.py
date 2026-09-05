@@ -376,7 +376,7 @@ def build_modules(repo: Path = REPO) -> dict:
         "event:draw": "draw engine", "event:player-loses-life": "life-loss trigger",
         "event:counters-placed": "counter-placement trigger",
         "event:activate-creature-ability": "activated-ability trigger",
-        "event:enters_the_battlefield": "ETB trigger", "event:this-creature-enters": "ETB trigger",
+        "event:enters_the_battlefield": "ETB trigger", "event:this-permanent-enters": "ETB trigger",
         "resource:mana": "mana base", "resource:card": "card advantage", "resource:life": "life swing",
         "zone:graveyard": "graveyard reuse", "counter:+1/+1": "+1/+1 counters",
         "state:enduring_story": "enduring story",

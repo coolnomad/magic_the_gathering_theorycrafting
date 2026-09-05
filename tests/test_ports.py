@@ -444,22 +444,45 @@ def test_regression_grants_names_keyword() -> None:
     Care uses the plural form to grant both hexproof and indestructible in one
     clause; the port record must emit one GRANTS entry per keyword.
     """
+    # Card 002: Bofur, Reliable Guardian's oracle text is just "Lifelink" --
+    # a native keyword, not a grant. The old test asserted GRANTS because
+    # the pilot's derivation misrouted native keywords to produces; the
+    # native-keyword branch now correctly puts it in properties.HAS_KEYWORD.
     bofur = _port_by_face(_BOFUR_FACE)
-    bofur_grants = [
-        p for p in bofur.get("produces", []) if p.get("predicate") == "GRANTS"
-    ]
-    assert bofur_grants, "Bofur has no GRANTS edge"
-    for g in bofur_grants:
-        assert g.get("target") == "keyword:lifelink", (
-            f"Bofur GRANTS not naming keyword:lifelink: {g}"
-        )
+    bofur_native = {
+        p.get("target") for p in bofur.get("properties", [])
+        if p.get("predicate") == "HAS_KEYWORD"
+    }
+    assert "keyword:lifelink" in bofur_native, (
+        f"Bofur HAS_KEYWORD missing keyword:lifelink: {bofur_native}"
+    )
+    bofur_grant_targets = {
+        g.get("target") for g in bofur.get("produces", [])
+        if g.get("predicate") == "GRANTS"
+    }
+    assert "keyword:lifelink" not in bofur_grant_targets, (
+        f"Bofur's native lifelink leaked into produces.GRANTS: "
+        f"{bofur_grant_targets}"
+    )
+    # Card 002: Smaug's Flying is NATIVE (printed on the card), not granted.
+    # The extraction lax-schemas native keywords as {"op":"grant_keyword",
+    # "keyword":"flying"} on a static ability with no target -- ports.py now
+    # routes those to properties.HAS_KEYWORD instead of produces.GRANTS.
     smaug = _port_by_face(_SMAUG_FACE)
-    smaug_grants = [
-        p for p in smaug.get("produces", []) if p.get("predicate") == "GRANTS"
-    ]
-    smaug_targets = {g.get("target") for g in smaug_grants}
-    assert "keyword:flying" in smaug_targets, (
-        f"Smaug GRANTS not naming keyword:flying: {smaug_targets}"
+    smaug_native = {
+        p.get("target") for p in smaug.get("properties", [])
+        if p.get("predicate") == "HAS_KEYWORD"
+    }
+    assert "keyword:flying" in smaug_native, (
+        f"Smaug HAS_KEYWORD does not include keyword:flying: {smaug_native}"
+    )
+    # And it must NOT double-fire as a GRANTS on produces.
+    smaug_grant_targets = {
+        p.get("target") for p in smaug.get("produces", [])
+        if p.get("predicate") == "GRANTS"
+    }
+    assert "keyword:flying" not in smaug_grant_targets, (
+        f"Smaug's native flying leaked into produces.GRANTS: {smaug_grant_targets}"
     )
     cc = _port_by_face(_CONCERTED_CARE_FACE)
     cc_grants = [
@@ -617,12 +640,12 @@ def test_card_002_bare_trigger_forms_map() -> None:
     ) == "event:this-creature-dies"
     assert ports.map_trigger_to_event(
         {"event": "Dain enters the battlefield"}
-    ) == "event:this-creature-enters"
+    ) == "event:this-permanent-enters"
 
 
 def test_card_002_phase_step_triggers_map() -> None:
     """Phase-step triggers must land on the phase-step event, not on
-    'this-creature-enters' or similar false positives."""
+    'this-permanent-enters' or similar false positives."""
     m = ports.map_trigger_to_event
     assert m({"event": "beginning_of_combat"}) == "event:beginning-of-combat"
     assert m({"event": "beginning of combat on your turn"}) == "event:beginning-of-combat"
@@ -685,3 +708,594 @@ def test_card_002_all_mode_and_face_ids_mutually_exclusive() -> None:
         rc = ports.main(["--all", "--face", "face:foo:0"])
     assert rc == 2, f"Expected rc=2 for mutually-exclusive flags; got {rc}"
     assert "mutually exclusive" in err.getvalue()
+
+
+def test_card_002_allure_sacrifice_additional_cost() -> None:
+    """Allure of Power: 'As an additional cost to cast this spell, sacrifice
+    a creature.' The sacrifice must land in costs as a first-class SACRIFICES
+    edge alongside the {1}{B} mana cost -- not silently dropped because the
+    ability has no effects. Unlike Stir Up Trouble, this is a *required*
+    additional cost, not an alternative, so it lands as a peer entry rather
+    than as branches under an ADDITIONAL_COST."""
+    _ALLURE = "face:2e728381-6db0-4c66-883d-82d718fef833:1"
+    result = ports.derive_all(face_ids=[_ALLURE])
+    assert result, "Allure of Power face not produced"
+    port = result[0]
+    costs = port.get("costs", [])
+    preds = [c.get("predicate") for c in costs]
+    assert "CONSUMES_MANA" in preds, f"Allure missing mana cost: {preds}"
+    assert "SACRIFICES" in preds, f"Allure missing sacrifice cost: {preds}"
+    sac = next(c for c in costs if c.get("predicate") == "SACRIFICES")
+    assert sac.get("class") == "obj:type:creature", (
+        f"Allure sacrifice class is {sac.get('class')!r}; expected obj:type:creature"
+    )
+    assert sac.get("purpose") == "cast", (
+        f"Allure sacrifice purpose is {sac.get('purpose')!r}; expected 'cast' "
+        f"(an additional cost to cast the spell)"
+    )
+
+
+def test_card_002_ability_cost_families_lifted() -> None:
+    """Card 002: eight cost families beyond mana must lift into port.costs
+    (sacrifice, tap, life, discard, crew, restriction, additional_cost, mana).
+    Sample assertions across the set:
+      * The Lonely Mountain has a TAPS cost on its activated ability
+      * My Precious has a PAYS_LIFE cost ({2} + pay 2 life for equip)
+    """
+    _LONELY = "face:3678c06f-8a33-4a6d-bf20-5b92d5c05a95:0"  # Lonely Mountain
+    _PRECIOUS = "face:2e728381-6db0-4c66-883d-82d718fef833:0"  # My Precious
+    result = ports.derive_all(face_ids=[_LONELY, _PRECIOUS])
+    by_id = {r["face_id"]: r for r in result}
+
+    lonely = by_id.get(_LONELY, {})
+    lonely_preds = [c.get("predicate") for c in lonely.get("costs", [])]
+    assert "TAPS" in lonely_preds, f"Lonely Mountain missing TAPS: {lonely_preds}"
+
+    precious = by_id.get(_PRECIOUS, {})
+    precious_preds = [c.get("predicate") for c in precious.get("costs", [])]
+    assert "PAYS_LIFE" in precious_preds, (
+        f"My Precious missing PAYS_LIFE: {precious_preds}"
+    )
+
+
+def test_card_002_native_keyword_from_static_effect() -> None:
+    """Card 002: the extraction schema-laxly encodes some native keywords
+    inside an effect ({"op":"keyword"} or {"op":"grant_keyword"}) on a
+    static ability with no target/subject -- rather than promoting them to
+    ab.keyword at the ability level. Dori, Bearer of Friends is the pilot
+    case: "Trample" prints natively but the extraction puts it as
+    ab.effects[0]={"op":"keyword","keyword":"Trample"} with ab.keyword=null.
+    ports.py must route these to properties.HAS_KEYWORD (a print-on-card
+    property), not to produces.GRANTS (an anthem-style grant to another
+    creature)."""
+    _DORI = "face:58acd6b2-730c-4472-a34a-f2784977aca8:0"
+    result = ports.derive_all(face_ids=[_DORI])
+    assert result, "Dori face not produced"
+    port = result[0]
+
+    native = {
+        p.get("target") for p in port.get("properties", [])
+        if p.get("predicate") == "HAS_KEYWORD"
+    }
+    assert "keyword:trample" in native, (
+        f"Dori HAS_KEYWORD missing keyword:trample: {native}"
+    )
+    granted = {
+        p.get("target") for p in port.get("produces", [])
+        if p.get("predicate") == "GRANTS"
+    }
+    assert "keyword:trample" not in granted, (
+        f"Dori's native trample leaked into produces.GRANTS: {granted}"
+    )
+
+
+def test_card_002_grant_keyword_with_target_still_grants() -> None:
+    """The native-keyword branch must NOT swallow real grants. Concerted
+    Care's oracle text -- "Target artifact or creature you control gains
+    hexproof and indestructible until end of turn." -- is a spell_effect
+    that grants keywords to another permanent. Its GRANTS edges must stay
+    on produces, not migrate to properties."""
+    _CONCERTED_CARE = "face:8a0e35ac-6c03-4922-b3b4-e419419fe3d7:1"
+    result = ports.derive_all(face_ids=[_CONCERTED_CARE])
+    assert result, "Concerted Care face not produced"
+    port = result[0]
+    granted = {
+        p.get("target") for p in port.get("produces", [])
+        if p.get("predicate") == "GRANTS"
+    }
+    native = {
+        p.get("target") for p in port.get("properties", [])
+        if p.get("predicate") == "HAS_KEYWORD"
+    }
+    assert "keyword:hexproof" in granted, (
+        f"Concerted Care GRANTS missing keyword:hexproof: {granted}"
+    )
+    assert "keyword:indestructible" in granted, (
+        f"Concerted Care GRANTS missing keyword:indestructible: {granted}"
+    )
+    # And those must NOT have been misrouted to native.
+    assert "keyword:hexproof" not in native
+    assert "keyword:indestructible" not in native
+
+
+def test_card_002_native_keyword_with_self_target() -> None:
+    """Card 002: the extraction sometimes encodes a native keyword as a
+    grant_keyword to a self-reference target ('this creature', or the
+    card's own name). Bejeweled Warg's Trample arrives as
+    {"op":"grant_keyword","keyword":"trample","target":"this creature"}
+    on a static ability. That IS native to the card, so ports.py must
+    treat 'this creature' (and the card's own name) as a self-ref and
+    route the keyword to properties.HAS_KEYWORD, not produces.GRANTS."""
+    _WARG = "face:051ff7e0-dd00-4467-8796-a5d1c21934ed:0"
+    result = ports.derive_all(face_ids=[_WARG])
+    port = result[0]
+    native = {
+        p.get("target") for p in port.get("properties", [])
+        if p.get("predicate") == "HAS_KEYWORD"
+    }
+    granted = {
+        p.get("target") for p in port.get("produces", [])
+        if p.get("predicate") == "GRANTS"
+    }
+    assert "keyword:trample" in native, (
+        f"Bejeweled Warg HAS_KEYWORD missing keyword:trample: {native}"
+    )
+    assert "keyword:trample" not in granted, (
+        f"Warg's native trample leaked into produces.GRANTS: {granted}"
+    )
+
+
+def test_card_002_native_keywords_never_leak_to_grants() -> None:
+    """Card 002 sweep: cross-check every face against a keyword allowlist
+    derived from the printed oracle text. Any keyword that appears bare at
+    the top of a face's oracle_text (before any full-sentence ability, with
+    reminder text in parens stripped) IS a native keyword of that face.
+    That keyword must land in properties.HAS_KEYWORD and MUST NOT also
+    appear in produces.GRANTS. If it does, an extraction shape got past
+    the native-keyword branch."""
+    import re
+
+    all_ports = ports.derive_all(all_faces=True)
+    faces = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        faces[d["id"]] = d
+
+    # Static-intrinsic keyword allowlist: keywords whose *only* effect is to
+    # declare a static property of the permanent, so they belong in
+    # properties.HAS_KEYWORD. Deliberately narrower than the full HOB
+    # keyword set -- keywords that carry a specialised predicate (Storied ->
+    # INSTALLS_WATCHER gate:storied, Recruit -> produces.RECRUIT, cycling
+    # activations, etc.) intentionally live elsewhere and are excluded from
+    # this leak test. Flashback and kicker are static-intrinsic (they license
+    # an alternate cost / a cast-from-graveyard mode, and the port models them
+    # as HAS_KEYWORD plus a related activation entry).
+    known_keywords = {
+        "flying", "vigilance", "trample", "reach", "haste", "flash",
+        "lifelink", "menace", "deathtouch", "first strike", "double strike",
+        "hexproof", "indestructible", "prowess", "flashback", "kicker",
+    }
+
+    def native_keywords(face):
+        ot = face.get("oracle_text") or ""
+        first = ot.split("\n\n")[0].split("\n")[0]
+        no_paren = re.sub(r"\([^)]*\)", "", first).strip()
+        tokens = [t.strip().lower().rstrip(".") for t in no_paren.split(",")]
+        return {t for t in tokens if t in known_keywords}
+
+    leaks: list[tuple[str, str]] = []
+    for port in all_ports:
+        face = faces.get(port["face_id"], {})
+        native = native_keywords(face)
+        if not native: continue
+        grants = {
+            g.get("target") for g in port.get("produces", [])
+            if g.get("predicate") == "GRANTS"
+        }
+        native_props = {
+            p.get("target") for p in port.get("properties", [])
+            if p.get("predicate") == "HAS_KEYWORD"
+        }
+        for kw in native:
+            kw_id = f"keyword:{kw}"
+            if kw_id in grants:
+                leaks.append((face.get("name", port["face_id"]),
+                              f"{kw_id} leaked to produces.GRANTS"))
+            if kw_id not in native_props:
+                leaks.append((face.get("name", port["face_id"]),
+                              f"{kw_id} missing from properties.HAS_KEYWORD"))
+    assert not leaks, (
+        f"{len(leaks)} native-keyword misroutings; first: {leaks[:5]}"
+    )
+
+
+def test_card_002_creature_baseline_power_toughness_as_properties() -> None:
+    """Card 002: creatures and vehicles carry a printed power/toughness.
+    These are as intrinsic as the type line and belong on properties as
+    HAS_POWER / HAS_TOUGHNESS edges with a numeric `amount` (coerced from
+    the string form when it parses; passed through verbatim for the
+    non-numeric special cases like "*" or "1+*").
+
+    Sample: Smaug, Wicked Worm prints 5/5."""
+    _SMAUG = "face:20535126-f811-4386-bdce-d73f30691724:0"
+    result = ports.derive_all(face_ids=[_SMAUG])
+    port = result[0]
+    props = port.get("properties", [])
+    power = next((p for p in props if p.get("predicate") == "HAS_POWER"), None)
+    tough = next((p for p in props if p.get("predicate") == "HAS_TOUGHNESS"), None)
+    assert power is not None, "Smaug HAS_POWER missing"
+    assert tough is not None, "Smaug HAS_TOUGHNESS missing"
+    assert power.get("amount") == 5, f"Smaug power wrong: {power}"
+    assert tough.get("amount") == 5, f"Smaug toughness wrong: {tough}"
+    assert power.get("target") == "obj:power"
+    assert tough.get("target") == "obj:toughness"
+
+
+def test_card_002_every_creature_has_power_and_toughness() -> None:
+    """Set-wide invariant: every face whose type_line includes 'Creature'
+    (or subtype Vehicle) must carry both HAS_POWER and HAS_TOUGHNESS."""
+    all_ports = ports.derive_all(all_faces=True)
+    faces = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        faces[d["id"]] = d
+    missing: list[str] = []
+    for port in all_ports:
+        face = faces.get(port["face_id"], {})
+        tl = face.get("type_line", {}) or {}
+        types = tl.get("types", []) or []
+        subs = tl.get("subtypes", []) or []
+        is_creature_like = "Creature" in types or "Vehicle" in subs
+        if not is_creature_like: continue
+        preds = {p.get("predicate") for p in port.get("properties", [])}
+        for req in ("HAS_POWER", "HAS_TOUGHNESS"):
+            if req not in preds:
+                missing.append(f"{face.get('name', port['face_id'])} missing {req}")
+    assert not missing, f"{len(missing)} faces missing P/T: {missing[:5]}"
+
+
+def test_card_002_add_counter_records_counter_type() -> None:
+    """Card 002: ADDS_COUNTER edges must record WHICH counter is being
+    added (+1/+1, trample, lore, charge, ...). Every counter-mover in the
+    extraction carries a counter_type field; drop it and the graph can't
+    tell +1/+1 counters from trample counters.
+
+    Meager Meal (+1/+1), Beorn the Fierce (trample), Bifur, Melodic Rider
+    (+1/+1) all exercise this."""
+    faces: list[tuple[str, str, str]] = []
+    _wanted = {
+        "Meager Meal": "+1/+1",
+        "Bifur, Melodic Rider": "+1/+1",
+        "Beorn the Fierce": "trample",
+    }
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        if d.get("name") in _wanted:
+            faces.append((d["id"], _wanted[d["name"]], d["name"]))
+    assert len(faces) == len(_wanted), (
+        f"missing sample faces; found {[f[2] for f in faces]}"
+    )
+
+    all_faces = [f for f, _, _ in faces]
+    result = ports.derive_all(face_ids=all_faces)
+    by_id = {r["face_id"]: r for r in result}
+
+    for face_id, expected_ct, name in faces:
+        port = by_id.get(face_id)
+        assert port is not None, f"{name} not produced"
+        adds = [p for p in port.get("produces", [])
+                if p.get("predicate") == "ADDS_COUNTER"]
+        assert adds, f"{name} has no ADDS_COUNTER edge"
+        for a in adds:
+            assert a.get("counter_type") == expected_ct, (
+                f"{name} counter_type wrong: expected {expected_ct!r}, "
+                f"got {a.get('counter_type')!r}"
+            )
+
+
+def test_card_002_every_add_counter_names_a_type() -> None:
+    """Set-wide invariant: every ADDS_COUNTER edge must carry a counter_type.
+    An untyped counter edge means the derivation dropped the extraction's
+    counter_type field."""
+    all_ports = ports.derive_all(all_faces=True)
+    missing: list[str] = []
+    for port in all_ports:
+        for edge in port.get("produces", []):
+            if edge.get("predicate") != "ADDS_COUNTER":
+                continue
+            if not edge.get("counter_type"):
+                missing.append(f"{port['face_id']}: {edge}")
+    assert not missing, (
+        f"{len(missing)} untyped ADDS_COUNTER edges; first: {missing[:3]}"
+    )
+
+
+def test_card_002_self_etb_type_specific() -> None:
+    """Card 002 ETB semantics: a trigger like "When this enchantment
+    enters" fires ONLY when the card enters *as an enchantment* (CR type-
+    dependent triggers). So each printed subject type gets its own
+    narrower event concept -- event:this-creature-enters,
+    event:this-enchantment-enters, etc. -- and only bare/subject-name
+    self-references without a type word land on the broad
+    event:this-permanent-enters. Consumers wanting "any creature ETB"
+    match either the narrow creature event or the broad permanent event
+    joined with IS_A obj:type:creature.
+
+    Also: "As this X enters" is a REPLACEMENT effect (An Unexpected
+    Party), not a triggered ability. It applies at ETB resolution and
+    lands on installs.REPLACES_ON, not consumes.TRIGGERS_ON."""
+    all_ports = ports.derive_all(all_faces=True)
+    by_name = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        by_name[d.get("name")] = d["id"]
+    ports_by_id = {p["face_id"]: p for p in all_ports}
+
+    def targets(port, section, predicate):
+        return [e.get("target") for e in port.get(section, [])
+                if e.get("predicate") == predicate]
+
+    expectations: list[tuple[str, str, str, str]] = [
+        # (card_name, section, predicate, event_id)
+        # Bilbo self-refs by card name -> broad permanent
+        ("Bilbo Baggins, Burglar", "consumes", "TRIGGERS_ON",
+            "event:this-permanent-enters"),
+        # Smaug's "When Smaug enters" -> broad permanent (card-name self-ref)
+        ("Smaug, Wicked Worm", "consumes", "TRIGGERS_ON",
+            "event:this-permanent-enters"),
+        # Old Thrush's "When this creature enters" -> narrow creature
+        ("Old Thrush", "consumes", "TRIGGERS_ON",
+            "event:this-creature-enters"),
+        # An Unexpected Party's "As this enchantment enters" -> replacement
+        ("An Unexpected Party", "installs", "REPLACES_ON",
+            "event:this-enchantment-enters"),
+    ]
+    for card_name, section, predicate, expected_event in expectations:
+        fid = by_name.get(card_name)
+        assert fid, f"face for {card_name} not found"
+        port = ports_by_id[fid]
+        found = targets(port, section, predicate)
+        assert expected_event in found, (
+            f"{card_name} {section}.{predicate} missing {expected_event}; "
+            f"found: {port.get(section, [])}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Card 002, second pass: manual-review sweep (buckets 1-4)
+# ---------------------------------------------------------------------------
+
+
+def _face_id_by_name(name: str) -> str:
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        if d.get("name") == name:
+            return d["id"]
+    raise AssertionError(f"no face named {name!r}")
+
+
+def test_card_002_token_creators_carry_full_token_spec() -> None:
+    """Bucket 1: CREATES_TOKEN edges must resolve the token reference
+    against Scryfall token specs and attach a `token` block with the
+    token's name, type_line, subtypes, power, toughness, colors, and
+    oracle_text -- not just a bare `token_ref` string. Chief Warg's
+    Company makes 2/2 green Wolf tokens; At the Door makes X 2/2 red
+    Dwarf tokens."""
+    for card_name, expected_name, expected_pt in (
+        ("Chief Warg's Company", "Wolf", ("2", "2")),
+        ("At the Door", "Dwarf", ("2", "2")),
+    ):
+        fid = _face_id_by_name(card_name)
+        result = ports.derive_all(face_ids=[fid])
+        port = result[0]
+        toks = [e for e in port.get("produces", [])
+                if e.get("predicate") == "CREATES_TOKEN"]
+        assert toks, f"{card_name} has no CREATES_TOKEN"
+        tok = toks[0].get("token")
+        assert isinstance(tok, dict), (
+            f"{card_name} CREATES_TOKEN missing full token spec: {toks[0]}"
+        )
+        assert tok.get("name") == expected_name
+        assert (tok.get("power"), tok.get("toughness")) == expected_pt
+
+
+def test_card_002_ability_edges_carry_descriptors() -> None:
+    """Bucket 2: effect-level descriptor fields (subject, adds_type,
+    note, detail, text) must land on the port edge. Beorn the Fierce
+    exercises three:
+      * ADDS_TYPE -> adds_type: "Bear"
+      * MODIFIES_PT -> subject: "other Bears you control"
+      * DRAWS (from a conditional_draw effect) -> conditions carried"""
+    fid = _face_id_by_name("Beorn the Fierce")
+    port = ports.derive_all(face_ids=[fid])[0]
+    adds_type = next((e for e in port.get("produces", [])
+                       if e.get("predicate") == "ADDS_TYPE"), None)
+    assert adds_type and adds_type.get("adds_type") == "Bear", (
+        f"Beorn ADDS_TYPE missing adds_type descriptor: {adds_type}"
+    )
+    modifies = next((e for e in port.get("produces", [])
+                      if e.get("predicate") == "MODIFIES_PT"), None)
+    assert modifies and "Bears you control" in str(modifies.get("subject", "")), (
+        f"Beorn MODIFIES_PT missing subject descriptor: {modifies}"
+    )
+
+
+def test_card_002_conditional_draw_carries_condition() -> None:
+    """Bucket 3: an effect's own `condition` field (not just the
+    ability's `conditions` list) must be lifted onto the produce entry.
+    Beorn the Fierce's conditional_draw is gated on 'you control three
+    or more Bears'."""
+    fid = _face_id_by_name("Beorn the Fierce")
+    port = ports.derive_all(face_ids=[fid])[0]
+    draws = next((e for e in port.get("produces", [])
+                   if e.get("predicate") == "DRAWS"), None)
+    assert draws is not None, "Beorn has no DRAWS edge"
+    conds = draws.get("conditions") or []
+    assert any("three or more Bears" in str(c) for c in conds), (
+        f"Beorn DRAWS not gated on 3-Bears condition: {draws}"
+    )
+
+
+def test_card_002_enters_or_attacks_splits_into_two_triggers() -> None:
+    """Bucket 4: a compound "enters or attacks" trigger must emit TWO
+    TRIGGERS_ON edges (this-permanent-enters + this-creature-attacks)
+    so consumers can query for either half. Bifur, Melodic Rider is
+    the canonical case."""
+    fid = _face_id_by_name("Bifur, Melodic Rider")
+    port = ports.derive_all(face_ids=[fid])[0]
+    trig_targets = {e.get("target") for e in port.get("consumes", [])
+                     if e.get("predicate") == "TRIGGERS_ON"}
+    assert "event:this-permanent-enters" in trig_targets
+    assert "event:this-creature-attacks" in trig_targets
+    assert "event:this-creature-enters-or-attacks" not in trig_targets
+
+
+def test_card_002_balin_or_another_splits_into_two_triggers() -> None:
+    """Bucket 4: 'Balin or another Dwarf enters' must emit both a
+    self-ETB (event:this-permanent-enters) and the another-dwarf
+    trigger (event:another-dwarf-or-equipment-enters)."""
+    fid = _face_id_by_name("Balin, Loremaster")
+    port = ports.derive_all(face_ids=[fid])[0]
+    trig_targets = {e.get("target") for e in port.get("consumes", [])
+                     if e.get("predicate") == "TRIGGERS_ON"}
+    assert "event:this-permanent-enters" in trig_targets
+    assert "event:another-dwarf-or-equipment-enters" in trig_targets
+
+
+def test_card_002_gift_carries_token_spec() -> None:
+    """Bilbo's Gambit's GIFTS effect uses `gift_object` (not `token`/
+    `token_ref`) to reference the token it creates. The token lookup
+    must handle that alias and attach the full Treasure token spec."""
+    fid = _face_id_by_name("Bilbo's Gambit")
+    port = ports.derive_all(face_ids=[fid])[0]
+    gifts = next((e for e in port.get("produces", [])
+                   if e.get("predicate") == "GIFTS"), None)
+    assert gifts is not None, "Bilbo's Gambit has no GIFTS edge"
+    tok = gifts.get("token")
+    assert isinstance(tok, dict) and tok.get("name") == "Treasure", (
+        f"Bilbo's Gambit GIFTS missing Treasure token spec: {gifts}"
+    )
+
+
+def test_card_002_modal_options_unpacked_into_branches() -> None:
+    """Bejeweled Warg's "choose one -- +1/+1 counter on target Wolf OR
+    create a Treasure token" arrives as a MODAL_MARKER effect with an
+    `options` list. The port must unpack those options into `branches`
+    on the entry -- each branch a typed sub-edge with its own predicate,
+    target, and (if a token-creator) the resolved token spec."""
+    fid = _face_id_by_name("Bejeweled Warg")
+    port = ports.derive_all(face_ids=[fid])[0]
+    modal = next((e for e in port.get("produces", [])
+                   if e.get("predicate") == "MODAL_MARKER"), None)
+    assert modal is not None, "Bejeweled Warg has no MODAL_MARKER"
+    branches = modal.get("branches") or []
+    assert len(branches) == 2, (
+        f"Bejeweled Warg MODAL_MARKER expected 2 branches, got {len(branches)}"
+    )
+    preds = {b.get("predicate") for b in branches}
+    assert "ADDS_COUNTER" in preds
+    assert "CREATES_TOKEN" in preds
+    tok_branch = next(b for b in branches if b.get("predicate") == "CREATES_TOKEN")
+    assert isinstance(tok_branch.get("token"), dict)
+    assert tok_branch["token"].get("name") == "Treasure"
+    assert modal.get("choose") == 1
+
+
+def test_card_002_produces_mana_carries_color_and_amount() -> None:
+    """Forest's activated ability produces {G} — the port must carry
+    the mana string and amount on the PRODUCES_MANA edge."""
+    fid = _face_id_by_name("Forest")
+    port = ports.derive_all(face_ids=[fid])[0]
+    pm = next((e for e in port.get("produces", [])
+                if e.get("predicate") == "PRODUCES_MANA"), None)
+    assert pm is not None, "Forest has no PRODUCES_MANA edge"
+    assert pm.get("amount") == 1
+    assert pm.get("mana") == "{G}"
+
+
+def test_card_002_produces_mana_carries_choice_options() -> None:
+    """Elvenking's Halls: {T}: Add {G} or {U}. The choice arrives as
+    options=["G", "U"] which must land on the PRODUCES_MANA entry."""
+    fid = _face_id_by_name("Elvenking's Halls")
+    port = ports.derive_all(face_ids=[fid])[0]
+    pm = next((e for e in port.get("produces", [])
+                if e.get("predicate") == "PRODUCES_MANA"), None)
+    assert pm is not None, "Elvenking's Halls has no PRODUCES_MANA edge"
+    assert pm.get("options") == ["G", "U"]
+
+
+def test_card_002_activated_cost_recognizes_cost_and_value_shapes() -> None:
+    """Gleaming Splendor's activated ability costs are
+    {"cost": "mana", "value": "{2}{W}"} (uses `cost` not `type`, `value`
+    not `amount`/`detail`). The cost-lift must accept those aliases so
+    the {2}{W} activation cost is emitted, not silently dropped."""
+    fid = _face_id_by_name("Gleaming Splendor")
+    port = ports.derive_all(face_ids=[fid])[0]
+    activation_mana = [c for c in port.get("costs", [])
+                        if c.get("predicate") == "CONSUMES_MANA"
+                        and c.get("purpose") == "activation"]
+    assert activation_mana, (
+        f"Gleaming Splendor {{2}}{{W}} activation cost missing: "
+        f"{port.get('costs')}"
+    )
+    assert activation_mana[0].get("amount") == "{2}{W}"
+
+
+def test_card_002_deal_damage_carries_amount_and_target() -> None:
+    """Gandalf, Goblins' Bane: DEALS_DAMAGE amount=1, target=each
+    opponent. Both must land on the edge as amount and target_text."""
+    fid = _face_id_by_name("Gandalf, Goblins' Bane")
+    port = ports.derive_all(face_ids=[fid])[0]
+    dd = next((e for e in port.get("produces", [])
+                if e.get("predicate") == "DEALS_DAMAGE"), None)
+    assert dd is not None, "Goblins' Bane has no DEALS_DAMAGE edge"
+    assert dd.get("amount") == 1
+    assert dd.get("target_text") == "each opponent"
+
+
+def test_card_002_raw_target_text_lifted_for_produces_edges() -> None:
+    """Gone Fishing's EXILES and RETURNS both operate on natural-
+    language targets ("two target creatures and/or lands you control",
+    "them (the exiled permanents)"). The port must lift those raw
+    target strings as target_text so the endpoints aren't blank."""
+    fid = _face_id_by_name("Gone Fishing")
+    port = ports.derive_all(face_ids=[fid])[0]
+    ex = next((e for e in port.get("produces", [])
+                if e.get("predicate") == "EXILES"), None)
+    ret = next((e for e in port.get("produces", [])
+                 if e.get("predicate") == "RETURNS"), None)
+    assert ex and "creatures and/or lands" in str(ex.get("target_text", ""))
+    assert ret and "exiled permanents" in str(ret.get("target_text", ""))
+
+
+def test_card_002_amass_predicate_is_harmonized() -> None:
+    """Every extraction spelling for amass maps to the canonical AMASS
+    predicate. In particular, the top-level-key shape {"amass": {...}}
+    must not emit a separate AMASSES vocabulary term."""
+    all_ports = ports.derive_all(all_faces=True)
+    amass_edges = []
+    for port in all_ports:
+        for edge in port.get("produces", []):
+            if edge.get("predicate") in {"AMASS", "AMASSES"}:
+                amass_edges.append((port["name"], edge))
+
+    assert amass_edges, "expected at least one amass edge in the set"
+    assert all(edge.get("predicate") == "AMASS" for _, edge in amass_edges), (
+        f"non-canonical amass predicates: "
+        f"{[(name, edge) for name, edge in amass_edges if edge.get('predicate') != 'AMASS']}"
+    )
