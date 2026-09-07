@@ -813,9 +813,16 @@ def test_card_002_grant_keyword_with_target_still_grants() -> None:
     assert "keyword:indestructible" in granted, (
         f"Concerted Care GRANTS missing keyword:indestructible: {granted}"
     )
-    # And those must NOT have been misrouted to native.
-    assert "keyword:hexproof" not in native
-    assert "keyword:indestructible" not in native
+    # Card 002 revised policy: any keyword the card touches surfaces
+    # as HAS_KEYWORD (native or granted-only). Concerted Care still
+    # emits produces.GRANTS for hexproof/indestructible AND
+    # properties.HAS_KEYWORD for them, so consumers looking for
+    # "cards that touch hexproof" find every card that grants it too.
+    assert "keyword:hexproof" in native, (
+        f"Concerted Care should also carry keyword:hexproof as an "
+        f"involvement tag on properties: {native}"
+    )
+    assert "keyword:indestructible" in native
 
 
 def test_card_002_native_keyword_with_self_target() -> None:
@@ -1298,4 +1305,512 @@ def test_card_002_amass_predicate_is_harmonized() -> None:
     assert all(edge.get("predicate") == "AMASS" for _, edge in amass_edges), (
         f"non-canonical amass predicates: "
         f"{[(name, edge) for name, edge in amass_edges if edge.get('predicate') != 'AMASS']}"
+    )
+
+
+def test_card_002_all_storied_cards_install_watcher() -> None:
+    """Card 002: every card whose oracle text mentions "Storied" must
+    install the gate:storied watcher, matching Bifur, Melodic Rider's
+    format exactly. The extraction encodes Storied through many shapes
+    ({op:storied}, {effect:storied}, {op:gain_designation, designation:
+    "enduring story"}, {effect:gain_enduring_story_designation}, plus
+    ab.keyword=="Storied" and {op:keyword_ability, keyword:"Storied"});
+    all nine HOB Storied cards -- Balin, Bifur, Bombur, Dáin, Fíli,
+    Kíli, Óin, Ori, Thorin -- must produce the same edge shape:
+        installs: [{"predicate": "INSTALLS_WATCHER",
+                     "target": "gate:storied", ...}]"""
+    all_ports = ports.derive_all(all_faces=True)
+    faces = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        faces[d["id"]] = d
+
+    missing: list[str] = []
+    for port in all_ports:
+        face = faces.get(port["face_id"], {})
+        ot = (face.get("oracle_text") or "").lower()
+        if "storied" not in ot:
+            continue
+        watchers = [
+            e for e in port.get("installs", [])
+            if e.get("predicate") == "INSTALLS_WATCHER"
+            and e.get("target") == "gate:storied"
+        ]
+        if not watchers:
+            missing.append(face.get("name", port["face_id"]))
+    assert not missing, (
+        f"{len(missing)} Storied cards missing INSTALLS_WATCHER "
+        f"gate:storied: {missing}"
+    )
+
+
+def test_card_002_named_ability_words_promoted_to_keywords() -> None:
+    """Card 002: Landfall, Ferocious, Threshold appear only as italicized
+    markers in the oracle text ("Landfall — Whenever a land you control
+    enters, ..."). The extraction captures the trigger but not the
+    marker. A face-level sweep of the oracle text (with quoted grants
+    stripped so a Saga's granted landfall doesn't count for the Saga)
+    must promote each marker to HAS_KEYWORD.
+
+    All 9 HOB Landfall cards -- Elven Raft-Steerer, Mirkwood Meditator,
+    Attercop, Beorn's Hospitality, Boughside Wanderers, Dancing from
+    Dark to Dawn, Silvan Reveler, Thranduil Sindarin Liege, Thranduil's
+    Company -- must carry keyword:landfall. Down in the Valley (which
+    grants Landfall to itself via a Saga chapter) must NOT."""
+    all_ports = ports.derive_all(all_faces=True)
+    faces = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        faces[d["id"]] = d
+
+    # Card 002 revision: every face whose oracle text mentions Landfall
+    # (as a marker, quoted or unquoted) gets the HAS_KEYWORD tag so
+    # consumers looking for "cards with Landfall in their ability text"
+    # find them. Includes Down in the Valley (Saga chapter II grants
+    # "Landfall — ..."), because the granted ability still surfaces the
+    # keyword on the graph.
+    expect_landfall = {
+        "Elven Raft-Steerer", "Mirkwood Meditator", "Attercop",
+        "Beorn's Hospitality", "Boughside Wanderers",
+        "Dancing from Dark to Dawn", "Silvan Reveler",
+        "Thranduil, Sindarin Liege", "Thranduil's Company",
+        "Down in the Valley",
+    }
+    found: set[str] = set()
+    for port in all_ports:
+        face = faces.get(port["face_id"], {})
+        name = face.get("name", "")
+        has_landfall = any(
+            e.get("target") == "keyword:landfall"
+            for e in port.get("properties", [])
+            if e.get("predicate") == "HAS_KEYWORD"
+        )
+        if has_landfall:
+            found.add(name)
+    missing = expect_landfall - found
+    assert not missing, f"Landfall cards missing HAS_KEYWORD: {missing}"
+
+
+def test_card_002_replaces_edges_name_the_replaced_event() -> None:
+    """Every REPLACES edge collapses to the same predicate on the port,
+    but the extraction distinguishes the affected event through the verb
+    (replace_draw / replace_token_creation / exile_instead_of_graveyard)
+    or through from_zone/to_zone (or zone_from/zone_to) on the generic
+    replacement shape. Card 002 enriches each REPLACES entry with a
+    `replaces` field naming the affected event so consumers can tell
+    Bard King of Dale's draw-replacement, his token-doubler, and Bilbo
+    Thief in the Night's graveyard->exile replacement apart."""
+    all_ports = ports.derive_all(all_faces=True)
+    by_name = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        by_name[d.get("name")] = d["id"]
+    by_id = {p["face_id"]: p for p in all_ports}
+
+    def replaces_of(card_name):
+        port = by_id[by_name[card_name]]
+        return {
+            e.get("replaces")
+            for e in port.get("produces", []) + port.get("installs", [])
+            if e.get("predicate") == "REPLACES"
+        }
+    assert "event:you-draw-card" in replaces_of("Bard, King of Dale")
+    assert "event:token-creation" in replaces_of("Bard, King of Dale")
+    assert "event:go-to-graveyard" in replaces_of("Bilbo, Thief in the Night")
+    assert "event:go-to-graveyard" in replaces_of("Head of the Hunt")
+
+
+def test_card_002_modifies_pt_always_has_amount() -> None:
+    """Every MODIFIES_PT edge must carry a canonical `amount` string
+    (e.g. "+2/+2", "-1/-1"). The extraction encodes the change through
+    at least four different fields (amount, delta, value, or a split
+    power/toughness pair); ports.py normalizes them all to `amount`."""
+    all_ports = ports.derive_all(all_faces=True)
+    missing: list[str] = []
+    for port in all_ports:
+        for e in port.get("produces", []):
+            if e.get("predicate") != "MODIFIES_PT":
+                continue
+            if not e.get("amount"):
+                missing.append(f"{port['face_id']}: {e}")
+    assert not missing, (
+        f"{len(missing)} MODIFIES_PT edges missing amount; first: "
+        f"{missing[:3]}"
+    )
+
+
+def test_card_002_granted_ability_token_creation_surfaced() -> None:
+    """When an ability grants a triggered ability whose payload creates
+    a token (Down in the Valley's Saga chapter II gains "Landfall —
+    Whenever a land you control enters, create a 1/1 green Elf creature
+    token."), the port must emit a CREATES_TOKEN edge with the resolved
+    token spec, flagged as conditional on the granted ability firing.
+    Otherwise the graph loses the fact that this card can produce Elf
+    tokens indirectly."""
+    fid = _face_id_by_name("Down in the Valley")
+    port = ports.derive_all(face_ids=[fid])[0]
+    tokens = [e for e in port.get("produces", [])
+              if e.get("predicate") == "CREATES_TOKEN"]
+    assert tokens, "Down in the Valley has no CREATES_TOKEN edge"
+    elf_tokens = [t for t in tokens
+                   if (t.get("token") or {}).get("name") == "Elf"]
+    assert elf_tokens, f"Down in the Valley missing Elf token: {tokens}"
+    # Should be flagged as grant-dependent, not unconditional.
+    conds = elf_tokens[0].get("conditions") or []
+    assert any(
+        (isinstance(c, dict) and c.get("type") == "grant_dependent")
+        for c in conds
+    ), f"Elf token missing grant-dependent condition: {elf_tokens[0]}"
+
+
+def test_card_002_equipment_grants_keyword_shows_both_native_and_grant() -> None:
+    """Equipment that grants a keyword to the equipped creature must
+    surface BOTH edges: (1) produces.GRANTS keyword:X with scope=
+    equipped creature (the mechanic), and (2) properties.HAS_KEYWORD
+    keyword:X (the involvement tag, so consumers looking for "cards
+    that touch menace" find equipment that grants it too).
+
+    Goblin Plate Mail grants menace to equipped creature; Dwarven
+    Mattock grants ward {1}. Both must show both edges."""
+    for card_name, kw_id in (
+        ("Goblin Plate Mail", "keyword:menace"),
+        ("Dwarven Mattock", "keyword:ward"),
+    ):
+        fid = _face_id_by_name(card_name)
+        port = ports.derive_all(face_ids=[fid])[0]
+        native = {
+            e.get("target") for e in port.get("properties", [])
+            if e.get("predicate") == "HAS_KEYWORD"
+        }
+        grants = [e for e in port.get("produces", [])
+                   if e.get("predicate") == "GRANTS"]
+        assert kw_id in native, (
+            f"{card_name} missing {kw_id} on properties.HAS_KEYWORD: {native}"
+        )
+        # A GRANTS edge with scope=equipped creature must be present.
+        equipped_grants = [g for g in grants
+                            if "equipped" in str(g.get("scope", "")).lower()]
+        assert equipped_grants, (
+            f"{card_name} missing GRANTS with scope=equipped creature: {grants}"
+        )
+
+
+def test_card_002_activated_ability_costs_all_lifted() -> None:
+    """Card 002: every cost item on every activated ability in the
+    extraction must produce a corresponding cost edge on the port
+    (matched by predicate family, not exact string). The extraction
+    uses two conflicting shapes for mana:
+        {"type": "mana", "cost": "{5}{G}{G}"}      Guardian, Beorn's Hospitality
+        {"cost": "mana", "value": "{2}{W}"}         Gleaming Splendor, Troop of Ponies
+    Both shapes must be recognised."""
+    import collections as _co
+    extractions = {}
+    for line in (ROOT / "data" / "review" / "llm_accepted.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        extractions[d["face_id"]] = d
+    all_ports = ports.derive_all(all_faces=True)
+    port_costs: dict[str, list[dict]] = _co.defaultdict(list)
+    for port in all_ports:
+        for c in port.get("costs", []):
+            if c.get("purpose") == "activation":
+                port_costs[port["face_id"]].append(c)
+
+    predicate_for = {
+        "mana": "CONSUMES_MANA", "pay_mana": "CONSUMES_MANA",
+        "sacrifice": "SACRIFICES", "tap": "TAPS",
+        "discard": "DISCARDS", "life": "PAYS_LIFE",
+        "pay_life": "PAYS_LIFE", "crew": "CREW",
+    }
+    missing: list[str] = []
+    for fid, ext in extractions.items():
+        for ab in ext.get("abilities", []):
+            if ab.get("kind") != "activated":
+                continue
+            for cost in (ab.get("costs") or []):
+                if not isinstance(cost, dict): continue
+                typ = cost.get("type") or cost.get("op")
+                pred = predicate_for.get(typ)
+                if not pred: continue
+                if not any(pc.get("predicate") == pred
+                           for pc in port_costs.get(fid, [])):
+                    missing.append(
+                        f"{fid} {ab.get('ability_id')} {typ}: {cost}"
+                    )
+    assert not missing, (
+        f"{len(missing)} activated-ability costs not lifted; first: "
+        f"{missing[:3]}"
+    )
+
+
+def test_card_002_grant_unblockable_names_keyword() -> None:
+    """Cards granting "can't be blocked" (grant_unblockable op) must
+    surface both the GRANTS edge with target=keyword:cant-be-blocked
+    AND the HAS_KEYWORD involvement tag. Elvenking's Harper (spell,
+    grants to target creature) and My Precious (equipment, grants to
+    equipped creature) both exercise this."""
+    for card_name in ("Elvenking's Harper", "My Precious"):
+        fid = _face_id_by_name(card_name)
+        port = ports.derive_all(face_ids=[fid])[0]
+        grants = [g.get("target") for g in port.get("produces", [])
+                   if g.get("predicate") == "GRANTS"]
+        assert "keyword:cant-be-blocked" in grants, (
+            f"{card_name} GRANTS missing keyword:cant-be-blocked: {grants}"
+        )
+        native = [p.get("target") for p in port.get("properties", [])
+                   if p.get("predicate") == "HAS_KEYWORD"]
+        assert "keyword:cant-be-blocked" in native, (
+            f"{card_name} HAS_KEYWORD missing keyword:cant-be-blocked: {native}"
+        )
+
+
+def test_card_002_modal_marker_without_branches_suppressed() -> None:
+    """A MODAL_MARKER with no `branches` field (extraction had no
+    `options` list) is a parameter selection like Orcrist's "Choose a
+    creature type" rather than a mode choice. The port must not emit
+    a bare MODAL_MARKER edge for it."""
+    fid = _face_id_by_name("Orcrist, Goblin-cleaver")
+    port = ports.derive_all(face_ids=[fid])[0]
+    modals = [e for e in port.get("produces", [])
+              if e.get("predicate") == "MODAL_MARKER"]
+    assert not modals, (
+        f"Orcrist should not emit a bare MODAL_MARKER: {modals}"
+    )
+
+
+def test_card_002_every_choose_one_card_has_modal_marker() -> None:
+    """Every card whose oracle text has a 'Choose one/two/one or both —'
+    preamble (outside quoted grants) must have a MODAL_MARKER produce
+    edge. The extractor's own modal ops and F4's synthesis only cover
+    some cases; a face-level oracle sweep catches the rest (Pinecone,
+    Stone by Sunlight, Thorin's Last Stand, Elven Raft-Steerer,
+    Gollum Riddle Master, Reverent Howl, Warg Tactics)."""
+    import re as _re
+    all_ports = ports.derive_all(all_faces=True)
+    faces = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        faces[d["id"]] = d
+    missing: list[str] = []
+    for port in all_ports:
+        face = faces.get(port["face_id"], {})
+        ot = face.get("oracle_text") or ""
+        # Strip quoted grants
+        stripped = _re.sub(r'"[^"]*"', "", ot)
+        if not _re.search(
+            r"choose (one or both|one|two|three)\s*[—\-]",
+            stripped, _re.IGNORECASE,
+        ):
+            continue
+        has_marker = any(
+            e.get("predicate") == "MODAL_MARKER"
+            for e in port.get("produces", [])
+        )
+        if not has_marker:
+            missing.append(face.get("name", port["face_id"]))
+    assert not missing, (
+        f"Choose-preamble cards missing MODAL_MARKER: {missing}"
+    )
+
+
+def test_card_002_flashback_cards_carry_keyword() -> None:
+    """Flashback appears in oracle text as "Flashback {N}{X}" (keyword +
+    mana cost, not the "—" ability-word format). The face-level sweep
+    must catch it just like Landfall. Moment of Glory, Plunder the
+    Trollshaws, and Tidings of War all print Flashback."""
+    for card_name in ("Moment of Glory", "Plunder the Trollshaws",
+                       "Tidings of War"):
+        fid = _face_id_by_name(card_name)
+        port = ports.derive_all(face_ids=[fid])[0]
+        native = {
+            e.get("target") for e in port.get("properties", [])
+            if e.get("predicate") == "HAS_KEYWORD"
+        }
+        assert "keyword:flashback" in native, (
+            f"{card_name} missing HAS_KEYWORD keyword:flashback: {native}"
+        )
+
+
+def test_card_002_grant_ability_parses_ability_text_keyword() -> None:
+    """The `grant_ability` op stores its payload in `ability` (lifted to
+    `ability_text` on the entry) as a natural-language keyword phrase
+    like "ward {1}". The GRANTS edge must resolve that to target=
+    keyword:ward and amount={1}. Thorin Oakenshield grants ward {1} to
+    artifacts and creatures you control (gated on Storied); Dwarven
+    Mattock grants ward {1} to equipped creature."""
+    for card_name in ("Thorin Oakenshield", "Dwarven Mattock"):
+        fid = _face_id_by_name(card_name)
+        port = ports.derive_all(face_ids=[fid])[0]
+        ward_grants = [g for g in port.get("produces", [])
+                        if g.get("predicate") == "GRANTS"
+                        and g.get("target") == "keyword:ward"]
+        assert ward_grants, (
+            f"{card_name} missing GRANTS keyword:ward: "
+            f"{port.get('produces')}"
+        )
+        assert ward_grants[0].get("amount") == "{1}", (
+            f"{card_name} ward amount wrong: {ward_grants[0]}"
+        )
+
+
+def test_card_002_keyword_involvement_covers_all_predicate_bound_keywords() -> None:
+    """Set-wide: every card that has a predicate corresponding to a named
+    keyword ability (RECRUIT / AMASS / FLASHBACK / INSTALLS_WATCHER
+    gate:storied) must also carry the matching HAS_KEYWORD tag. Every
+    card whose oracle text prints Equip {N} or Ward {N} likewise.
+    Every card that prints "Enchant creature/permanent/..." likewise."""
+    all_ports = ports.derive_all(all_faces=True)
+    _PRED_TO_KW = {
+        "RECRUIT": "keyword:recruit", "AMASS": "keyword:amass",
+        "FLASHBACK": "keyword:flashback",
+    }
+    missing: list[str] = []
+    for port in all_ports:
+        native = {
+            e.get("target") for e in port.get("properties", [])
+            if e.get("predicate") == "HAS_KEYWORD"
+        }
+        # Predicate-implied
+        for e in port.get("produces", []) + port.get("installs", []):
+            _kw = _PRED_TO_KW.get(str(e.get("predicate")))
+            if (e.get("predicate") == "INSTALLS_WATCHER"
+                    and e.get("target") == "gate:storied"):
+                _kw = "keyword:storied"
+            if _kw and _kw not in native:
+                missing.append(f"{port['face_id']}: {e.get('predicate')} -> {_kw}")
+    assert not missing, (
+        f"{len(missing)} predicate-bound keywords missing from HAS_KEYWORD; "
+        f"first: {missing[:3]}"
+    )
+
+
+def test_card_002_alias_predicates_consolidated() -> None:
+    """Card 002 axis 1: MOVES_CARD / MOVES_ZONE / MOVES_REST /
+    MOVES_TO_HAND / MOVES_TO_LIBRARY all fold to MOVES_CARDS.
+    EXILES_FROM_LIBRARY / EXILES_FACE_DOWN / EXILES_SELF fold to EXILES.
+    REVEALS_HAND / REVEALS_UNTIL / REVEALS_AND_TAKES fold to REVEALS.
+    RETURNS_FROM_EXILE / RETURNS_FROM_GRAVEYARD / RETURNS_TO_HAND fold
+    to RETURNS. SHUFFLES_INTO_LIBRARY folds to SHUFFLES.
+    SETS_TYPE / CHANGES_CHARACTERISTICS fold to CHANGES_TYPE.
+
+    The distinguishing info (to_zone, from_zone, subject, state, mode)
+    is preserved as structured fields on the canonical edge, so nothing
+    is lost."""
+    _dead_aliases = {
+        "MOVES_CARD", "MOVES_ZONE", "MOVES_REST",
+        "MOVES_TO_HAND", "MOVES_TO_LIBRARY",
+        "EXILES_FROM_LIBRARY", "EXILES_FACE_DOWN", "EXILES_SELF",
+        "REVEALS_HAND", "REVEALS_UNTIL", "REVEALS_AND_TAKES",
+        "RETURNS_FROM_EXILE", "RETURNS_FROM_GRAVEYARD", "RETURNS_TO_HAND",
+        "SHUFFLES_INTO_LIBRARY",
+        "SETS_TYPE", "CHANGES_CHARACTERISTICS",
+    }
+    all_ports = ports.derive_all(all_faces=True)
+    leaks: list[str] = []
+    for port in all_ports:
+        for sec in ("properties","installs","consumes","produces","costs"):
+            for e in port.get(sec, []):
+                if e.get("predicate") in _dead_aliases:
+                    leaks.append(f"{port['face_id']} {sec} {e.get('predicate')}")
+    assert not leaks, (
+        f"{len(leaks)} edges still use consolidated alias predicates; "
+        f"first: {leaks[:5]}"
+    )
+
+
+def test_card_002_amount_kind_classifier() -> None:
+    """Card 002 axis 3: every non-mana `amount` field carries an
+    `amount_kind` tag so consumers can filter literal counts from
+    symbolic (X, *) and scaling ("X per Halfling") values. Mana amounts
+    (self-identified via class:resource:mana or mana notation) skip
+    the tagging."""
+    all_ports = ports.derive_all(all_faces=True)
+    _VALID_KINDS = {"literal", "variable", "scaling", "expression"}
+    missing: list[str] = []
+    invalid: list[str] = []
+    for port in all_ports:
+        for sec in ("properties","installs","consumes","produces","costs"):
+            for e in port.get(sec, []):
+                if "amount" not in e:
+                    continue
+                # Skip mana amounts (self-identified).
+                if (e.get("class") == "resource:mana"
+                        or e.get("mana") is not None
+                        or (isinstance(e.get("amount"), str)
+                            and e["amount"].startswith("{"))):
+                    continue
+                k = e.get("amount_kind")
+                if k is None:
+                    missing.append(f"{port['face_id']} {e.get('predicate')}: {e.get('amount')!r}")
+                elif k not in _VALID_KINDS:
+                    invalid.append(f"{port['face_id']} {e.get('predicate')}: kind={k!r}")
+    assert not missing, f"{len(missing)} non-mana amount edges missing amount_kind; first: {missing[:3]}"
+    assert not invalid, f"{len(invalid)} edges have invalid amount_kind; first: {invalid[:3]}"
+
+
+def test_card_002_sample_amount_kinds() -> None:
+    """Sample spot-checks for the classifier."""
+    all_ports = ports.derive_all(all_faces=True)
+    by_id = {p["face_id"]: p for p in all_ports}
+    faces = {}
+    for line in (ROOT / "data" / "normalized" / "faces.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines():
+        if not line.strip(): continue
+        d = json.loads(line)
+        faces[d["id"]] = d
+    name_to_id = {f.get("name"): fid for fid, f in faces.items()}
+
+    def _find_edge(card_name: str, predicate: str):
+        port = by_id[name_to_id[card_name]]
+        for sec in ("produces","costs","installs","consumes","properties"):
+            for e in port.get(sec, []):
+                if e.get("predicate") == predicate:
+                    return e
+        return None
+
+    # Balin's DEALS_DAMAGE X is variable, not literal
+    e = _find_edge("Balin, Loremaster", "DEALS_DAMAGE")
+    assert e and e.get("amount_kind") in ("variable","scaling"), e
+    # Long-Bodied Grey Dog's HAS_POWER 2 is literal
+    e = _find_edge("Long-Bodied Grey Dog", "HAS_POWER")
+    assert e and e.get("amount_kind") == "literal", e
+
+
+def test_card_002_axis_7_every_target_scoped_edge_has_selector() -> None:
+    """Card 002 axis 7: every non-property edge whose target_text
+    contains "target ", "each ", "all creatures", or "each opponent"
+    must carry a structured `selector` field. Consumers filtering by
+    scope shouldn't have to parse natural language."""
+    all_ports = ports.derive_all(all_faces=True)
+    _TARGET_PHRASES = ("target ", "each ", "all creatures", "each opponent")
+    missing: list[str] = []
+    for port in all_ports:
+        for sec in ("properties","installs","consumes","produces","costs"):
+            for e in port.get(sec, []):
+                tt = str(e.get("target_text") or "").lower()
+                if not any(w in tt for w in _TARGET_PHRASES):
+                    continue
+                if e.get("selector") is None:
+                    missing.append(
+                        f"{port['face_id']} {sec} {e.get('predicate')}: "
+                        f"target_text={tt!r}"
+                    )
+    assert not missing, (
+        f"{len(missing)} target-scoped edges missing selector; first: "
+        f"{missing[:3]}"
     )

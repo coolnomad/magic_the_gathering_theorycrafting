@@ -140,3 +140,14 @@
 {"concept_id": "event:this-aura-enters", "kind": "Event", "note": "This card enters the battlefield as an aura", "rule": "CR 603.6a"}
 {"concept_id": "event:this-equipment-enters", "kind": "Event", "note": "This card enters the battlefield as an equipment", "rule": "CR 603.6a"}
 {"concept_id": "event:this-land-enters", "kind": "Event", "note": "This card enters the battlefield as a land", "rule": "CR 603.6a"}
+{"concept_id": "keyword:landfall", "kind": "Keyword", "note": "Landfall ability word: whenever a land you control enters", "rule": "CR 207.2c"}
+{"concept_id": "keyword:threshold", "kind": "Keyword", "note": "Threshold ability word: gates when seven or more cards are in your graveyard", "rule": "CR 207.2c"}
+{"concept_id": "event:token-creation", "kind": "Event", "note": "A token would be created under a player's control (CR 111.5)"}
+{"concept_id": "event:go-to-graveyard", "kind": "Event", "note": "A permanent/spell would be put into a graveyard"}
+{"concept_id": "keyword:ward", "kind": "Keyword", "note": "Ward N: whenever this becomes the target of a spell/ability an opponent controls, counter unless that player pays N (CR 702.157)"}
+{"concept_id": "keyword:cant-be-blocked", "kind": "Keyword", "note": "Can't be blocked -- common evasive ability granted by many spells and equipment; not a formal MTG keyword but treated as one for graph uniformity"}
+{"concept_id": "keyword:cant-block", "kind": "Keyword", "note": "Can't block -- restriction ability"}
+{"concept_id": "keyword:shroud", "kind": "Keyword", "note": "Shroud keyword (CR 702.18)"}
+{"concept_id": "keyword:amass", "kind": "Keyword", "note": "Amass keyword-action \u2014 put +1/+1 counters on an Army you control or create a Goblin/Zombie/etc. Army token first"}
+{"concept_id": "keyword:beholds", "kind": "Keyword", "note": "Beholds \u2014 HOB mechanic where a card counts a chosen quality of a permanent"}
+{"concept_id": "keyword:cycling", "kind": "Keyword", "note": "Cycling / typecycling \u2014 pay cost, discard this to draw (or search)"}

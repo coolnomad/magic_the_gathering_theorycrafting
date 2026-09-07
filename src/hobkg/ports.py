@@ -605,12 +605,33 @@ def derive_port(
         for _cost in ab.get("costs", []) or []:
             if not isinstance(_cost, dict):
                 continue
-            _cop = _cost.get("op") or _cost.get("cost")
-            _ctype = _cost.get("type") or _cost.get("cost")
+            # The extraction uses two conflicting cost-field shapes:
+            #   {"type": "mana", "cost": "{5}{G}{G}"}   -- `cost` holds the VALUE
+            #   {"cost": "mana", "value": "{2}{W}"}      -- `cost` holds the OP name
+            # Disambiguate: if `cost` looks like a mana-notation string
+            # (starts with "{" or is a plain integer), treat it as the
+            # value; otherwise treat it as an op/type name alongside
+            # `op`/`type`.
+            _cost_field = _cost.get("cost")
+            _cost_is_mana_value = (
+                isinstance(_cost_field, str)
+                and (_cost_field.startswith("{") or _cost_field.isdigit())
+            )
+            _cop = _cost.get("op") or (
+                _cost_field if not _cost_is_mana_value else None
+            )
+            _ctype = _cost.get("type") or (
+                _cost_field if not _cost_is_mana_value else None
+            )
             _detail = _cost.get("detail") or ""
             _detail_lower = str(_detail).lower()
-            _camt = (_cost.get("amount") or _cost.get("value")
-                     or _cost.get("detail"))
+            _camt = (
+                _cost.get("amount")
+                or _cost.get("value")
+                or (_cost_field if _cost_is_mana_value else None)
+                or _cost.get("symbol")
+                or _cost.get("detail")
+            )
 
             if _cop == "pay_mana" or _ctype == "mana":
                 if _camt:
@@ -783,7 +804,7 @@ def derive_port(
         native_keywords_from_effects: list[str] = []
         if not keyword and ab.get("kind") == "static":
             _tgt_keys = ("target", "targets", "subject", "affected",
-                         "applies_to", "affects", "who")
+                         "applies_to", "affects", "who", "scope")
             # Self-reference tokens: when the extraction's target IS the card
             # itself, the effect is still native ("this creature has trample"
             # == the card has trample). Bejeweled Warg encodes native Trample
@@ -905,6 +926,58 @@ def derive_port(
                         "grant_permission", "grant_ability"):
                 consumed_verbs.add(_v)
 
+        # Card 002: Storied detector for the extraction shapes that don't
+        # promote "Storied" to ab.keyword or a keyword_ability op. Bifur is
+        # the canonical case (already handled above); the other 7 storied
+        # cards (Balin, Bombur, Dain, Fili, Kili, Oin, Thorin) encode the
+        # Storied gain-designation ability through one of these shapes:
+        #   {"op": "storied", ...}
+        #   {"effect": "storied", "references_rule": "gate:storied", ...}
+        #   {"op": "gain_designation", "designation": "enduring story", ...}
+        #   {"effect": "gain_enduring_story_designation", ...}
+        # In every case, the semantic is the same: the card has the Storied
+        # keyword. Route them all to installs.INSTALLS_WATCHER gate:storied
+        # (same as Bifur) and add the effect verbs to consumed_verbs so the
+        # effect loop doesn't re-emit a GAINS_DESIGNATION or similar edge.
+        _has_storied_watcher = any(
+            e.get("predicate") == "INSTALLS_WATCHER"
+            and e.get("target") == "gate:storied"
+            and e.get("oracle_span") == ab.get("oracle_spans", [[0, 0]])[0]
+            for e in port["installs"]
+        )
+        if not _has_storied_watcher:
+            _storied_verbs_here: list[tuple[str, str]] = []
+            for _eff in ab.get("effects", []) or []:
+                if not isinstance(_eff, dict):
+                    continue
+                _op = _eff.get("op")
+                _ev = _eff.get("effect")
+                _des = str(_eff.get("designation") or "").lower()
+                _refs = str(_eff.get("references_rule") or "").lower()
+                _is_storied = False
+                if _op == "storied" or _ev == "storied":
+                    _is_storied = True
+                elif _ev == "gain_enduring_story_designation":
+                    _is_storied = True
+                elif (_op == "gain_designation" or _ev == "gain_designation")                         and ("enduring story" in _des or "storied" in _des):
+                    _is_storied = True
+                elif _refs == "gate:storied":
+                    _is_storied = True
+                if _is_storied:
+                    if _op:
+                        _storied_verbs_here.append((_op, "op"))
+                    if _ev:
+                        _storied_verbs_here.append((_ev, "effect"))
+            if _storied_verbs_here:
+                port["installs"].append({
+                    "predicate": "INSTALLS_WATCHER",
+                    "target": "gate:storied",
+                    "oracle_span": ab.get("oracle_spans", [[0, 0]])[0],
+                    "note": "Storied keyword installs watcher",
+                })
+                for _v, _sk in _storied_verbs_here:
+                    consumed_verbs.add(_v)
+
         # Process effects
         for effect in ab.get("effects", []):
             # Find verb. Standard source_keys hold the verb as a *value*
@@ -969,6 +1042,44 @@ def derive_port(
                 "predicate": predicate,
                 "oracle_span": ab.get("oracle_spans", [[0, 0]])[0],
             }
+
+            # Card 002: name WHAT a REPLACES edge replaces. Every
+            # replacement verb collapses to the REPLACES predicate; the
+            # `replaces` field carries the affected event so consumers can
+            # distinguish "replaces a draw" (Bard #1) from "replaces token
+            # creation" (Bard #2) from "replaces going to graveyard"
+            # (Bilbo, Thief in the Night, Head of the Hunt).
+            if predicate == "REPLACES":
+                _REPLACES_VERB_MAP = {
+                    "replace_draw": "event:you-draw-card",
+                    "replace_token_creation": "event:token-creation",
+                    "replace_token_created": "event:token-creation",
+                    "exile_instead_of_graveyard": "event:go-to-graveyard",
+                }
+                _r = _REPLACES_VERB_MAP.get(str(verb))
+                if _r is None:
+                    # Generic {"op": "replacement", ...}: infer from zone
+                    # movement fields. Accept both from_zone/to_zone and
+                    # the zone_from/zone_to spelling.
+                    _fz = effect.get("from_zone") or effect.get("zone_from")
+                    _tz = effect.get("to_zone") or effect.get("zone_to")
+                    _note_l = str(
+                        effect.get("note") or effect.get("detail") or ""
+                    ).lower()
+                    if _fz == "battlefield" and _tz == "exile":
+                        _r = "event:go-to-graveyard"
+                    elif _tz == "exile" and (_fz or "").lower() in (
+                        "graveyard", "hand", "library"
+                    ):
+                        _r = f"event:{_fz}-to-exile"
+                    elif _tz and _fz:
+                        _r = f"event:{_fz}-to-{_tz}"
+                    elif _tz == "exile" and (
+                        "graveyard" in _note_l or "put into" in _note_l
+                    ):
+                        _r = "event:go-to-graveyard"
+                if _r:
+                    entry["replaces"] = _r
 
             # Add selector if applicable
             if "target" in effect or "affects" in effect:
@@ -1061,6 +1172,109 @@ def derive_port(
             if isinstance(_raw_target, str) and _raw_target and "target_text" not in entry:
                 entry["target_text"] = _raw_target
 
+            # Card 002: grant_unblockable / grant_cant_block / grant_hexproof
+            # ops -> tag the GRANTS edge with the corresponding keyword
+            # target so consumers see "grants unblockable" as a named
+            # ability grant. "can't be blocked" isn't a formal MTG
+            # keyword but the graph treats it as one for uniformity.
+            _GRANT_OP_TO_KEYWORD = {
+                "grant_unblockable": "keyword:cant-be-blocked",
+                "grant_cant_be_blocked": "keyword:cant-be-blocked",
+                "grant_cant_block": "keyword:cant-block",
+                "grant_hexproof": "keyword:hexproof",
+                "grant_shroud": "keyword:shroud",
+                "grant_indestructible": "keyword:indestructible",
+                "grant_lifelink": "keyword:lifelink",
+                "grant_menace": "keyword:menace",
+                "grant_trample": "keyword:trample",
+                "grant_flying": "keyword:flying",
+                "grant_reach": "keyword:reach",
+                "grant_deathtouch": "keyword:deathtouch",
+                "grant_vigilance": "keyword:vigilance",
+                "grant_haste": "keyword:haste",
+                "grant_first_strike": "keyword:first strike",
+                "grant_double_strike": "keyword:double strike",
+                "grant_flash": "keyword:flash",
+            }
+            if predicate == "GRANTS" and "target" not in entry:
+                _grant_kw = _GRANT_OP_TO_KEYWORD.get(str(verb))
+                if _grant_kw and _grant_kw in declared_concepts:
+                    entry["target"] = _grant_kw
+                # Note-based inference: "can't be blocked" -> keyword:cant-be-blocked
+                if "target" not in entry:
+                    _note_src = (
+                        str(entry.get("note") or "")
+                        + " " + str(entry.get("detail") or "")
+                        + " " + str(entry.get("text") or "")
+                    ).lower()
+                    if "can\'t be blocked" in _note_src or "can't be blocked" in _note_src or "cannot be blocked" in _note_src:
+                        entry["target"] = "keyword:cant-be-blocked"
+                    elif "can\'t block" in _note_src or "can't block" in _note_src:
+                        entry["target"] = "keyword:cant-block"
+                # Fallback: op == grant_ability with ability_text like
+                # "ward {1}" -- parse the leading word as the keyword
+                # and stash the amount when it's a mana cost. Thorin
+                # Oakenshield's ward {1} and Dwarven Mattock's ward {1}
+                # both land here.
+                if "target" not in entry:
+                    _abt = entry.get("ability_text")
+                    if isinstance(_abt, str) and _abt:
+                        import re as _re_ab
+                        _first_word_m = _re_ab.match(r"\s*([a-zA-Z][a-zA-Z-]+)", _abt)
+                        if _first_word_m:
+                            _first_word = _first_word_m.group(1).lower()
+                            _try_ids = [f"keyword:{_first_word}"]
+                            for _cw in ("double strike", "first strike"):
+                                if _abt.lower().startswith(_cw):
+                                    _try_ids.insert(0, f"keyword:{_cw}")
+                            for _kw_id in _try_ids:
+                                if _kw_id in declared_concepts:
+                                    entry["target"] = _kw_id
+                                    # Parse a trailing {N} mana cost as amount
+                                    _amt_m = _re_ab.search(r"\{[^}]+\}", _abt)
+                                    if _amt_m and "amount" not in entry:
+                                        entry["amount"] = _amt_m.group(0)
+                                    break
+
+            # Card 002: normalize MODIFIES_PT amount. The extraction uses
+            # several field names for the P/T change:
+            #   amount:         "+2/+2"  (Dwarven Mattock)
+            #   delta:          "+1/+1"  (Wargling, Eagle's Rescue, Bard's Company)
+            #   value:          "+1/+1"  (Most Decrepit Old Bird)
+            #   power/toughness: numeric split (Crude Bent Blade "+2/+1"
+            #                    from power=2 toughness=1 -- lifted above
+            #                    as power_delta / toughness_delta)
+            # Synthesize a single canonical `amount` string so every
+            # MODIFIES_PT edge is comparable across cards.
+            if predicate == "MODIFIES_PT" and "amount" not in entry:
+                _pt_amt = (entry.get("delta") or entry.get("value")
+                           or effect.get("modification"))
+                if not _pt_amt:
+                    _pd = entry.get("power_delta")
+                    _td = entry.get("toughness_delta")
+                    if _pd is not None and _td is not None:
+                        def _fmt(v: object) -> str:
+                            s = str(v)
+                            if not s.startswith(("+", "-")):
+                                try:
+                                    return f"{int(s):+d}"
+                                except (TypeError, ValueError):
+                                    return s
+                            return s
+                        _pt_amt = f"{_fmt(_pd)}/{_fmt(_td)}"
+                if not _pt_amt:
+                    # Final fallback: parse a P/T pattern out of the raw
+                    # text or detail. Desert Were-Worm's "+2/+0 for each
+                    # Mountain you control" lands via this path; scales
+                    # remain expressed in `text` / `scales_with`.
+                    import re as _re
+                    _src = str(entry.get("text") or entry.get("detail") or "")
+                    _m = _re.search(r"([+-]\d+)/([+-]\d+)", _src)
+                    if _m:
+                        _pt_amt = f"{_m.group(1)}/{_m.group(2)}"
+                if _pt_amt:
+                    entry["amount"] = _pt_amt
+
             # Bucket 3: effect-level `condition` (singular). Merge into a
             # `conditions` list on the entry so gating info from the
             # effect itself (not just ability-level ab.conditions) is
@@ -1082,8 +1296,10 @@ def derive_port(
             if (predicate in ("CREATES_TOKEN", "GIFTS", "CREATES_OBJECT")
                     and token_specs):
                 # The raw token field can hold either the token id string
-                # ("token:wolf") or the free-form description. Prefer
-                # explicit token_ref first.
+                # ("token:wolf"), the token name ("Treasure"), a slug with
+                # dashes ("token:bird-soldier" -> "Bird Soldier"), a
+                # descriptive phrase ("2/2 red Dwarf creature token"), or
+                # a copy phrase ("copies of The Notary Hobbits" -> Copy).
                 _lookup_keys: list[str] = []
                 for _fld in ("token_ref", "token", "gift_object", "token_type",
                               "creates", "spawn"):
@@ -1092,8 +1308,12 @@ def derive_port(
                         continue
                     # strip a "token:" prefix if present
                     _stripped = _v[6:] if _v.startswith("token:") else _v
-                    _lookup_keys.append(_stripped.lower())
-                    # last token in a phrase like "2/2 red Dwarf creature token"
+                    _s_lower = _stripped.lower()
+                    _lookup_keys.append(_s_lower)
+                    # dashes-to-spaces: "bird-soldier" -> "bird soldier"
+                    if "-" in _s_lower:
+                        _lookup_keys.append(_s_lower.replace("-", " "))
+                    # last non-generic word in a descriptive phrase
                     _tail = [w for w in _stripped.split()
                              if w.lower() not in ("token", "creature", "artifact",
                                                     "enchantment", "colorless",
@@ -1101,6 +1321,9 @@ def derive_port(
                                                     "red", "green")]
                     if _tail:
                         _lookup_keys.append(_tail[-1].lower())
+                    # "copies of X" phrase -> Copy token
+                    if "cop" in _s_lower and " of " in _s_lower:
+                        _lookup_keys.append("copy")
                 for _key in _lookup_keys:
                     if _key in token_specs:
                         entry["token"] = token_specs[_key]
@@ -1246,8 +1469,73 @@ def derive_port(
                     entry["branches"] = _branches
                     entry["choose"] = 1
 
-            # Categorize by predicate.
-            if predicate in ("CONSUMES_MANA", "SACRIFICES", "ADDITIONAL_COST"):
+            # Card 002: canonicalize amount/quantity for predicates where
+            # both fields mean the same count. If one is present and the
+            # other isn't, mirror. Applies to DRAWS, ADDS_COUNTER,
+            # CREATES_TOKEN, PRODUCES_MANA, DEALS_DAMAGE, DISCARDS.
+            _MIRROR_PREDS = (
+                "DRAWS", "ADDS_COUNTER", "CREATES_TOKEN",
+                "PRODUCES_MANA", "DEALS_DAMAGE", "DISCARDS",
+            )
+            if predicate in _MIRROR_PREDS:
+                _amt = entry.get("amount")
+                _qty = entry.get("quantity")
+                if _amt is not None and _qty is None:
+                    entry["quantity"] = _amt
+                elif _qty is not None and _amt is None:
+                    entry["amount"] = _qty
+                # PRODUCES_MANA default: if mana is set but neither amount
+                # nor quantity, assume single-unit ("Add {R}." = amount 1).
+                if (predicate == "PRODUCES_MANA"
+                        and entry.get("amount") is None
+                        and entry.get("mana")):
+                    entry["amount"] = 1
+                    entry["quantity"] = 1
+                # CREATES_TOKEN default: if a token is resolved but
+                # quantity is None, assume "a token" -> 1.
+                if (predicate == "CREATES_TOKEN"
+                        and entry.get("token") is not None
+                        and entry.get("quantity") is None):
+                    entry["quantity"] = 1
+                    if entry.get("amount") is None:
+                        entry["amount"] = 1
+                # DRAWS / DEALS_DAMAGE default: parse "X" from text as
+                # a symbolic amount so Balin, Loremaster's "X damage /
+                # Draw X cards" edges carry an amount rather than being
+                # empty.
+                if (predicate in ("DRAWS", "DEALS_DAMAGE")
+                        and entry.get("amount") is None
+                        and entry.get("quantity") is None):
+                    _txt = str(entry.get("text") or entry.get("detail")
+                                or entry.get("note") or "")
+                    if _txt:
+                        import re as _re_x
+                        if _re_x.search(r"\bX\b", _txt):
+                            entry["amount"] = "X"
+                            entry["quantity"] = "X"
+
+            # Card 002: MODAL_MARKER with no `options` list from
+            # verb == "choose" is a parameter selection ("Choose a
+            # creature type" on Orcrist, followed by a create_token
+            # effect scaled to that type), not a mode choice. Skip
+            # emitting a bare marker in that case; the subsequent
+            # effects carry the selection via target_text /
+            # scales_with / detail. Real modal ops (choose_mode,
+            # modal) keep their MODAL_MARKER even when the extraction
+            # didn't inline options -- for Gnashing of Teeth and
+            # Reverent Howl the modes live in separate abilities.
+            if predicate == "MODAL_MARKER" and not entry.get("branches"):
+                if str(verb) == "choose":
+                    continue
+
+            # Categorize by predicate. CONSUMES_MANA / ADDITIONAL_COST from
+            # the effect loop belong in costs. SACRIFICES from the effect
+            # loop is a sacrifice-as-effect ("You may sacrifice another
+            # creature. If you do, ...") -- distinct from sacrifice-as-cost
+            # which comes through the ability-level cost lift and appends
+            # directly to port["costs"] with purpose set. Route it to
+            # produces here.
+            if predicate in ("CONSUMES_MANA", "ADDITIONAL_COST"):
                 port["costs"].append(entry)
             elif predicate == "INSTALLS_WATCHER":
                 port["installs"].append(entry)
@@ -1308,6 +1596,466 @@ def derive_port(
                         "preamble_span": list(_preamble),
                         "modes": _modes,
                     }
+
+    # Card 002: parse token-creation text out of grant_ability effects.
+    # Some abilities grant a triggered ability whose payload creates a
+    # token (Down in the Valley's Saga chapter II: gains "Landfall —
+    # Whenever a land you control enters, create a 1/1 green Elf
+    # creature token."). The extraction stores that whole granted ability
+    # as a free-form `granted` string, so the token creation never lands
+    # as a CREATES_TOKEN edge. Sweep those strings and lift a
+    # CREATES_TOKEN edge with the resolved token spec so the graph
+    # captures what the granted ability produces.
+    if extraction is not None and token_specs:
+        import re as _re2
+        _existing_token_names = {
+            (e.get("token") or {}).get("name")
+            for e in port.get("produces", [])
+            if e.get("predicate") == "CREATES_TOKEN"
+        }
+        for _ab in extraction.get("abilities", []) or []:
+            _ab_span = _ab.get("oracle_spans", [[0, 0]])[0]
+            for _eff in _ab.get("effects", []) or []:
+                if not isinstance(_eff, dict):
+                    continue
+                _op = _eff.get("op") or _eff.get("effect") or _eff.get("type")
+                if not (isinstance(_op, str) and _op.startswith("grant_")):
+                    continue
+                _granted = str(_eff.get("granted") or _eff.get("granted_text")
+                                or _eff.get("granted_ability") or "")
+                if not _granted:
+                    continue
+                # Look for "create ... N/N ... <color> <SubType> ... token"
+                # Match any known token name.
+                _lower = _granted.lower()
+                if "token" not in _lower or "create" not in _lower:
+                    continue
+                for _tk_name, _spec in token_specs.items():
+                    if _tk_name in _lower and _spec.get("name") not in _existing_token_names:
+                        port["produces"].append({
+                            "predicate": "CREATES_TOKEN",
+                            "token": _spec,
+                            "quantity": 1,
+                            "amount": 1,
+                            "oracle_span": _ab_span,
+                            "note": f"token creation embedded in granted ability text",
+                            "conditions": [{
+                                "condition": "granted ability trigger fires",
+                                "type": "grant_dependent",
+                            }],
+                        })
+                        _existing_token_names.add(_spec.get("name"))
+                        break
+
+    # Card 002: face-level keyword-involvement sweep. Any effect field
+    # that names a keyword ability -- ab.keyword, effect.keyword,
+    # effect.keywords (plural), effect.ability, effect.granted_ability
+    # -- surfaces the keyword on properties.HAS_KEYWORD so consumers
+    # looking for "cards that touch <keyword>" find every card that
+    # grants, temporarily gives, or otherwise references it. Native
+    # keywords are already emitted through the ab.keyword branch;
+    # granted-only cases (Goblin Plate Mail's menace on equipped
+    # creature, Dwarven Mattock's ward, Bard the Bowman's temporary
+    # lifelink) are picked up here.
+    if extraction is not None:
+        _existing_kw_props = {
+            e.get("target") for e in port["properties"]
+            if e.get("predicate") == "HAS_KEYWORD"
+        }
+        import re as _re4
+        def _yield_keywords(_obj):
+            if isinstance(_obj, str):
+                # ability_text like "ward {1}" -> pull leading word
+                _m = _re4.match(r"\s*([a-zA-Z][a-zA-Z-]+)", _obj)
+                if _m:
+                    yield _m.group(1)
+                return
+            if not isinstance(_obj, list):
+                return
+            for _v in _obj:
+                if isinstance(_v, str):
+                    yield _v
+        for _ab in extraction.get("abilities", []) or []:
+            _ab_span = _ab.get("oracle_spans", [[0, 0]])[0]
+            for _eff in _ab.get("effects", []) or []:
+                if not isinstance(_eff, dict):
+                    continue
+                _cand: list[str] = []
+                for _k in ("keyword", "keywords", "ability",
+                            "granted_ability", "granted_text",
+                            "keyword_ability"):
+                    _v = _eff.get(_k)
+                    if isinstance(_v, str):
+                        _cand.append(_v)
+                    elif isinstance(_v, list):
+                        for _x in _v:
+                            if isinstance(_x, str):
+                                _cand.append(_x)
+                # Known compound keyword names: prefer full match over
+                # first-word truncation. "Double strike" and "First strike"
+                # would otherwise land as keyword:double / keyword:first.
+                _COMPOUND_KWS = (
+                    "double strike", "first strike", "long strike",
+                    "banding with other", "banding",
+                )
+                for _c in _cand:
+                    _c_norm = _c.strip().lower().rstrip(",;.:")
+                    if not _c_norm:
+                        continue
+                    _kw_target = None
+                    # Try compound match at the start of the phrase.
+                    for _comp in _COMPOUND_KWS:
+                        if _c_norm.startswith(_comp):
+                            _kw_target = f"keyword:{_comp}"
+                            break
+                    if _kw_target is None:
+                        _first = _c_norm.split()[0]
+                        _kw_target = f"keyword:{_first}"
+                    if _kw_target in _existing_kw_props:
+                        continue
+                    if _kw_target in declared_concepts:
+                        port["properties"].append({
+                            "predicate": "HAS_KEYWORD",
+                            "target": _kw_target,
+                            "oracle_span": _ab_span,
+                            "note": f"{_kw_target.split(':',1)[1].capitalize()} keyword (referenced via ability text)",
+                        })
+                        _existing_kw_props.add(_kw_target)
+
+    # Also sweep the port's own produces list: any GRANTS edge whose
+    # target is a keyword:X concept implies the card involves that
+    # keyword, so surface it on properties.HAS_KEYWORD too. Catches
+    # cases where the involvement came from op -> keyword mapping
+    # (grant_unblockable -> keyword:cant-be-blocked) rather than an
+    # explicit keyword field on the effect.
+    _existing_kw_props2 = {
+        e.get("target") for e in port["properties"]
+        if e.get("predicate") == "HAS_KEYWORD"
+    }
+    for _pe in list(port["produces"]):
+        if _pe.get("predicate") != "GRANTS":
+            continue
+        _t = _pe.get("target")
+        if isinstance(_t, str) and _t.startswith("keyword:") and _t not in _existing_kw_props2:
+            if _t in declared_concepts:
+                port["properties"].append({
+                    "predicate": "HAS_KEYWORD",
+                    "target": _t,
+                    "oracle_span": _pe.get("oracle_span", [0, 0]),
+                    "note": f"{_t.split(':',1)[1].capitalize()} keyword (granted by this card)",
+                })
+                _existing_kw_props2.add(_t)
+
+    # Card 002: face-level "Choose one/two/one or both" modal detector.
+    # Some modal cards split the mode effects into separate ability
+    # objects with no shared preamble, so neither the extraction's own
+    # modal op nor F4's synthesis fires. Sweep the oracle text (outside
+    # quoted grants) for a "Choose X —" preamble and emit a
+    # MODAL_MARKER edge in produces with the detected mode.
+    import re as _re
+    _oracle_text = face.get("oracle_text") or ""
+    _oracle_for_choose = _re.sub(r'"[^"]*"', "", _oracle_text)
+    _existing_modal = any(
+        e.get("predicate") == "MODAL_MARKER" for e in port["produces"]
+    )
+    _choose_match = _re.search(
+        r"choose (one or both|one|two|three)\s*[—\-]",
+        _oracle_for_choose, _re.IGNORECASE,
+    )
+    _synth_mod = port.get("modality") if isinstance(port.get("modality"), dict) else None
+    if not _existing_modal and (_choose_match or _synth_mod):
+        _mode_word = _choose_match.group(1).lower() if _choose_match else (
+            (_synth_mod.get("kind") or "").replace("choose_", "").replace("_", " ")
+            if _synth_mod else "one"
+        )
+        _entry: dict[str, Any] = {
+            "predicate": "MODAL_MARKER",
+            "mode": _mode_word,
+            "oracle_span": [0, len(_oracle_text)],
+        }
+        # Attach mode metadata from the synthesized modality if present.
+        if _synth_mod:
+            _entry["mode_kind"] = _synth_mod.get("kind")
+            if _synth_mod.get("modes"):
+                _entry["mode_count"] = len(_synth_mod["modes"])
+        port["produces"].append(_entry)
+
+    # Card 002: face-level named-ability-word keyword detector. Some
+    # keyword abilities and ability words (per CR 207.2c) appear only as
+    # italicised markers in the oracle text -- "Landfall — Whenever a
+    # land you control enters, ...", "Ferocious — Whenever this creature
+    # attacks while you control a creature with power 4+, ...",
+    # "Threshold — ...". The extraction sometimes represents the trigger
+    # but not the marker itself, so the port ends up carrying the
+    # triggered edge without the HAS_KEYWORD property. Sweep the oracle
+    # text (with quoted grants stripped so a Saga's granted landfall
+    # doesn't attribute native landfall to the Saga) and emit
+    # HAS_KEYWORD for every marker found.
+    import re as _re
+    # Note: we do NOT strip quoted text here. A card that grants a keyword
+    # ability inside a quoted string ("Landfall — Whenever ...") still
+    # deserves the HAS_KEYWORD tag on its port because consumers looking
+    # for "cards with Landfall in their ability text" want to find it.
+    # Down in the Valley (Saga chapter II gains "Landfall — ...") is the
+    # canonical case.
+    _oracle_text = face.get("oracle_text") or ""
+    _NAMED_ABILITY_WORDS = ("landfall", "ferocious", "threshold")
+    # Flashback marker: "Flashback {N}{X}" -- word followed by mana cost.
+    # (Kicker uses the same pattern; both are keyword abilities that pair
+    # with a mana cost rather than the "— text" ability-word format.)
+    # Keywords that pair with a mana cost in the oracle text:
+    #   "Flashback {2}{U}", "Kicker {1}", "Equip {3}", "Equip—{2}, Pay 2 life.",
+    #   "Ward {1}" -- all match "<keyword> [{mana}]" or "<keyword>—{mana}".
+    _KEYWORD_WITH_MANA_MARKER = ("flashback", "kicker", "equip", "ward")
+    _existing_kw_targets = {
+        e.get("target") for e in port["properties"]
+        if e.get("predicate") == "HAS_KEYWORD"
+    }
+    for _aw in _NAMED_ABILITY_WORDS:
+        _kw_id = f"keyword:{_aw}"
+        if _kw_id in _existing_kw_targets:
+            continue
+        if _re.search(rf"\b{_aw}\s*[—\-]", _oracle_text, _re.IGNORECASE):
+            if _kw_id in declared_concepts:
+                port["properties"].append({
+                    "predicate": "HAS_KEYWORD",
+                    "target": _kw_id,
+                    "oracle_span": [0, len(_oracle_text)],
+                    "note": f"{_aw.capitalize()} ability word",
+                })
+    for _aw in _KEYWORD_WITH_MANA_MARKER:
+        _kw_id = f"keyword:{_aw}"
+        if _kw_id in _existing_kw_targets:
+            continue
+        # Match "Flashback {2}{U}" or "Flashback—{4}{B}" etc.
+        if _re.search(rf"\b{_aw}\s*[—\-]?\s*\{{", _oracle_text, _re.IGNORECASE):
+            if _kw_id in declared_concepts:
+                port["properties"].append({
+                    "predicate": "HAS_KEYWORD",
+                    "target": _kw_id,
+                    "oracle_span": [0, len(_oracle_text)],
+                    "note": f"{_aw.capitalize()} keyword",
+                })
+
+    # Card 002: predicate-implies-keyword sweep. Any edge whose predicate
+    # is itself a named keyword ability implies HAS_KEYWORD keyword:X.
+    # RECRUIT -> keyword:recruit, AMASS -> keyword:amass, FLASHBACK ->
+    # keyword:flashback, TYPECYCLING -> keyword:cycling, BEHOLDS ->
+    # keyword:beholds. INSTALLS_WATCHER gate:storied -> keyword:storied
+    # for the 7 storied cards that don't also emit HAS_KEYWORD via
+    # ab.keyword (Balin, Bombur, Dain, Fili, Kili, Oin, Thorin).
+    _PREDICATE_TO_KEYWORD = {
+        "RECRUIT": "keyword:recruit",
+        "AMASS": "keyword:amass",
+        "FLASHBACK": "keyword:flashback",
+        "TYPECYCLING": "keyword:cycling",
+        "BEHOLDS": "keyword:beholds",
+    }
+    _existing_kw3 = {
+        e.get("target") for e in port["properties"]
+        if e.get("predicate") == "HAS_KEYWORD"
+    }
+    for _pe in port["produces"] + port["installs"]:
+        _pred = _pe.get("predicate")
+        _kw_id = _PREDICATE_TO_KEYWORD.get(str(_pred))
+        # Special-case: gate:storied install implies keyword:storied
+        if (_pred == "INSTALLS_WATCHER" and
+                _pe.get("target") == "gate:storied"):
+            _kw_id = "keyword:storied"
+        if _kw_id and _kw_id not in _existing_kw3 and _kw_id in declared_concepts:
+            port["properties"].append({
+                "predicate": "HAS_KEYWORD",
+                "target": _kw_id,
+                "oracle_span": _pe.get("oracle_span", [0, 0]),
+                "note": f"{_kw_id.split(':',1)[1].capitalize()} keyword (implied by {_pred} edge)",
+            })
+            _existing_kw3.add(_kw_id)
+
+    # Card 002: "Enchant creature" / "Enchant permanent" style keywords.
+    # Aura cards print "Enchant <type>" as their enchant keyword.
+    import re as _re5
+    if _re5.search(r"\benchant\s+(creature|permanent|artifact|land|player)", _oracle_text, _re5.IGNORECASE):
+        _kw = "keyword:enchant"
+        if _kw not in {e.get("target") for e in port["properties"]
+                        if e.get("predicate") == "HAS_KEYWORD"}:
+            if _kw in declared_concepts:
+                port["properties"].append({
+                    "predicate": "HAS_KEYWORD",
+                    "target": _kw,
+                    "oracle_span": [0, len(_oracle_text)],
+                    "note": "Enchant keyword",
+                })
+
+# Card 002 axis 3: classify every non-mana `amount` field so    # Card 002 axis 3: classify every non-mana `amount` field so
+    # consumers can distinguish literal counts from symbolic (X, *) and
+    # scaling ("one per Halfling you control", "equal to the sacrificed
+    # creature\'s power") values. Adds `amount_kind` alongside amount.
+    # Mana amounts on CONSUMES_MANA / PRODUCES_MANA are self-identified
+    # (they carry `class: resource:mana` or `mana` field) and skip this
+    # tagging.
+    def _classify_amount(v: object) -> str | None:
+        if isinstance(v, (int, float)):
+            return "literal"
+        if not isinstance(v, str):
+            return None
+        s = v.strip()
+        if not s:
+            return None
+        # Mana notation like "{2}{W}" -- leave alone.
+        if s.startswith("{") and s.endswith("}"):
+            return None
+        # Single symbol X / N / Y or literal "*".
+        if s in ("*", "X", "N", "Y") or (len(s) == 1 and s.isalpha()):
+            return "variable"
+        # Signed P/T like "+1/+1" -- literal delta.
+        import re as _re_am
+        if _re_am.match(r"^[+-]?\d+/[+-]?\d+$", s):
+            return "literal"
+        # Digit-only string.
+        if s.isdigit():
+            return "literal"
+        # Anything with scaling language.
+        if any(kw in s.lower() for kw in (
+            "per ", "for each", "equal to", "where x", "number of",
+            "amount of", "cards in", "power", "toughness",
+        )):
+            return "scaling"
+        # Fallback: descriptive expression.
+        return "expression"
+
+    for _sec in ("properties", "installs", "consumes", "produces", "costs"):
+        for _e in port[_sec]:
+            if "amount_kind" in _e or "amount" not in _e:
+                continue
+            # Skip mana-notation amounts (they're self-identified).
+            if (_e.get("class") == "resource:mana"
+                    or _e.get("mana") is not None
+                    or (isinstance(_e.get("amount"), str)
+                        and _e["amount"].startswith("{"))):
+                continue
+            _kind = _classify_amount(_e.get("amount"))
+            if _kind is not None:
+                _e["amount_kind"] = _kind
+
+    # Card 002 axis 1: consolidate low-count predicate aliases into their    # Card 002 axis 1: consolidate low-count predicate aliases into their
+    # canonical high-count cousins, lifting the distinguishing info into
+    # structured fields (from_zone / to_zone / subject / state) so the
+    # semantic difference is preserved as data. Reduces predicate churn
+    # in the graph without losing information.
+    _ALIAS_CONSOLIDATION = {
+        # Singular / generic / partial-move all fold to MOVES_CARDS.
+        # to_zone / from_zone are already lifted; nothing else to add.
+        "MOVES_CARD": ("MOVES_CARDS", {}),
+        "MOVES_ZONE": ("MOVES_CARDS", {}),
+        "MOVES_REST": ("MOVES_CARDS", {"subject_scope": "rest"}),
+        "MOVES_TO_HAND": ("MOVES_CARDS", {"to_zone": "hand"}),
+        "MOVES_TO_LIBRARY": ("MOVES_CARDS", {"to_zone": "library"}),
+        # Exile variants fold to EXILES, with the modifier lifted.
+        "EXILES_FROM_LIBRARY": ("EXILES", {"from_zone": "library"}),
+        "EXILES_FACE_DOWN": ("EXILES", {"state": "face_down"}),
+        "EXILES_SELF": ("EXILES", {"subject": "self"}),
+        # Reveal variants all fold to REVEALS with a mode/subject/flag.
+        "REVEALS_HAND": ("REVEALS", {"subject": "hand"}),
+        "REVEALS_UNTIL": ("REVEALS", {"mode": "until"}),
+        "REVEALS_AND_TAKES": ("REVEALS", {"and_takes": True}),
+        # Return variants fold to RETURNS with from_zone/to_zone.
+        "RETURNS_FROM_EXILE": ("RETURNS", {"from_zone": "exile"}),
+        "RETURNS_FROM_GRAVEYARD": ("RETURNS", {"from_zone": "graveyard"}),
+        "RETURNS_TO_HAND": ("RETURNS", {"to_zone": "hand"}),
+        # Shuffle variants fold to SHUFFLES with to_zone.
+        "SHUFFLES_INTO_LIBRARY": ("SHUFFLES", {"to_zone": "library"}),
+        # Type-modification family: ADDS_TYPE (in addition to), SETS_TYPE
+        # (replaces), CHANGES_TYPE (unspecified), CHANGES_CHARACTERISTICS
+        # (broader). Fold the last three into CHANGES_TYPE with a `mode`
+        # field naming the specific kind of change.
+        "SETS_TYPE": ("CHANGES_TYPE", {"mode": "set"}),
+        "CHANGES_CHARACTERISTICS": ("CHANGES_TYPE", {"mode": "characteristics"}),
+    }
+    for _sec in ("properties", "installs", "consumes", "produces", "costs"):
+        for _e in port[_sec]:
+            _p = _e.get("predicate")
+            if _p in _ALIAS_CONSOLIDATION:
+                _canonical, _extra = _ALIAS_CONSOLIDATION[_p]
+                _e["predicate"] = _canonical
+                for _k, _v in _extra.items():
+                    if _k not in _e:
+                        _e[_k] = _v
+
+    # Card 002 axis 4: canonicalize endpoint shape. Each non-property
+    # edge should have either a concept-id `target` or a natural-language
+    # `target_text` describing what it operates on. The extraction
+    # sometimes leaves both empty for player-scoped effects (DRAWS,
+    # GAINS_LIFE, LOSES_LIFE, MILLS, SCRIES with an implicit "you"
+    # subject) and for self-scoped effects (MODIFIES_PT of "this
+    # creature", SETS_PT, TAPS with subject=self). Fill in the implicit
+    # target_text so consumers see the same shape everywhere:
+    #   * subject field present -> mirror to target_text
+    #   * player-scoped predicate with no target -> default target_text="you"
+    #   * scope field present -> mirror to target_text
+    _PLAYER_SCOPED_PREDS = (
+        "DRAWS", "GAINS_LIFE", "LOSES_LIFE", "MILLS", "SCRIES",
+    )
+    _LIBRARY_SCOPED_PREDS = ("TUTORS", "SHUFFLES", "LOOKS_AT")
+    _HAND_SCOPED_PREDS = ("DISCARDS",)
+    for _sec in ("properties", "installs", "consumes", "produces", "costs"):
+        for _e in port[_sec]:
+            if _e.get("target_text") or _e.get("target"):
+                continue
+            _subj = _e.get("subject")
+            _scope = _e.get("scope")
+            if isinstance(_subj, str) and _subj:
+                _e["target_text"] = _subj
+            elif isinstance(_scope, str) and _scope:
+                _e["target_text"] = _scope
+            elif _e.get("predicate") in _PLAYER_SCOPED_PREDS:
+                _e["target_text"] = _e.get("controller") or "you"
+            elif _e.get("predicate") in _LIBRARY_SCOPED_PREDS:
+                _e["target_text"] = "your library"
+            elif _e.get("predicate") in _HAND_SCOPED_PREDS:
+                # Discard is a cost paid from hand.
+                _e["target_text"] = "your hand"
+
+    # Card 002 axis 7: infer a structured `selector` from `target_text`
+    # when one isn't already present. Consumers filtering by
+    # "target-scoped edges" or "each-scoped edges" get a machine-
+    # readable answer instead of having to parse natural language.
+    #
+    # Heuristics from the target_text:
+    #   "target ..."                -> selector.target.count = 1
+    #   "each ..." / "all ..."      -> selector.scope = "each"
+    #   "you control"               -> selector.controller = "you"
+    #   "an opponent controls"      -> selector.controller = "opponent"
+    #   "opponents control"         -> selector.controller = "opponent"
+    #   "your opponents control"    -> selector.controller = "opponent"
+    def _infer_selector(_tt: str) -> dict[str, Any] | None:
+        _sel: dict[str, Any] = {}
+        _lt = _tt.lower()
+        if "target " in _lt:
+            _sel["target"] = {"count": 1}
+        if "each " in _lt or _lt.startswith("all "):
+            _sel["scope"] = "each"
+        if "you control" in _lt:
+            _sel["controller"] = "you"
+        elif ("an opponent controls" in _lt
+              or "opponents control" in _lt
+              or _lt.strip() == "each opponent"
+              or "your opponents" in _lt):
+            _sel["controller"] = "opponent"
+        return _sel or None
+
+    _TARGET_PHRASES = ("target ", "each ", "all creatures", "each opponent")
+    for _sec in ("properties", "installs", "consumes", "produces", "costs"):
+        for _e in port[_sec]:
+            _tt2 = _e.get("target_text")
+            if not isinstance(_tt2, str) or not _tt2:
+                continue
+            if _e.get("selector") is not None:
+                continue
+            if not any(w in _tt2.lower() for w in _TARGET_PHRASES):
+                continue
+            _inferred = _infer_selector(_tt2)
+            if _inferred:
+                _e["selector"] = _inferred
 
     return normalize_port_order(port)
 
