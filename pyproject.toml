@@ -7,10 +7,24 @@ name = "hobkg"
 version = "0.1.0"
 description = "Mechanistic knowledge-graph builder for MTG—The Hobbit (HOB). Phase 1: deterministic normalization."
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2", "jsonschema>=4"]
+# Everything imported by a shipped package under src/. hobkg.network imports
+# networkx; deckbench.table and deckbench.identity import numpy and pyarrow.
+# Card 004's executor had to install pyarrow mid-run because it was declared in
+# registry.md's Tech Stack but nowhere a clean checkout would find it.
+dependencies = [
+    "pydantic>=2",
+    "jsonschema>=4",
+    "networkx>=3",
+    "numpy>=1.26",
+    "pyarrow>=15",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10"]
+# Not yet imported by anything under src/. Declared so the environment for
+# benchmark phase 2 is reproducible before the cards that need it are written,
+# and kept out of the base install so a graph-only checkout stays light.
+modeling = ["pandas>=2", "scikit-learn>=1.4", "xgboost>=2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

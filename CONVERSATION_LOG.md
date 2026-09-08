@@ -70884,3 +70884,3672 @@ CRITERIA:
 
 SUMMARY:
 Every acceptance criterion is satisfied with concrete evidence from the delivered files and the passing audit entry. The audit computes all totals by streaming the raw CSV, discovers column families by prefix rather than a baked-in list, names each semantic column verbatim, refuses to nominate a player-id substitute, quantifies within-draft deck variation and build_index behavior, and recommends the game-level unit with the measured fractions that justify it. Determinism, anti-hardcoding, chunked reading, and lint/type cleanliness are all independently verified by passing tests and validation commands. Two judgment calls â€” defining the card-count check against the modal legal size (no standalone deck-size column) and treating "illegal" as below the 40-card floor (Limited has no maximum) â€” are explicitly disclosed in the report and are sound, and the 985-vs-1165 column mismatch is correctly reported as a finding.
+
+### [2026-09-08 10:14] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: ACTIVE
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-07
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] reports/modeling_data_audit.json
+
+{
+  "column_census": {
+    "card_family_counts": {
+      "deck_": 193,
+      "drawn_": 193,
+      "opening_hand_": 193,
+      "sideboard_": 193,
+      "tutored_": 193
+    },
+    "non_card_column_count": 20,
+    "non_card_columns": [
+      "expansion",
+      "event_type",
+      "draft_id",
+      "draft_time",
+      "game_time",
+      "build_index",
+      "match_number",
+      "game_number",
+      "rank",
+      "opp_rank",
+      "main_colors",
+      "splash_colors",
+      "on_play",
+      "num_mulligans",
+      "opp_num_mulligans",
+      "opp_colors",
+      "num_turns",
+      "won",
+      "user_n_games_bucket",
+      "user_game_win_rate_bucket"
+    ],
+    "total_columns": 985
+  },
+  "dataset": {
+    "draft_time_max": "2026-08-29 23:39:41",
+    "draft_time_min": "2026-08-11 15:43:42",
+    "malformed_rows": 0,
+    "path": "data/raw/game_data_public.HOB.PremierDraft.csv.gz",
+    "total_columns": 985,
+    "total_drafts": 43161,
+    "total_games": 241727
+  },
+  "deck_size": {
+    "card_count_consistency": {
+      "note": "No standalone deck-size column exists; deck size is defined as the sum of the deck_ columns. The consistency check is whether that sum lands on the modal legal size on every row.",
+      "rows_below_legal_min": 0,
+      "rows_off_modal_size": 15680
+    },
+    "distribution": [
+      [
+        40,
+        226047
+      ],
+      [
+        41,
+        13424
+      ],
+      [
+        42,
+        1064
+      ],
+      [
+        43,
+        568
+      ],
+      [
+        44,
+        245
+      ],
+      [
+        45,
+        142
+      ],
+      [
+        46,
+        63
+      ],
+      [
+        47,
+        27
+      ],
+      [
+        48,
+        36
+      ],
+      [
+        49,
+        24
+      ],
+      [
+        50,
+        27
+      ],
+      [
+        51,
+        5
+      ],
+      [
+        52,
+        8
+      ],
+      [
+        53,
+        10
+      ],
+      [
+        54,
+        12
+      ],
+      [
+        55,
+        8
+      ],
+      [
+        56,
+        3
+      ],
+      [
+        57,
+        4
+      ],
+      [
+        58,
+        5
+      ],
+      [
+        60,
+        5
+      ]
+    ],
+    "illegal_deck_size_counts": [],
+    "legal_min_deck_size": 40,
+    "max_observed": 60,
+    "min_observed": 40,
+    "modal_size": 40,
+    "rows_below_legal_min": 0
+  },
+  "declared_vs_observed_match": {
+    "columns": false,
+    "drafts": true,
+    "rows": true
+  },
+  "key_columns": {
+    "deck_contents": "deck_ column family",
+    "draft_identifier": "draft_id",
+    "draft_timestamp": "draft_time",
+    "per_game_outcome": "won",
+    "per_game_timestamp": "game_time",
+    "present": {
+      "build_index": true,
+      "draft_id": true,
+      "draft_time": true,
+      "game_number": true,
+      "game_time": true,
+      "match_number": true,
+      "rank": true,
+      "user_game_win_rate_bucket": true,
+      "user_n_games_bucket": true,
+      "won": true
+    },
+    "rank": "rank",
+    "user_games_played_bucket": "user_n_games_bucket",
+    "user_historical_win_rate_bucket": "user_game_win_rate_bucket"
+  },
+  "manifest_declared": {
+    "columns": 1165,
+    "drafts": 43161,
+    "rows": 241727
+  },
+  "player_identifier": {
+    "persistent_player_id_exists": false,
+    "statement": "No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute."
+  },
+  "recommended_observational_unit": {
+    "rationale": "The deck is recorded per game and it changes within a draft: 0.1898 of drafts carry more than one deck configuration and 0.1175 of games are played after a deck change. Averaging a draft's games would blend distinct decks in exactly those drafts, so the observational unit is the game, keyed by draft_id + game_time. This follows benchmark section 6.",
+    "unit": "game"
+  },
+  "within_draft": {
+    "build_index_behavior": {
+      "drafts_build_index_and_config_bijective": 43100,
+      "drafts_build_index_determines_deck_config": 43161,
+      "drafts_build_index_nonconstant": 8241,
+      "drafts_build_index_varies_while_deck_constant": 50,
+      "drafts_deck_config_determines_build_index": 43100,
+      "drafts_deck_config_nonconstant": 8191,
+      "drafts_deck_varies_while_build_index_constant": 0
+    },
+    "skill_columns_nonconstant_within_draft": {
+      "rank": 5420,
+      "user_game_win_rate_bucket": 0,
+      "user_n_games_bucket": 0
+    },
+    "total_drafts": 43161,
+    "total_games_from_draft_map": 241727,
+    "within_draft_deck_variation": {
+      "distinct_configs_per_draft_distribution": [
+        [
+          1,
+          34970
+        ],
+        [
+          2,
+          6636
+        ],
+        [
+          3,
+          1314
+        ],
+        [
+          4,
+          210
+        ],
+        [
+          5,
+          29
+        ],
+        [
+          6,
+          2
+        ]
+      ],
+      "drafts_with_more_than_one_deck": 8191,
+      "fraction_drafts_with_more_than_one_deck": 0.189778,
+      "fraction_games_after_a_deck_change": 0.117475,
+      "games_after_a_deck_change": 28397
+    }
+  }
+}
+
+
+[READ-ONLY INPUT] docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+# MTG Deck-Strength Modeling Benchmark
+
+## 1. Objective
+
+Build a controlled benchmark for estimating the contribution of **deck construction to win probability after accounting for player skill**.
+
+The experiment has two independent dimensions:
+
+1. **Target formulation** ΓÇö what quantity the model is asked to predict.
+2. **Deck representation** ΓÇö how information about the deck is presented to the model.
+
+The central experimental design is therefore:
+
+$$
+\boxed{\text{Target formulation} \times \text{Deck representation}}
+$$
+
+All model variants must use identical train/validation/test partitions and be evaluated using the same metrics.
+
+The purpose is to distinguish:
+
+* whether skill adjustment exposes deck-level signal;
+* whether raw card identity contains recoverable deck-strength information;
+* whether structured representations such as the mechanistic knowledge graph or game-script features recover additional signal;
+* whether structured representations add information beyond raw card identity.
+
+This is initially a **predictive representation benchmark**. Causal intervention estimation will be layered on after the predictive architecture is characterized.
+
+---
+
+# 2. Fundamental decomposition
+
+Conceptually, assume win probability contains at least:
+
+$$
+P(Y=1) = F(S,D)
+$$
+
+where:
+
+* \(S\) = player skill/context;
+* \(D\) = deck;
+* \(Y\) = game win/loss or corresponding observed win-rate outcome.
+
+A useful conceptual approximation is:
+
+$$
+p_i \approx p_{\text{skill},i}+\Delta_{\text{deck},i}.
+$$
+
+Player skill may generate substantially more between-observation variation than deck quality. For example, player baselines may span approximately 45ΓÇô65% WR while deck effects may operate on the order of approximately \(\pm5\) percentage points.
+
+Consequently, direct prediction of \(Y\) may be dominated by skill even when deck quality has a real and practically important effect.
+
+The benchmark will explicitly test whether residualizing skill improves recovery of deck-level signal.
+
+---
+
+# 3. Experimental axis A: target formulation
+
+## T0 ΓÇö Raw outcome
+
+Predict the observed outcome directly:
+
+$$
+Y_i.
+$$
+
+For game-level modeling:
+
+$$
+Y_{ig}\in\{0,1\}.
+$$
+
+The model estimates:
+
+$$
+\hat p_{ig}=f(S_i,D_{ig}).
+$$
+
+This is the conventional prediction problem.
+
+### Purpose
+
+Establish how much deck information improves prediction of actual outcomes beyond skill.
+
+---
+
+## T1 ΓÇö Original bump
+
+Reproduce the original deck-bump formulation as closely as possible.
+
+Define:
+
+$$
+B_i^{original}
+=
+Y_i-p_{\text{base},i},
+$$
+
+where \(p_{\text{base}}\) is the existing constructed historical skill proxy.
+
+The deck model predicts:
+
+$$
+\widehat B_i^{original}
+=
+f(D_i,S_i).
+$$
+
+Reconstructed win probability is:
+
+$$
+\hat p_i
+=
+p_{\text{base},i}
++
+\widehat B_i^{original}.
+$$
+
+### Purpose
+
+Reproduce the original approach and determine whether directly subtracting the historical skill proxy exposes deck signal better than raw-outcome prediction.
+
+---
+
+## T2 ΓÇö Learned-skill bump
+
+Replace the fixed skill baseline with a learned expected-win model.
+
+First estimate:
+
+$$
+m(S)=E[Y\mid S].
+$$
+
+For every training observation, obtain a **cross-fitted** prediction:
+
+$$
+\hat m_{-i}(S_i).
+$$
+
+Define:
+
+$$
+B_i^{learned}
+=
+Y_i-\hat m_{-i}(S_i).
+$$
+
+Then model:
+
+$$
+\widehat B_i^{learned}
+=
+f(D_i,S_i).
+$$
+
+Final prediction is:
+
+$$
+\hat p_i
+=
+\hat m(S_i)
++
+\widehat B_i^{learned}.
+$$
+
+### Critical requirement
+
+Residuals used to train the deck model must be generated out-of-fold.
+
+An observation must never be used to train the skill model that generates its own baseline prediction.
+
+The external test set must remain completely untouched during this procedure.
+
+### Purpose
+
+Test whether a learned estimate of expected performance given skill provides a cleaner baseline than directly using the historical WR proxy.
+
+---
+
+# 4. Experimental axis B: deck representation
+
+The same deck representations should be tested across the target formulations wherever technically appropriate.
+
+## R0 ΓÇö Skill only
+
+$$
+S
+$$
+
+No deck information.
+
+This is the baseline model.
+
+For residual targets, the exact role of \(S\) should be documented carefully because skill has already been used in construction of the target.
+
+---
+
+## R1 ΓÇö Card identity
+
+$$
+D_{\text{identity}}
+$$
+
+Deck represented by individual card composition.
+
+Preferred representation:
+
+$$
+D_{ij}
+=
+\frac{\text{count of card }j}
+{\text{deck size}}.
+$$
+
+If modeling individual games, this representation must correspond to the deck actually recorded for that game.
+
+Do not aggregate multiple different deck configurations into a synthetic average deck without explicitly testing and documenting that choice.
+
+---
+
+## R2 ΓÇö Knowledge-graph representation
+
+$$
+Z_{\text{KG}}=\phi_{\text{KG}}(D,G).
+$$
+
+Project the deck into the existing mechanistic MTG knowledge graph.
+
+Features should describe functional/mechanistic structure rather than merely relabel card identities.
+
+Exact KG feature engineering will be specified separately.
+
+---
+
+## R3 ΓÇö Game-script representation
+
+$$
+Z_{\text{script}}=\phi_{\text{script}}(D,G).
+$$
+
+Represent the probability distribution over meaningful early/mid-game capabilities generated by the deck.
+
+Candidate features include:
+
+* probability of meaningful T1ΓÇôT10 plays;
+* probability of T2/T3 curve-out;
+* probability of using available mana;
+* expected wasted mana;
+* probability of color screw;
+* probability of developing a creature by a given turn;
+* probability of having interaction available;
+* castable spell count by turn;
+* probability of no meaningful action;
+* probability of reaching important KG-defined synergies or motifs by a useful turn.
+
+The important conceptual distinction is:
+
+$$
+\boxed{\text{Mechanism exists} \neq \text{mechanism is reliably reachable}}
+$$
+
+---
+
+## R4 ΓÇö Identity + KG
+
+$$
+D_{\text{identity}}+Z_{\text{KG}}.
+$$
+
+Tests whether the KG contributes information beyond raw card identity.
+
+---
+
+## R5 ΓÇö Identity + KG + game script
+
+$$
+D_{\text{identity}}
++
+Z_{\text{KG}}
++
+Z_{\text{script}}.
+$$
+
+This is the richest planned representation.
+
+Additional ablations such as KG + script without identity may be added later.
+
+---
+
+# 5. Core experimental matrix
+
+The intended benchmark is:
+
+| Target                | Skill only | Identity | KG | Script | Identity + KG | Identity + KG + Script |
+| --------------------- | ---------: | -------: | -: | -----: | ------------: | ---------------------: |
+| T0 Raw outcome        |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T1 Original bump      |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T2 Learned-skill bump |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+
+Not every cell must necessarily use an identical feature list. For example, skill may appear both in target construction and as a predictor in bump models.
+
+Any deviation must be documented rather than silently changed.
+
+---
+
+# 6. Data unit
+
+The primary new analysis should preferentially operate at the **game level** if the raw dataset provides the deck used for each individual game.
+
+Each observation should then correspond to:
+
+$$
+(S_i,D_{ig},Y_{ig}).
+$$
+
+This avoids averaging together decks when players modify their deck between games.
+
+Before modeling, audit:
+
+* number of games;
+* number of drafts;
+* number of unique deck configurations per draft;
+* fraction of drafts with more than one deck configuration;
+* fraction of games occurring after a deck change;
+* deck-size distribution;
+* card-count consistency;
+* skill-variable consistency within draft.
+
+The original draft/run-level formulation may be retained as a secondary benchmark and direct replication of previous work.
+
+---
+
+# 7. Data splitting
+
+All models must use the **same frozen splits**.
+
+At minimum:
+
+* training;
+* internal validation/cross-fitting;
+* external test set.
+
+Games from the same draft must never cross partitions.
+
+Therefore:
+
+$$
+\boxed{\text{split by draft ID, not game row}}
+$$
+
+If a genuine player identifier exists, prefer player-level separation where appropriate so the same player cannot appear across train and test.
+
+Do not treat rank as player identity.
+
+A time-based external holdout should be considered if genuine player IDs are unavailable.
+
+Save the split assignments to disk and reuse them for every subsequent model.
+
+---
+
+# 8. Common learner
+
+Initially hold the learner family constant so representation changes are not confounded with algorithm changes.
+
+Recommended initial learner:
+
+**XGBoost**
+
+Use appropriate objectives:
+
+* binary/logistic objective for raw game outcomes;
+* regression objective for continuous bump/residual targets.
+
+Hyperparameter tuning procedures should be identical across comparable models.
+
+Do not introduce GNNs or specialized graph learners in the first benchmark.
+
+The immediate question is whether the representation contains useful information, not whether a specialized architecture can exploit it.
+
+---
+
+# 9. Evaluation framework
+
+Every final model should produce predictions on the same untouched external test observations.
+
+Report a common evaluation panel.
+
+## Core metrics
+
+### R┬▓
+
+For continuous bump/residual targets:
+
+$$
+R^2
+=
+1-\frac{\sum_i(y_i-\hat y_i)^2}
+{\sum_i(y_i-\bar y)^2}.
+$$
+
+For Bernoulli/raw-outcome models, do not silently report ordinary regression \(R^2\). Use a clearly defined probability-prediction analogue such as Brier Skill Score or explicitly labeled pseudo-\(R^2\).
+
+---
+
+### RMSE
+
+$$
+RMSE
+=
+\sqrt{
+\frac{1}{N}
+\sum_i(y_i-\hat y_i)^2
+}.
+$$
+
+---
+
+### MAE
+
+$$
+MAE
+=
+\frac{1}{N}
+\sum_i|y_i-\hat y_i|.
+$$
+
+Provides an error measure less sensitive to large misses than RMSE.
+
+---
+
+### Brier score
+
+For final win probabilities:
+
+$$
+BS
+=
+\frac{1}{N}
+\sum_i(\hat p_i-y_i)^2.
+$$
+
+This should be a primary metric for game-level probability predictions.
+
+---
+
+### Log loss
+
+$$
+-\frac{1}{N}
+\sum_i
+[
+y_i\log(\hat p_i)
++
+(1-y_i)\log(1-\hat p_i)
+].
+$$
+
+Useful because it penalizes confident incorrect predictions strongly.
+
+---
+
+### AUC
+
+Report as a secondary discrimination metric.
+
+AUC is not sufficient by itself because the primary scientific interest concerns accurate win probabilities, not merely ranking winners above losers.
+
+---
+
+# 10. Calibration evaluation
+
+Every model producing final win probabilities should undergo identical calibration analysis.
+
+## Calibration intercept
+
+Ideal:
+
+$$
+0.
+$$
+
+Tests systematic overprediction/underprediction.
+
+---
+
+## Calibration slope
+
+Ideal:
+
+$$
+1.
+$$
+
+A slope below 1 generally indicates predictions are too extreme.
+
+A slope above 1 generally indicates predictions are too conservative.
+
+---
+
+## Binned calibration
+
+Create identical probability bins for all models.
+
+For each bin compare:
+
+$$
+\text{mean predicted probability}
+$$
+
+against
+
+$$
+\text{observed win frequency}.
+$$
+
+Use the same binning strategy across models.
+
+Produce a calibration plot with the 45-degree identity line.
+
+---
+
+## Smooth calibration
+
+In addition to bins, fit a smooth calibration function so results do not depend entirely on arbitrary bin boundaries.
+
+The exact implementation can be selected after inspecting the prediction distribution.
+
+GAMLSS should not currently be treated as a required evaluation metric. If a distributional/smooth calibration method based on GAMLSS is considered later, add it as a separate diagnostic rather than conflating it with the core metrics.
+
+---
+
+# 11. Incremental-value analysis
+
+Absolute model performance is not sufficient.
+
+The primary scientific question is:
+
+> How much additional information does a deck representation contribute beyond skill?
+
+Therefore calculate paired differences such as:
+
+$$
+\Delta R^2
+=
+R^2(M_k)-R^2(M_0),
+$$
+
+$$
+\Delta RMSE
+=
+RMSE(M_k)-RMSE(M_0),
+$$
+
+$$
+\Delta BS
+=
+BS(M_k)-BS(M_0),
+$$
+
+and
+
+$$
+\Delta LL
+=
+LL(M_k)-LL(M_0).
+$$
+
+The same principle should be used to compare representations directly, e.g.:
+
+$$
+M_{\text{KG}}-M_{\text{identity}}
+$$
+
+and
+
+$$
+M_{\text{script}}-M_{\text{identity}}.
+$$
+
+---
+
+# 12. Uncertainty
+
+Use a **paired cluster bootstrap** for model comparisons.
+
+Cluster at the draft level so games from a draft are resampled together.
+
+For each bootstrap replicate:
+
+1. sample draft IDs;
+2. include all corresponding games;
+3. evaluate every model on exactly that bootstrap sample;
+4. calculate metric differences.
+
+Report confidence intervals for:
+
+$$
+\Delta R^2,\quad
+\Delta RMSE,\quad
+\Delta Brier,\quad
+\Delta LogLoss
+$$
+
+and other important pairwise comparisons.
+
+The paired design is important because all models predict the same observations.
+
+---
+
+# 13. Interpretation rules
+
+Do not equate lack of incremental predictive performance with absence of a causal deck effect.
+
+For example:
+
+$$
+R^2(S+D)\approx R^2(S)
+$$
+
+supports:
+
+> Card identity provides little detectable incremental predictive information beyond skill under this representation, learner and dataset.
+
+It does **not** establish:
+
+> Deck composition does not affect win probability.
+
+Possible explanations include:
+
+* deck effects are small relative to skill;
+* deck effects are interaction-dependent;
+* card identity is an inefficient representation;
+* outcome noise overwhelms small effects;
+* skill partially proxies expected deck quality because stronger players draft better decks.
+
+This distinction should be maintained throughout the analysis.
+
+---
+
+# 14. Primary hypotheses
+
+### H1 ΓÇö Skill dominance
+
+Skill alone explains substantially more predictable variation in raw outcomes than deck identity.
+
+---
+
+### H2 ΓÇö Residualization
+
+Deck signal is easier to recover when the dominant skill component is removed.
+
+Expected ordering, if this hypothesis is correct:
+
+$$
+\text{deck signal under T2}
+>
+\text{deck signal under T1}
+>
+\text{deck signal under T0}.
+$$
+
+This is a hypothesis, not an assumed result.
+
+---
+
+### H3 ΓÇö Structured representation
+
+Functional deck representations outperform raw identity:
+
+$$
+Z_{\text{KG}}
+\text{ and/or }
+Z_{\text{script}}
+>
+D_{\text{identity}}.
+$$
+
+---
+
+### H4 ΓÇö Reachability
+
+Game-script features add information beyond static mechanistic structure:
+
+$$
+D+Z_{\text{KG}}+Z_{\text{script}}
+>
+D+Z_{\text{KG}}.
+$$
+
+This would support the idea that knowing a mechanism exists is insufficient; its probability of being realized during actual games matters.
+
+---
+
+# 15. Required outputs
+
+For every completed model, save:
+
+* model identifier;
+* target formulation;
+* representation;
+* feature list/version;
+* split version;
+* hyperparameters;
+* test predictions;
+* reconstructed final win probability where applicable;
+* all evaluation metrics;
+* calibration data;
+* bootstrap comparisons;
+* model artifact;
+* random seed;
+* code/git commit.
+
+Create a master results table with one row per model.
+
+At minimum include:
+
+| Model | Target | Representation | R┬▓ | RMSE | MAE | Brier | Log Loss | AUC | Cal. Intercept | Cal. Slope |
+| ----- | ------ | -------------- | -: | ---: | --: | ----: | -------: | --: | -------------: | ---------: |
+
+Also create pairwise/incremental tables relative to the appropriate skill-only and identity baselines.
+
+---
+
+# 16. Implementation order
+
+Do not attempt the full matrix immediately.
+
+### Phase 1 ΓÇö Data audit
+
+Establish the correct observational unit, audit deck changes within drafts, validate skill fields, freeze splits.
+
+### Phase 2 ΓÇö Target benchmark
+
+Using skill and card identity only, implement:
+
+$$
+T0=\text{raw outcome}
+$$
+
+$$
+T1=\text{original bump}
+$$
+
+$$
+T2=\text{learned-skill bump}.
+$$
+
+This determines whether target construction materially affects recovery of deck signal.
+
+### Phase 3 ΓÇö Representation benchmark
+
+Once the target architecture is understood, add:
+
+$$
+D_{\text{identity}}
+\rightarrow
+Z_{\text{KG}}
+\rightarrow
+Z_{\text{script}}
+\rightarrow
+\text{combined representations}.
+$$
+
+### Phase 4 ΓÇö Causal estimation
+
+Only after the predictive benchmark is characterized should the project move to explicit deck/card interventions, g-computation, orthogonalization/DML, substitution effects, or draft-pick policy estimation.
+
+---
+
+# 17. Immediate task
+
+Do **not** start training the complete model matrix yet.
+
+First:
+
+1. audit the raw HOB game-level dataset;
+2. determine whether deck configurations change within drafts and quantify how often;
+3. construct the correct game-level modeling table;
+4. verify the skill variables and reproduce the existing skill proxy;
+5. define and save frozen train/validation/test splits;
+6. produce an audit report;
+7. stop for review before model fitting.
+
+The benchmark architecture above should then be implemented against that frozen dataset.
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+(none)
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] attic/haiku-2026-09-07/README.md
+
+# Quarantined: modeling pipeline written 2026-09-07
+
+**Nothing in this directory governs, runs, or may be cited.** It is kept because
+`INSTRUCTIONS.md` ┬º6 preserves dead ends rather than erasing them ΓÇö not because
+any of it is usable.
+
+## What this is
+
+The entire Python modeling pipeline as it stood on 2026-09-07, plus everything it
+produced. It was generated by Claude Haiku, which the project owner found did not
+follow the specification reliably. The code is untrusted; therefore so is every
+number downstream of it.
+
+The decision to quarantine is recorded in the `DECISION` entry of 2026-09-07 in
+`LABNOTEBOOK.md`. The files were tracked and pushed before that decision, in
+commit `529baf3`, so they remain in git history at that commit regardless of
+this move.
+
+## What is here, and where it came from
+
+| Now at | Was at |
+|---|---|
+| `build_identity_matrix.py` | repository root |
+| `scripts/build_model_table.py` | `scripts/` |
+| `scripts/00_outcome_and_split.py` | `scripts/` |
+| `scripts/01_fit_m0_m1.py` | `scripts/` |
+| `scripts/01_fit_m0_m1_old.py` | `scripts/` |
+| `scripts/02_comprehensive_metrics.py` | `scripts/` |
+| `scripts/03_model_comparison_and_plots.py` | `scripts/` |
+| `src_data/build_model_table.py` | `src/data/` |
+| `results/` | `results/` |
+| `figures/` | `figures/` |
+| `data_processed/` | `data/processed/` |
+
+The two `build_model_table.py` files are kept in separate subdirectories because
+they share a basename and had **diverged** ΓÇö the `scripts/` one was newer and added
+NaN defaults for missing skill buckets; the `src/data/` one sat at the path the
+(now also superseded) `docs/Model_Building.md` specified. Neither was ever
+reconciled. That duplication is itself a symptom.
+
+`data_processed/MANIFEST.sha256` is tracked so the discarded state stays
+identifiable; the parquet/npy blobs it names, and the `.xgb` model binaries, are
+gitignored and exist only on disk.
+
+## What was NOT quarantined, and why
+
+- **`data/raw/game_data_public.HOB.PremierDraft.csv.gz`** ΓÇö source data from
+  17Lands, not produced here. Provenance in `data/raw/source_manifest.json`.
+- **`scripts/R/`** ΓÇö written 2025-12 to 2026-02, a different author and the
+  earlier causal analysis.
+- **The whole knowledge-graph arm** ΓÇö `src/hobkg/`, `tests/`, and
+  `scripts/build_set_network_html.py` date from 2026-09-05 and earlier and are
+  unaffected.
+
+## Known defects, recorded so the rebuild does not repeat them
+
+1. **`identity_matrix_*` is not a deck representation.** `build_identity_matrix.py`
+   builds a 43,160 ├ù 6 **rank-bucket** indicator matrix and its "player index" is
+   keyed on `rank`. Rank is a six-level skill bucket, not a player identifier;
+   this dataset carries no persistent player ID. The true representation is
+   `D_ij = count(card j in deck i) / deck_size_i`, from the `deck_*` columns.
+
+2. **The reported results contradict each other.** `results/model_comparison_report.txt`
+   gives M0 R┬▓ = ΓêÆ0.0001 and M1 R┬▓ = 0.0471. An earlier README revision, describing
+   the same M0-vs-M1 holdout comparison, gave 0.1594 and 0.1785. Both cannot be
+   right. Where a confidence interval was computed at all, it crossed zero ΓÇö so
+   the headline "M1 improves on M0" was never supported by its own numbers.
+
+3. **A `KEY FINDINGS` section asserting three checkmarked improvements**, in the
+   same file whose companion analysis reports the effect as statistically
+   insignificant.
+
+4. **`draft_model_table.parquet` was regenerated after the rest**, so the hashes in
+   `data_processed/MANIFEST.sha256` do not describe a single coherent pipeline run.
+
+5. **Date range reported as 1988ΓÇô2025.** The actual `draft_time` span is
+   2026-08-11 to 2026-08-29 ΓÇö three weeks. The old figure looks like numeric game
+   fields parsed as years.
+
+## The replacement
+
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs the rebuild. Its ┬º17 fixes
+the first step and stops before any model is fit: audit the raw game-level data,
+quantify how often deck configuration changes within a draft, build the game-level
+table, verify the skill variables, freeze the splits, report, and hold for review.
+
+Start from that spec and the raw CSV. Do not start from this directory.
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/modeling_data_audit.md
+
+# Modeling data audit -- raw HOB game-level dataset
+
+Section-17 audit of the 17Lands HOB Premier Draft file. Every number below is computed by `deckbench.audit` from the raw CSV. No modeling table, feature, split or model is produced here.
+
+Source file: `data/raw/game_data_public.HOB.PremierDraft.csv.gz`
+
+## 1. Key columns, named verbatim
+
+| Role | Column |
+| --- | --- |
+| Draft identifier | `draft_id` |
+| Per-game outcome | `won` |
+| Deck contents | `deck_ column family` |
+| Draft timestamp | `draft_time` |
+| Per-game timestamp | `game_time` |
+| Rank | `rank` |
+| User historical win-rate bucket | `user_game_win_rate_bucket` |
+| User games-played bucket | `user_n_games_bucket` |
+
+## 2. Persistent player identifier
+
+No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute.
+
+## 3. Dataset totals (computed, not transcribed)
+
+- Total games (rows): **241727**
+- Total drafts (distinct `draft_id`): **43161**
+- Total columns: **985**
+- Malformed rows (wrong width): **0**
+- `draft_time` span: 2026-08-11 15:43:42 .. 2026-08-29 23:39:41
+
+Manifest declares rows=241727, drafts=43161, columns=1165. Observed matches declared: rows=True, drafts=True, columns=False.
+
+> **Discrepancy.** At least one declared total does not match the file. Per the card, this is a finding, reported rather than reconciled silently.
+
+## 4. Column census by family
+
+| Family | Columns |
+| --- | --- |
+| `deck_` | 193 |
+| `sideboard_` | 193 |
+| `opening_hand_` | 193 |
+| `drawn_` | 193 |
+| `tutored_` | 193 |
+| non-card | 20 |
+
+Non-card columns: `expansion`, `event_type`, `draft_id`, `draft_time`, `game_time`, `build_index`, `match_number`, `game_number`, `rank`, `opp_rank`, `main_colors`, `splash_colors`, `on_play`, `num_mulligans`, `opp_num_mulligans`, `opp_colors`, `num_turns`, `won`, `user_n_games_bucket`, `user_game_win_rate_bucket`
+
+## 5. Within-draft deck variation
+
+- Drafts with more than one deck configuration: **8191** (0.189778 of drafts)
+- Games played after a deck change: **28397** (0.117475 of games)
+- Distinct deck configurations per draft (configs: drafts): 1: 34970, 2: 6636, 3: 1314, 4: 210, 5: 29, 6: 2
+
+## 6. `build_index` -- what it actually varies with
+
+- Drafts where `build_index` is non-constant: 8241
+- Drafts where the deck config is non-constant: 8191
+- Drafts where `build_index` determines the deck config: 43161
+- Drafts where the deck config determines `build_index`: 43100
+- Drafts where `build_index` <-> deck config is bijective: 43100
+- `build_index` varies while the deck is constant: 50
+- Deck varies while `build_index` is constant: 0
+
+## 7. Deck-size distribution and legality
+
+- Legal Limited minimum deck size: 40
+- Observed deck size: min 40, max 60, modal 40
+- Rows below the legal minimum: **0**
+- Distribution (size: rows): 40: 226047, 41: 13424, 42: 1064, 43: 568, 44: 245, 45: 142, 46: 63, 47: 27, 48: 36, 49: 24, 50: 27, 51: 5, 52: 8, 53: 10, 54: 12, 55: 8, 56: 3, 57: 4, 58: 5, 60: 5
+
+## 8. Card-count consistency
+
+No standalone deck-size column exists; deck size is defined as the sum of the deck_ columns. The consistency check is whether that sum lands on the modal legal size on every row.
+
+- Rows off the modal deck size: **15680**
+- Rows below the legal minimum: **0**
+
+## 9. Skill-variable constancy within draft
+
+| Column | Drafts where it is not constant |
+| --- | --- |
+| `rank` | 5420 |
+| `user_game_win_rate_bucket` | 0 |
+| `user_n_games_bucket` | 0 |
+
+## 10. Recommended observational unit
+
+**Unit: game.**
+
+The deck is recorded per game and it changes within a draft: 0.1898 of drafts carry more than one deck configuration and 0.1175 of games are played after a deck change. Averaging a draft's games would blend distinct decks in exactly those drafts, so the observational unit is the game, keyed by draft_id + game_time. This follows benchmark section 6.
+
+This is a recommendation; the operator ratifies the unit at card 007. The machine-readable form of every number above is in `reports/modeling_data_audit.json`.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 004
+status: TODO
+reviewer: opus
+milestone: benchmark-p1
+---
+# Task 004: Build the modeling table and the true card-identity representation
+
+## Objective
+
+Turn the raw CSV into the two tables every later model reads: one row of
+outcome and metadata per observation, and one row of normalized card fractions
+per observation.
+
+The card-identity representation is
+
+    D_ij = count of card j in deck i / deck size i
+
+derived from the `deck_*` columns. This is the definition the quarantined
+pipeline got wrong -- it shipped a 43,160 x 6 rank-bucket indicator matrix under
+the name `identity_matrix_*` and modeled it as though it described decks. That
+artifact is in `attic/haiku-2026-09-07/`. Read its README before starting; the
+point is not to avoid one bug but to see what an unverified representation
+looked like when it was passing its own tests.
+
+Build no skill proxy, no split, and no model.
+
+## Acceptance Criteria
+
+- [ ] The observational unit matches the recommendation ratified in `reports/modeling_data_audit.json`; the chosen unit and its source are recorded in the build report
+- [ ] `data/processed/model_table.parquet` carries exactly one row per observation, with the observation id, draft id, timestamp, outcome, deck size, and the metadata columns the audit identified
+- [ ] `data/processed/deck_identity.parquet` carries one row per observation and one column per card, joined to the model table on the observation id with no unmatched rows in either direction
+- [ ] Every card fraction is greater than or equal to zero
+- [ ] Row sums of the card fractions equal 1 within a stated numeric tolerance for every row; the tolerance is recorded and rows outside it fail the run
+- [ ] No zero-size deck survives into either table; the count dropped is reported, not silently discarded
+- [ ] `data/processed/card_identity_manifest.csv` gives, per card: the source column verbatim, the clean feature name, the total count across observations, and the fraction of observations containing at least one copy
+- [ ] The rule for which source columns constitute the played deck is documented in the report, and every column family the audit found is explicitly either included with a reason or excluded with a reason
+- [ ] No feature column derives from `won`, wins, or losses; a test asserts the identity builder never reads the outcome column and that the feature and outcome column sets are disjoint
+- [ ] Two consecutive runs produce byte-identical parquet files for both tables
+- [ ] `data/processed/MANIFEST.sha256` is regenerated and verifies with `sha256sum -c`
+- [ ] `src/deckbench/identity.py` contains no card name and no per-card branch; a test greps the module source against the card list and asserts zero matches
+- [ ] All new tests pass and both modules are clean under ruff and mypy --strict
+
+## Inputs
+
+- reports/modeling_data_audit.json
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+## See Also
+
+- attic/haiku-2026-09-07/README.md
+- reports/modeling_data_audit.md
+
+## Outputs
+
+- src/deckbench/table.py
+- src/deckbench/identity.py
+- tests/test_deckbench_table.py
+- tests/test_deckbench_identity.py
+- data/processed/model_table.parquet
+- data/processed/deck_identity.parquet
+- data/processed/card_identity_manifest.csv
+- data/processed/MANIFEST.sha256
+- reports/model_table_build.md
+
+## Requirements
+
+- Read the raw CSV from disk in chunks; it is not a declared Input for the reason given in card 003
+- Take the observational unit from `reports/modeling_data_audit.json`; do not re-derive it and do not override it
+- Do not silently discard any column family -- `sideboard_`, `opening_hand_`, `drawn_` and `tutored_` are each excluded or included by a documented rule, and the rule appears in the report
+- Do not aggregate multiple deck configurations into a synthetic average deck; if the unit is game level each row carries the deck actually recorded for that game
+- A card column that is entirely zero across the dataset stays in the manifest with a count of zero rather than being dropped, so the feature space is reproducible from the manifest alone
+- Clean feature names must be reversible to the source column; record both, because card names contain commas and quoting artifacts
+- Do not impute, default, or fill a missing deck count; a row that cannot be resolved fails the run naming the observation id
+- Do not compute `base_p`, `base_p_raw`, or any skill quantity; that is card 005
+- Do not create a split, a fold assignment, or a holdout; that is card 006
+- Do not fit, tune, or evaluate any model
+- Write the parquet files with a fixed row order and fixed column order so the determinism criterion is testable
+
+## Checks
+
+- python -m pytest tests/test_deckbench_table.py tests/test_deckbench_identity.py -q
+
+## Skip Default Checks
+
+- python -m pytest -q
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_table.py tests/test_deckbench_identity.py -q
+- python -m deckbench.table
+- python -m deckbench.identity
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/table.py src/deckbench/identity.py
+- mypy --strict src/deckbench/table.py src/deckbench/identity.py
+
+## Blocked By
+
+- 003
+
+## Notes
+
+**The artifacts are gitignored; the manifest is not.** `data/processed/` is
+excluded from git except `MANIFEST.sha256`, which is tracked so a rebuild can be
+checked byte-for-byte. This is the same arrangement `frozen_manifest.json`
+provides for `data/graph_global/`. Regenerating the manifest is part of this
+card, not an afterthought -- the previous manifest described a set of files that
+were never produced by one coherent run.
+
+**Why the anti-hardcoding test on `identity.py`.** The 193 card names are
+available in `data/normalized/cards.jsonl` and it would be easy to write a
+mapping keyed on them. The derivation must work from the header of the raw file,
+because a second set will have different cards and the same code has to run.
+Card 001 established the pattern and the test.
+
+**What "reversible" means for feature names.** A source column arrives as
+`"deck_Azog, Moria's Ruin"` -- comma inside a quoted field, apostrophe inside
+the name. A cleaned name that cannot be mapped back to that exact string makes
+the manifest useless for auditing, and makes any later join against Scryfall or
+the knowledge graph guesswork. Store both, and test the round trip.
+
+**On tolerance for the row sums.** Fractions are computed as integer counts over
+an integer deck size, so exact rational equality is achievable if the arithmetic
+is done in the right order; floating point accumulation is where it goes. State
+the tolerance explicitly rather than choosing one that happens to pass, and
+report the worst observed deviation in the build report so the next card can see
+how much headroom there was.
+
+**This card does not answer whether decks predict anything.** It produces the
+representation. Whether R1 carries signal over R0 is measured in Phase 2, under
+a frozen split that does not exist yet.
+
+### [2026-09-08 10:37] ASSISTANT
+I'll start by reading the required instructions and understanding the existing patterns from prior cards.
+
+Now let me look at the existing `deckbench` package structure and card 003's patterns.
+
+Let me read the existing `deckbench/audit.py` (card 003's work) to follow its patterns for reading the raw CSV, and the `deckbench/__init__.py`.
+
+Now let me look at the existing test for the audit, the card 001 anti-hardcoding test pattern, gitignore, and how a manifest is written.
+
+Good â€” `data/processed/*` gitignored except MANIFEST.sha256. Let me look at the test for card 003 and the anti-hardcoding test pattern (card 001 ports test).
+
+Let me check the CSV header format for card columns and the pyproject packaging config.
+
+Let me verify observation-key uniqueness and inspect a few metadata values.
+
+5 collisions on (draft_id, game_time) â€” not unique. Let me inspect those collision groups to design a correct observation id.
+
+The collisions differ by `match_number`. Let me confirm a fuller key is unique.
+
+`(draft_id, game_time, match_number, game_number)` is fully unique. That's the observation key. Let me check existing manifest conventions before writing.
+
+Let me check the typing/stub situation for the parquet/numpy libraries, since `mypy --strict` runs with no config.
+
+pyarrow isn't installed. Let me check what parquet engines and packages are actually available.
+
+No parquet engine is installed. `pyarrow` is in the declared stack, so I'll install it, then empirically test how `mypy --strict` treats it.
+
+`uv` is available. Let me install pyarrow into the active venv with uv.
+
+The hobkg editable install adds `src/` to `sys.path`. Let me verify `python -m deckbench.audit` resolves in this environment (as card 003 relied on).
+
+For my local verification I'll inject `src` onto the path (avoiding env prefixes). First, let me confirm the exact mypy error code for the untyped `pyarrow` import so my `type: ignore` is precise.
+
+Confirmed `[import-untyped]`. Everything is clear now. Let me write the two modules. Starting with `table.py` (which also holds the shared raw-reading + obs-id logic that `identity.py` reuses).
+
+Now `identity.py`, reusing table's shared logic:
+
+I embedded a real card name (`Azog, Moria's Ruin`) in `identity.py`'s report text â€” that would trip the anti-hardcoding grep test I must write. Let me replace it with a synthetic example.
+
+Now let me lint and type-check both modules before running them.
+
+Fixing: remove annotation quotes, rename the shadowed `counts` variable, drop the now-unused ignore.
+
+Both clean. Now let me build the artifacts (injecting `src` for my local run) and time it.
+
+Both build cleanly: 241,727 obs, 193 features, worst row-sum deviation 2.2e-16 (machine epsilon), 0 zero-size decks, 0 collisions. Now let me verify determinism, join integrity, and the sha256 manifest.
+
+Determinism and join are exact. Now verify the sha256 manifest and inspect the CSV manifest.
+
+Exit 0, all three OK. The lone warning is from the blank line; I'll make it a `#` comment so the check is fully clean.
+
+Clean now. Let me inspect the CSV manifest and model-table columns to confirm the spec is met.
+
+The outputs are correct. Now let me refactor `MANIFEST_MEMBERS` (captured at import) into a function so it's monkeypatch-friendly for tests.
+
+Now let me write the test files. First, the table tests:
+
+Now the identity tests:
+
+Let me run the grep check against real card names now to catch false positives from short names embedded in English words.
+
+No false positives. Now let me run both test files.
+
+Two issues: the manifest tests must build the model table first, and two table tests fail an assertion. Let me see the table failures.
+
+Row 2 in the table test was accidentally zero-size. Let me fix it, and add the model-table build to the two identity manifest tests.
+
+`deck_size` legitimately starts with `deck_`. Let me exclude the known non-card columns from that check.
+
+All 27 pass. Now let me run the `python -m` output-validation commands to confirm the module entry points work and to regenerate the final on-disk artifacts.
+
+Both entry points work. Let me verify the final report is clean (exactly one of each section) and the manifest still verifies.
+
+Let me run the complete Output Validation set one final time and check git status.
+
+Let me confirm gitignore lets only `MANIFEST.sha256` through, not the blobs.
+
+All acceptance criteria verified. Let me do a final read of the build report to confirm it reads well.
+
+The report reads cleanly and documents every required decision. Everything is complete and verified. Here's a summary of what I built.
+
+## Summary
+
+Card 004 turns the raw 17Lands HOB CSV into the two tables every later model reads, plus a per-card manifest and a byte-level pin.
+
+**New modules**
+- `src/deckbench/table.py` â€” streams the raw gzip CSV and writes `data/processed/model_table.parquet`: one row per observation carrying `obs_id`, the 20 metadata columns verbatim, and computed `deck_size`. It also holds the shared raw-reading, column-classification, and `obs_id` logic that `identity.py` reuses.
+- `src/deckbench/identity.py` â€” builds the true card-identity representation `D_ij = count(card j)/deck_size` into `data/processed/deck_identity.parquet` (`obs_id` + 193 card-fraction columns), the `card_identity_manifest.csv`, and regenerates `data/processed/MANIFEST.sha256`.
+
+**Tests** â€” `tests/test_deckbench_table.py` and `tests/test_deckbench_identity.py` (27 tests, all passing): a fast synthetic-CSV path exercises the full build, plus `requires_raw` checks on the real file.
+
+**Key findings surfaced (not silently reconciled)**
+- The audit's recommended key `(draft_id, game_time)` is **not unique** â€” 5 rows collide, distinguishable by `match_number`. The observation key is the injective 4-tuple `(draft_id, game_time, match_number, game_number)`, hashed to `obs_id`; the run fails on any residual collision.
+- 241,727 observations, 193 card features, **0 zero-size decks** dropped, **0** collisions.
+- Worst row-sum deviation from 1.0 was **2.2e-16** against a stated `1e-9` tolerance.
+
+**How the guardrails from the quarantined pipeline are enforced**
+- The representation is derived from the raw header (prefix matching), never a card list â€” a grep test asserts zero card names in `identity.py`.
+- The identity builder reads only the key and `deck_` columns; a test asserts it never touches `won` and that feature/outcome column sets are disjoint.
+- Each column family (`sideboard_`, `opening_hand_`, `drawn_`, `tutored_`) is explicitly excluded with a documented reason in `reports/model_table_build.md`; only `deck_` is the played deck.
+- Clean feature names are reversible via the manifest (verbatim source recorded), enforced one-to-one, round-trip tested.
+- Two consecutive runs produce byte-identical parquet; `MANIFEST.sha256` verifies with `sha256sum -c` (exit 0).
+
+**Validation**: pytest (27 passed), `python -m deckbench.table`, `python -m deckbench.identity`, `ruff` (E,F,I,B,UP), and `mypy --strict` all clean. `data/processed/` blobs stay gitignored; only `MANIFEST.sha256` is tracked.
+
+One environment note: `pyarrow` (a declared stack dependency) was not present in the active venv, so I installed it via `uv` to build the parquet outputs and run the tests.
+
+### [2026-09-08 11:36] USER
+## Section 1: Reviewer Instructions
+
+You are the compact task reviewer.
+
+Return a verdict block in this exact shape:
+
+VERDICT: PASS|FAIL
+CRITERIA:
+- one bullet per acceptance criterion with evidence
+SUMMARY:
+one short summary paragraph
+
+Rules:
+- Base the judgment only on the supplied task card, latest passing audit entry, and supplied file contents.
+- Every judgment-class criterion must cite concrete evidence: a quoted line, a structural property, or a verified absence.
+- If evidence is insufficient, fail the task and explain the missing evidence.
+- Do not omit the `VERDICT:` line.
+
+## Section 2: Task Card
+
+---
+id: 004
+status: REVIEW
+reviewer: opus
+milestone: benchmark-p1
+---
+# Task 004: Build the modeling table and the true card-identity representation
+
+## Objective
+
+Turn the raw CSV into the two tables every later model reads: one row of
+outcome and metadata per observation, and one row of normalized card fractions
+per observation.
+
+The card-identity representation is
+
+    D_ij = count of card j in deck i / deck size i
+
+derived from the `deck_*` columns. This is the definition the quarantined
+pipeline got wrong -- it shipped a 43,160 x 6 rank-bucket indicator matrix under
+the name `identity_matrix_*` and modeled it as though it described decks. That
+artifact is in `attic/haiku-2026-09-07/`. Read its README before starting; the
+point is not to avoid one bug but to see what an unverified representation
+looked like when it was passing its own tests.
+
+Build no skill proxy, no split, and no model.
+
+## Acceptance Criteria
+
+- [ ] The observational unit matches the recommendation ratified in `reports/modeling_data_audit.json`; the chosen unit and its source are recorded in the build report
+- [ ] `data/processed/model_table.parquet` carries exactly one row per observation, with the observation id, draft id, timestamp, outcome, deck size, and the metadata columns the audit identified
+- [ ] `data/processed/deck_identity.parquet` carries one row per observation and one column per card, joined to the model table on the observation id with no unmatched rows in either direction
+- [ ] Every card fraction is greater than or equal to zero
+- [ ] Row sums of the card fractions equal 1 within a stated numeric tolerance for every row; the tolerance is recorded and rows outside it fail the run
+- [ ] No zero-size deck survives into either table; the count dropped is reported, not silently discarded
+- [ ] `data/processed/card_identity_manifest.csv` gives, per card: the source column verbatim, the clean feature name, the total count across observations, and the fraction of observations containing at least one copy
+- [ ] The rule for which source columns constitute the played deck is documented in the report, and every column family the audit found is explicitly either included with a reason or excluded with a reason
+- [ ] No feature column derives from `won`, wins, or losses; a test asserts the identity builder never reads the outcome column and that the feature and outcome column sets are disjoint
+- [ ] Two consecutive runs produce byte-identical parquet files for both tables
+- [ ] `data/processed/MANIFEST.sha256` is regenerated and verifies with `sha256sum -c`
+- [ ] `src/deckbench/identity.py` contains no card name and no per-card branch; a test greps the module source against the card list and asserts zero matches
+- [ ] All new tests pass and both modules are clean under ruff and mypy --strict
+
+## Inputs
+
+- reports/modeling_data_audit.json
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+## See Also
+
+- attic/haiku-2026-09-07/README.md
+- reports/modeling_data_audit.md
+
+## Outputs
+
+- src/deckbench/table.py
+- src/deckbench/identity.py
+- tests/test_deckbench_table.py
+- tests/test_deckbench_identity.py
+- data/processed/model_table.parquet
+- data/processed/deck_identity.parquet
+- data/processed/card_identity_manifest.csv
+- data/processed/MANIFEST.sha256
+- reports/model_table_build.md
+
+## Requirements
+
+- Read the raw CSV from disk in chunks; it is not a declared Input for the reason given in card 003
+- Take the observational unit from `reports/modeling_data_audit.json`; do not re-derive it and do not override it
+- Do not silently discard any column family -- `sideboard_`, `opening_hand_`, `drawn_` and `tutored_` are each excluded or included by a documented rule, and the rule appears in the report
+- Do not aggregate multiple deck configurations into a synthetic average deck; if the unit is game level each row carries the deck actually recorded for that game
+- A card column that is entirely zero across the dataset stays in the manifest with a count of zero rather than being dropped, so the feature space is reproducible from the manifest alone
+- Clean feature names must be reversible to the source column; record both, because card names contain commas and quoting artifacts
+- Do not impute, default, or fill a missing deck count; a row that cannot be resolved fails the run naming the observation id
+- Do not compute `base_p`, `base_p_raw`, or any skill quantity; that is card 005
+- Do not create a split, a fold assignment, or a holdout; that is card 006
+- Do not fit, tune, or evaluate any model
+- Write the parquet files with a fixed row order and fixed column order so the determinism criterion is testable
+
+## Checks
+
+- python -m pytest tests/test_deckbench_table.py tests/test_deckbench_identity.py -q
+
+## Skip Default Checks
+
+- python -m pytest -q
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_table.py tests/test_deckbench_identity.py -q
+- python -m deckbench.table
+- python -m deckbench.identity
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/table.py src/deckbench/identity.py
+- mypy --strict src/deckbench/table.py src/deckbench/identity.py
+
+## Blocked By
+
+- 003
+
+## Notes
+
+**The artifacts are gitignored; the manifest is not.** `data/processed/` is
+excluded from git except `MANIFEST.sha256`, which is tracked so a rebuild can be
+checked byte-for-byte. This is the same arrangement `frozen_manifest.json`
+provides for `data/graph_global/`. Regenerating the manifest is part of this
+card, not an afterthought -- the previous manifest described a set of files that
+were never produced by one coherent run.
+
+**Why the anti-hardcoding test on `identity.py`.** The 193 card names are
+available in `data/normalized/cards.jsonl` and it would be easy to write a
+mapping keyed on them. The derivation must work from the header of the raw file,
+because a second set will have different cards and the same code has to run.
+Card 001 established the pattern and the test.
+
+**What "reversible" means for feature names.** A source column arrives as
+`"deck_Azog, Moria's Ruin"` -- comma inside a quoted field, apostrophe inside
+the name. A cleaned name that cannot be mapped back to that exact string makes
+the manifest useless for auditing, and makes any later join against Scryfall or
+the knowledge graph guesswork. Store both, and test the round trip.
+
+**On tolerance for the row sums.** Fractions are computed as integer counts over
+an integer deck size, so exact rational equality is achievable if the arithmetic
+is done in the right order; floating point accumulation is where it goes. State
+the tolerance explicitly rather than choosing one that happens to pass, and
+report the worst observed deviation in the build report so the next card can see
+how much headroom there was.
+
+**This card does not answer whether decks predict anything.** It produces the
+representation. Whether R1 carries signal over R0 is measured in Phase 2, under
+a frozen split that does not exist yet.
+
+## Section 3: Latest Passing Audit Entry
+
+---
+entry_id: 20260908_104008_hobkg_004
+timestamp: 2026-09-08T10:40:08.873412-04:00
+project: hobkg
+task_id: 004
+task_title: Build the modeling table and the true card-identity representation
+mode: managed
+model: claude
+reviewer_model: opus
+status_before: TODO
+status_after: REVIEW
+git_sha_project: 7050c39cbdcd087e0a79ebf27043ff1650802819
+git_sha_orchestrator: dfc6bf76e95917801b5bc993c966f9ada7244d39
+python_version: 3.14.0
+lockfile_hash: 1132929d0ced89d89902f37fd31ccd263a5ac477b459550cdc33f6bf16758a12
+duration_seconds: 1407.314399099996
+output_file: audit/executor_output/004.output.txt
+---
+# Audit Entry: 20260908_104008_hobkg_004
+
+## Notes
+
+Execution, checks, and output validation completed successfully.
+
+## Check Results
+
+- [OK]   python -m pytest tests/test_deckbench_table.py tests/test_deckbench_identity.py -q (48.1s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ...........................                                              [100%]
+  27 passed in 46.72s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Validation Results
+
+- [OK]   python -m pytest tests/test_deckbench_table.py tests/test_deckbench_identity.py -q (45.7s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ...........................                                              [100%]
+  27 passed in 44.27s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python -m deckbench.table (24.1s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Model table built: 241727 observations (0 zero-size decks dropped from 241727 rows), 20 metadata columns. Wrote data/processed/model_table.parquet.
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python -m deckbench.identity (24.4s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Card-identity representation built: 241727 observations x 193 card features (worst row-sum deviation 2.220e-16). Wrote data/processed/deck_identity.parquet, data/processed/card_identity_manifest.csv and data/processed/MANIFEST.sha256.
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/table.py src/deckbench/identity.py (0.0s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  All checks passed!
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   mypy --strict src/deckbench/table.py src/deckbench/identity.py (0.7s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Success: no issues found in 2 source files
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Section 4: Files Produced Or Modified By The Task
+
+### src/deckbench/table.py
+
+```
+"""Build the game-level modeling table from the raw HOB dataset.
+
+Governed by ``docs/MTG_Deck-Strength_Modeling_Benchmark.md`` (card 004). This
+module turns the raw 17Lands CSV into ``data/processed/model_table.parquet`` --
+one row per observation, carrying the observation id, the metadata columns the
+audit identified, and the deck size. It builds no card-fraction features (that
+is :mod:`deckbench.identity`), no skill proxy (card 005), no split (card 006),
+and fits nothing.
+
+The observational unit is not re-derived here: it is read from
+``reports/modeling_data_audit.json`` and must be ``game``. The observation key
+is discovered to be ``(draft_id, game_time, match_number, game_number)`` --
+``(draft_id, game_time)`` alone is *not* unique in this file, and the collision
+count is reported rather than silently deduplicated.
+
+Nothing about the file's card set is baked into this source: the column
+families are matched by prefix against the header, exactly as the audit does.
+Run it with::
+
+    python -m deckbench.table
+
+which writes the parquet table and refreshes the build report.
+"""
+
+from __future__ import annotations
+
+import csv
+import gzip
+import hashlib
+import json
+from collections.abc import Iterator
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TextIO
+
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
+
+# src/deckbench/table.py -> parents[2] is the repository root.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+RAW_CSV = REPO_ROOT / "data" / "raw" / "game_data_public.HOB.PremierDraft.csv.gz"
+SOURCE_MANIFEST = REPO_ROOT / "data" / "raw" / "source_manifest.json"
+AUDIT_JSON = REPO_ROOT / "reports" / "modeling_data_audit.json"
+PROCESSED_DIR = REPO_ROOT / "data" / "processed"
+MODEL_TABLE_PARQUET = PROCESSED_DIR / "model_table.parquet"
+REPORT_MD = REPO_ROOT / "reports" / "model_table_build.md"
+
+# Card-column family prefixes, matched against the header. These are prefixes,
+# not a hardcoded list of this file's columns; a different set has different
+# cards behind the same prefixes.
+CARD_FAMILIES: tuple[str, ...] = (
+    "deck_",
+    "sideboard_",
+    "opening_hand_",
+    "drawn_",
+    "tutored_",
+)
+
+# The one family that constitutes the played deck. Documented in the report.
+DECK_PREFIX = "deck_"
+
+# The columns that jointly identify one observation. The audit recommends
+# keying by draft_id + game_time; that pair is not unique in this file, so the
+# match/game number are added to make the key injective. See the build report.
+KEY_COLUMNS: tuple[str, ...] = (
+    "draft_id",
+    "game_time",
+    "match_number",
+    "game_number",
+)
+
+# The per-game outcome column. Carried in the model table (it is the label the
+# later cards predict); it is never turned into a deck feature.
+OUTCOME_COL = "won"
+
+# blake2b is not hash-seeded, so an obs id is stable across runs and machines.
+OBS_ID_DIGEST_SIZE = 16
+# Field separator inside the obs-id preimage: a control byte that cannot occur
+# in a draft id, timestamp or integer, so the key parts cannot be confused.
+OBS_ID_SEP = "\x1f"
+
+# Fixed float precision for the report so it renders identically across runs.
+FLOAT_NDIGITS = 6
+
+
+class RawFileMissing(FileNotFoundError):
+    """Raised when the raw 17Lands CSV is absent from disk."""
+
+
+class UnexpectedObservationalUnit(ValueError):
+    """Raised when the ratified unit in the audit JSON is not ``game``."""
+
+
+class UnresolvableRow(ValueError):
+    """Raised when a row's deck counts cannot be parsed. Names the obs id."""
+
+
+def _require_raw_file() -> None:
+    if not RAW_CSV.exists():
+        raise RawFileMissing(
+            f"Raw dataset not found: {RAW_CSV}. It is not tracked in git; "
+            f"see {SOURCE_MANIFEST} for its URL and SHA256, re-download it, "
+            "and verify the hash before running the build."
+        )
+
+
+def observational_unit() -> str:
+    """Return the unit ratified by the audit, refusing to re-derive it.
+
+    The audit report is the single source of truth for the observational unit
+    (benchmark section 17 and this card's requirements). Only ``game`` is
+    implemented; anything else stops the run rather than guessing.
+    """
+    if not AUDIT_JSON.exists():
+        raise FileNotFoundError(
+            f"Audit report not found: {AUDIT_JSON}. Run `python -m deckbench.audit` "
+            "first; card 004 consumes the unit it ratifies."
+        )
+    payload = json.loads(AUDIT_JSON.read_text(encoding="utf-8"))
+    unit = payload["recommended_observational_unit"]["unit"]
+    if unit != "game":
+        raise UnexpectedObservationalUnit(
+            f"Audit ratified observational unit {unit!r}; only 'game' is "
+            "implemented. This builder does not aggregate games into decks."
+        )
+    return str(unit)
+
+
+@dataclass(frozen=True)
+class Layout:
+    """Header-derived column positions, computed once per file."""
+
+    header: tuple[str, ...]
+    deck_columns: tuple[str, ...]
+    deck_indices: tuple[int, ...]
+    non_card_columns: tuple[str, ...]
+    non_card_indices: tuple[int, ...]
+    key_indices: tuple[int, ...]
+
+
+def build_layout(header: list[str]) -> Layout:
+    """Classify a header into deck columns, metadata columns and the key."""
+    index = {name: i for i, name in enumerate(header)}
+    missing = [col for col in KEY_COLUMNS if col not in index]
+    if missing:
+        raise KeyError(f"raw header is missing key columns: {missing}")
+
+    deck_columns: list[str] = []
+    deck_indices: list[int] = []
+    non_card_columns: list[str] = []
+    non_card_indices: list[int] = []
+    for i, name in enumerate(header):
+        if name.startswith(DECK_PREFIX):
+            deck_columns.append(name)
+            deck_indices.append(i)
+        elif any(name.startswith(fam) for fam in CARD_FAMILIES):
+            # sideboard_/opening_hand_/drawn_/tutored_ -- excluded from both the
+            # deck and the metadata, for the reasons documented in the report.
+            continue
+        else:
+            non_card_columns.append(name)
+            non_card_indices.append(i)
+
+    return Layout(
+        header=tuple(header),
+        deck_columns=tuple(deck_columns),
+        deck_indices=tuple(deck_indices),
+        non_card_columns=tuple(non_card_columns),
+        non_card_indices=tuple(non_card_indices),
+        key_indices=tuple(index[col] for col in KEY_COLUMNS),
+    )
+
+
+def make_obs_id(key_parts: tuple[str, ...]) -> str:
+    """Return a stable observation id from the injective key parts."""
+    hasher = hashlib.blake2b(digest_size=OBS_ID_DIGEST_SIZE)
+    hasher.update(OBS_ID_SEP.join(key_parts).encode("utf-8"))
+    return hasher.hexdigest()
+
+
+def parse_count(raw: str) -> int:
+    """Parse one deck cell. Blank means zero; a non-integer is unresolvable.
+
+    Nothing is imputed or defaulted: a cell that is neither blank nor an integer
+    raises, so the caller can fail the run naming the observation.
+    """
+    if raw == "":
+        return 0
+    return int(raw)
+
+
+def open_raw_reader() -> tuple[TextIO, Iterator[list[str]], list[str]]:
+    """Open the gzipped CSV and return the handle, reader and header row."""
+    _require_raw_file()
+    handle = gzip.open(RAW_CSV, "rt", newline="", encoding="utf-8")
+    reader = csv.reader(handle)
+    header = next(reader)
+    return handle, reader, header
+
+
+@dataclass(frozen=True)
+class Observation:
+    """One resolved game: its id, sort key, metadata and deck vector."""
+
+    obs_id: str
+    sort_key: tuple[str, str, int, int]
+    non_card: tuple[str, ...]
+    deck_counts: tuple[int, ...]
+    deck_size: int
+
+
+def _to_int(raw: str) -> int:
+    return int(raw) if raw else 0
+
+
+def resolve_observation(row: list[str], layout: Layout) -> Observation:
+    """Turn one raw row into an :class:`Observation`, or raise if unresolvable."""
+    key_parts = tuple(row[i] for i in layout.key_indices)
+    obs_id = make_obs_id(key_parts)
+    draft_id, game_time, match_no, game_no = key_parts
+    try:
+        deck_counts = tuple(parse_count(row[i]) for i in layout.deck_indices)
+    except ValueError as exc:  # non-integer deck cell -> name the observation
+        raise UnresolvableRow(
+            f"observation {obs_id} (key={key_parts}) has an unparseable deck "
+            f"count: {exc}"
+        ) from exc
+    non_card = tuple(row[i] for i in layout.non_card_indices)
+    return Observation(
+        obs_id=obs_id,
+        sort_key=(draft_id, game_time, _to_int(match_no), _to_int(game_no)),
+        non_card=non_card,
+        deck_counts=deck_counts,
+        deck_size=sum(deck_counts),
+    )
+
+
+@dataclass
+class BuildStats:
+    """Counts and findings from one table build, for the report."""
+
+    unit: str
+    total_rows: int
+    zero_size_dropped: int
+    kept_rows: int
+    key_collisions: int
+    n_non_card_columns: int
+    n_deck_columns: int
+
+
+def _iter_observations() -> Iterator[Observation]:
+    handle, reader, header = open_raw_reader()
+    try:
+        layout = build_layout(header)
+        for row in reader:
+            yield resolve_observation(row, layout)
+    finally:
+        handle.close()
+
+
+def collect_observations() -> tuple[list[Observation], BuildStats]:
+    """Stream the file, drop zero-size decks, and return sorted observations.
+
+    Row order is fixed by :attr:`Observation.sort_key` so the parquet output is
+    byte-reproducible and joins to the identity table on ``obs_id`` in the same
+    order. The count of dropped zero-size decks and of duplicate keys are
+    reported, never silently swallowed.
+    """
+    unit = observational_unit()
+    kept: list[Observation] = []
+    seen: set[str] = set()
+    total = 0
+    dropped = 0
+    collisions = 0
+    n_non_card = 0
+    n_deck = 0
+    for obs in _iter_observations():
+        total += 1
+        n_non_card = len(obs.non_card)
+        n_deck = len(obs.deck_counts)
+        if obs.deck_size == 0:
+            dropped += 1
+            continue
+        if obs.obs_id in seen:
+            collisions += 1
+        else:
+            seen.add(obs.obs_id)
+        kept.append(obs)
+
+    if collisions:
+        raise UnresolvableRow(
+            f"{collisions} observation ids collided; the key "
+            f"{KEY_COLUMNS} is not injective on this file"
+        )
+
+    kept.sort(key=lambda o: o.sort_key)
+    stats = BuildStats(
+        unit=unit,
+        total_rows=total,
+        zero_size_dropped=dropped,
+        kept_rows=len(kept),
+        key_collisions=collisions,
+        n_non_card_columns=n_non_card,
+        n_deck_columns=n_deck,
+    )
+    return kept, stats
+
+
+def _model_table(observations: list[Observation], layout: Layout) -> pa.Table:
+    """Assemble the pyarrow table with a fixed column order."""
+    columns: dict[str, object] = {
+        "obs_id": pa.array([o.obs_id for o in observations], type=pa.string())
+    }
+    for pos, name in enumerate(layout.non_card_columns):
+        columns[name] = pa.array(
+            [o.non_card[pos] for o in observations], type=pa.string()
+        )
+    columns["deck_size"] = pa.array(
+        [o.deck_size for o in observations], type=pa.int32()
+    )
+    return pa.table(columns)
+
+
+def build_model_table() -> BuildStats:
+    """Build and write ``model_table.parquet``; return the build stats."""
+    observations, stats = collect_observations()
+    # Re-derive the layout from the header for the column order (the streaming
+    # pass discarded it). The header is small; reopening is cheap.
+    handle, _reader, header = open_raw_reader()
+    handle.close()
+    layout = build_layout(header)
+    table = _model_table(observations, layout)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    pq.write_table(table, MODEL_TABLE_PARQUET, compression="snappy")
+    return stats
+
+
+def _round(value: float) -> float:
+    return round(value, FLOAT_NDIGITS)
+
+
+def write_report(stats: BuildStats) -> None:
+    """Write the human-readable build report for the model table."""
+    frac_dropped = _round(stats.zero_size_dropped / stats.total_rows) if stats.total_rows else 0.0
+    lines = [
+        "# Model table build -- game-level modeling table",
+        "",
+        "Card 004, part 1. `deckbench.table` turns the raw 17Lands HOB Premier "
+        "Draft file into one row of outcome and metadata per observation. No "
+        "card fractions, skill proxy, split or model are produced here.",
+        "",
+        f"Source file: `{RAW_CSV.relative_to(REPO_ROOT).as_posix()}`",
+        f"Output: `{MODEL_TABLE_PARQUET.relative_to(REPO_ROOT).as_posix()}`",
+        "",
+        "## Observational unit",
+        "",
+        f"**Unit: {stats.unit}.** Read verbatim from "
+        "`reports/modeling_data_audit.json` "
+        "(`recommended_observational_unit.unit`); it is not re-derived or "
+        "overridden here. The audit ratified the game as the unit because the "
+        "deck changes within a draft, so averaging a draft's games would blend "
+        "distinct decks.",
+        "",
+        "## Observation key",
+        "",
+        "The audit recommends keying by `draft_id` + `game_time`. That pair is "
+        "**not unique** in this file: five game rows share a `(draft_id, "
+        "game_time)` with another row, distinguishable only by `match_number`. "
+        "The observation key is therefore the injective 4-tuple "
+        f"`{', '.join(KEY_COLUMNS)}`, and `obs_id` is a blake2b digest of it. "
+        "The run fails if any two rows still collide on that key.",
+        "",
+        "## Column families -- included and excluded",
+        "",
+        "Every family the audit found is accounted for explicitly:",
+        "",
+        "| Family | Disposition | Reason |",
+        "| --- | --- | --- |",
+        "| `deck_` | **included** | The maindeck the player registered for this "
+        "game. This is the deck whose strength the benchmark (R1) represents. |",
+        "| `sideboard_` | excluded | Cards held out of the played 40; not part of "
+        "the deck that played this game. |",
+        "| `opening_hand_` | excluded | A per-game *realisation* of draws from the "
+        "deck, not the deck's composition; it is downstream of the shuffle. |",
+        "| `drawn_` | excluded | Same: cards actually drawn during the game, a "
+        "realised outcome rather than the static deck. Reachability lives in the "
+        "R3 game-script representation, not in R1 identity. |",
+        "| `tutored_` | excluded | Cards fetched during play; another realised "
+        "in-game event, not deck construction. |",
+        "",
+        "The non-card metadata columns (draft id, timestamps, outcome, ranks, "
+        "colours, turn counts, skill buckets, ...) are carried verbatim as "
+        "strings; typing them is left to the cards that consume them.",
+        "",
+        "## Row accounting",
+        "",
+        f"- Raw rows read: **{stats.total_rows}**",
+        f"- Zero-size decks dropped: **{stats.zero_size_dropped}** "
+        f"({frac_dropped} of rows)",
+        f"- Observations kept: **{stats.kept_rows}**",
+        f"- Duplicate-key collisions after keying: **{stats.key_collisions}**",
+        f"- Metadata columns carried: **{stats.n_non_card_columns}** "
+        "(plus `obs_id` and `deck_size`)",
+        f"- Deck card columns summed for deck size: **{stats.n_deck_columns}**",
+        "",
+        "A zero-size deck carries no card-fraction representation (its row sum "
+        "would divide by zero), so such rows are dropped from both tables and "
+        "the count is reported here rather than silently discarded.",
+        "",
+        "## Determinism",
+        "",
+        "Rows are written in a fixed order (`draft_id`, `game_time`, "
+        "`match_number`, `game_number`) and columns in a fixed order (`obs_id`, "
+        "the metadata columns in header order, then `deck_size`). Two "
+        "consecutive builds produce byte-identical parquet. The hash is pinned "
+        "in `data/processed/MANIFEST.sha256`, regenerated by "
+        "`deckbench.identity`.",
+        "",
+    ]
+    REPORT_MD.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+
+
+def main() -> None:
+    stats = build_model_table()
+    write_report(stats)
+    print(
+        f"Model table built: {stats.kept_rows} observations "
+        f"({stats.zero_size_dropped} zero-size decks dropped from "
+        f"{stats.total_rows} rows), {stats.n_non_card_columns} metadata columns. "
+        f"Wrote {MODEL_TABLE_PARQUET.relative_to(REPO_ROOT).as_posix()}."
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+```
+
+### src/deckbench/identity.py
+
+```
+"""Build the true card-identity representation from the raw HOB dataset.
+
+Governed by ``docs/MTG_Deck-Strength_Modeling_Benchmark.md`` (card 004). The
+representation is
+
+    D_ij = count of card j in deck i / deck size i
+
+one row per observation, one column per card, derived from the ``deck_`` column
+family. This is the R1 representation the benchmark defines -- and precisely the
+one the quarantined pipeline got wrong when it shipped a rank-bucket indicator
+matrix under this name (see ``attic/haiku-2026-09-07/README.md``).
+
+Nothing about the card set is hardcoded: the columns are discovered from the
+raw header via :mod:`deckbench.table`, the same code that a second set with
+different cards would run unchanged. This module never reads the outcome
+column; its only inputs are the observation key and the ``deck_`` counts.
+
+Run it with::
+
+    python -m deckbench.identity
+
+which writes ``data/processed/deck_identity.parquet``, the per-card manifest
+``data/processed/card_identity_manifest.csv``, and regenerates
+``data/processed/MANIFEST.sha256`` over both tables and the manifest.
+"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
+
+from deckbench import table
+from deckbench.table import (
+    DECK_PREFIX,
+    PROCESSED_DIR,
+    REPO_ROOT,
+    Layout,
+    build_layout,
+    make_obs_id,
+    open_raw_reader,
+    parse_count,
+)
+
+DECK_IDENTITY_PARQUET = PROCESSED_DIR / "deck_identity.parquet"
+CARD_MANIFEST_CSV = PROCESSED_DIR / "card_identity_manifest.csv"
+SHA256_MANIFEST = PROCESSED_DIR / "MANIFEST.sha256"
+REPORT_MD = REPO_ROOT / "reports" / "model_table_build.md"
+
+# Fixed prefix for a cleaned feature name. The card name follows, slugged to a
+# safe identifier; the verbatim source column is recorded alongside so the
+# clean name round-trips back to the exact original string.
+FEATURE_PREFIX = "card_"
+
+# Row sums are integer counts over an integer deck size, so the true value is
+# exactly 1. Only float division introduces error; this bound is generous
+# against that and any row breaching it fails the run. The worst observed
+# deviation is reported so the next card sees the headroom.
+ROW_SUM_TOLERANCE = 1e-9
+
+# Fixed precision for the presence fraction in the manifest, so the CSV is
+# byte-identical across runs.
+FRACTION_NDIGITS = 6
+
+def manifest_members() -> tuple[Path, ...]:
+    """The files covered by the sha256 manifest, in a fixed order.
+
+    Resolved lazily (not captured at import) so a rebuild -- or a test that
+    redirects the output paths -- always hashes the current artifacts.
+    """
+    return (CARD_MANIFEST_CSV, DECK_IDENTITY_PARQUET, table.MODEL_TABLE_PARQUET)
+
+
+class RowSumOutOfTolerance(ValueError):
+    """Raised when a card-fraction row does not sum to 1 within tolerance."""
+
+
+class FeatureNameCollision(ValueError):
+    """Raised when two source columns slug to the same clean feature name."""
+
+
+def clean_feature_name(source_column: str) -> str:
+    """Slug a ``deck_<card>`` source column into a safe feature identifier.
+
+    The transform is deterministic and the reverse is recorded (not computed):
+    the manifest stores the verbatim source column beside this name, because
+    card names carry commas and apostrophes that no slug can round-trip on its
+    own. Uniqueness of the slug across the set is enforced by the builder.
+    """
+    if not source_column.startswith(DECK_PREFIX):
+        raise ValueError(f"not a deck column: {source_column!r}")
+    card = source_column[len(DECK_PREFIX) :]
+    slug = re.sub(r"[^0-9a-z]+", "_", card.lower()).strip("_")
+    return f"{FEATURE_PREFIX}{slug}"
+
+
+def feature_source_columns(header: list[str]) -> tuple[str, ...]:
+    """The raw columns this module turns into features: the deck family only.
+
+    Used by the disjointness guard: the outcome column is provably not among
+    these, and nothing here derives from wins or losses.
+    """
+    return build_layout(header).deck_columns
+
+
+def columns_read(header: list[str]) -> tuple[str, ...]:
+    """Every raw column this module reads: the key columns and the deck family.
+
+    The outcome column is not in this set -- the identity builder never touches
+    it.
+    """
+    return table.KEY_COLUMNS + build_layout(header).deck_columns
+
+
+@dataclass
+class IdentityResult:
+    """The built representation plus the numbers the report and manifest need."""
+
+    obs_ids: list[str]
+    feature_names: list[str]
+    source_columns: list[str]
+    fractions: np.ndarray
+    total_counts: list[int]
+    present_counts: list[int]
+    n_obs: int
+    worst_row_sum_deviation: float
+
+
+def _feature_names(layout: Layout) -> tuple[list[str], list[str]]:
+    """Return (feature_names, source_columns) in header order, enforcing 1-1."""
+    source_columns = list(layout.deck_columns)
+    feature_names = [clean_feature_name(col) for col in source_columns]
+    collisions: dict[str, list[str]] = {}
+    for name, col in zip(feature_names, source_columns, strict=True):
+        collisions.setdefault(name, []).append(col)
+    clashes = {name: cols for name, cols in collisions.items() if len(cols) > 1}
+    if clashes:
+        raise FeatureNameCollision(
+            f"clean feature names are not injective: {clashes}"
+        )
+    return feature_names, source_columns
+
+
+def build_representation() -> IdentityResult:
+    """Stream the raw file and build the normalized card-fraction matrix.
+
+    Only the observation key and the ``deck_`` counts are read; the outcome and
+    every other metadata column are ignored. Zero-size decks are dropped (same
+    rule as the model table), so the two tables carry an identical obs-id set.
+    """
+    handle, reader, header = open_raw_reader()
+    try:
+        layout = build_layout(header)
+        deck_indices = layout.deck_indices
+        key_indices = layout.key_indices
+        obs_ids: list[str] = []
+        sort_keys: list[tuple[str, str, int, int]] = []
+        count_rows: list[list[int]] = []
+        for row in reader:
+            counts = [parse_count(row[i]) for i in deck_indices]
+            if sum(counts) == 0:
+                continue  # zero-size deck: no representation, dropped upstream
+            key_parts = tuple(row[i] for i in key_indices)
+            obs_ids.append(make_obs_id(key_parts))
+            draft_id, game_time, match_no, game_no = key_parts
+            sort_keys.append(
+                (draft_id, game_time, table._to_int(match_no), table._to_int(game_no))
+            )
+            count_rows.append(counts)
+    finally:
+        handle.close()
+
+    feature_names, source_columns = _feature_names(layout)
+
+    order = sorted(range(len(obs_ids)), key=lambda k: sort_keys[k])
+    obs_ids = [obs_ids[k] for k in order]
+    matrix = np.array([count_rows[k] for k in order], dtype=np.int64)
+
+    n_obs = int(matrix.shape[0])
+    deck_sizes = matrix.sum(axis=1)
+    fractions = matrix / deck_sizes[:, None]
+
+    row_sums = fractions.sum(axis=1)
+    deviations = np.abs(row_sums - 1.0)
+    worst = float(deviations.max()) if n_obs else 0.0
+    if worst > ROW_SUM_TOLERANCE:
+        bad = int(np.argmax(deviations))
+        raise RowSumOutOfTolerance(
+            f"observation {obs_ids[bad]} card fractions sum to "
+            f"{float(row_sums[bad])!r}, off by {worst} > {ROW_SUM_TOLERANCE}"
+        )
+    if n_obs and float(fractions.min()) < 0.0:
+        raise ValueError("a card fraction is negative; deck counts must be >= 0")
+
+    total_counts = [int(v) for v in matrix.sum(axis=0)]
+    present_counts = [int(v) for v in (matrix > 0).sum(axis=0)]
+
+    return IdentityResult(
+        obs_ids=obs_ids,
+        feature_names=feature_names,
+        source_columns=source_columns,
+        fractions=fractions,
+        total_counts=total_counts,
+        present_counts=present_counts,
+        n_obs=n_obs,
+        worst_row_sum_deviation=worst,
+    )
+
+
+def _identity_table(result: IdentityResult) -> pa.Table:
+    """Assemble the parquet table: obs_id then one float column per card."""
+    columns: dict[str, object] = {
+        "obs_id": pa.array(result.obs_ids, type=pa.string())
+    }
+    for pos, name in enumerate(result.feature_names):
+        columns[name] = pa.array(result.fractions[:, pos], type=pa.float64())
+    return pa.table(columns)
+
+
+def write_identity_parquet(result: IdentityResult) -> None:
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    pq.write_table(_identity_table(result), DECK_IDENTITY_PARQUET, compression="snappy")
+
+
+def write_card_manifest(result: IdentityResult) -> None:
+    """Write the per-card manifest CSV in header (feature) order.
+
+    A card that never appears stays in the manifest with a count of zero, so the
+    feature space is reproducible from the manifest alone.
+    """
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    denom = result.n_obs or 1
+    with CARD_MANIFEST_CSV.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(
+            ["source_column", "feature_name", "total_count", "fraction_present"]
+        )
+        for pos, name in enumerate(result.feature_names):
+            present_fraction = round(result.present_counts[pos] / denom, FRACTION_NDIGITS)
+            writer.writerow(
+                [
+                    result.source_columns[pos],
+                    name,
+                    result.total_counts[pos],
+                    f"{present_fraction:.{FRACTION_NDIGITS}f}",
+                ]
+            )
+
+
+def _sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def write_sha256_manifest() -> None:
+    """Regenerate ``MANIFEST.sha256`` over the three artifacts of this card.
+
+    Written in ``sha256sum`` binary format with bare filenames, so the set is
+    verified with ``sha256sum -c MANIFEST.sha256`` from within
+    ``data/processed``. This is the tracked pin that lets a rebuild be checked
+    byte-for-byte, the role ``frozen_manifest.json`` plays for the graph.
+    """
+    header = [
+        "# Hash manifest for the card-004 modeling artifacts.",
+        "#",
+        "# The parquet/csv blobs are gitignored and regenerable from data/raw via",
+        "#   python -m deckbench.table && python -m deckbench.identity",
+        "# This manifest is tracked so a rebuild is checked byte-for-byte. Verify",
+        "# from inside data/processed with:  sha256sum -c MANIFEST.sha256",
+        "#",
+    ]
+    lines = [f"{_sha256(path)} *{path.name}" for path in manifest_members()]
+    SHA256_MANIFEST.write_text(
+        "\n".join(header + lines) + "\n", encoding="utf-8", newline="\n"
+    )
+
+
+def append_report(result: IdentityResult) -> None:
+    """Append the identity-representation section to the shared build report."""
+    existing = REPORT_MD.read_text(encoding="utf-8") if REPORT_MD.exists() else ""
+    n_zero_cards = sum(1 for c in result.total_counts if c == 0)
+    section = [
+        "",
+        "## Card-identity representation",
+        "",
+        "Card 004, part 2. `deckbench.identity` builds "
+        "`D_ij = count(card j in deck i) / deck size i` from the `deck_` family "
+        "-- one row per observation, one column per card. It reads only the "
+        "observation key and the deck counts; the outcome column is never "
+        "touched, so no feature can derive from wins or losses.",
+        "",
+        f"- Observations (rows): **{result.n_obs}**",
+        f"- Card features (columns): **{len(result.feature_names)}**",
+        f"- Cards never maindecked (kept at count 0): **{n_zero_cards}**",
+        "",
+        "### Feature names and reversibility",
+        "",
+        "Each source column such as `deck_<Name, With A Comma>` (card names carry "
+        "commas and apostrophes) becomes a clean identifier such as "
+        "`card_name_with_a_comma`. The slug alone cannot "
+        "recover the comma and apostrophe, so the manifest "
+        "`card_identity_manifest.csv` records the **verbatim source column** "
+        "beside every clean name; the mapping is enforced to be one-to-one and "
+        "the round trip is tested. A card absent from the whole dataset keeps "
+        "its row with `total_count = 0`, so the feature space is reproducible "
+        "from the manifest alone.",
+        "",
+        "### Row-sum tolerance",
+        "",
+        f"Fractions are integer counts over an integer deck size, so each row's "
+        f"true sum is exactly 1; only float division perturbs it. The tolerance "
+        f"is **{ROW_SUM_TOLERANCE:g}** and any row breaching it fails the run. "
+        f"The worst deviation observed here was "
+        f"**{result.worst_row_sum_deviation:.3e}**, well inside the bound.",
+        "",
+        "### Join and determinism",
+        "",
+        "`deck_identity.parquet` shares the model table's obs-id set exactly "
+        "(both drop the same zero-size decks) and is written in the same fixed "
+        "row order, so the two join on `obs_id` with no unmatched rows in either "
+        "direction. Columns are fixed as `obs_id` then the card features in "
+        "header order. `data/processed/MANIFEST.sha256` is regenerated over the "
+        "model table, the identity table and the card manifest.",
+        "",
+    ]
+    REPORT_MD.write_text(existing + "\n".join(section), encoding="utf-8", newline="\n")
+
+
+def build() -> IdentityResult:
+    """Build the identity table, the manifest CSV, and refresh the sha manifest."""
+    result = build_representation()
+    write_identity_parquet(result)
+    write_card_manifest(result)
+    write_sha256_manifest()
+    append_report(result)
+    return result
+
+
+def main() -> None:
+    result = build()
+    print(
+        f"Card-identity representation built: {result.n_obs} observations x "
+        f"{len(result.feature_names)} card features "
+        f"(worst row-sum deviation {result.worst_row_sum_deviation:.3e}). "
+        f"Wrote {DECK_IDENTITY_PARQUET.relative_to(REPO_ROOT).as_posix()}, "
+        f"{CARD_MANIFEST_CSV.relative_to(REPO_ROOT).as_posix()} and "
+        f"{SHA256_MANIFEST.relative_to(REPO_ROOT).as_posix()}."
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+```
+
+### tests/test_deckbench_table.py
+
+```
+"""Tests for the game-level modeling table (:mod:`deckbench.table`).
+
+Two layers. A small synthetic gzipped CSV exercises the whole build path fast
+and deterministically -- classification, keying, the zero-size-deck drop, the
+duplicate-key guard, and byte-level determinism. A handful of ``requires_raw``
+checks then run the real build so the acceptance holds on the actual 17Lands
+file when it is present (it is not tracked in git).
+"""
+
+from __future__ import annotations
+
+import csv
+import gzip
+import json
+from pathlib import Path
+
+import pyarrow.parquet as pq
+import pytest
+
+from deckbench import table
+
+RAW_PRESENT = table.RAW_CSV.exists()
+requires_raw = pytest.mark.skipif(not RAW_PRESENT, reason="raw 17Lands CSV not on disk")
+
+
+# --------------------------------------------------------------------------
+# Synthetic fixture: a tiny file with every column family represented.
+# --------------------------------------------------------------------------
+
+_META = ["draft_id", "game_time", "match_number", "game_number", "won", "rank"]
+# deck_C is deliberately zero everywhere (an unmaindecked card); one row is a
+# zero-size deck (all deck_ == 0); the last two rows share (draft_id, game_time)
+# and differ only by match_number, exactly the real collision shape.
+_HEADER = _META + [
+    "deck_Ada, the First",
+    "deck_Bob's Bane",
+    "deck_Ceceli",
+    "sideboard_Ada, the First",
+    "opening_hand_Ada, the First",
+    "drawn_Ada, the First",
+    "tutored_Ada, the First",
+]
+_ROWS = [
+    ["d1", "2026-01-01 10:00:00", "1", "1", "True", "gold", "2", "1", "0", "9", "3", "1", "0"],
+    ["d1", "2026-01-01 11:00:00", "2", "1", "False", "gold", "1", "3", "0", "0", "0", "0", "0"],
+    ["d2", "2026-01-02 09:00:00", "1", "1", "True", "plat", "2", "2", "0", "5", "2", "0", "0"],
+    # zero-size deck -> dropped
+    ["d2", "2026-01-02 09:30:00", "2", "1", "False", "plat", "0", "0", "0", "0", "0", "0", "0"],
+    # collision pair on (draft_id, game_time), disambiguated by match_number
+    ["d3", "2026-01-03 12:00:00", "7", "1", "True", "gold", "4", "0", "0", "0", "0", "0", "0"],
+    ["d3", "2026-01-03 12:00:00", "8", "1", "False", "gold", "1", "1", "0", "0", "0", "0", "0"],
+]
+
+
+def _write_gzip_csv(path: Path, header: list[str], rows: list[list[str]]) -> None:
+    with gzip.open(path, "wt", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+@pytest.fixture
+def synthetic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    raw = tmp_path / "synthetic.csv.gz"
+    _write_gzip_csv(raw, _HEADER, _ROWS)
+    audit = tmp_path / "audit.json"
+    audit.write_text(
+        json.dumps({"recommended_observational_unit": {"unit": "game"}}),
+        encoding="utf-8",
+    )
+    processed = tmp_path / "processed"
+    monkeypatch.setattr(table, "RAW_CSV", raw)
+    monkeypatch.setattr(table, "AUDIT_JSON", audit)
+    monkeypatch.setattr(table, "PROCESSED_DIR", processed)
+    monkeypatch.setattr(table, "MODEL_TABLE_PARQUET", processed / "model_table.parquet")
+    monkeypatch.setattr(table, "REPORT_MD", tmp_path / "report.md")
+    return raw
+
+
+# --------------------------------------------------------------------------
+# Pure-function unit tests (no file needed).
+# --------------------------------------------------------------------------
+
+
+def test_build_layout_uses_prefixes_not_a_card_list() -> None:
+    layout = table.build_layout(_HEADER)
+    assert layout.deck_columns == (
+        "deck_Ada, the First",
+        "deck_Bob's Bane",
+        "deck_Ceceli",
+    )
+    # Every non-deck card family is neither a feature nor a metadata column.
+    assert layout.non_card_columns == tuple(_META)
+    for excluded in ("sideboard_", "opening_hand_", "drawn_", "tutored_"):
+        assert not any(c.startswith(excluded) for c in layout.non_card_columns)
+
+
+def test_build_layout_requires_key_columns() -> None:
+    with pytest.raises(KeyError):
+        table.build_layout(["draft_id", "game_time", "won"])  # missing match/game number
+
+
+def test_make_obs_id_stable_and_injective() -> None:
+    a = table.make_obs_id(("d1", "t", "1", "1"))
+    b = table.make_obs_id(("d1", "t", "1", "1"))
+    c = table.make_obs_id(("d1", "t", "2", "1"))
+    assert a == b
+    assert a != c
+    # The separator prevents field-boundary ambiguity.
+    assert table.make_obs_id(("a", "b")) != table.make_obs_id(("ab", ""))
+
+
+def test_parse_count_blank_is_zero_and_garbage_raises() -> None:
+    assert table.parse_count("") == 0
+    assert table.parse_count("3") == 3
+    with pytest.raises(ValueError):
+        table.parse_count("two")
+
+
+def test_missing_raw_file_fails_with_pointer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(table, "RAW_CSV", tmp_path / "absent.csv.gz")
+    with pytest.raises(table.RawFileMissing) as excinfo:
+        table.open_raw_reader()
+    assert "source_manifest.json" in str(excinfo.value)
+
+
+def test_non_game_unit_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    audit = tmp_path / "audit.json"
+    audit.write_text(
+        json.dumps({"recommended_observational_unit": {"unit": "draft"}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(table, "AUDIT_JSON", audit)
+    with pytest.raises(table.UnexpectedObservationalUnit):
+        table.observational_unit()
+
+
+# --------------------------------------------------------------------------
+# Synthetic end-to-end tests.
+# --------------------------------------------------------------------------
+
+
+def test_zero_size_deck_dropped_and_counted(synthetic: Path) -> None:
+    observations, stats = table.collect_observations()
+    assert stats.total_rows == len(_ROWS)
+    assert stats.zero_size_dropped == 1  # the all-zero deck_ row
+    assert stats.kept_rows == len(_ROWS) - 1
+    assert len(observations) == stats.kept_rows
+
+
+def test_deck_size_is_the_deck_column_sum(synthetic: Path) -> None:
+    observations, _ = table.collect_observations()
+    by_sort = {o.sort_key: o for o in observations}
+    # d1/10:00 -> 2 + 1 + 0 = 3
+    assert by_sort[("d1", "2026-01-01 10:00:00", 1, 1)].deck_size == 3
+    # d3/12:00 match 7 -> 4
+    assert by_sort[("d3", "2026-01-03 12:00:00", 7, 1)].deck_size == 4
+
+
+def test_collision_pair_keeps_both_rows(synthetic: Path) -> None:
+    observations, stats = table.collect_observations()
+    assert stats.key_collisions == 0  # the 4-tuple key disambiguates them
+    ids = [o.obs_id for o in observations]
+    assert len(ids) == len(set(ids))  # obs ids unique
+
+
+def test_duplicate_full_key_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    raw = tmp_path / "dup.csv.gz"
+    dup = [
+        _ROWS[0],
+        list(_ROWS[0]),  # identical 4-tuple key -> genuine collision
+    ]
+    _write_gzip_csv(raw, _HEADER, dup)
+    audit = tmp_path / "audit.json"
+    audit.write_text(
+        json.dumps({"recommended_observational_unit": {"unit": "game"}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(table, "RAW_CSV", raw)
+    monkeypatch.setattr(table, "AUDIT_JSON", audit)
+    with pytest.raises(table.UnresolvableRow):
+        table.collect_observations()
+
+
+def test_model_table_columns_and_one_row_per_observation(synthetic: Path) -> None:
+    stats = table.build_model_table()
+    tbl = pq.read_table(table.MODEL_TABLE_PARQUET)
+    assert tbl.num_rows == stats.kept_rows
+    names = tbl.column_names
+    assert names[0] == "obs_id"
+    assert names[-1] == "deck_size"
+    # every metadata column carried, no card-family column carried (deck_size
+    # is the computed sum, not a card column, despite its deck_ prefix)
+    for meta in _META:
+        assert meta in names
+    carried = set(names) - {"obs_id", "deck_size"}
+    assert not any(c.startswith(fam) for c in carried for fam in table.CARD_FAMILIES)
+    obs_ids = tbl.column("obs_id").to_pylist()
+    assert len(obs_ids) == len(set(obs_ids))
+
+
+def test_two_builds_are_byte_identical(synthetic: Path) -> None:
+    table.build_model_table()
+    first = table.MODEL_TABLE_PARQUET.read_bytes()
+    table.build_model_table()
+    second = table.MODEL_TABLE_PARQUET.read_bytes()
+    assert first == second
+
+
+# --------------------------------------------------------------------------
+# Real-data acceptance (skipped when the raw file is absent).
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def real_stats() -> table.BuildStats:
+    observations, stats = table.collect_observations()
+    # obs ids are globally unique on the real file
+    ids = [o.obs_id for o in observations]
+    assert len(ids) == len(set(ids))
+    return stats
+
+
+@requires_raw
+def test_real_unit_is_game_from_audit() -> None:
+    assert table.observational_unit() == "game"
+
+
+@requires_raw
+def test_real_totals_coherent(real_stats: table.BuildStats) -> None:
+    assert real_stats.unit == "game"
+    assert real_stats.total_rows > 0
+    assert real_stats.kept_rows == real_stats.total_rows - real_stats.zero_size_dropped
+    assert real_stats.key_collisions == 0
+    assert real_stats.n_deck_columns == 193
+
+```
+
+### tests/test_deckbench_identity.py
+
+```
+"""Tests for the card-identity representation (:mod:`deckbench.identity`).
+
+A synthetic gzipped CSV drives the whole build so the fraction arithmetic,
+the join to the model table, the manifest, reversibility of feature names and
+byte-determinism are all checked without the 16MB raw file. The anti-hardcoding
+and outcome-disjointness guards are the load-bearing ones: they encode the two
+lessons from the quarantined pipeline -- the representation must be derived
+from the header, not a card list, and no feature may come from the outcome.
+"""
+
+from __future__ import annotations
+
+import csv
+import gzip
+import hashlib
+import json
+from pathlib import Path
+
+import pyarrow.parquet as pq
+import pytest
+
+from deckbench import identity, table
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW_PRESENT = table.RAW_CSV.exists()
+requires_raw = pytest.mark.skipif(not RAW_PRESENT, reason="raw 17Lands CSV not on disk")
+
+_META = ["draft_id", "game_time", "match_number", "game_number", "won", "rank"]
+_HEADER = _META + [
+    "deck_Ada, the First",
+    "deck_Bob's Bane",
+    "deck_Ceceli",  # never maindecked -> stays in manifest with count 0
+    "sideboard_Ada, the First",
+    "opening_hand_Ada, the First",
+    "drawn_Ada, the First",
+    "tutored_Ada, the First",
+]
+_ROWS = [
+    ["d1", "2026-01-01 10:00:00", "1", "1", "True", "gold", "2", "1", "0", "9", "3", "1", "0"],
+    ["d2", "2026-01-02 09:00:00", "1", "1", "False", "plat", "0", "5", "0", "0", "0", "0", "0"],
+    # zero-size deck -> dropped from both tables
+    ["d2", "2026-01-02 09:30:00", "2", "1", "False", "plat", "0", "0", "0", "0", "0", "0", "0"],
+    ["d3", "2026-01-03 12:00:00", "7", "1", "True", "gold", "3", "1", "0", "0", "0", "0", "0"],
+]
+
+
+def _write_gzip_csv(path: Path, header: list[str], rows: list[list[str]]) -> None:
+    with gzip.open(path, "wt", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+@pytest.fixture
+def wired(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    raw = tmp_path / "synthetic.csv.gz"
+    _write_gzip_csv(raw, _HEADER, _ROWS)
+    audit = tmp_path / "audit.json"
+    audit.write_text(
+        json.dumps({"recommended_observational_unit": {"unit": "game"}}), encoding="utf-8"
+    )
+    processed = tmp_path / "processed"
+    report = tmp_path / "report.md"
+    monkeypatch.setattr(table, "RAW_CSV", raw)
+    monkeypatch.setattr(table, "AUDIT_JSON", audit)
+    monkeypatch.setattr(table, "PROCESSED_DIR", processed)
+    monkeypatch.setattr(table, "MODEL_TABLE_PARQUET", processed / "model_table.parquet")
+    monkeypatch.setattr(table, "REPORT_MD", report)
+    monkeypatch.setattr(identity, "PROCESSED_DIR", processed)
+    monkeypatch.setattr(identity, "DECK_IDENTITY_PARQUET", processed / "deck_identity.parquet")
+    monkeypatch.setattr(identity, "CARD_MANIFEST_CSV", processed / "card_identity_manifest.csv")
+    monkeypatch.setattr(identity, "SHA256_MANIFEST", processed / "MANIFEST.sha256")
+    monkeypatch.setattr(identity, "REPORT_MD", report)
+    return raw
+
+
+# --------------------------------------------------------------------------
+# Feature-name reversibility and injectivity.
+# --------------------------------------------------------------------------
+
+
+def test_clean_feature_name_is_a_safe_identifier() -> None:
+    assert identity.clean_feature_name("deck_Bob's Bane") == "card_bob_s_bane"
+    assert identity.clean_feature_name("deck_Ada, the First") == "card_ada_the_first"
+    with pytest.raises(ValueError):
+        identity.clean_feature_name("sideboard_Ada, the First")
+
+
+def test_feature_name_collision_is_fatal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Two distinct source columns that slug to the same clean name.
+    header = _META + ["deck_Ada, the First", "deck_Ada the First"]
+    rows = [["d1", "t", "1", "1", "True", "g", "1", "1"]]
+    raw = tmp_path / "clash.csv.gz"
+    _write_gzip_csv(raw, header, rows)
+    monkeypatch.setattr(table, "RAW_CSV", raw)
+    with pytest.raises(identity.FeatureNameCollision):
+        identity.build_representation()
+
+
+# --------------------------------------------------------------------------
+# Outcome disjointness: the identity builder never reads `won`.
+# --------------------------------------------------------------------------
+
+
+def test_identity_never_reads_the_outcome_column() -> None:
+    read = identity.columns_read(_HEADER)
+    features = identity.feature_source_columns(_HEADER)
+    assert table.OUTCOME_COL not in read
+    assert table.OUTCOME_COL not in features
+    assert set(features).isdisjoint({table.OUTCOME_COL})
+    # Every column the builder reads is either the key or a deck column.
+    for col in read:
+        assert col in table.KEY_COLUMNS or col.startswith(table.DECK_PREFIX)
+
+
+# --------------------------------------------------------------------------
+# Anti-hardcoding: no card name, no per-card branch in the module source.
+# --------------------------------------------------------------------------
+
+
+def _card_names() -> list[str]:
+    names: list[str] = []
+    path = ROOT / "data" / "normalized" / "cards.jsonl"
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line:
+            names.append(json.loads(line)["name"])
+    return names
+
+
+def test_identity_source_contains_no_card_name() -> None:
+    source = (ROOT / "src" / "deckbench" / "identity.py").read_text(encoding="utf-8").lower()
+    found = [name for name in _card_names() if name.lower() in source]
+    assert not found, f"card names hardcoded in identity.py: {found[:5]}"
+
+
+def test_table_source_contains_no_card_name() -> None:
+    source = (ROOT / "src" / "deckbench" / "table.py").read_text(encoding="utf-8").lower()
+    found = [name for name in _card_names() if name.lower() in source]
+    assert not found, f"card names hardcoded in table.py: {found[:5]}"
+
+
+# --------------------------------------------------------------------------
+# End-to-end on the synthetic file.
+# --------------------------------------------------------------------------
+
+
+def test_fractions_nonnegative_and_sum_to_one(wired: Path) -> None:
+    result = identity.build_representation()
+    assert result.worst_row_sum_deviation <= identity.ROW_SUM_TOLERANCE
+    frac = result.fractions
+    assert float(frac.min()) >= 0.0
+    # d1: deck (2,1,0)/3 -> row sums to 1 exactly in this construction
+    assert abs(float(frac.sum(axis=1).min()) - 1.0) <= identity.ROW_SUM_TOLERANCE
+
+
+def test_identity_columns_are_obs_id_then_features_in_header_order(wired: Path) -> None:
+    table.build_model_table()
+    result = identity.build()
+    tbl = pq.read_table(identity.DECK_IDENTITY_PARQUET)
+    assert tbl.column_names == ["obs_id", *result.feature_names]
+    assert result.feature_names == [
+        "card_ada_the_first",
+        "card_bob_s_bane",
+        "card_ceceli",
+    ]
+
+
+def test_join_to_model_table_has_no_unmatched_rows(wired: Path) -> None:
+    table.build_model_table()
+    identity.build()
+    mt = pq.read_table(table.MODEL_TABLE_PARQUET, columns=["obs_id"]).column("obs_id").to_pylist()
+    di = (
+        pq.read_table(identity.DECK_IDENTITY_PARQUET, columns=["obs_id"])
+        .column("obs_id")
+        .to_pylist()
+    )
+    assert mt == di  # same order, same set -> no unmatched either direction
+    assert len(mt) == len(set(mt))
+
+
+def test_manifest_records_verbatim_source_and_reverses(wired: Path) -> None:
+    table.build_model_table()
+    identity.build()
+    rows = list(csv.reader(identity.CARD_MANIFEST_CSV.open(encoding="utf-8")))
+    assert rows[0] == ["source_column", "feature_name", "total_count", "fraction_present"]
+    body = rows[1:]
+    assert len(body) == 3  # one row per deck column, header order
+
+    by_feature: dict[str, str] = {}
+    for source_column, feature_name, _total, _frac in body:
+        # source -> clean is the pure function; clean -> source is the record.
+        assert identity.clean_feature_name(source_column) == feature_name
+        assert source_column not in by_feature.values()
+        by_feature[feature_name] = source_column
+    assert len(by_feature) == len(body)  # injective
+    # The verbatim source keeps commas and apostrophes intact.
+    assert "deck_Bob's Bane" in by_feature.values()
+    assert "deck_Ada, the First" in by_feature.values()
+
+
+def test_unmaindecked_card_kept_at_count_zero(wired: Path) -> None:
+    table.build_model_table()
+    identity.build()
+    rows = list(csv.reader(identity.CARD_MANIFEST_CSV.open(encoding="utf-8")))[1:]
+    ceceli = next(r for r in rows if r[0] == "deck_Ceceli")
+    assert ceceli[2] == "0"  # total_count
+    assert ceceli[3] == "0.000000"  # fraction_present
+
+
+def test_sha256_manifest_covers_all_three_artifacts(wired: Path) -> None:
+    table.build_model_table()
+    identity.build()
+    listed: dict[str, str] = {}
+    for line in identity.SHA256_MANIFEST.read_text(encoding="utf-8").splitlines():
+        if not line or line.startswith("#"):
+            continue
+        digest, name = line.split(" *", 1)
+        listed[name] = digest
+    assert set(listed) == {
+        "model_table.parquet",
+        "deck_identity.parquet",
+        "card_identity_manifest.csv",
+    }
+    for name, digest in listed.items():
+        actual = hashlib.sha256((identity.PROCESSED_DIR / name).read_bytes()).hexdigest()
+        assert actual == digest, f"manifest hash stale for {name}"
+
+
+def test_two_builds_are_byte_identical(wired: Path) -> None:
+    r1 = identity.build_representation()
+    identity.write_identity_parquet(r1)
+    identity.write_card_manifest(r1)
+    first_parquet = identity.DECK_IDENTITY_PARQUET.read_bytes()
+    first_csv = identity.CARD_MANIFEST_CSV.read_bytes()
+
+    r2 = identity.build_representation()
+    identity.write_identity_parquet(r2)
+    identity.write_card_manifest(r2)
+    assert identity.DECK_IDENTITY_PARQUET.read_bytes() == first_parquet
+    assert identity.CARD_MANIFEST_CSV.read_bytes() == first_csv
+
+
+# --------------------------------------------------------------------------
+# Real-data acceptance (skipped when the raw file is absent).
+# --------------------------------------------------------------------------
+
+
+@requires_raw
+def test_real_representation_is_normalized_and_matches_model_table() -> None:
+    result = identity.build_representation()
+    assert result.n_obs > 0
+    assert len(result.feature_names) == 193
+    assert result.worst_row_sum_deviation <= identity.ROW_SUM_TOLERANCE
+    assert float(result.fractions.min()) >= 0.0
+
+```
+
+### data/processed/model_table.parquet
+
+```
+[binary file, not inlined]
+name:   model_table.parquet
+bytes:  12998728
+sha256: 59576fbedd96458271766f84ccd86e5e821a0c7ee765a6cb59a078cd9810d4bb
+```
+
+### data/processed/deck_identity.parquet
+
+```
+[binary file, not inlined]
+name:   deck_identity.parquet
+bytes:  11507865
+sha256: e09a92176cb0feb3732a50a50cfb3fa2f07d27dfcf0f4dc2394e748710d026d1
+```
+
+### data/processed/card_identity_manifest.csv
+
+```
+source_column,feature_name,total_count,fraction_present
+deck_Along the Crooked Way,card_along_the_crooked_way,7819,0.031076
+deck_An Unexpected Party,card_an_unexpected_party,17869,0.069988
+deck_Attercop,card_attercop,65842,0.176629
+"deck_Azog, Moria's Ruin",card_azog_moria_s_ruin,10107,0.040285
+"deck_Balin, Loremaster",card_balin_loremaster,5896,0.023531
+deck_Bard the Bowman,card_bard_the_bowman,40198,0.121765
+deck_Bard's Company,card_bard_s_company,17941,0.066492
+"deck_Bard, King of Dale",card_bard_king_of_dale,4219,0.017209
+deck_Bejeweled Warg,card_bejeweled_warg,12378,0.048133
+deck_Belladonna Took,card_belladonna_took,6691,0.026455
+deck_Beorn the Fierce,card_beorn_the_fierce,6891,0.027961
+deck_Beorn's Hospitality,card_beorn_s_hospitality,19577,0.071167
+"deck_Beorn, Reluctant Host",card_beorn_reluctant_host,20863,0.075006
+"deck_Bifur, Melodic Rider",card_bifur_melodic_rider,23934,0.089655
+"deck_Bilbo Baggins, Burglar",card_bilbo_baggins_burglar,99802,0.247837
+deck_Bilbo's Deadly Slice,card_bilbo_s_deadly_slice,105537,0.303892
+deck_Bilbo's Gambit,card_bilbo_s_gambit,1896,0.007566
+"deck_Bilbo, Luckwearer",card_bilbo_luckwearer,48846,0.156673
+"deck_Bilbo, Thief in the Night",card_bilbo_thief_in_the_night,5830,0.023700
+"deck_Bofur, Reliable Guardian",card_bofur_reliable_guardian,31171,0.113512
+deck_Bolg of the North,card_bolg_of_the_north,30182,0.106447
+deck_Bolg's Company,card_bolg_s_company,7704,0.029744
+"deck_Bombur, Gentle Dreamer",card_bombur_gentle_dreamer,26381,0.096799
+deck_Bothersome Noisemaker,card_bothersome_noisemaker,57618,0.182967
+deck_Boughside Wanderers,card_boughside_wanderers,29022,0.097122
+"deck_Burn, Burn, Tree and Fern",card_burn_burn_tree_and_fern,50985,0.178358
+deck_Cantankerous Keepers,card_cantankerous_keepers,4617,0.016626
+deck_Celebrate the Mountain-king,card_celebrate_the_mountain_king,55471,0.179504
+deck_Chief Warg's Company,card_chief_warg_s_company,15177,0.059071
+deck_Confusticate and Bebother,card_confusticate_and_bebother,36915,0.119532
+deck_Crude Bent Blade,card_crude_bent_blade,136157,0.355223
+deck_Dancing from Dark to Dawn,card_dancing_from_dark_to_dawn,5914,0.023969
+deck_Desert Were-Worm,card_desert_were_worm,3938,0.015633
+deck_Desolation Prowler,card_desolation_prowler,62111,0.201670
+deck_Desolation of Smaug,card_desolation_of_smaug,5642,0.022182
+"deck_Dori, Bearer of Friends",card_dori_bearer_of_friends,90515,0.273457
+deck_Down in the Valley,card_down_in_the_valley,8073,0.031052
+"deck_Down, Down to Goblin-town",card_down_down_to_goblin_town,55921,0.189784
+deck_Dreaded Bat-Cloud,card_dreaded_bat_cloud,35348,0.126010
+deck_Duskwatch Hunter,card_duskwatch_hunter,73058,0.209592
+"deck_Dwalin, Weaponmaster",card_dwalin_weaponmaster,14913,0.058334
+deck_Dwarven Mattock,card_dwarven_mattock,25651,0.086064
+deck_Dwarven Mauler,card_dwarven_mauler,37124,0.121546
+deck_Dwarven Provisioner,card_dwarven_provisioner,63338,0.192982
+deck_Dwarven Shortsword,card_dwarven_shortsword,49802,0.145867
+deck_D├íin Ironfoot,card_d_in_ironfoot,16038,0.063133
+deck_D├íin's Company,card_d_in_s_company,11714,0.043835
+"deck_D├íin, Lord of the Iron Hills",card_d_in_lord_of_the_iron_hills,27787,0.103112
+deck_Eagle of the Great Shelf,card_eagle_of_the_great_shelf,14305,0.053316
+deck_Eagle's Rescue,card_eagle_s_rescue,22842,0.086627
+"deck_Elrond, Moon-Reader",card_elrond_moon_reader,3150,0.012717
+deck_Elven Passage,card_elven_passage,9977,0.039441
+deck_Elven Raft-Steerer,card_elven_raft_steerer,7902,0.026650
+deck_Elvenking's Halls,card_elvenking_s_halls,31165,0.093577
+deck_Elvenking's Harper,card_elvenking_s_harper,20687,0.069529
+deck_Enchanted River's Grasp,card_enchanted_river_s_grasp,79281,0.207664
+deck_Esgaroth Garrison,card_esgaroth_garrison,22049,0.073430
+deck_Fateful Discovery,card_fateful_discovery,37,0.000124
+deck_Fearsome Goblin Pair,card_fearsome_goblin_pair,29219,0.102355
+deck_Forest,card_forest,532357,0.337898
+deck_Front Porch Sentries,card_front_porch_sentries,60291,0.185681
+deck_F├¡li the Pathfinder,card_f_li_the_pathfinder,16413,0.063584
+"deck_Galion, Elvenking's Butler",card_galion_elvenking_s_butler,16627,0.062434
+"deck_Gandalf, Goblins' Bane",card_gandalf_goblins_bane,5948,0.024164
+"deck_Gandalf, Spark Starter",card_gandalf_spark_starter,44524,0.162543
+"deck_Gandalf, Wandering Wizard",card_gandalf_wandering_wizard,11176,0.043508
+deck_Gathering of Darkness,card_gathering_of_darkness,34804,0.128083
+deck_Getaway Barrel,card_getaway_barrel,279,0.001067
+deck_Giant's Boulder,card_giant_s_boulder,15639,0.060188
+deck_Gigantic Big Bear,card_gigantic_big_bear,6906,0.027465
+"deck_Glamdring, Foe-hammer",card_glamdring_foe_hammer,635,0.002519
+deck_Gleaming Splendor,card_gleaming_splendor,774,0.003185
+deck_Gl├│in the Mighty,card_gl_in_the_mighty,36058,0.134565
+deck_Gnashing of Teeth,card_gnashing_of_teeth,41521,0.149570
+deck_Goblin Plate Mail,card_goblin_plate_mail,130237,0.364548
+deck_Goblin-town,card_goblin_town,62361,0.200917
+deck_Goblin-town Flunkies,card_goblin_town_flunkies,50337,0.142165
+deck_Gollum the Abandoned,card_gollum_the_abandoned,40058,0.147712
+"deck_Gollum, Riddle Master",card_gollum_riddle_master,8348,0.033980
+"deck_Gollum, Silent Slinker",card_gollum_silent_slinker,114577,0.322351
+deck_Great Fierce Bee,card_great_fierce_bee,20585,0.072148
+deck_Great Gilded Boat,card_great_gilded_boat,17953,0.068941
+deck_Great Ugly-Looking Goblin,card_great_ugly_looking_goblin,43110,0.152321
+deck_Guardian of the Halls,card_guardian_of_the_halls,34754,0.104498
+deck_Gundabad Opportunist,card_gundabad_opportunist,80745,0.236821
+deck_Head of the Hunt,card_head_of_the_hunt,16579,0.066058
+deck_Hobbit Hole,card_hobbit_hole,113783,0.377339
+deck_Inside Information,card_inside_information,3811,0.015542
+deck_Iron Hills,card_iron_hills,46185,0.143873
+deck_Iron Hills Blacksmith,card_iron_hills_blacksmith,41537,0.133109
+deck_Iron Hills Stalwart,card_iron_hills_stalwart,19901,0.073293
+deck_Island,card_island,599418,0.360531
+deck_Key to the Side-Door,card_key_to_the_side_door,3099,0.012613
+deck_K├¡li the Resourceful,card_k_li_the_resourceful,14352,0.055360
+deck_Lake-town,card_lake_town,53959,0.164884
+deck_Lake-town Lookout,card_lake_town_lookout,19197,0.059075
+deck_Lake-town Mariners,card_lake_town_mariners,9680,0.037666
+deck_Lake-town Toymaker,card_lake_town_toymaker,16654,0.060018
+deck_Lakeshore Apothecary,card_lakeshore_apothecary,110482,0.217286
+deck_Large Bear,card_large_bear,37598,0.135008
+deck_Last Light of Durin's Day,card_last_light_of_durin_s_day,348,0.001382
+deck_Little Bear,card_little_bear,18213,0.051583
+deck_Long Lake Nuisance,card_long_lake_nuisance,93223,0.213311
+deck_Long-Bodied Grey Dog,card_long_bodied_grey_dog,17139,0.061065
+deck_Magnificent End,card_magnificent_end,87733,0.244251
+deck_Master's Councillors,card_master_s_councillors,47692,0.131735
+deck_Mirkwood,card_mirkwood,49483,0.158183
+deck_Mirkwood Meditator,card_mirkwood_meditator,3488,0.011741
+deck_Mirkwood Nurturer,card_mirkwood_nurturer,63571,0.186322
+deck_Mirkwood Pathmaker,card_mirkwood_pathmaker,40260,0.123693
+deck_Misty Mountains Raider,card_misty_mountains_raider,48083,0.165559
+deck_Moment of Glory,card_moment_of_glory,13169,0.047707
+deck_Most Decrepit Old Bird,card_most_decrepit_old_bird,6627,0.025181
+deck_Mountain,card_mountain,868000,0.512971
+deck_My Precious,card_my_precious,8233,0.033712
+deck_Nasty Little Rabbit,card_nasty_little_rabbit,38252,0.115953
+deck_Nighthowl Pursuer,card_nighthowl_pursuer,47950,0.156060
+"deck_Nori, Teller of Tales",card_nori_teller_of_tales,55429,0.192184
+deck_Old Fat Spider,card_old_fat_spider,20889,0.077277
+deck_Old Fat Spider Can't See Me,card_old_fat_spider_can_t_see_me,19038,0.070025
+deck_Old Thrush,card_old_thrush,18854,0.067150
+"deck_Orcrist, Goblin-cleaver",card_orcrist_goblin_cleaver,3466,0.014293
+deck_Ordinary Bear,card_ordinary_bear,32997,0.100750
+"deck_Ori, Keeper of Songs",card_ori_keeper_of_songs,43474,0.144030
+deck_Part in Friendship,card_part_in_friendship,6460,0.025703
+deck_Patient Instructor,card_patient_instructor,109145,0.252918
+deck_Pinecone Strike,card_pinecone_strike,124694,0.326099
+deck_Plains,card_plains,679649,0.431354
+deck_Plunder the Trollshaws,card_plunder_the_trollshaws,96090,0.233640
+deck_Quarrel,card_quarrel,78049,0.203362
+deck_Radagast of Rhosgobel,card_radagast_of_rhosgobel,7178,0.028876
+deck_Rage into the Valley,card_rage_into_the_valley,100479,0.278604
+deck_Ragged Short Spear,card_ragged_short_spear,51492,0.178640
+deck_Ravenhill Flock,card_ravenhill_flock,14926,0.050437
+deck_Ravening Warg,card_ravening_warg,101304,0.279869
+deck_Reverent Howl,card_reverent_howl,37054,0.134834
+deck_Rhovanion Rampager,card_rhovanion_rampager,17015,0.066770
+deck_Riddles in the Dark,card_riddles_in_the_dark,4577,0.018045
+"deck_Roads Go Ever, Ever On",card_roads_go_ever_ever_on,10036,0.039842
+deck_Roll-Roll-Roll-Roll,card_roll_roll_roll_roll,2385,0.009325
+deck_Settle the Wreckage,card_settle_the_wreckage,12533,0.048927
+deck_Silvan Reveler,card_silvan_reveler,20204,0.060593
+deck_Smaug the Magnificent,card_smaug_the_magnificent,7390,0.030055
+deck_Smaug's Fury,card_smaug_s_fury,14322,0.052001
+"deck_Smaug, Wicked Worm",card_smaug_wicked_worm,10906,0.043309
+"deck_Smaug, the Great Calamity",card_smaug_the_great_calamity,65234,0.224745
+deck_Snowslope Hunter,card_snowslope_hunter,30315,0.105847
+deck_Sound the Trumpets,card_sound_the_trumpets,15368,0.054992
+"deck_Sting, Bilbo's Sword",card_sting_bilbo_s_sword,5259,0.021446
+deck_Stir Up Trouble,card_stir_up_trouble,106361,0.311562
+deck_Stone by Sunlight,card_stone_by_sunlight,49838,0.163970
+deck_Stone-Giant of High Pass,card_stone_giant_of_high_pass,13640,0.054657
+deck_Stony-Voiced Goblins,card_stony_voiced_goblins,92444,0.255044
+deck_Supper for Spiders,card_supper_for_spiders,654,0.002677
+deck_Swamp,card_swamp,1002311,0.570904
+deck_The Arkenstone,card_the_arkenstone,8496,0.034787
+deck_The Black Arrow,card_the_black_arrow,8954,0.036012
+deck_The Chief Warg,card_the_chief_warg,26805,0.090280
+deck_The Eagles Are Coming!,card_the_eagles_are_coming,15206,0.059493
+deck_The Great Goblin,card_the_great_goblin,12808,0.050499
+deck_The Lonely Mountain,card_the_lonely_mountain,14095,0.055484
+deck_The Lord of the Eagles,card_the_lord_of_the_eagles,5365,0.020904
+deck_The Master of Lake-town,card_the_master_of_lake_town,10856,0.043115
+deck_The Misty Mountains Cold,card_the_misty_mountains_cold,11356,0.044087
+deck_The Mountain-king's Return,card_the_mountain_king_s_return,52290,0.169125
+deck_The Notary Hobbits,card_the_notary_hobbits,2368,0.009387
+deck_The Queen of Dale,card_the_queen_of_dale,6061,0.024573
+deck_The Sackville-Bagginses,card_the_sackville_bagginses,15133,0.059762
+deck_Thorin Oakenshield,card_thorin_oakenshield,30031,0.098268
+deck_Thorin's Last Stand,card_thorin_s_last_stand,8101,0.031383
+"deck_Thorin, Mountain-king",card_thorin_mountain_king,7337,0.029856
+deck_Thranduil's Company,card_thranduil_s_company,12719,0.047773
+deck_Thranduil's Decree,card_thranduil_s_decree,7704,0.029724
+"deck_Thranduil, Sindarin Liege",card_thranduil_sindarin_liege,34629,0.117699
+"deck_Thranduil, the Elvenking",card_thranduil_the_elvenking,2212,0.008708
+deck_Through the Forest Gate,card_through_the_forest_gate,718,0.002933
+deck_Thr├│r's Map,card_thr_r_s_map,27534,0.109702
+deck_Tidings of War,card_tidings_of_war,70267,0.195411
+"deck_Tom, Bert, and William",card_tom_bert_and_william,13281,0.052605
+deck_Troll Negotiations,card_troll_negotiations,31075,0.104817
+deck_Troop of Ponies,card_troop_of_ponies,17821,0.066207
+deck_Uncover the Moon-Letters,card_uncover_the_moon_letters,548,0.002110
+deck_Uneasy Partings,card_uneasy_partings,69789,0.200702
+deck_Velvetwing Butterflies,card_velvetwing_butterflies,24865,0.079470
+deck_Vow to Erebor,card_vow_to_erebor,13781,0.048534
+deck_Warg Tactics,card_warg_tactics,28218,0.100469
+deck_Wargling,card_wargling,47849,0.133804
+deck_Well-Worn Spatula,card_well_worn_spatula,18700,0.068685
+deck_Wilderland Scrounger,card_wilderland_scrounger,18754,0.068433
+deck_Wizard's Staff,card_wizard_s_staff,892,0.003554
+deck_Wood Elves,card_wood_elves,38597,0.107274
+deck_Woodland Weavemaster,card_woodland_weavemaster,16171,0.046888
+deck_├ôin the Brave,card_in_the_brave,61644,0.207693
+
+```
+
+### data/processed/MANIFEST.sha256
+
+```
+# Hash manifest for the card-004 modeling artifacts.
+#
+# The parquet/csv blobs are gitignored and regenerable from data/raw via
+#   python -m deckbench.table && python -m deckbench.identity
+# This manifest is tracked so a rebuild is checked byte-for-byte. Verify
+# from inside data/processed with:  sha256sum -c MANIFEST.sha256
+#
+73d18aee9367a6fba6cff778e1c0afc63e1cfdbd63a03387f36c785c5a351e77 *card_identity_manifest.csv
+e09a92176cb0feb3732a50a50cfb3fa2f07d27dfcf0f4dc2394e748710d026d1 *deck_identity.parquet
+59576fbedd96458271766f84ccd86e5e821a0c7ee765a6cb59a078cd9810d4bb *model_table.parquet
+
+```
+
+### reports/model_table_build.md
+
+```
+# Model table build -- game-level modeling table
+
+Card 004, part 1. `deckbench.table` turns the raw 17Lands HOB Premier Draft file into one row of outcome and metadata per observation. No card fractions, skill proxy, split or model are produced here.
+
+Source file: `data/raw/game_data_public.HOB.PremierDraft.csv.gz`
+Output: `data/processed/model_table.parquet`
+
+## Observational unit
+
+**Unit: game.** Read verbatim from `reports/modeling_data_audit.json` (`recommended_observational_unit.unit`); it is not re-derived or overridden here. The audit ratified the game as the unit because the deck changes within a draft, so averaging a draft's games would blend distinct decks.
+
+## Observation key
+
+The audit recommends keying by `draft_id` + `game_time`. That pair is **not unique** in this file: five game rows share a `(draft_id, game_time)` with another row, distinguishable only by `match_number`. The observation key is therefore the injective 4-tuple `draft_id, game_time, match_number, game_number`, and `obs_id` is a blake2b digest of it. The run fails if any two rows still collide on that key.
+
+## Column families -- included and excluded
+
+Every family the audit found is accounted for explicitly:
+
+| Family | Disposition | Reason |
+| --- | --- | --- |
+| `deck_` | **included** | The maindeck the player registered for this game. This is the deck whose strength the benchmark (R1) represents. |
+| `sideboard_` | excluded | Cards held out of the played 40; not part of the deck that played this game. |
+| `opening_hand_` | excluded | A per-game *realisation* of draws from the deck, not the deck's composition; it is downstream of the shuffle. |
+| `drawn_` | excluded | Same: cards actually drawn during the game, a realised outcome rather than the static deck. Reachability lives in the R3 game-script representation, not in R1 identity. |
+| `tutored_` | excluded | Cards fetched during play; another realised in-game event, not deck construction. |
+
+The non-card metadata columns (draft id, timestamps, outcome, ranks, colours, turn counts, skill buckets, ...) are carried verbatim as strings; typing them is left to the cards that consume them.
+
+## Row accounting
+
+- Raw rows read: **241727**
+- Zero-size decks dropped: **0** (0.0 of rows)
+- Observations kept: **241727**
+- Duplicate-key collisions after keying: **0**
+- Metadata columns carried: **20** (plus `obs_id` and `deck_size`)
+- Deck card columns summed for deck size: **193**
+
+A zero-size deck carries no card-fraction representation (its row sum would divide by zero), so such rows are dropped from both tables and the count is reported here rather than silently discarded.
+
+## Determinism
+
+Rows are written in a fixed order (`draft_id`, `game_time`, `match_number`, `game_number`) and columns in a fixed order (`obs_id`, the metadata columns in header order, then `deck_size`). Two consecutive builds produce byte-identical parquet. The hash is pinned in `data/processed/MANIFEST.sha256`, regenerated by `deckbench.identity`.
+
+## Card-identity representation
+
+Card 004, part 2. `deckbench.identity` builds `D_ij = count(card j in deck i) / deck size i` from the `deck_` family -- one row per observation, one column per card. It reads only the observation key and the deck counts; the outcome column is never touched, so no feature can derive from wins or losses.
+
+- Observations (rows): **241727**
+- Card features (columns): **193**
+- Cards never maindecked (kept at count 0): **0**
+
+### Feature names and reversibility
+
+Each source column such as `deck_<Name, With A Comma>` (card names carry commas and apostrophes) becomes a clean identifier such as `card_name_with_a_comma`. The slug alone cannot recover the comma and apostrophe, so the manifest `card_identity_manifest.csv` records the **verbatim source column** beside every clean name; the mapping is enforced to be one-to-one and the round trip is tested. A card absent from the whole dataset keeps its row with `total_count = 0`, so the feature space is reproducible from the manifest alone.
+
+### Row-sum tolerance
+
+Fractions are integer counts over an integer deck size, so each row's true sum is exactly 1; only float division perturbs it. The tolerance is **1e-09** and any row breaching it fails the run. The worst deviation observed here was **2.220e-16**, well inside the bound.
+
+### Join and determinism
+
+`deck_identity.parquet` shares the model table's obs-id set exactly (both drop the same zero-size decks) and is written in the same fixed row order, so the two join on `obs_id` with no unmatched rows in either direction. Columns are fixed as `obs_id` then the card features in header order. `data/processed/MANIFEST.sha256` is regenerated over the model table, the identity table and the card manifest.
+
+```
+
+## Section 5: Supplementary Context (See Also)
+
+The following files are referenced by the task via `## See Also`. They are supplementary context only and are not part of the deliverable under review.
+
+### attic/haiku-2026-09-07/README.md
+
+```
+# Quarantined: modeling pipeline written 2026-09-07
+
+**Nothing in this directory governs, runs, or may be cited.** It is kept because
+`INSTRUCTIONS.md` ┬º6 preserves dead ends rather than erasing them ΓÇö not because
+any of it is usable.
+
+## What this is
+
+The entire Python modeling pipeline as it stood on 2026-09-07, plus everything it
+produced. It was generated by Claude Haiku, which the project owner found did not
+follow the specification reliably. The code is untrusted; therefore so is every
+number downstream of it.
+
+The decision to quarantine is recorded in the `DECISION` entry of 2026-09-07 in
+`LABNOTEBOOK.md`. The files were tracked and pushed before that decision, in
+commit `529baf3`, so they remain in git history at that commit regardless of
+this move.
+
+## What is here, and where it came from
+
+| Now at | Was at |
+|---|---|
+| `build_identity_matrix.py` | repository root |
+| `scripts/build_model_table.py` | `scripts/` |
+| `scripts/00_outcome_and_split.py` | `scripts/` |
+| `scripts/01_fit_m0_m1.py` | `scripts/` |
+| `scripts/01_fit_m0_m1_old.py` | `scripts/` |
+| `scripts/02_comprehensive_metrics.py` | `scripts/` |
+| `scripts/03_model_comparison_and_plots.py` | `scripts/` |
+| `src_data/build_model_table.py` | `src/data/` |
+| `results/` | `results/` |
+| `figures/` | `figures/` |
+| `data_processed/` | `data/processed/` |
+
+The two `build_model_table.py` files are kept in separate subdirectories because
+they share a basename and had **diverged** ΓÇö the `scripts/` one was newer and added
+NaN defaults for missing skill buckets; the `src/data/` one sat at the path the
+(now also superseded) `docs/Model_Building.md` specified. Neither was ever
+reconciled. That duplication is itself a symptom.
+
+`data_processed/MANIFEST.sha256` is tracked so the discarded state stays
+identifiable; the parquet/npy blobs it names, and the `.xgb` model binaries, are
+gitignored and exist only on disk.
+
+## What was NOT quarantined, and why
+
+- **`data/raw/game_data_public.HOB.PremierDraft.csv.gz`** ΓÇö source data from
+  17Lands, not produced here. Provenance in `data/raw/source_manifest.json`.
+- **`scripts/R/`** ΓÇö written 2025-12 to 2026-02, a different author and the
+  earlier causal analysis.
+- **The whole knowledge-graph arm** ΓÇö `src/hobkg/`, `tests/`, and
+  `scripts/build_set_network_html.py` date from 2026-09-05 and earlier and are
+  unaffected.
+
+## Known defects, recorded so the rebuild does not repeat them
+
+1. **`identity_matrix_*` is not a deck representation.** `build_identity_matrix.py`
+   builds a 43,160 ├ù 6 **rank-bucket** indicator matrix and its "player index" is
+   keyed on `rank`. Rank is a six-level skill bucket, not a player identifier;
+   this dataset carries no persistent player ID. The true representation is
+   `D_ij = count(card j in deck i) / deck_size_i`, from the `deck_*` columns.
+
+2. **The reported results contradict each other.** `results/model_comparison_report.txt`
+   gives M0 R┬▓ = ΓêÆ0.0001 and M1 R┬▓ = 0.0471. An earlier README revision, describing
+   the same M0-vs-M1 holdout comparison, gave 0.1594 and 0.1785. Both cannot be
+   right. Where a confidence interval was computed at all, it crossed zero ΓÇö so
+   the headline "M1 improves on M0" was never supported by its own numbers.
+
+3. **A `KEY FINDINGS` section asserting three checkmarked improvements**, in the
+   same file whose companion analysis reports the effect as statistically
+   insignificant.
+
+4. **`draft_model_table.parquet` was regenerated after the rest**, so the hashes in
+   `data_processed/MANIFEST.sha256` do not describe a single coherent pipeline run.
+
+5. **Date range reported as 1988ΓÇô2025.** The actual `draft_time` span is
+   2026-08-11 to 2026-08-29 ΓÇö three weeks. The old figure looks like numeric game
+   fields parsed as years.
+
+## The replacement
+
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs the rebuild. Its ┬º17 fixes
+the first step and stops before any model is fit: audit the raw game-level data,
+quantify how often deck configuration changes within a draft, build the game-level
+table, verify the skill variables, freeze the splits, report, and hold for review.
+
+Start from that spec and the raw CSV. Do not start from this directory.
+
+```
+
+### reports/modeling_data_audit.md
+
+```
+# Modeling data audit -- raw HOB game-level dataset
+
+Section-17 audit of the 17Lands HOB Premier Draft file. Every number below is computed by `deckbench.audit` from the raw CSV. No modeling table, feature, split or model is produced here.
+
+Source file: `data/raw/game_data_public.HOB.PremierDraft.csv.gz`
+
+## 1. Key columns, named verbatim
+
+| Role | Column |
+| --- | --- |
+| Draft identifier | `draft_id` |
+| Per-game outcome | `won` |
+| Deck contents | `deck_ column family` |
+| Draft timestamp | `draft_time` |
+| Per-game timestamp | `game_time` |
+| Rank | `rank` |
+| User historical win-rate bucket | `user_game_win_rate_bucket` |
+| User games-played bucket | `user_n_games_bucket` |
+
+## 2. Persistent player identifier
+
+No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute.
+
+## 3. Dataset totals (computed, not transcribed)
+
+- Total games (rows): **241727**
+- Total drafts (distinct `draft_id`): **43161**
+- Total columns: **985**
+- Malformed rows (wrong width): **0**
+- `draft_time` span: 2026-08-11 15:43:42 .. 2026-08-29 23:39:41
+
+Manifest declares rows=241727, drafts=43161, columns=1165. Observed matches declared: rows=True, drafts=True, columns=False.
+
+> **Discrepancy.** At least one declared total does not match the file. Per the card, this is a finding, reported rather than reconciled silently.
+
+## 4. Column census by family
+
+| Family | Columns |
+| --- | --- |
+| `deck_` | 193 |
+| `sideboard_` | 193 |
+| `opening_hand_` | 193 |
+| `drawn_` | 193 |
+| `tutored_` | 193 |
+| non-card | 20 |
+
+Non-card columns: `expansion`, `event_type`, `draft_id`, `draft_time`, `game_time`, `build_index`, `match_number`, `game_number`, `rank`, `opp_rank`, `main_colors`, `splash_colors`, `on_play`, `num_mulligans`, `opp_num_mulligans`, `opp_colors`, `num_turns`, `won`, `user_n_games_bucket`, `user_game_win_rate_bucket`
+
+## 5. Within-draft deck variation
+
+- Drafts with more than one deck configuration: **8191** (0.189778 of drafts)
+- Games played after a deck change: **28397** (0.117475 of games)
+- Distinct deck configurations per draft (configs: drafts): 1: 34970, 2: 6636, 3: 1314, 4: 210, 5: 29, 6: 2
+
+## 6. `build_index` -- what it actually varies with
+
+- Drafts where `build_index` is non-constant: 8241
+- Drafts where the deck config is non-constant: 8191
+- Drafts where `build_index` determines the deck config: 43161
+- Drafts where the deck config determines `build_index`: 43100
+- Drafts where `build_index` <-> deck config is bijective: 43100
+- `build_index` varies while the deck is constant: 50
+- Deck varies while `build_index` is constant: 0
+
+## 7. Deck-size distribution and legality
+
+- Legal Limited minimum deck size: 40
+- Observed deck size: min 40, max 60, modal 40
+- Rows below the legal minimum: **0**
+- Distribution (size: rows): 40: 226047, 41: 13424, 42: 1064, 43: 568, 44: 245, 45: 142, 46: 63, 47: 27, 48: 36, 49: 24, 50: 27, 51: 5, 52: 8, 53: 10, 54: 12, 55: 8, 56: 3, 57: 4, 58: 5, 60: 5
+
+## 8. Card-count consistency
+
+No standalone deck-size column exists; deck size is defined as the sum of the deck_ columns. The consistency check is whether that sum lands on the modal legal size on every row.
+
+- Rows off the modal deck size: **15680**
+- Rows below the legal minimum: **0**
+
+## 9. Skill-variable constancy within draft
+
+| Column | Drafts where it is not constant |
+| --- | --- |
+| `rank` | 5420 |
+| `user_game_win_rate_bucket` | 0 |
+| `user_n_games_bucket` | 0 |
+
+## 10. Recommended observational unit
+
+**Unit: game.**
+
+The deck is recorded per game and it changes within a draft: 0.1898 of drafts carry more than one deck configuration and 0.1175 of games are played after a deck change. Averaging a draft's games would blend distinct decks in exactly those drafts, so the observational unit is the game, keyed by draft_id + game_time. This follows benchmark section 6.
+
+This is a recommendation; the operator ratifies the unit at card 007. The machine-readable form of every number above is in `reports/modeling_data_audit.json`.
+
+```
+
+
+### [2026-09-08 11:37] ASSISTANT
+VERDICT: PASS
+
+CRITERIA:
+- **Observational unit ratified & recorded**: `table.observational_unit()` reads `payload["recommended_observational_unit"]["unit"]` from `modeling_data_audit.json` and raises `UnexpectedObservationalUnit` on anything but `"game"` â€” it does not re-derive. The audit md ratifies "Unit: game." and the build report states "**Unit: game.** Read verbatim from `reports/modeling_data_audit.json` (`recommended_observational_unit.unit`); it is not re-derived or overridden here." PASS.
+- **model_table one row per observation with required columns**: `_model_table` writes `obs_id` first, all 20 non-card metadata columns (incl. `draft_id`, `game_time`, `won`) in header order, then `deck_size` last. `test_model_table_columns_and_one_row_per_observation` asserts `names[0]=="obs_id"`, `names[-1]=="deck_size"`, every meta column present, no card-family column carried, and `obs_ids` unique. Report: "Observations kept: **241727**". PASS.
+- **deck_identity one row/obs, one col/card, clean join**: 193 float card columns + `obs_id`. `test_join_to_model_table_has_no_unmatched_rows` asserts `mt == di` (identical order and set â†’ no unmatched either direction). PASS.
+- **All fractions â‰¥ 0**: `build_representation` raises if `fractions.min() < 0.0`; `test_fractions_nonnegative_and_sum_to_one` asserts `frac.min() >= 0.0`. PASS.
+- **Row sums == 1 within stated tolerance; rows outside fail**: `ROW_SUM_TOLERANCE = 1e-9`, `RowSumOutOfTolerance` raised on breach naming the obs id. Report records the tolerance (`**1e-09**`) and worst deviation (`**2.220e-16**`). PASS.
+- **No zero-size deck survives; count reported**: both builders drop `deck_size == 0`; `BuildStats.zero_size_dropped` is reported ("Zero-size decks dropped: **0**") and CLI output confirms "0 zero-size decks dropped from 241727 rows". PASS.
+- **Manifest per-card fields**: CSV header `source_column,feature_name,total_count,fraction_present`; `present_counts` from `(matrix > 0).sum(axis=0)` gives fraction of observations with â‰¥1 copy. Verified in supplied CSV (e.g. `"deck_Azog, Moria's Ruin",card_azog_moria_s_ruin,10107,0.040285`). PASS.
+- **Played-deck rule documented; every family accounted for**: report table explicitly includes `deck_` and excludes `sideboard_`, `opening_hand_`, `drawn_`, `tutored_` each with a stated reason. PASS.
+- **No feature from outcome; disjointness test**: `columns_read` = key + deck columns only; `test_identity_never_reads_the_outcome_column` asserts `OUTCOME_COL not in read`, `not in features`, and `set(features).isdisjoint({OUTCOME_COL})`. PASS.
+- **Byte-identical repeat builds (both tables)**: `test_two_builds_are_byte_identical` in both test files compares `read_bytes()` of successive builds; fixed sort order + fixed column order back this. PASS.
+- **MANIFEST.sha256 regenerated & verifiable**: written in `sha256sum` binary format (`<hash> *<name>`) with `#` comment lines; the three listed digests match the binary file hashes in Section 4 (`model_table.parquet 59576fâ€¦`, `deck_identity.parquet e09a92â€¦`). `test_sha256_manifest_covers_all_three_artifacts` re-hashes each and asserts equality. PASS.
+- **identity.py no card name / no per-card branch; grep test**: derivation uses `re.sub` slug over the header; `test_identity_source_contains_no_card_name` greps the module against `cards.jsonl` names asserting zero matches. PASS.
+- **Tests pass, ruff & mypy clean**: audit shows `27 passed`, `ruff â€¦ All checks passed!`, `mypy --strict â€¦ Success: no issues found in 2 source files`. PASS.
+
+SUMMARY:
+Every acceptance criterion is satisfied with concrete evidence in the supplied modules, tests, artifacts, and the passing audit entry. The build reads the ratified `game` unit from the audit rather than re-deriving it, produces a one-row-per-observation model table and a normalized 193-card identity matrix that join cleanly on `obs_id`, enforces non-negativity and an explicit `1e-9` row-sum tolerance (worst observed `2.22e-16`), keeps zero-count cards in a reversible manifest, guards against outcome leakage and card-name hardcoding with dedicated tests, and pins byte-reproducible outputs in a regenerated `MANIFEST.sha256` whose digests match the produced files. No missing evidence or contradictions were found.
