@@ -2073,3 +2073,29 @@ The consequence worth flagging: under Model_Building, "does residualizing skill 
 **Next step is fixed by the benchmark, not by choice.** §17 halts work before any model is fit: audit the raw game-level data, quantify how often deck configuration changes within a draft, build the game-level table, verify the skill variables, freeze the splits, produce an audit report, stop for review. No holdout is opened during that step.
 
 Refs: `docs/MTG_Deck-Strength_Modeling_Benchmark.md`; `docs/Model_Building.md` (superseded banner); `docs/modeling_pipeline.md`; commits `529baf3`, `a0d01ce`; [[phase4-frozen]]
+
+---
+
+## [2026-09-07 21:55] DECISION — Quarantine the entire 2026-09-07 Python modeling pipeline and its outputs
+
+**Decision (owner).** Every Python script written on 2026-09-07 is to be ignored. They were produced by Claude Haiku, which did not follow the specification reliably. Since the outputs are only as trustworthy as the code that made them, the artifacts those scripts produced are quarantined with them.
+
+**Scope, established by file mtime rather than by assumption.** Eight files, which turn out to be the *entire* Python modeling pipeline — every step from raw CSV to the reported M0/M1 numbers:
+
+`build_identity_matrix.py`, `src/data/build_model_table.py`, `scripts/build_model_table.py`, `scripts/00_outcome_and_split.py`, `scripts/01_fit_m0_m1.py`, `scripts/01_fit_m0_m1_old.py`, `scripts/02_comprehensive_metrics.py`, `scripts/03_model_comparison_and_plots.py`.
+
+Quarantined with them: `results/`, `figures/`, `data/processed/`.
+
+**Explicitly out of scope**, checked and confirmed by timestamp before moving anything: the knowledge-graph arm (`src/hobkg/network.py`, `tests/test_network.py`, `scripts/build_set_network_html.py`, `ports.py`, `test_ports.py` — all 2026-09-05 or earlier), `scripts/R/` (2025-12 to 2026-02), and `data/raw/game_data_public.HOB.PremierDraft.csv.gz` (17Lands source data, not produced here). Commit `add4e80` is therefore unaffected.
+
+**Mechanism: quarantine, not deletion.** Everything moved to `attic/haiku-2026-09-07/` under a README cataloguing origin paths and known defects. Deleting would have violated `INSTRUCTIONS.md` §6 and cost the rebuild its ability to diff against what went wrong. Gitignoring would not have worked cleanly — the files were already tracked and pushed in `529baf3`, so they remain in history at that commit under any of these options. What quarantine buys is that nothing runs them by accident and nothing cites their numbers.
+
+**Why this matters beyond hygiene: it explains a contradiction already on the record.** The `DECISION` entry earlier today noted that `results/model_comparison_report.txt` (M0 R² = −0.0001, M1 R² = 0.0471) and an earlier README revision (0.1594 / 0.1785) disagreed about the same M0-vs-M1 holdout comparison. That contradiction now has a likely cause. Related defects catalogued in the attic README: a `KEY FINDINGS` section asserting three improvements in a file whose companion analysis reports the effect as statistically insignificant; `draft_model_table.parquet` regenerated after the other artifacts, so `MANIFEST.sha256` never described one coherent run; and a reported date range of 1988–2025 against an actual `draft_time` span of 2026-08-11 to 2026-08-29.
+
+**OBSERVATION worth stating separately.** This is the failure mode the card-driven process is supposed to prevent, and it was not prevented — because the modeling work was never run as a card. There was no pre-registration, no frozen split committed before fitting, no sealed holdout, and no reviewer checking the numbers against a decision rule fixed in advance. The KG arm, which *was* run as cards, produced nothing needing quarantine on the same day. That is not proof, but it is the cleanest natural comparison the project has so far, and it argues for putting the rebuild under cards before writing any of it.
+
+**Carried forward** rather than discarded, since the discarded work did establish them: the `identity_matrix_*` rank-bucket correction; that `rank` is not a player identifier and no persistent player ID exists in this dataset; and the reliability-shrunk historical skill proxy, reusable as T1's fixed baseline.
+
+**Next step is unchanged and now unambiguous:** benchmark §17. Audit the raw game-level data, quantify within-draft deck changes, build the game-level table, verify the skill variables, freeze the splits, report, stop for review. Start from the spec and the raw CSV — not from the attic.
+
+Refs: `attic/haiku-2026-09-07/README.md`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md`; `docs/modeling_pipeline.md`; commit `529baf3` (where the quarantined files remain in history); [[tracer-bullet-portability]]

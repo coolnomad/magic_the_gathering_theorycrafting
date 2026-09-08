@@ -37,9 +37,14 @@ splits, one learner family and one metric panel:
   R3 game script, and their combinations.
 
 The governing spec is
-[`docs/MTG_Deck-Strength_Modeling_Benchmark.md`](./docs/MTG_Deck-Strength_Modeling_Benchmark.md);
-the current pipeline state is [`docs/modeling_pipeline.md`](./docs/modeling_pipeline.md).
+[`docs/MTG_Deck-Strength_Modeling_Benchmark.md`](./docs/MTG_Deck-Strength_Modeling_Benchmark.md).
 (`docs/Model_Building.md` is superseded and kept only as record.)
+
+> **This arm has no working implementation right now.** The previous pipeline was
+> quarantined to [`attic/haiku-2026-09-07/`](./attic/haiku-2026-09-07/) on
+> 2026-09-07 along with everything it produced; its results should not be cited.
+> See [`docs/modeling_pipeline.md`](./docs/modeling_pipeline.md) for what survives
+> and what happens next.
 
 The arms meet at **R2**: whether the mechanistic graph carries predictive signal
 that raw card identity does not is the load-bearing empirical test of this project.
@@ -80,10 +85,11 @@ data/raw/          source snapshots (Scryfall, comprehensive rules, 17Lands)
 data/normalized/   layer-1 card text
 data/graph_global/ the knowledge graph + port records
 data/vocabulary/   declared concepts, op map, selector grammar
-data/processed/    derived modeling artifacts (untracked; MANIFEST.sha256 pins them)
+data/processed/    derived modeling artifacts (absent — awaiting the rebuild)
 src/hobkg/         the graph pipeline
-src/data/          modeling data preparation
-scripts/           modeling pipeline (Python) + scripts/R (earlier causal analysis)
+scripts/           scripts/R (earlier causal analysis) + graph reporting
+attic/             quarantined work, kept as record — see each README
+
 tests/             pytest suite
 docs/              build specs, review documents, protocols
 reports/           generated reports and dashboards
