@@ -1,0 +1,18 @@
+
+CALIBRATION ANALYSIS
+====================
+
+M0 (Skill Only):
+  Expected Calibration Error (ECE): 0.0064
+  Maximum Calibration Error (MCE):  0.0818
+
+M1 (Skill + Identity):
+  Expected Calibration Error (ECE): 0.0072
+  Maximum Calibration Error (MCE):  0.0702
+
+Interpretation:
+  ECE: Average absolute difference between predicted and empirical probabilities
+  MCE: Maximum absolute difference in any calibration bin
+  Lower values indicate better calibration (closer to perfectly calibrated model)
+
+M1 shows WORSE calibration than M0 (ECE improvement: -0.0009)

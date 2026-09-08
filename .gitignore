@@ -31,6 +31,24 @@ audit/artifacts.db-journal
 audit/artifacts.db-wal
 audit/artifacts.db-shm
 
+# 17Lands public game-data snapshot: 16MB gzipped, 1165 columns, 241727 game rows.
+# Six times larger than any other tracked source and the only binary one. It is a
+# public download, so provenance (url + sha256 + bytes) is recorded in
+# data/raw/source_manifest.json instead and the file is fetched, not versioned.
+data/raw/game_data_public.*.csv.gz
+
+# Derived modeling artifacts: ~13MB of parquet/npy/csv, all regenerable from
+# data/raw + scripts/. Byte-level reproducibility is asserted through
+# data/processed/MANIFEST.sha256 (tracked), the same way data/graph_global is
+# pinned by frozen_manifest.json. The blobs themselves stay out of history.
+# (must exclude the CONTENTS, not the directory -- git cannot re-include a file
+# whose parent directory is itself excluded)
+data/processed/*
+!data/processed/MANIFEST.sha256
+
+# Trained model binaries — regenerable from the frozen split + scripts/
+results/*.xgb
+
 # Runtime signal files written by tools/review_commit_watch.ps1 and consumed by
 # tools/wait_review_ready.ps1 -- IPC scratch, not part of the record
 docs/review_events/

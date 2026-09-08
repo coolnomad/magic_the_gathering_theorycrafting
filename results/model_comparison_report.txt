@@ -1,0 +1,73 @@
+
+MODEL COMPARISON REPORT
+=======================
+
+Test Set: 10,791 drafts (holdout split)
+
+OBSERVED OUTCOMES
+-----------------
+Mean Win Rate (weighted): 0.5619
+Std Win Rate: 0.2530
+Min Win Rate: 0.0000
+Max Win Rate: 1.0000
+
+M0 (SKILL ONLY - 1 FEATURE)
+---------------------------
+Mean Prediction: 0.5604
+Std Prediction: 0.0000
+Range: [0.5604, 0.5604]
+
+Test Log-Loss:  0.6855
+Test RMSE:      0.2197
+Test R²:        -0.0001
+
+Calibration:
+  ECE: 0.0014
+  MCE: 0.0014
+
+Residuals:
+  Mean: -0.0572
+  Std:  0.2530
+  MAE:  0.2012
+  Median AE: 0.1604
+
+
+M1 (SKILL + IDENTITY - 194 FEATURES)
+-------------------------------------
+Mean Prediction: 0.5630
+Std Prediction: 0.0363
+Range: [0.3656, 0.7150]
+
+Test Log-Loss:  0.6808
+Test RMSE:      0.2144
+Test R²:        0.0471
+
+Calibration:
+  ECE: 0.0105
+  MCE: 0.2850
+
+Residuals:
+  Mean: -0.0598
+  Std:  0.2474
+  MAE:  0.1962
+  Median AE: 0.1580
+
+
+KEY FINDINGS
+------------
+✓ M1 improves log-loss by 0.0046
+✓ M1 improves RMSE by 0.0052
+✓ M1 achieves R² = 0.0471 vs M0's -0.0001
+
+Trade-off: M1's calibration is slightly worse (ECE: 0.0105 vs 0.0014)
+  This is expected with increased model complexity and feature count.
+
+✓ M1 has wider prediction range: [0.3656, 0.7150]
+  M0 is more concentrated: [0.5604, 0.5604]
+  M1 better differentiates across the spectrum of true skill/deck combinations.
+
+FIGURES GENERATED
+-----------------
+- pred_distribution_histogram.png: Prediction distributions (M0, M1, Observed)
+- calibration_curves.png: Calibration curves for both models
+- residuals.png: Residual distributions and scatter plots

@@ -1,0 +1,16 @@
+Metric,M0,M1
+Test Log-Loss,0.6855,0.6808
+Test RMSE,0.2197,0.2144
+Test R²,-0.0001,0.0471
+Calibration ECE,0.0014,0.0105
+Calibration MCE,0.0014,0.2850
+Mean Prediction,0.5604,0.5630
+Std Prediction,0.0000,0.0363
+Min Prediction,0.5604,0.3656
+Max Prediction,0.5604,0.7150
+Mean Residual,-0.0572,-0.0598
+Std Residual,0.2530,0.2474
+Mean Absolute Error,0.2012,0.1962
+Median Absolute Error,0.1604,0.1580
+N Features,1,194
+N Test Samples,"10,791","10,791"

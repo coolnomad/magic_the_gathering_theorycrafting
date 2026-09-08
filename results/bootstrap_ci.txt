@@ -1,0 +1,20 @@
+
+BOOTSTRAP CONFIDENCE INTERVALS (1000 resamples, 95% CI)
+========================================================
+
+M0 (Skill Only):
+  Log-Loss:     0.6693 [0.6675, 0.6710]
+  Weighted RMSE: 0.2014 [0.1988, 0.2039]
+  R²:           0.1594 [0.1473, 0.1725]
+
+M1 (Skill + Identity):
+  Log-Loss:     0.6674 [0.6656, 0.6691]
+  Weighted RMSE: 0.1991 [0.1964, 0.2015]
+  R²:           0.1785 [0.1664, 0.1909]
+
+Model Improvement (M0 - M1):
+  Log-Loss improvement:  +0.0019
+    CI: [-0.0016, +0.0055]
+
+  R² improvement:        +0.0191
+    CI: [-0.0062, +0.0436]

@@ -1,0 +1,18 @@
+
+R² ANALYSIS
+===========
+
+Observed R²:
+  M0 (Skill Only):         0.1596
+  M1 (Skill + Identity):   0.1785
+
+Note on R² Ceiling:
+  The 7-3 stopping rule creates an inherent ceiling on R² because:
+  1. Outcomes are heavily concentrated by tournament structure
+  2. True R² ceiling requires knowing latent true p_i distribution
+  3. Cannot be reliably inferred from observed outcomes alone
+
+  For future work: Model-implied ceiling can be computed via:
+  - Cross-fitted predicted p_i as proxy for latent skill
+  - Compute stopping-rule variance under those estimates
+  - Option deferred to Step 11+

@@ -1,0 +1,26 @@
+# Hash manifest for the derived modeling artifacts.
+#
+# The files themselves are gitignored (~13MB of parquet/npy, all regenerable
+# from data/raw + scripts/). This manifest is what git tracks, so a rebuild can
+# be checked byte-for-byte -- the same role frozen_manifest.json plays for
+# data/graph_global. Verify with:  sha256sum -c MANIFEST.sha256
+#
+# CAVEAT, recorded 2026-09-07: these hashes are NOT from a single pipeline run.
+# draft_model_table.parquet was rewritten at 15:43; every other file dates from
+# 14:57-14:58. Treat the set as provisional until one clean end-to-end run
+# regenerates it.
+#
+# SUPERSEDED: identity_matrix_dense.npy, identity_matrix_sparse.csv and
+# player_index.csv are the 43160x6 rank-bucket artifacts that docs/Model_Building.md
+# identifies as NOT the deck identity representation. Hashed here to preserve the
+# dead end (INSTRUCTIONS.md section 6), not because they are usable inputs.
+24b7d8a9afee18b313fd13bf2d25b1f3a2fa0f7408c8c60482140f90e33ac152 *card_identity_manifest.csv
+57eb791400bcb4dcd254b076a316f9276d1a78f5e838c69f7ecb22f6b3f5cb76 *deck_identity.parquet
+cf3489d9309f37f6a76eed55efb7952ee605d3834b9bfb500e4eaf5df8db17f5 *draft_metadata.csv
+66bdff946997658130428c4e3747ac31b5012259aeb303d6422e3b510bf73ccb *draft_model_table.parquet
+fd4b9dd7d189dd5d540f33fadd5b3c88ce598c1415e785a0a5792fd052e8a784 *identity_matrix_dense.npy
+74f96028744f1cebd2aa08e61e12cfd483535dba137f979cc1315555b0882bfd *identity_matrix_sparse.csv
+2c1dce5b2f96031450b60a79d16843e252e4baf17826b52fe1662f83d54917a7 *outcome_definition.txt
+06da4fb11a1b04a98a8f4ef9113d86a3e343281023034dba034df1b21130ee1b *player_index.csv
+f98c982d27565a28880791079372f35822730c8ea23f4c789f26610bbdcc622b *split_indices.csv
+f1acc7db2a69946ed4d9c2d083386cf4a272f049a86c075633777fc19ab76919 *split_info.txt
