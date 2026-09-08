@@ -67891,3 +67891,2996 @@ Phase ports-v1 iteration 2 repairs are accepted. No phase contract is configured
   }
 }
 ```
+
+### [2026-09-08 09:25] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: ACTIVE
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-07
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+# MTG Deck-Strength Modeling Benchmark
+
+## 1. Objective
+
+Build a controlled benchmark for estimating the contribution of **deck construction to win probability after accounting for player skill**.
+
+The experiment has two independent dimensions:
+
+1. **Target formulation** ΓÇö what quantity the model is asked to predict.
+2. **Deck representation** ΓÇö how information about the deck is presented to the model.
+
+The central experimental design is therefore:
+
+$$
+\boxed{\text{Target formulation} \times \text{Deck representation}}
+$$
+
+All model variants must use identical train/validation/test partitions and be evaluated using the same metrics.
+
+The purpose is to distinguish:
+
+* whether skill adjustment exposes deck-level signal;
+* whether raw card identity contains recoverable deck-strength information;
+* whether structured representations such as the mechanistic knowledge graph or game-script features recover additional signal;
+* whether structured representations add information beyond raw card identity.
+
+This is initially a **predictive representation benchmark**. Causal intervention estimation will be layered on after the predictive architecture is characterized.
+
+---
+
+# 2. Fundamental decomposition
+
+Conceptually, assume win probability contains at least:
+
+$$
+P(Y=1) = F(S,D)
+$$
+
+where:
+
+* \(S\) = player skill/context;
+* \(D\) = deck;
+* \(Y\) = game win/loss or corresponding observed win-rate outcome.
+
+A useful conceptual approximation is:
+
+$$
+p_i \approx p_{\text{skill},i}+\Delta_{\text{deck},i}.
+$$
+
+Player skill may generate substantially more between-observation variation than deck quality. For example, player baselines may span approximately 45ΓÇô65% WR while deck effects may operate on the order of approximately \(\pm5\) percentage points.
+
+Consequently, direct prediction of \(Y\) may be dominated by skill even when deck quality has a real and practically important effect.
+
+The benchmark will explicitly test whether residualizing skill improves recovery of deck-level signal.
+
+---
+
+# 3. Experimental axis A: target formulation
+
+## T0 ΓÇö Raw outcome
+
+Predict the observed outcome directly:
+
+$$
+Y_i.
+$$
+
+For game-level modeling:
+
+$$
+Y_{ig}\in\{0,1\}.
+$$
+
+The model estimates:
+
+$$
+\hat p_{ig}=f(S_i,D_{ig}).
+$$
+
+This is the conventional prediction problem.
+
+### Purpose
+
+Establish how much deck information improves prediction of actual outcomes beyond skill.
+
+---
+
+## T1 ΓÇö Original bump
+
+Reproduce the original deck-bump formulation as closely as possible.
+
+Define:
+
+$$
+B_i^{original}
+=
+Y_i-p_{\text{base},i},
+$$
+
+where \(p_{\text{base}}\) is the existing constructed historical skill proxy.
+
+The deck model predicts:
+
+$$
+\widehat B_i^{original}
+=
+f(D_i,S_i).
+$$
+
+Reconstructed win probability is:
+
+$$
+\hat p_i
+=
+p_{\text{base},i}
++
+\widehat B_i^{original}.
+$$
+
+### Purpose
+
+Reproduce the original approach and determine whether directly subtracting the historical skill proxy exposes deck signal better than raw-outcome prediction.
+
+---
+
+## T2 ΓÇö Learned-skill bump
+
+Replace the fixed skill baseline with a learned expected-win model.
+
+First estimate:
+
+$$
+m(S)=E[Y\mid S].
+$$
+
+For every training observation, obtain a **cross-fitted** prediction:
+
+$$
+\hat m_{-i}(S_i).
+$$
+
+Define:
+
+$$
+B_i^{learned}
+=
+Y_i-\hat m_{-i}(S_i).
+$$
+
+Then model:
+
+$$
+\widehat B_i^{learned}
+=
+f(D_i,S_i).
+$$
+
+Final prediction is:
+
+$$
+\hat p_i
+=
+\hat m(S_i)
++
+\widehat B_i^{learned}.
+$$
+
+### Critical requirement
+
+Residuals used to train the deck model must be generated out-of-fold.
+
+An observation must never be used to train the skill model that generates its own baseline prediction.
+
+The external test set must remain completely untouched during this procedure.
+
+### Purpose
+
+Test whether a learned estimate of expected performance given skill provides a cleaner baseline than directly using the historical WR proxy.
+
+---
+
+# 4. Experimental axis B: deck representation
+
+The same deck representations should be tested across the target formulations wherever technically appropriate.
+
+## R0 ΓÇö Skill only
+
+$$
+S
+$$
+
+No deck information.
+
+This is the baseline model.
+
+For residual targets, the exact role of \(S\) should be documented carefully because skill has already been used in construction of the target.
+
+---
+
+## R1 ΓÇö Card identity
+
+$$
+D_{\text{identity}}
+$$
+
+Deck represented by individual card composition.
+
+Preferred representation:
+
+$$
+D_{ij}
+=
+\frac{\text{count of card }j}
+{\text{deck size}}.
+$$
+
+If modeling individual games, this representation must correspond to the deck actually recorded for that game.
+
+Do not aggregate multiple different deck configurations into a synthetic average deck without explicitly testing and documenting that choice.
+
+---
+
+## R2 ΓÇö Knowledge-graph representation
+
+$$
+Z_{\text{KG}}=\phi_{\text{KG}}(D,G).
+$$
+
+Project the deck into the existing mechanistic MTG knowledge graph.
+
+Features should describe functional/mechanistic structure rather than merely relabel card identities.
+
+Exact KG feature engineering will be specified separately.
+
+---
+
+## R3 ΓÇö Game-script representation
+
+$$
+Z_{\text{script}}=\phi_{\text{script}}(D,G).
+$$
+
+Represent the probability distribution over meaningful early/mid-game capabilities generated by the deck.
+
+Candidate features include:
+
+* probability of meaningful T1ΓÇôT10 plays;
+* probability of T2/T3 curve-out;
+* probability of using available mana;
+* expected wasted mana;
+* probability of color screw;
+* probability of developing a creature by a given turn;
+* probability of having interaction available;
+* castable spell count by turn;
+* probability of no meaningful action;
+* probability of reaching important KG-defined synergies or motifs by a useful turn.
+
+The important conceptual distinction is:
+
+$$
+\boxed{\text{Mechanism exists} \neq \text{mechanism is reliably reachable}}
+$$
+
+---
+
+## R4 ΓÇö Identity + KG
+
+$$
+D_{\text{identity}}+Z_{\text{KG}}.
+$$
+
+Tests whether the KG contributes information beyond raw card identity.
+
+---
+
+## R5 ΓÇö Identity + KG + game script
+
+$$
+D_{\text{identity}}
++
+Z_{\text{KG}}
++
+Z_{\text{script}}.
+$$
+
+This is the richest planned representation.
+
+Additional ablations such as KG + script without identity may be added later.
+
+---
+
+# 5. Core experimental matrix
+
+The intended benchmark is:
+
+| Target                | Skill only | Identity | KG | Script | Identity + KG | Identity + KG + Script |
+| --------------------- | ---------: | -------: | -: | -----: | ------------: | ---------------------: |
+| T0 Raw outcome        |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T1 Original bump      |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T2 Learned-skill bump |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+
+Not every cell must necessarily use an identical feature list. For example, skill may appear both in target construction and as a predictor in bump models.
+
+Any deviation must be documented rather than silently changed.
+
+---
+
+# 6. Data unit
+
+The primary new analysis should preferentially operate at the **game level** if the raw dataset provides the deck used for each individual game.
+
+Each observation should then correspond to:
+
+$$
+(S_i,D_{ig},Y_{ig}).
+$$
+
+This avoids averaging together decks when players modify their deck between games.
+
+Before modeling, audit:
+
+* number of games;
+* number of drafts;
+* number of unique deck configurations per draft;
+* fraction of drafts with more than one deck configuration;
+* fraction of games occurring after a deck change;
+* deck-size distribution;
+* card-count consistency;
+* skill-variable consistency within draft.
+
+The original draft/run-level formulation may be retained as a secondary benchmark and direct replication of previous work.
+
+---
+
+# 7. Data splitting
+
+All models must use the **same frozen splits**.
+
+At minimum:
+
+* training;
+* internal validation/cross-fitting;
+* external test set.
+
+Games from the same draft must never cross partitions.
+
+Therefore:
+
+$$
+\boxed{\text{split by draft ID, not game row}}
+$$
+
+If a genuine player identifier exists, prefer player-level separation where appropriate so the same player cannot appear across train and test.
+
+Do not treat rank as player identity.
+
+A time-based external holdout should be considered if genuine player IDs are unavailable.
+
+Save the split assignments to disk and reuse them for every subsequent model.
+
+---
+
+# 8. Common learner
+
+Initially hold the learner family constant so representation changes are not confounded with algorithm changes.
+
+Recommended initial learner:
+
+**XGBoost**
+
+Use appropriate objectives:
+
+* binary/logistic objective for raw game outcomes;
+* regression objective for continuous bump/residual targets.
+
+Hyperparameter tuning procedures should be identical across comparable models.
+
+Do not introduce GNNs or specialized graph learners in the first benchmark.
+
+The immediate question is whether the representation contains useful information, not whether a specialized architecture can exploit it.
+
+---
+
+# 9. Evaluation framework
+
+Every final model should produce predictions on the same untouched external test observations.
+
+Report a common evaluation panel.
+
+## Core metrics
+
+### R┬▓
+
+For continuous bump/residual targets:
+
+$$
+R^2
+=
+1-\frac{\sum_i(y_i-\hat y_i)^2}
+{\sum_i(y_i-\bar y)^2}.
+$$
+
+For Bernoulli/raw-outcome models, do not silently report ordinary regression \(R^2\). Use a clearly defined probability-prediction analogue such as Brier Skill Score or explicitly labeled pseudo-\(R^2\).
+
+---
+
+### RMSE
+
+$$
+RMSE
+=
+\sqrt{
+\frac{1}{N}
+\sum_i(y_i-\hat y_i)^2
+}.
+$$
+
+---
+
+### MAE
+
+$$
+MAE
+=
+\frac{1}{N}
+\sum_i|y_i-\hat y_i|.
+$$
+
+Provides an error measure less sensitive to large misses than RMSE.
+
+---
+
+### Brier score
+
+For final win probabilities:
+
+$$
+BS
+=
+\frac{1}{N}
+\sum_i(\hat p_i-y_i)^2.
+$$
+
+This should be a primary metric for game-level probability predictions.
+
+---
+
+### Log loss
+
+$$
+-\frac{1}{N}
+\sum_i
+[
+y_i\log(\hat p_i)
++
+(1-y_i)\log(1-\hat p_i)
+].
+$$
+
+Useful because it penalizes confident incorrect predictions strongly.
+
+---
+
+### AUC
+
+Report as a secondary discrimination metric.
+
+AUC is not sufficient by itself because the primary scientific interest concerns accurate win probabilities, not merely ranking winners above losers.
+
+---
+
+# 10. Calibration evaluation
+
+Every model producing final win probabilities should undergo identical calibration analysis.
+
+## Calibration intercept
+
+Ideal:
+
+$$
+0.
+$$
+
+Tests systematic overprediction/underprediction.
+
+---
+
+## Calibration slope
+
+Ideal:
+
+$$
+1.
+$$
+
+A slope below 1 generally indicates predictions are too extreme.
+
+A slope above 1 generally indicates predictions are too conservative.
+
+---
+
+## Binned calibration
+
+Create identical probability bins for all models.
+
+For each bin compare:
+
+$$
+\text{mean predicted probability}
+$$
+
+against
+
+$$
+\text{observed win frequency}.
+$$
+
+Use the same binning strategy across models.
+
+Produce a calibration plot with the 45-degree identity line.
+
+---
+
+## Smooth calibration
+
+In addition to bins, fit a smooth calibration function so results do not depend entirely on arbitrary bin boundaries.
+
+The exact implementation can be selected after inspecting the prediction distribution.
+
+GAMLSS should not currently be treated as a required evaluation metric. If a distributional/smooth calibration method based on GAMLSS is considered later, add it as a separate diagnostic rather than conflating it with the core metrics.
+
+---
+
+# 11. Incremental-value analysis
+
+Absolute model performance is not sufficient.
+
+The primary scientific question is:
+
+> How much additional information does a deck representation contribute beyond skill?
+
+Therefore calculate paired differences such as:
+
+$$
+\Delta R^2
+=
+R^2(M_k)-R^2(M_0),
+$$
+
+$$
+\Delta RMSE
+=
+RMSE(M_k)-RMSE(M_0),
+$$
+
+$$
+\Delta BS
+=
+BS(M_k)-BS(M_0),
+$$
+
+and
+
+$$
+\Delta LL
+=
+LL(M_k)-LL(M_0).
+$$
+
+The same principle should be used to compare representations directly, e.g.:
+
+$$
+M_{\text{KG}}-M_{\text{identity}}
+$$
+
+and
+
+$$
+M_{\text{script}}-M_{\text{identity}}.
+$$
+
+---
+
+# 12. Uncertainty
+
+Use a **paired cluster bootstrap** for model comparisons.
+
+Cluster at the draft level so games from a draft are resampled together.
+
+For each bootstrap replicate:
+
+1. sample draft IDs;
+2. include all corresponding games;
+3. evaluate every model on exactly that bootstrap sample;
+4. calculate metric differences.
+
+Report confidence intervals for:
+
+$$
+\Delta R^2,\quad
+\Delta RMSE,\quad
+\Delta Brier,\quad
+\Delta LogLoss
+$$
+
+and other important pairwise comparisons.
+
+The paired design is important because all models predict the same observations.
+
+---
+
+# 13. Interpretation rules
+
+Do not equate lack of incremental predictive performance with absence of a causal deck effect.
+
+For example:
+
+$$
+R^2(S+D)\approx R^2(S)
+$$
+
+supports:
+
+> Card identity provides little detectable incremental predictive information beyond skill under this representation, learner and dataset.
+
+It does **not** establish:
+
+> Deck composition does not affect win probability.
+
+Possible explanations include:
+
+* deck effects are small relative to skill;
+* deck effects are interaction-dependent;
+* card identity is an inefficient representation;
+* outcome noise overwhelms small effects;
+* skill partially proxies expected deck quality because stronger players draft better decks.
+
+This distinction should be maintained throughout the analysis.
+
+---
+
+# 14. Primary hypotheses
+
+### H1 ΓÇö Skill dominance
+
+Skill alone explains substantially more predictable variation in raw outcomes than deck identity.
+
+---
+
+### H2 ΓÇö Residualization
+
+Deck signal is easier to recover when the dominant skill component is removed.
+
+Expected ordering, if this hypothesis is correct:
+
+$$
+\text{deck signal under T2}
+>
+\text{deck signal under T1}
+>
+\text{deck signal under T0}.
+$$
+
+This is a hypothesis, not an assumed result.
+
+---
+
+### H3 ΓÇö Structured representation
+
+Functional deck representations outperform raw identity:
+
+$$
+Z_{\text{KG}}
+\text{ and/or }
+Z_{\text{script}}
+>
+D_{\text{identity}}.
+$$
+
+---
+
+### H4 ΓÇö Reachability
+
+Game-script features add information beyond static mechanistic structure:
+
+$$
+D+Z_{\text{KG}}+Z_{\text{script}}
+>
+D+Z_{\text{KG}}.
+$$
+
+This would support the idea that knowing a mechanism exists is insufficient; its probability of being realized during actual games matters.
+
+---
+
+# 15. Required outputs
+
+For every completed model, save:
+
+* model identifier;
+* target formulation;
+* representation;
+* feature list/version;
+* split version;
+* hyperparameters;
+* test predictions;
+* reconstructed final win probability where applicable;
+* all evaluation metrics;
+* calibration data;
+* bootstrap comparisons;
+* model artifact;
+* random seed;
+* code/git commit.
+
+Create a master results table with one row per model.
+
+At minimum include:
+
+| Model | Target | Representation | R┬▓ | RMSE | MAE | Brier | Log Loss | AUC | Cal. Intercept | Cal. Slope |
+| ----- | ------ | -------------- | -: | ---: | --: | ----: | -------: | --: | -------------: | ---------: |
+
+Also create pairwise/incremental tables relative to the appropriate skill-only and identity baselines.
+
+---
+
+# 16. Implementation order
+
+Do not attempt the full matrix immediately.
+
+### Phase 1 ΓÇö Data audit
+
+Establish the correct observational unit, audit deck changes within drafts, validate skill fields, freeze splits.
+
+### Phase 2 ΓÇö Target benchmark
+
+Using skill and card identity only, implement:
+
+$$
+T0=\text{raw outcome}
+$$
+
+$$
+T1=\text{original bump}
+$$
+
+$$
+T2=\text{learned-skill bump}.
+$$
+
+This determines whether target construction materially affects recovery of deck signal.
+
+### Phase 3 ΓÇö Representation benchmark
+
+Once the target architecture is understood, add:
+
+$$
+D_{\text{identity}}
+\rightarrow
+Z_{\text{KG}}
+\rightarrow
+Z_{\text{script}}
+\rightarrow
+\text{combined representations}.
+$$
+
+### Phase 4 ΓÇö Causal estimation
+
+Only after the predictive benchmark is characterized should the project move to explicit deck/card interventions, g-computation, orthogonalization/DML, substitution effects, or draft-pick policy estimation.
+
+---
+
+# 17. Immediate task
+
+Do **not** start training the complete model matrix yet.
+
+First:
+
+1. audit the raw HOB game-level dataset;
+2. determine whether deck configurations change within drafts and quantify how often;
+3. construct the correct game-level modeling table;
+4. verify the skill variables and reproduce the existing skill proxy;
+5. define and save frozen train/validation/test splits;
+6. produce an audit report;
+7. stop for review before model fitting.
+
+The benchmark architecture above should then be implemented against that frozen dataset.
+
+
+[READ-ONLY INPUT] data/raw/source_manifest.json
+
+{
+    "project":  "hob-kg source snapshot",
+    "spec":  "docs/hob-knowledge-graph-build-spec.md (Source corpus / Required)",
+    "generated_at_utc":  "2026-08-13T22:37:37Z",
+    "sources":  [
+                    {
+                        "id":  "scryfall_hob",
+                        "kind":  "card_data",
+                        "url":  "https://api.scryfall.com/cards/search",
+                        "query":  "set:hob -is:extra",
+                        "params":  {
+                                       "unique":  "cards",
+                                       "order":  "set"
+                                   },
+                        "retrieved_at_utc":  "2026-08-13T21:30:18Z",
+                        "file":  "scryfall_hob.json",
+                        "sha256":  "AEC896020C3C4C9649994EEB04418210D72BD5FCF25E3FB28FD605E3A993DE0C",
+                        "bytes":  1633759,
+                        "note":  "193 unique HOB cards. Excludes extras, multilingual copies, variations. Not the print gallery count."
+                    },
+                    {
+                        "id":  "hob_release_notes",
+                        "kind":  "release_notes",
+                        "url":  "https://magic.wizards.com/en/news/feature/the-hobbit-release-notes",
+                        "retrieved_at_utc":  "2026-08-13T22:37:37Z",
+                        "file":  "hob_release_notes.html",
+                        "sha256":  "B3E701A64F0D19FC0FA2383D379DCD70C78F127CFEC29BB2C66D857BA97B716F",
+                        "bytes":  392313,
+                        "note":  "Official HOB release notes: planned rule changes (hone counters, battle rule 310.8) and card-specific rulings."
+                    },
+                    {
+                        "id":  "hob_mechanics",
+                        "kind":  "mechanics_article",
+                        "url":  "https://magic.wizards.com/en/news/feature/the-hobbit-mechanics",
+                        "retrieved_at_utc":  "2026-08-13T22:37:37Z",
+                        "file":  "hob_mechanics.html",
+                        "sha256":  "FBB5E80AA3F3A1BAB678A45135F8E8B6CD311E62F7E5B7AB75CFD71BE4C56F98",
+                        "bytes":  193218,
+                        "note":  "Official HOB mechanics article: Recruit, Storied, hone, and set mechanics."
+                    },
+                    {
+                        "id":  "comprehensive_rules",
+                        "kind":  "comprehensive_rules",
+                        "url":  "https://media.wizards.com/2026/downloads/MagicCompRules%2020260807.txt",
+                        "effective_date":  "2026-08-07",
+                        "retrieved_at_utc":  "2026-08-13T22:37:37Z",
+                        "file":  "comprehensive_rules.txt",
+                        "sha256":  "2ED5F1BBB4F8771C84A6F2944A218428C6C5CCBA21110A5D101B9A51A4C062B3",
+                        "bytes":  976669,
+                        "note":  "Magic Comprehensive Rules, effective 2026-08-07 (HOB-era update). Includes rule 122.1j hone counters and rule 310.8."
+                    },
+                    {
+                        "id":  "scryfall_hob_tokens",
+                        "kind":  "token_card_data",
+                        "url":  "https://api.scryfall.com/cards/{id}",
+                        "retrieved_at_utc":  "2026-08-14T00:54:49Z",
+                        "file":  "scryfall_hob_tokens.json",
+                        "sha256":  "442B1D9AEDD82943F67F56AACDE522BFB9DB5C5D026F485E64800E08D417BFBC",
+                        "bytes":  526448,
+                        "note":  "Full Scryfall objects for the 12 HOB token components referenced by all_parts. Adds color/PT/keywords/oracle_text/produced_mana beyond the all_parts name+type_line."
+                    },
+                    {
+                        "id":  "17lands_hob_premier_draft",
+                        "kind":  "game_results",
+                        "url":  "https://www.17lands.com/public_datasets",
+                        "file":  "game_data_public.HOB.PremierDraft.csv.gz",
+                        "sha256":  "7AA51CF6F2E7639C20976F49871BBFDDDDCAEF607C33C9D279B7EBB03BC9D032",
+                        "bytes":  16506117,
+                        "tracked":  false,
+                        "retrieved_at_utc":  null,
+                        "file_mtime_local":  "2026-09-05T10:05:59-04:00",
+                        "rows":  241727,
+                        "drafts":  43161,
+                        "columns":  1165,
+                        "draft_time_range":  ["2026-08-11 15:43:42", "2026-08-29 23:39:41"],
+                        "note":  "17Lands public game-level dataset for HOB Premier Draft, one row per game. Deck composition is carried by the deck_<card> columns (also opening_hand_/drawn_/tutored_/sideboard_ families); 18 non-card columns include draft_id, draft_time, rank, opp_rank, on_play, num_turns, won. NOT tracked in git -- 6x larger than any other source here and the only binary one; re-download from the URL above and verify the sha256. Retrieval timestamp was not logged at download time; file_mtime_local is the best available proxy. Consumed by the modeling arm (docs/Model_Building.md), not by the knowledge graph."
+                    }
+                ]
+}
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+(none)
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] docs/modeling_pipeline.md
+
+# Modeling arm ΓÇö current state
+
+**There is no working modeling pipeline in this repository right now.** The arm is
+between a discarded implementation and a rebuild that has not started.
+
+## Status, 2026-09-07
+
+Every Python script that produced the previous M0/M1 results was quarantined to
+[`attic/haiku-2026-09-07/`](../attic/haiku-2026-09-07/), together with everything
+it emitted (`results/`, `figures/`, `data/processed/`). That code did not follow
+its specification reliably, so its outputs are untrusted; the reasoning and the
+catalogue of known defects are in
+[the attic README](../attic/haiku-2026-09-07/README.md), and the decision is
+recorded in `LABNOTEBOOK.md`.
+
+Do not cite the numbers that were previously reported here. They contradicted each
+other across runs, and where an interval was computed it crossed zero.
+
+Unaffected by the quarantine: `scripts/R/` (the earlier causal analysis, written
+2025-12 to 2026-02) and the entire knowledge-graph arm.
+
+## What survives
+
+**The raw data.** `data/raw/game_data_public.HOB.PremierDraft.csv.gz` ΓÇö the 17Lands
+public game-level dataset, one row per game: 241,727 rows across 43,161 drafts,
+1,165 columns, `draft_time` spanning 2026-08-11 to 2026-08-29. Deck composition is
+carried by the `deck_*` columns; the 18 non-card columns include `draft_id`,
+`draft_time`, `rank`, `opp_rank`, `on_play`, `num_turns`, `won`.
+
+The file is not tracked in git (16 MB, binary, publicly re-downloadable). Its URL,
+SHA256 and shape are in [`data/raw/source_manifest.json`](../data/raw/source_manifest.json).
+Fetch it and verify the hash.
+
+**Three findings**, established by the discarded work and worth carrying forward:
+
+1. `identity_matrix_*` was a 43,160 ├ù 6 rank-bucket indicator matrix, not a deck
+   representation. The deck representation is
+   `D_ij = count(card j in deck i) / deck_size_i`.
+2. `rank` is a six-level skill bucket. This dataset has **no** persistent player
+   identifier, which is why splitting must be by draft ID and leakage control is
+   weaker than a player-grouped design would give.
+3. The reliability-adjusted historical skill proxy ΓÇö `hist_w` map, ╬╗ = 5,
+   shrinkage in logit space toward ╬╝ ΓÇö is reusable as the fixed baseline `p_base`.
+   It is a nuisance representation and is not a measurement of skill.
+
+## What governs the rebuild
+
+[`MTG_Deck-Strength_Modeling_Benchmark.md`](./MTG_Deck-Strength_Modeling_Benchmark.md).
+It supersedes `Model_Building.md` in full.
+
+The design is two axes against frozen splits, one learner family, one metric panel:
+
+- **Target formulation** ΓÇö T0 raw outcome, T1 bump against the historical skill
+  proxy, T2 bump against a cross-fitted learned skill model.
+- **Deck representation** ΓÇö R0 skill only, R1 card identity, R2 knowledge graph,
+  R3 game script, R4/R5 combinations.
+
+Its ┬º17 fixes the first step and halts before any model is fit: audit the raw
+game-level data, quantify how often deck configuration changes within a draft,
+build the game-level table, verify the skill variables, freeze the splits, produce
+an audit report, stop for review.
+
+That step is a clean task card ΓÇö every criterion is checkable, and no holdout is
+opened. It is the next thing to do.
+
+## Interpretive caution, carried forward
+
+The 7-wins / 3-losses stopping rule concentrates the outcome distribution and puts
+an irreducible binomial-sampling floor under the residual variance. A low R┬▓ here
+is not comparable to R┬▓ from an unbounded-length outcome, and the ceiling is
+unknown without the latent `p_i` distribution. Do not describe any observed R┬▓ as
+approaching a theoretical maximum.
+
+And per ┬º13 of the benchmark: a null incremental R┬▓ does **not** establish that
+deck composition has no causal effect on win probability. It supports only the
+narrower claim that a given representation, learner and dataset failed to detect
+one.
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] attic/haiku-2026-09-07/README.md
+
+# Quarantined: modeling pipeline written 2026-09-07
+
+**Nothing in this directory governs, runs, or may be cited.** It is kept because
+`INSTRUCTIONS.md` ┬º6 preserves dead ends rather than erasing them ΓÇö not because
+any of it is usable.
+
+## What this is
+
+The entire Python modeling pipeline as it stood on 2026-09-07, plus everything it
+produced. It was generated by Claude Haiku, which the project owner found did not
+follow the specification reliably. The code is untrusted; therefore so is every
+number downstream of it.
+
+The decision to quarantine is recorded in the `DECISION` entry of 2026-09-07 in
+`LABNOTEBOOK.md`. The files were tracked and pushed before that decision, in
+commit `529baf3`, so they remain in git history at that commit regardless of
+this move.
+
+## What is here, and where it came from
+
+| Now at | Was at |
+|---|---|
+| `build_identity_matrix.py` | repository root |
+| `scripts/build_model_table.py` | `scripts/` |
+| `scripts/00_outcome_and_split.py` | `scripts/` |
+| `scripts/01_fit_m0_m1.py` | `scripts/` |
+| `scripts/01_fit_m0_m1_old.py` | `scripts/` |
+| `scripts/02_comprehensive_metrics.py` | `scripts/` |
+| `scripts/03_model_comparison_and_plots.py` | `scripts/` |
+| `src_data/build_model_table.py` | `src/data/` |
+| `results/` | `results/` |
+| `figures/` | `figures/` |
+| `data_processed/` | `data/processed/` |
+
+The two `build_model_table.py` files are kept in separate subdirectories because
+they share a basename and had **diverged** ΓÇö the `scripts/` one was newer and added
+NaN defaults for missing skill buckets; the `src/data/` one sat at the path the
+(now also superseded) `docs/Model_Building.md` specified. Neither was ever
+reconciled. That duplication is itself a symptom.
+
+`data_processed/MANIFEST.sha256` is tracked so the discarded state stays
+identifiable; the parquet/npy blobs it names, and the `.xgb` model binaries, are
+gitignored and exist only on disk.
+
+## What was NOT quarantined, and why
+
+- **`data/raw/game_data_public.HOB.PremierDraft.csv.gz`** ΓÇö source data from
+  17Lands, not produced here. Provenance in `data/raw/source_manifest.json`.
+- **`scripts/R/`** ΓÇö written 2025-12 to 2026-02, a different author and the
+  earlier causal analysis.
+- **The whole knowledge-graph arm** ΓÇö `src/hobkg/`, `tests/`, and
+  `scripts/build_set_network_html.py` date from 2026-09-05 and earlier and are
+  unaffected.
+
+## Known defects, recorded so the rebuild does not repeat them
+
+1. **`identity_matrix_*` is not a deck representation.** `build_identity_matrix.py`
+   builds a 43,160 ├ù 6 **rank-bucket** indicator matrix and its "player index" is
+   keyed on `rank`. Rank is a six-level skill bucket, not a player identifier;
+   this dataset carries no persistent player ID. The true representation is
+   `D_ij = count(card j in deck i) / deck_size_i`, from the `deck_*` columns.
+
+2. **The reported results contradict each other.** `results/model_comparison_report.txt`
+   gives M0 R┬▓ = ΓêÆ0.0001 and M1 R┬▓ = 0.0471. An earlier README revision, describing
+   the same M0-vs-M1 holdout comparison, gave 0.1594 and 0.1785. Both cannot be
+   right. Where a confidence interval was computed at all, it crossed zero ΓÇö so
+   the headline "M1 improves on M0" was never supported by its own numbers.
+
+3. **A `KEY FINDINGS` section asserting three checkmarked improvements**, in the
+   same file whose companion analysis reports the effect as statistically
+   insignificant.
+
+4. **`draft_model_table.parquet` was regenerated after the rest**, so the hashes in
+   `data_processed/MANIFEST.sha256` do not describe a single coherent pipeline run.
+
+5. **Date range reported as 1988ΓÇô2025.** The actual `draft_time` span is
+   2026-08-11 to 2026-08-29 ΓÇö three weeks. The old figure looks like numeric game
+   fields parsed as years.
+
+## The replacement
+
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs the rebuild. Its ┬º17 fixes
+the first step and stops before any model is fit: audit the raw game-level data,
+quantify how often deck configuration changes within a draft, build the game-level
+table, verify the skill variables, freeze the splits, report, and hold for review.
+
+Start from that spec and the raw CSV. Do not start from this directory.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 003
+status: TODO
+reviewer: opus
+milestone: benchmark-p1
+---
+# Task 003: Audit the raw HOB game-level dataset and fix the observational unit
+
+## Objective
+
+Section 17 of the benchmark halts all modeling until the raw data has been
+audited. This card is that audit, and it is the first card of the rebuilt
+modeling arm.
+
+The question it exists to answer is **what one observation is**. Section 6 says
+to work at the game level *if* the dataset records the deck used for each
+individual game -- otherwise averaging a draft's games together silently blends
+decks the player changed between rounds. Nobody has measured whether that
+happens in this dataset or how often. Every downstream card's row count, join
+key and split depend on the answer, so it is settled here and nowhere else.
+
+Produce a report and a machine-readable summary. Build no modeling table, no
+features, no split, and fit nothing.
+
+## Acceptance Criteria
+
+- [ ] `reports/modeling_data_audit.md` names, verbatim, the exact column that carries each of: draft identifier, per-game outcome, deck contents, timestamp, rank, and the user historical win-rate and games-played buckets
+- [ ] The report states explicitly whether a persistent player identifier exists in the dataset, and if none exists says so in those words rather than nominating a substitute
+- [ ] The report records total games, total drafts, and total columns, each computed from the file rather than transcribed
+- [ ] The report quantifies within-draft deck variation: distinct deck configurations per draft, the fraction of drafts with more than one, and the fraction of games played after a deck change
+- [ ] The report gives the deck-size distribution and flags every observation whose deck-size falls outside the legal Limited range
+- [ ] The report gives the card-count consistency check: whether the `deck_*` columns sum to the deck size on every row, and the count of rows where they do not
+- [ ] The report checks whether the skill-variable columns are constant within a draft and reports the count of drafts where they are not
+- [ ] The report makes a recommendation on the observational unit, game level or draft level, with the measured numbers that justify it
+- [ ] `reports/modeling_data_audit.json` carries every number in the report as machine-readable fields, so card 004 consumes measurements rather than re-deriving them
+- [ ] Two consecutive runs produce byte-identical `reports/modeling_data_audit.json`
+- [ ] `src/deckbench/audit.py` contains no hardcoded column name list, row count, or draft count; a test greps the module source and asserts the observed totals do not appear as literals
+- [ ] The audit reads the raw CSV in chunks and completes without loading all 1165 columns into memory at once
+- [ ] All new tests pass and the module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+- data/raw/source_manifest.json
+
+## See Also
+
+- docs/modeling_pipeline.md
+- attic/haiku-2026-09-07/README.md
+
+## Outputs
+
+- src/deckbench/__init__.py
+- src/deckbench/audit.py
+- tests/test_deckbench_audit.py
+- reports/modeling_data_audit.md
+- reports/modeling_data_audit.json
+
+## Requirements
+
+- Read `data/raw/game_data_public.HOB.PremierDraft.csv.gz` from disk; it is deliberately absent from Inputs because Compact inlines every declared Input and a 16 MB gzip with 1165 columns does not fit in a prompt
+- If the raw file is missing, fail with a message naming the file and pointing at `data/raw/source_manifest.json`, which carries its URL and SHA256
+- `rank` is a six-level skill bucket, not a player identifier; do not nominate it, `opp_rank`, or any join of them as a substitute for a player id
+- Discover the column families from the header rather than assuming them; report the count in each of the `deck_`, `sideboard_`, `opening_hand_`, `drawn_` and `tutored_` families separately
+- Card names in this dataset contain commas and the header is quoted accordingly; parse with a real CSV reader, never by splitting on commas
+- Determine whether `build_index` distinguishes deck configurations within a draft, and report what it actually varies with rather than assuming its meaning
+- Do not write anything under `data/processed/`; this card produces reports only
+- Do not compute a skill proxy, a card identity matrix, a split, or any model; those are cards 004, 005 and 006
+- Do not read the `won` column into anything except the outcome-column census; no feature work happens here
+- Emit JSON with sorted keys and fixed float precision so the determinism criterion is testable
+
+## Checks
+
+- python -m pytest tests/test_deckbench_audit.py -q
+
+## Skip Default Checks
+
+- python -m pytest -q
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_audit.py -q
+- python -m deckbench.audit
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/audit.py tests/test_deckbench_audit.py
+- mypy --strict src/deckbench/audit.py
+
+## Notes
+
+**Why the default check is skipped.** The project default check
+`python -m pytest -q` runs the full 518-test knowledge-graph suite, which is
+unrelated to this card and currently non-deterministic: it rewrites
+`data/review/llm_accepted.jsonl` and `data/review/llm_queued.jsonl` with
+different byte content on consecutive runs, leaving the tree dirty through no
+fault of the card that triggered it. Until that is fixed, a modeling card that
+inherits the default check can fail for reasons it did not cause. This is
+registered in `registry.md` under Success Criteria.
+
+**What is known about the file, and what is not.** Measured on 2026-09-07:
+241,727 rows, 43,161 drafts, 1165 columns, `draft_time` spanning 2026-08-11 to
+2026-08-29. The 18 non-card columns observed in the header are `expansion`,
+`event_type`, `draft_id`, `draft_time`, `game_time`, `build_index`,
+`match_number`, `game_number`, `rank`, `opp_rank`, `main_colors`,
+`splash_colors`, `on_play`, `num_mulligans`, `opp_num_mulligans`, `opp_colors`,
+`num_turns`, `won`. These figures are context, not a specification -- the card
+must recompute them, and a mismatch is a finding worth reporting rather than a
+number to reconcile silently.
+
+**Deliberately unverified.** The quarantined pipeline referenced
+`user_game_win_rate_bucket` and `user_n_games_bucket`, and the benchmark's
+section 3 assumes buckets of that shape exist. Their presence in this file has
+**not** been confirmed. Establishing whether they exist, and under exactly what
+names, is part of this card. If they are absent the card says so plainly; card
+005 then has a real problem to solve rather than an assumption to inherit.
+
+**Why the anti-hardcoding test.** Card 001 was rejected once for producing
+structurally perfect records that had been typed rather than computed, and the
+repair was a test that greps the module's own source. The same failure is
+available here: an audit that prints 43,161 because someone read it off a
+previous run is worthless. The procedure is the deliverable.
+
+**The unit decision is a recommendation, not a fiat.** The card reports the
+measurement and argues for a unit; the operator ratifies it at card 007. If
+within-draft deck changes turn out to be rare, game level and draft level nearly
+coincide and the choice is cheap. If they are common, section 6's preference for
+game level is load-bearing and the downstream cards look different.
+
+### [2026-09-08 09:38] ASSISTANT
+I'll start by exploring the repo structure to understand conventions before implementing.
+
+Good, the raw file exists. Let me look at project conventions.
+
+The buckets exist and the column count (985) differs from the noted 1165 â€” a real finding. Let me inspect key columns' behavior on a sample.
+
+Basic lands are in `deck_`. Now let me verify how `deckbench` will be importable via `python -m` (hobkg is editable-installed):
+
+Now I understand the environment. Key findings: buckets exist, column count is 985 (not the noted 1165 â€” a real discrepancy to report), no persistent player ID. I'll write a **stdlib-only** module (guarantees it runs under any interpreter; avoids pandas float-formatting nondeterminism) that streams the CSV in chunks. Let me write the module.
+
+Now the main audit module:
+
+Let me fix a fragile type annotation (`csv._reader` isn't a clean public type) â€” accept a row iterator instead:
+
+Now let me run the audit. First a correctness/timing run (stdlib-only, so any interpreter works):
+
+241727 games, 43161 drafts, 985 columns (not 1165 â€” the discrepancy). 14s runtime. Let me inspect the JSON output:
+
+Substantial within-draft variation (19% of drafts, 11.7% of games) â€” the game-level unit is load-bearing. `build_index` determines deck config everywhere but is slightly finer (50 drafts). Now let me verify determinism (byte-identical across two runs):
+
+Deterministic. Now the test file. It must grep the module source and assert the observed totals aren't literals:
+
+Let me refine two tests â€” make the anti-hardcoding check target only the primary totals (avoid a fragile `"20"` substring match), and make the on-disk check skip rather than fail if the report hasn't been generated:
+
+Now run the checks: pytest, then ruff and mypy.
+
+All 10 pass. Now ruff and mypy:
+
+Let me fix these long lines and the unused variable:
+
+Both clean. Now verify `python -m deckbench.audit` works as the validation harness invokes it (module resolution):
+
+Works under the project interpreter (Python314, which carries the `hobkg` editable `.pth` exposing `src/` â€” the same mechanism `python -m hobkg.cli` relies on). The control_plane venv is just first on my interactive PATH and isn't the project interpreter. Let me review the generated markdown report:
+
+All criteria are covered. Let me re-run the test suite after the edits to confirm still green:
+
+Everything is green and all declared outputs exist. (`CONVERSATION_LOG.md` shows modified from a session hook, not my edits; the `audit/â€¦003.md` file is the orchestrator's own card record â€” both are outside my declared outputs, so I left them.)
+
+## Summary
+
+I implemented Task 003 â€” the section-17 audit of the raw HOB game-level dataset â€” settling **what one observation is**.
+
+**Created files:**
+- `src/deckbench/__init__.py` â€” new package for the rebuilt modeling arm.
+- `src/deckbench/audit.py` â€” stdlib-only (no pandas/numpy) streaming audit. Reads the 16 MB gzip in row-batched chunks, never materializing the full 985-column matrix; discovers column families from the header via prefixes; computes every total; emits sorted-key, fixed-precision JSON for byte-identical reproducibility.
+- `tests/test_deckbench_audit.py` â€” 10 tests: missing-file error with a manifest pointer, column classification, digest stability, coherence, determinism (two runs byte-identical), and the anti-hardcoding grep (asserts the observed totals never appear as literals in the source).
+- `reports/modeling_data_audit.md` and `reports/modeling_data_audit.json` â€” the audit report and its machine-readable twin.
+
+**Checks:** `pytest` 10/10 pass; `ruff --select E,F,I,B,UP` clean; `mypy --strict` clean; `python -m deckbench.audit` runs under the project interpreter.
+
+**What the audit found:**
+- **Totals:** 241,727 games Â· 43,161 drafts Â· **985 columns** â€” not the 1,165 the manifest/card-notes declared. That discrepancy is flagged as a finding (`declared_vs_observed_match.columns = false`), not silently reconciled.
+- **Key columns named verbatim:** `draft_id`, `won`, the `deck_` family, `draft_time`/`game_time`, `rank`, `user_game_win_rate_bucket`, `user_n_games_bucket` â€” the two skill buckets the benchmark assumes **do exist**.
+- **No persistent player identifier** exists; `rank`/`opp_rank` are skill buckets and are explicitly *not* nominated as substitutes.
+- **Within-draft deck variation is substantial and load-bearing:** 19.0% of drafts carry more than one deck configuration; 11.7% of games are played after a deck change.
+- **`build_index`** determines the deck config in every draft, but is slightly finer (50 drafts change `build_index` without changing the deck; the deck never changes without `build_index` moving).
+- **Deck sizes** 40â€“60, modal 40, zero rows below the legal minimum; 15,680 rows sit off the modal size (all legal).
+- **Skill constancy:** the buckets are constant within every draft; `rank` is non-constant in 5,420 drafts.
+- **Recommendation:** the **game** is the observational unit (deck recorded per game, and it changes within ~19% of drafts), per benchmark Â§6 â€” offered as a recommendation for operator ratification at card 007.
+
+No modeling table, feature, split, or model was produced, and nothing was written under `data/processed/`.
+
+### [2026-09-08 09:40] USER
+## Section 1: Reviewer Instructions
+
+You are the compact task reviewer.
+
+Return a verdict block in this exact shape:
+
+VERDICT: PASS|FAIL
+CRITERIA:
+- one bullet per acceptance criterion with evidence
+SUMMARY:
+one short summary paragraph
+
+Rules:
+- Base the judgment only on the supplied task card, latest passing audit entry, and supplied file contents.
+- Every judgment-class criterion must cite concrete evidence: a quoted line, a structural property, or a verified absence.
+- If evidence is insufficient, fail the task and explain the missing evidence.
+- Do not omit the `VERDICT:` line.
+
+## Section 2: Task Card
+
+---
+id: 003
+status: REVIEW
+reviewer: opus
+milestone: benchmark-p1
+---
+# Task 003: Audit the raw HOB game-level dataset and fix the observational unit
+
+## Objective
+
+Section 17 of the benchmark halts all modeling until the raw data has been
+audited. This card is that audit, and it is the first card of the rebuilt
+modeling arm.
+
+The question it exists to answer is **what one observation is**. Section 6 says
+to work at the game level *if* the dataset records the deck used for each
+individual game -- otherwise averaging a draft's games together silently blends
+decks the player changed between rounds. Nobody has measured whether that
+happens in this dataset or how often. Every downstream card's row count, join
+key and split depend on the answer, so it is settled here and nowhere else.
+
+Produce a report and a machine-readable summary. Build no modeling table, no
+features, no split, and fit nothing.
+
+## Acceptance Criteria
+
+- [ ] `reports/modeling_data_audit.md` names, verbatim, the exact column that carries each of: draft identifier, per-game outcome, deck contents, timestamp, rank, and the user historical win-rate and games-played buckets
+- [ ] The report states explicitly whether a persistent player identifier exists in the dataset, and if none exists says so in those words rather than nominating a substitute
+- [ ] The report records total games, total drafts, and total columns, each computed from the file rather than transcribed
+- [ ] The report quantifies within-draft deck variation: distinct deck configurations per draft, the fraction of drafts with more than one, and the fraction of games played after a deck change
+- [ ] The report gives the deck-size distribution and flags every observation whose deck-size falls outside the legal Limited range
+- [ ] The report gives the card-count consistency check: whether the `deck_*` columns sum to the deck size on every row, and the count of rows where they do not
+- [ ] The report checks whether the skill-variable columns are constant within a draft and reports the count of drafts where they are not
+- [ ] The report makes a recommendation on the observational unit, game level or draft level, with the measured numbers that justify it
+- [ ] `reports/modeling_data_audit.json` carries every number in the report as machine-readable fields, so card 004 consumes measurements rather than re-deriving them
+- [ ] Two consecutive runs produce byte-identical `reports/modeling_data_audit.json`
+- [ ] `src/deckbench/audit.py` contains no hardcoded column name list, row count, or draft count; a test greps the module source and asserts the observed totals do not appear as literals
+- [ ] The audit reads the raw CSV in chunks and completes without loading all 1165 columns into memory at once
+- [ ] All new tests pass and the module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+- data/raw/source_manifest.json
+
+## See Also
+
+- docs/modeling_pipeline.md
+- attic/haiku-2026-09-07/README.md
+
+## Outputs
+
+- src/deckbench/__init__.py
+- src/deckbench/audit.py
+- tests/test_deckbench_audit.py
+- reports/modeling_data_audit.md
+- reports/modeling_data_audit.json
+
+## Requirements
+
+- Read `data/raw/game_data_public.HOB.PremierDraft.csv.gz` from disk; it is deliberately absent from Inputs because Compact inlines every declared Input and a 16 MB gzip with 1165 columns does not fit in a prompt
+- If the raw file is missing, fail with a message naming the file and pointing at `data/raw/source_manifest.json`, which carries its URL and SHA256
+- `rank` is a six-level skill bucket, not a player identifier; do not nominate it, `opp_rank`, or any join of them as a substitute for a player id
+- Discover the column families from the header rather than assuming them; report the count in each of the `deck_`, `sideboard_`, `opening_hand_`, `drawn_` and `tutored_` families separately
+- Card names in this dataset contain commas and the header is quoted accordingly; parse with a real CSV reader, never by splitting on commas
+- Determine whether `build_index` distinguishes deck configurations within a draft, and report what it actually varies with rather than assuming its meaning
+- Do not write anything under `data/processed/`; this card produces reports only
+- Do not compute a skill proxy, a card identity matrix, a split, or any model; those are cards 004, 005 and 006
+- Do not read the `won` column into anything except the outcome-column census; no feature work happens here
+- Emit JSON with sorted keys and fixed float precision so the determinism criterion is testable
+
+## Checks
+
+- python -m pytest tests/test_deckbench_audit.py -q
+
+## Skip Default Checks
+
+- python -m pytest -q
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_audit.py -q
+- python -m deckbench.audit
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/audit.py tests/test_deckbench_audit.py
+- mypy --strict src/deckbench/audit.py
+
+## Notes
+
+**Why the default check is skipped.** The project default check
+`python -m pytest -q` runs the full 518-test knowledge-graph suite, which is
+unrelated to this card and currently non-deterministic: it rewrites
+`data/review/llm_accepted.jsonl` and `data/review/llm_queued.jsonl` with
+different byte content on consecutive runs, leaving the tree dirty through no
+fault of the card that triggered it. Until that is fixed, a modeling card that
+inherits the default check can fail for reasons it did not cause. This is
+registered in `registry.md` under Success Criteria.
+
+**What is known about the file, and what is not.** Measured on 2026-09-07:
+241,727 rows, 43,161 drafts, 1165 columns, `draft_time` spanning 2026-08-11 to
+2026-08-29. The 18 non-card columns observed in the header are `expansion`,
+`event_type`, `draft_id`, `draft_time`, `game_time`, `build_index`,
+`match_number`, `game_number`, `rank`, `opp_rank`, `main_colors`,
+`splash_colors`, `on_play`, `num_mulligans`, `opp_num_mulligans`, `opp_colors`,
+`num_turns`, `won`. These figures are context, not a specification -- the card
+must recompute them, and a mismatch is a finding worth reporting rather than a
+number to reconcile silently.
+
+**Deliberately unverified.** The quarantined pipeline referenced
+`user_game_win_rate_bucket` and `user_n_games_bucket`, and the benchmark's
+section 3 assumes buckets of that shape exist. Their presence in this file has
+**not** been confirmed. Establishing whether they exist, and under exactly what
+names, is part of this card. If they are absent the card says so plainly; card
+005 then has a real problem to solve rather than an assumption to inherit.
+
+**Why the anti-hardcoding test.** Card 001 was rejected once for producing
+structurally perfect records that had been typed rather than computed, and the
+repair was a test that greps the module's own source. The same failure is
+available here: an audit that prints 43,161 because someone read it off a
+previous run is worthless. The procedure is the deliverable.
+
+**The unit decision is a recommendation, not a fiat.** The card reports the
+measurement and argues for a unit; the operator ratifies it at card 007. If
+within-draft deck changes turn out to be rare, game level and draft level nearly
+coincide and the choice is cheap. If they are common, section 6's preference for
+game level is load-bearing and the downstream cards look different.
+
+## Section 3: Latest Passing Audit Entry
+
+---
+entry_id: 20260908_094035_hobkg_003
+timestamp: 2026-09-08T09:40:35.139314-04:00
+project: hobkg
+task_id: 003
+task_title: Audit the raw HOB game-level dataset and fix the observational unit
+mode: managed
+model: claude
+reviewer_model: opus
+status_before: TODO
+status_after: REVIEW
+git_sha_project: f331b5599aadf454e44e8160733285e1ba57fa7e
+git_sha_orchestrator: dfc6bf76e95917801b5bc993c966f9ada7244d39
+python_version: 3.14.0
+lockfile_hash: 1132929d0ced89d89902f37fd31ccd263a5ac477b459550cdc33f6bf16758a12
+duration_seconds: 785.8972627000185
+output_file: audit/executor_output/003.output.txt
+---
+# Audit Entry: 20260908_094035_hobkg_003
+
+## Notes
+
+Execution, checks, and output validation completed successfully.
+
+## Check Results
+
+- [OK]   python -m pytest tests/test_deckbench_audit.py -q (44.4s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ..........                                                               [100%]
+  10 passed in 43.23s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Validation Results
+
+- [OK]   python -m pytest tests/test_deckbench_audit.py -q (43.7s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ..........                                                               [100%]
+  10 passed in 42.78s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python -m deckbench.audit (13.9s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Audit complete: 241727 games, 43161 drafts, 985 columns. Wrote reports/modeling_data_audit.json and reports/modeling_data_audit.md.
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/audit.py tests/test_deckbench_audit.py (0.0s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  All checks passed!
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   mypy --strict src/deckbench/audit.py (0.9s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Success: no issues found in 1 source file
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Section 4: Files Produced Or Modified By The Task
+
+### src/deckbench/__init__.py
+
+```
+"""deckbench -- the rebuilt deck-strength modeling arm.
+
+This package holds the card-driven rebuild governed by
+``docs/MTG_Deck-Strength_Modeling_Benchmark.md``. The first module is the
+section-17 data audit (:mod:`deckbench.audit`); it produces reports only and
+fits no model.
+"""
+
+__all__ = ["audit"]
+
+```
+
+### src/deckbench/audit.py
+
+```
+"""Section-17 audit of the raw HOB game-level dataset.
+
+Governed by ``docs/MTG_Deck-Strength_Modeling_Benchmark.md`` section 17. This
+module settles a single question -- *what one observation is* -- by measuring
+the raw 17Lands game-level file and reporting. It builds no modeling table, no
+features and no split, and it fits nothing.
+
+Every reported number is computed from the file. Nothing about the file's shape
+is baked into this source: the column families are discovered from the header,
+and the row/draft/column totals are counted, never transcribed. Run it with::
+
+    python -m deckbench.audit
+
+which writes ``reports/modeling_data_audit.md`` and
+``reports/modeling_data_audit.json``.
+"""
+
+from __future__ import annotations
+
+import csv
+import gzip
+import hashlib
+import json
+import struct
+from collections import Counter, defaultdict
+from collections.abc import Iterator
+from pathlib import Path
+
+# src/deckbench/audit.py -> parents[2] is the repository root.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+RAW_CSV = REPO_ROOT / "data" / "raw" / "game_data_public.HOB.PremierDraft.csv.gz"
+SOURCE_MANIFEST = REPO_ROOT / "data" / "raw" / "source_manifest.json"
+REPORTS_DIR = REPO_ROOT / "reports"
+JSON_REPORT = REPORTS_DIR / "modeling_data_audit.json"
+MD_REPORT = REPORTS_DIR / "modeling_data_audit.md"
+
+# Card-column family prefixes. These are matched against the header to classify
+# columns; they are prefixes, not a hardcoded list of the file's columns.
+CARD_FAMILIES = ("deck_", "sideboard_", "opening_hand_", "drawn_", "tutored_")
+
+# Semantic anchor columns the audit must name verbatim (benchmark sections 6-7).
+DRAFT_ID_COL = "draft_id"
+OUTCOME_COL = "won"
+DRAFT_TIME_COL = "draft_time"
+GAME_TIME_COL = "game_time"
+RANK_COL = "rank"
+WIN_RATE_BUCKET_COL = "user_game_win_rate_bucket"
+N_GAMES_BUCKET_COL = "user_n_games_bucket"
+BUILD_INDEX_COL = "build_index"
+MATCH_NUMBER_COL = "match_number"
+GAME_NUMBER_COL = "game_number"
+
+# Skill-context columns whose within-draft constancy the audit checks.
+SKILL_COLUMNS = (RANK_COL, WIN_RATE_BUCKET_COL, N_GAMES_BUCKET_COL)
+
+# The 17Lands source entry in the manifest, for a declared-vs-observed check.
+MANIFEST_SOURCE_ID = "17lands_hob_premier_draft"
+
+# Minimum legal deck size in a sanctioned Limited event (comprehensive rule
+# 100.2b). Limited imposes no maximum, so "outside the legal range" means below
+# this floor. This is a rules constant, not a measurement of the file.
+LEGAL_MIN_DECK_SIZE = 40
+
+# Fixed float precision so the JSON summary is byte-identical across runs.
+FLOAT_NDIGITS = 6
+
+# Rows are read and processed in batches so the full column matrix is never
+# resident at once; only per-draft aggregates accumulate.
+CHUNK_ROWS = 20000
+
+
+# One game's coordinates within its draft: the ordering keys plus the deck
+# configuration digest and the build_index it was recorded under.
+GameRow = tuple[str, int, int, str, str]
+
+
+class RawFileMissing(FileNotFoundError):
+    """Raised when the raw 17Lands CSV is absent from disk."""
+
+
+def _require_raw_file() -> None:
+    if not RAW_CSV.exists():
+        raise RawFileMissing(
+            f"Raw dataset not found: {RAW_CSV}. It is not tracked in git; "
+            f"see {SOURCE_MANIFEST} for its URL and SHA256, re-download it, "
+            "and verify the hash before running the audit."
+        )
+
+
+def _to_int(value: str) -> int:
+    """Parse an integer field, treating blank as zero."""
+    return int(value) if value else 0
+
+
+def _classify_columns(header: list[str]) -> dict[str, list[str]]:
+    """Split the header into card families and the non-card remainder."""
+    families: dict[str, list[str]] = {fam: [] for fam in CARD_FAMILIES}
+    non_card: list[str] = []
+    for name in header:
+        for fam in CARD_FAMILIES:
+            if name.startswith(fam):
+                families[fam].append(name)
+                break
+        else:
+            non_card.append(name)
+    families["__non_card__"] = non_card
+    return families
+
+
+def _iter_chunks(rows: Iterator[list[str]], size: int) -> Iterator[list[list[str]]]:
+    """Yield the CSV body in row batches, never materializing the whole file."""
+    batch: list[list[str]] = []
+    for row in rows:
+        batch.append(row)
+        if len(batch) >= size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
+def _deck_digest(values: list[str], deck_indices: list[int]) -> tuple[str, int]:
+    """Return a stable digest of the deck vector and its card total.
+
+    Only non-zero slots enter the digest, keyed by their position in the deck
+    column order, so the digest is deterministic across runs (blake2b is not
+    hash-seeded) and cheap in memory.
+    """
+    hasher = hashlib.blake2b(digest_size=16)
+    total = 0
+    for slot, idx in enumerate(deck_indices):
+        raw = values[idx]
+        if raw == "0" or raw == "":
+            continue
+        count = int(raw)
+        total += count
+        hasher.update(struct.pack("<II", slot, count))
+    return hasher.hexdigest(), total
+
+
+def _load_manifest_reference() -> dict[str, int | None]:
+    """Read the declared row/draft/column totals from the source manifest."""
+    declared: dict[str, int | None] = {"rows": None, "drafts": None, "columns": None}
+    if not SOURCE_MANIFEST.exists():
+        return declared
+    payload = json.loads(SOURCE_MANIFEST.read_text(encoding="utf-8"))
+    for source in payload.get("sources", []):
+        if source.get("id") != MANIFEST_SOURCE_ID:
+            continue
+        for key in declared:
+            value = source.get(key)
+            declared[key] = int(value) if isinstance(value, int) else None
+    return declared
+
+
+class _Accumulator:
+    """Single-pass tallies over the streamed rows."""
+
+    def __init__(self, header: list[str]) -> None:
+        self.index = {name: i for i, name in enumerate(header)}
+        self.deck_indices = [
+            i for i, name in enumerate(header) if name.startswith("deck_")
+        ]
+        self.present = {
+            col: (col in self.index)
+            for col in (
+                DRAFT_ID_COL,
+                OUTCOME_COL,
+                DRAFT_TIME_COL,
+                GAME_TIME_COL,
+                RANK_COL,
+                WIN_RATE_BUCKET_COL,
+                N_GAMES_BUCKET_COL,
+                BUILD_INDEX_COL,
+                MATCH_NUMBER_COL,
+                GAME_NUMBER_COL,
+            )
+        }
+        self.n_columns = len(header)
+        self.total_rows = 0
+        self.malformed_rows = 0
+        self.deck_size_counts: Counter[int] = Counter()
+        self.draft_time_min: str | None = None
+        self.draft_time_max: str | None = None
+        # Per-draft game lists, keyed by draft id.
+        self.games: dict[str, list[GameRow]] = defaultdict(list)
+        # Per-draft skill values: col -> (first_value, varies).
+        self.skill: dict[str, dict[str, tuple[str, bool]]] = defaultdict(dict)
+
+    def add_row(self, row: list[str]) -> None:
+        self.total_rows += 1
+        if len(row) != self.n_columns:
+            self.malformed_rows += 1
+            return
+        draft_id = row[self.index[DRAFT_ID_COL]]
+        digest, deck_size = _deck_digest(row, self.deck_indices)
+        self.deck_size_counts[deck_size] += 1
+
+        if self.present[DRAFT_TIME_COL]:
+            stamp = row[self.index[DRAFT_TIME_COL]]
+            if stamp:
+                if self.draft_time_min is None or stamp < self.draft_time_min:
+                    self.draft_time_min = stamp
+                if self.draft_time_max is None or stamp > self.draft_time_max:
+                    self.draft_time_max = stamp
+
+        game_time = row[self.index[GAME_TIME_COL]] if self.present[GAME_TIME_COL] else ""
+        match_no = (
+            _to_int(row[self.index[MATCH_NUMBER_COL]]) if self.present[MATCH_NUMBER_COL] else 0
+        )
+        game_no = (
+            _to_int(row[self.index[GAME_NUMBER_COL]]) if self.present[GAME_NUMBER_COL] else 0
+        )
+        build_index = row[self.index[BUILD_INDEX_COL]] if self.present[BUILD_INDEX_COL] else ""
+        self.games[draft_id].append((game_time, match_no, game_no, build_index, digest))
+
+        draft_skill = self.skill[draft_id]
+        for col in SKILL_COLUMNS:
+            if not self.present[col]:
+                continue
+            value = row[self.index[col]]
+            if col not in draft_skill:
+                draft_skill[col] = (value, False)
+            elif not draft_skill[col][1] and draft_skill[col][0] != value:
+                draft_skill[col] = (draft_skill[col][0], True)
+
+
+def _summarize_within_draft(acc: _Accumulator) -> dict[str, object]:
+    """Reduce the per-draft game lists to the section-6 measurements."""
+    total_drafts = len(acc.games)
+    total_games = 0
+    drafts_multi_deck = 0
+    games_after_change = 0
+    configs_per_draft: Counter[int] = Counter()
+
+    build_index_nonconstant = 0
+    deck_config_nonconstant = 0
+    bi_determines_config = 0
+    config_determines_bi = 0
+    bijective = 0
+    bi_varies_deck_constant = 0
+    deck_varies_bi_constant = 0
+
+    for rows in acc.games.values():
+        total_games += len(rows)
+        ordered = sorted(rows, key=lambda g: (g[0], g[1], g[2]))
+        configs = [g[4] for g in ordered]
+        build_indices = [g[3] for g in ordered]
+
+        distinct_cfg = len(set(configs))
+        distinct_bi = len(set(build_indices))
+        distinct_pairs = len({(b, c) for b, c in zip(build_indices, configs, strict=True)})
+        configs_per_draft[distinct_cfg] += 1
+        if distinct_cfg > 1:
+            drafts_multi_deck += 1
+            deck_config_nonconstant += 1
+        if distinct_bi > 1:
+            build_index_nonconstant += 1
+        if distinct_pairs == distinct_bi:
+            bi_determines_config += 1
+        if distinct_pairs == distinct_cfg:
+            config_determines_bi += 1
+        if distinct_pairs == distinct_bi == distinct_cfg:
+            bijective += 1
+        if distinct_bi > 1 and distinct_cfg == 1:
+            bi_varies_deck_constant += 1
+        if distinct_cfg > 1 and distinct_bi == 1:
+            deck_varies_bi_constant += 1
+
+        changed = False
+        for i, cfg in enumerate(configs):
+            if i > 0 and cfg != configs[i - 1]:
+                changed = True
+            if changed:
+                games_after_change += 1
+
+    skill_nonconstant = {
+        col: sum(
+            1
+            for draft_skill in acc.skill.values()
+            if col in draft_skill and draft_skill[col][1]
+        )
+        for col in SKILL_COLUMNS
+        if acc.present[col]
+    }
+
+    return {
+        "total_drafts": total_drafts,
+        "total_games_from_draft_map": total_games,
+        "within_draft_deck_variation": {
+            "distinct_configs_per_draft_distribution": _counter_to_pairs(configs_per_draft),
+            "drafts_with_more_than_one_deck": drafts_multi_deck,
+            "fraction_drafts_with_more_than_one_deck": _fraction(drafts_multi_deck, total_drafts),
+            "games_after_a_deck_change": games_after_change,
+            "fraction_games_after_a_deck_change": _fraction(games_after_change, total_games),
+        },
+        "build_index_behavior": {
+            "drafts_build_index_nonconstant": build_index_nonconstant,
+            "drafts_deck_config_nonconstant": deck_config_nonconstant,
+            "drafts_build_index_determines_deck_config": bi_determines_config,
+            "drafts_deck_config_determines_build_index": config_determines_bi,
+            "drafts_build_index_and_config_bijective": bijective,
+            "drafts_build_index_varies_while_deck_constant": bi_varies_deck_constant,
+            "drafts_deck_varies_while_build_index_constant": deck_varies_bi_constant,
+        },
+        "skill_columns_nonconstant_within_draft": dict(sorted(skill_nonconstant.items())),
+    }
+
+
+def _counter_to_pairs(counter: Counter[int]) -> list[list[int]]:
+    """Render an int-keyed counter as a list of [value, count], value-sorted."""
+    return [[value, counter[value]] for value in sorted(counter)]
+
+
+def _fraction(numerator: int, denominator: int) -> float:
+    return numerator / denominator if denominator else 0.0
+
+
+def _summarize_deck_size(acc: _Accumulator) -> dict[str, object]:
+    counts = acc.deck_size_counts
+    total = sum(counts.values())
+    below = sum(n for size, n in counts.items() if size < LEGAL_MIN_DECK_SIZE)
+    modal_size = max(counts, key=lambda s: (counts[s], -s)) if counts else 0
+    off_modal = total - counts.get(modal_size, 0)
+    illegal_sizes = {size: n for size, n in counts.items() if size < LEGAL_MIN_DECK_SIZE}
+    return {
+        "distribution": _counter_to_pairs(counts),
+        "min_observed": min(counts) if counts else 0,
+        "max_observed": max(counts) if counts else 0,
+        "modal_size": modal_size,
+        "legal_min_deck_size": LEGAL_MIN_DECK_SIZE,
+        "rows_below_legal_min": below,
+        "illegal_deck_size_counts": _counter_to_pairs(Counter(illegal_sizes)),
+        "card_count_consistency": {
+            "note": (
+                "No standalone deck-size column exists; deck size is defined as "
+                "the sum of the deck_ columns. The consistency check is whether "
+                "that sum lands on the modal legal size on every row."
+            ),
+            "rows_off_modal_size": off_modal,
+            "rows_below_legal_min": below,
+        },
+    }
+
+
+def run_audit() -> dict[str, object]:
+    """Stream the raw file once and return the full audit summary."""
+    _require_raw_file()
+    with gzip.open(RAW_CSV, "rt", newline="", encoding="utf-8") as handle:
+        reader = csv.reader(handle)
+        header = next(reader)
+        acc = _Accumulator(header)
+        for chunk in _iter_chunks(reader, CHUNK_ROWS):
+            for row in chunk:
+                acc.add_row(row)
+
+    families = _classify_columns(header)
+    family_counts = {fam: len(families[fam]) for fam in CARD_FAMILIES}
+    non_card = families["__non_card__"]
+    declared = _load_manifest_reference()
+
+    within = _summarize_within_draft(acc)
+    deck_size = _summarize_deck_size(acc)
+
+    summary: dict[str, object] = {
+        "dataset": {
+            "path": RAW_CSV.relative_to(REPO_ROOT).as_posix(),
+            "total_games": acc.total_rows,
+            "total_drafts": within["total_drafts"],
+            "total_columns": acc.n_columns,
+            "malformed_rows": acc.malformed_rows,
+            "draft_time_min": acc.draft_time_min,
+            "draft_time_max": acc.draft_time_max,
+        },
+        "manifest_declared": {
+            "rows": declared["rows"],
+            "drafts": declared["drafts"],
+            "columns": declared["columns"],
+        },
+        "declared_vs_observed_match": {
+            "rows": declared["rows"] == acc.total_rows,
+            "drafts": declared["drafts"] == within["total_drafts"],
+            "columns": declared["columns"] == acc.n_columns,
+        },
+        "column_census": {
+            "total_columns": acc.n_columns,
+            "card_family_counts": dict(sorted(family_counts.items())),
+            "non_card_column_count": len(non_card),
+            "non_card_columns": non_card,
+        },
+        "key_columns": {
+            "draft_identifier": DRAFT_ID_COL,
+            "per_game_outcome": OUTCOME_COL,
+            "deck_contents": "deck_ column family",
+            "draft_timestamp": DRAFT_TIME_COL,
+            "per_game_timestamp": GAME_TIME_COL,
+            "rank": RANK_COL,
+            "user_historical_win_rate_bucket": WIN_RATE_BUCKET_COL,
+            "user_games_played_bucket": N_GAMES_BUCKET_COL,
+            "present": dict(sorted(acc.present.items())),
+        },
+        "player_identifier": {
+            "persistent_player_id_exists": False,
+            "statement": (
+                "No persistent player identifier exists in the dataset. rank and "
+                "opp_rank are six-level skill buckets, not player ids, and are not "
+                "nominated as a substitute."
+            ),
+        },
+        "within_draft": within,
+        "deck_size": deck_size,
+        "recommended_observational_unit": _recommend_unit(within),
+    }
+    return _round_floats(summary)  # type: ignore[return-value]
+
+
+def _recommend_unit(within: dict[str, object]) -> dict[str, object]:
+    variation = within["within_draft_deck_variation"]
+    assert isinstance(variation, dict)
+    frac_multi = float(variation["fraction_drafts_with_more_than_one_deck"])
+    frac_after = float(variation["fraction_games_after_a_deck_change"])
+    if frac_multi > 0:
+        rationale = (
+            f"The deck is recorded per game and it changes within a draft: "
+            f"{frac_multi:.4f} of drafts carry more than one deck configuration and "
+            f"{frac_after:.4f} of games are played after a deck change. Averaging a "
+            "draft's games would blend distinct decks in exactly those drafts, so the "
+            "observational unit is the game, keyed by draft_id + game_time. This "
+            "follows benchmark section 6."
+        )
+    else:
+        rationale = (
+            "No draft carries more than one deck configuration, so game level and "
+            "draft level coincide. The game unit is still recommended per benchmark "
+            "section 6 because the deck is recorded per game."
+        )
+    return {"unit": "game", "rationale": rationale}
+
+
+def _round_floats(obj: object) -> object:
+    if isinstance(obj, float):
+        return round(obj, FLOAT_NDIGITS)
+    if isinstance(obj, dict):
+        return {key: _round_floats(value) for key, value in obj.items()}
+    if isinstance(obj, list):
+        return [_round_floats(value) for value in obj]
+    return obj
+
+
+def write_reports(summary: dict[str, object]) -> None:
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(summary, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    JSON_REPORT.write_text(text, encoding="utf-8", newline="\n")
+    MD_REPORT.write_text(_render_markdown(summary), encoding="utf-8", newline="\n")
+
+
+def _get(summary: dict[str, object], *path: str) -> object:
+    node: object = summary
+    for key in path:
+        assert isinstance(node, dict)
+        node = node[key]
+    return node
+
+
+def _render_markdown(summary: dict[str, object]) -> str:
+    dataset = summary["dataset"]
+    assert isinstance(dataset, dict)
+    census = summary["column_census"]
+    assert isinstance(census, dict)
+    variation = _get(summary, "within_draft", "within_draft_deck_variation")
+    assert isinstance(variation, dict)
+    build = _get(summary, "within_draft", "build_index_behavior")
+    assert isinstance(build, dict)
+    skill_nc = _get(summary, "within_draft", "skill_columns_nonconstant_within_draft")
+    assert isinstance(skill_nc, dict)
+    deck_size = summary["deck_size"]
+    assert isinstance(deck_size, dict)
+    consistency = deck_size["card_count_consistency"]
+    assert isinstance(consistency, dict)
+    declared = summary["manifest_declared"]
+    assert isinstance(declared, dict)
+    match = summary["declared_vs_observed_match"]
+    assert isinstance(match, dict)
+    unit = summary["recommended_observational_unit"]
+    assert isinstance(unit, dict)
+    fam = census["card_family_counts"]
+    assert isinstance(fam, dict)
+
+    lines: list[str] = []
+    lines.append("# Modeling data audit -- raw HOB game-level dataset")
+    lines.append("")
+    lines.append(
+        "Section-17 audit of the 17Lands HOB Premier Draft file. Every number "
+        "below is computed by `deckbench.audit` from the raw CSV. No modeling "
+        "table, feature, split or model is produced here."
+    )
+    lines.append("")
+    lines.append(f"Source file: `{dataset['path']}`")
+    lines.append("")
+
+    lines.append("## 1. Key columns, named verbatim")
+    lines.append("")
+    lines.append("| Role | Column |")
+    lines.append("| --- | --- |")
+    key_cols = summary["key_columns"]
+    assert isinstance(key_cols, dict)
+    for role, label in (
+        ("Draft identifier", "draft_identifier"),
+        ("Per-game outcome", "per_game_outcome"),
+        ("Deck contents", "deck_contents"),
+        ("Draft timestamp", "draft_timestamp"),
+        ("Per-game timestamp", "per_game_timestamp"),
+        ("Rank", "rank"),
+        ("User historical win-rate bucket", "user_historical_win_rate_bucket"),
+        ("User games-played bucket", "user_games_played_bucket"),
+    ):
+        lines.append(f"| {role} | `{key_cols[label]}` |")
+    lines.append("")
+
+    lines.append("## 2. Persistent player identifier")
+    lines.append("")
+    statement = _get(summary, "player_identifier", "statement")
+    lines.append(str(statement))
+    lines.append("")
+
+    lines.append("## 3. Dataset totals (computed, not transcribed)")
+    lines.append("")
+    lines.append(f"- Total games (rows): **{dataset['total_games']}**")
+    lines.append(f"- Total drafts (distinct `draft_id`): **{dataset['total_drafts']}**")
+    lines.append(f"- Total columns: **{dataset['total_columns']}**")
+    lines.append(f"- Malformed rows (wrong width): **{dataset['malformed_rows']}**")
+    lines.append(
+        f"- `draft_time` span: {dataset['draft_time_min']} .. {dataset['draft_time_max']}"
+    )
+    lines.append("")
+    lines.append(
+        "Manifest declares "
+        f"rows={declared['rows']}, drafts={declared['drafts']}, "
+        f"columns={declared['columns']}. "
+        f"Observed matches declared: rows={match['rows']}, drafts={match['drafts']}, "
+        f"columns={match['columns']}."
+    )
+    if not all(bool(v) for v in match.values()):
+        lines.append("")
+        lines.append(
+            "> **Discrepancy.** At least one declared total does not match the file. "
+            "Per the card, this is a finding, reported rather than reconciled silently."
+        )
+    lines.append("")
+
+    lines.append("## 4. Column census by family")
+    lines.append("")
+    lines.append("| Family | Columns |")
+    lines.append("| --- | --- |")
+    for family in CARD_FAMILIES:
+        lines.append(f"| `{family}` | {fam[family]} |")
+    lines.append(f"| non-card | {census['non_card_column_count']} |")
+    lines.append("")
+    non_card = census["non_card_columns"]
+    assert isinstance(non_card, list)
+    lines.append("Non-card columns: " + ", ".join(f"`{c}`" for c in non_card))
+    lines.append("")
+
+    lines.append("## 5. Within-draft deck variation")
+    lines.append("")
+    lines.append(
+        f"- Drafts with more than one deck configuration: "
+        f"**{variation['drafts_with_more_than_one_deck']}** "
+        f"({variation['fraction_drafts_with_more_than_one_deck']} of drafts)"
+    )
+    lines.append(
+        f"- Games played after a deck change: "
+        f"**{variation['games_after_a_deck_change']}** "
+        f"({variation['fraction_games_after_a_deck_change']} of games)"
+    )
+    dist = variation["distinct_configs_per_draft_distribution"]
+    assert isinstance(dist, list)
+    lines.append(
+        "- Distinct deck configurations per draft (configs: drafts): "
+        + ", ".join(f"{pair[0]}: {pair[1]}" for pair in dist)
+    )
+    lines.append("")
+
+    lines.append("## 6. `build_index` -- what it actually varies with")
+    lines.append("")
+    lines.append(
+        f"- Drafts where `build_index` is non-constant: "
+        f"{build['drafts_build_index_nonconstant']}"
+    )
+    lines.append(
+        f"- Drafts where the deck config is non-constant: "
+        f"{build['drafts_deck_config_nonconstant']}"
+    )
+    lines.append(
+        f"- Drafts where `build_index` determines the deck config: "
+        f"{build['drafts_build_index_determines_deck_config']}"
+    )
+    lines.append(
+        f"- Drafts where the deck config determines `build_index`: "
+        f"{build['drafts_deck_config_determines_build_index']}"
+    )
+    lines.append(
+        f"- Drafts where `build_index` <-> deck config is bijective: "
+        f"{build['drafts_build_index_and_config_bijective']}"
+    )
+    lines.append(
+        f"- `build_index` varies while the deck is constant: "
+        f"{build['drafts_build_index_varies_while_deck_constant']}"
+    )
+    lines.append(
+        f"- Deck varies while `build_index` is constant: "
+        f"{build['drafts_deck_varies_while_build_index_constant']}"
+    )
+    lines.append("")
+
+    lines.append("## 7. Deck-size distribution and legality")
+    lines.append("")
+    lines.append(f"- Legal Limited minimum deck size: {deck_size['legal_min_deck_size']}")
+    lines.append(
+        f"- Observed deck size: min {deck_size['min_observed']}, "
+        f"max {deck_size['max_observed']}, modal {deck_size['modal_size']}"
+    )
+    lines.append(f"- Rows below the legal minimum: **{deck_size['rows_below_legal_min']}**")
+    sizes = deck_size["distribution"]
+    assert isinstance(sizes, list)
+    lines.append(
+        "- Distribution (size: rows): "
+        + ", ".join(f"{pair[0]}: {pair[1]}" for pair in sizes)
+    )
+    lines.append("")
+
+    lines.append("## 8. Card-count consistency")
+    lines.append("")
+    lines.append(str(consistency["note"]))
+    lines.append("")
+    lines.append(f"- Rows off the modal deck size: **{consistency['rows_off_modal_size']}**")
+    lines.append(f"- Rows below the legal minimum: **{consistency['rows_below_legal_min']}**")
+    lines.append("")
+
+    lines.append("## 9. Skill-variable constancy within draft")
+    lines.append("")
+    lines.append("| Column | Drafts where it is not constant |")
+    lines.append("| --- | --- |")
+    for col in sorted(skill_nc):
+        lines.append(f"| `{col}` | {skill_nc[col]} |")
+    lines.append("")
+
+    lines.append("## 10. Recommended observational unit")
+    lines.append("")
+    lines.append(f"**Unit: {unit['unit']}.**")
+    lines.append("")
+    lines.append(str(unit["rationale"]))
+    lines.append("")
+    lines.append(
+        "This is a recommendation; the operator ratifies the unit at card 007. "
+        "The machine-readable form of every number above is in "
+        "`reports/modeling_data_audit.json`."
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def main() -> None:
+    summary = run_audit()
+    write_reports(summary)
+    dataset = summary["dataset"]
+    assert isinstance(dataset, dict)
+    print(
+        f"Audit complete: {dataset['total_games']} games, "
+        f"{dataset['total_drafts']} drafts, {dataset['total_columns']} columns. "
+        f"Wrote {JSON_REPORT.relative_to(REPO_ROOT).as_posix()} and "
+        f"{MD_REPORT.relative_to(REPO_ROOT).as_posix()}."
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+```
+
+### tests/test_deckbench_audit.py
+
+```
+"""Tests for the section-17 raw-data audit (:mod:`deckbench.audit`).
+
+These run the real audit against the raw 17Lands file when it is present and
+skip cleanly when it is absent (it is not tracked in git). The determinism and
+anti-hardcoding checks are the load-bearing ones: card 003 exists to prove the
+audit *computes* its numbers rather than restating them, and that card 004 can
+consume a stable summary.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from deckbench import audit
+
+RAW_PRESENT = audit.RAW_CSV.exists()
+requires_raw = pytest.mark.skipif(not RAW_PRESENT, reason="raw 17Lands CSV not on disk")
+
+
+@pytest.fixture(scope="module")
+def summary() -> dict[str, object]:
+    return audit.run_audit()
+
+
+def _module_source() -> str:
+    return Path(audit.__file__).read_text(encoding="utf-8")
+
+
+def test_missing_raw_file_fails_with_pointer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(audit, "RAW_CSV", tmp_path / "absent.csv.gz")
+    with pytest.raises(audit.RawFileMissing) as excinfo:
+        audit.run_audit()
+    message = str(excinfo.value)
+    assert "absent.csv.gz" in message
+    assert "source_manifest.json" in message
+
+
+def test_column_classification_uses_prefixes_not_a_list() -> None:
+    header = [
+        "draft_id",
+        "won",
+        "deck_Balin, Loremaster",
+        "sideboard_Balin, Loremaster",
+        "opening_hand_Balin, Loremaster",
+        "drawn_Balin, Loremaster",
+        "tutored_Balin, Loremaster",
+        "draft_time",
+    ]
+    families = audit._classify_columns(header)
+    assert families["deck_"] == ["deck_Balin, Loremaster"]
+    assert families["__non_card__"] == ["draft_id", "won", "draft_time"]
+
+
+def test_deck_digest_is_order_and_value_sensitive() -> None:
+    deck_idx = [0, 1, 2]
+    d1, total1 = audit._deck_digest(["2", "0", "1"], deck_idx)
+    d2, total2 = audit._deck_digest(["2", "0", "1"], deck_idx)
+    d3, _ = audit._deck_digest(["1", "0", "2"], deck_idx)
+    assert d1 == d2  # stable
+    assert total1 == 3 and total2 == 3
+    assert d1 != d3  # different vectors, different digest
+
+
+@requires_raw
+def test_totals_are_positive_and_coherent(summary: dict[str, object]) -> None:
+    dataset = summary["dataset"]
+    assert isinstance(dataset, dict)
+    assert dataset["total_games"] > 0
+    assert dataset["total_drafts"] > 0
+    assert dataset["total_columns"] > 0
+    # Every game belongs to exactly one draft: the two row counts must agree.
+    within = summary["within_draft"]
+    assert isinstance(within, dict)
+    assert within["total_games_from_draft_map"] == dataset["total_games"]
+    assert within["total_drafts"] == dataset["total_drafts"]
+
+
+@requires_raw
+def test_no_persistent_player_id_claimed(summary: dict[str, object]) -> None:
+    player = summary["player_identifier"]
+    assert isinstance(player, dict)
+    assert player["persistent_player_id_exists"] is False
+
+
+@requires_raw
+def test_required_key_columns_named_and_present(summary: dict[str, object]) -> None:
+    key = summary["key_columns"]
+    assert isinstance(key, dict)
+    assert key["draft_identifier"] == "draft_id"
+    assert key["per_game_outcome"] == "won"
+    assert key["rank"] == "rank"
+    present = key["present"]
+    assert isinstance(present, dict)
+    # The skill buckets the benchmark section 3 assumes must actually exist.
+    assert present["user_game_win_rate_bucket"] is True
+    assert present["user_n_games_bucket"] is True
+
+
+@requires_raw
+def test_deck_size_flags_illegal_rows(summary: dict[str, object]) -> None:
+    deck_size = summary["deck_size"]
+    assert isinstance(deck_size, dict)
+    assert deck_size["legal_min_deck_size"] == audit.LEGAL_MIN_DECK_SIZE
+    # rows_below_legal_min must equal the total of the flagged illegal buckets.
+    illegal = deck_size["illegal_deck_size_counts"]
+    assert isinstance(illegal, list)
+    assert deck_size["rows_below_legal_min"] == sum(pair[1] for pair in illegal)
+
+
+@requires_raw
+def test_json_report_is_byte_identical_across_two_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = tmp_path / "run1"
+    second = tmp_path / "run2"
+    for out in (first, second):
+        out.mkdir()
+        monkeypatch.setattr(audit, "REPORTS_DIR", out)
+        monkeypatch.setattr(audit, "JSON_REPORT", out / "modeling_data_audit.json")
+        monkeypatch.setattr(audit, "MD_REPORT", out / "modeling_data_audit.md")
+        audit.write_reports(audit.run_audit())
+    a = (first / "modeling_data_audit.json").read_bytes()
+    b = (second / "modeling_data_audit.json").read_bytes()
+    assert a == b
+
+
+@requires_raw
+def test_module_source_has_no_hardcoded_totals(summary: dict[str, object]) -> None:
+    """The observed totals must be computed, never typed into the source."""
+    dataset = summary["dataset"]
+    assert isinstance(dataset, dict)
+    source = _module_source()
+    for field in ("total_games", "total_drafts", "total_columns"):
+        literal = str(dataset[field])
+        assert literal not in source, f"observed {field}={literal} appears as a literal in audit.py"
+
+
+@requires_raw
+def test_emitted_json_matches_run_audit(summary: dict[str, object]) -> None:
+    """The written report reflects the same computation the API returns."""
+    if not audit.JSON_REPORT.exists():
+        pytest.skip("report not yet generated; run `python -m deckbench.audit`")
+    on_disk = json.loads(audit.JSON_REPORT.read_text(encoding="utf-8"))
+    assert on_disk["dataset"]["total_games"] == summary["dataset"]["total_games"]  # type: ignore[index]
+
+```
+
+### reports/modeling_data_audit.md
+
+```
+# Modeling data audit -- raw HOB game-level dataset
+
+Section-17 audit of the 17Lands HOB Premier Draft file. Every number below is computed by `deckbench.audit` from the raw CSV. No modeling table, feature, split or model is produced here.
+
+Source file: `data/raw/game_data_public.HOB.PremierDraft.csv.gz`
+
+## 1. Key columns, named verbatim
+
+| Role | Column |
+| --- | --- |
+| Draft identifier | `draft_id` |
+| Per-game outcome | `won` |
+| Deck contents | `deck_ column family` |
+| Draft timestamp | `draft_time` |
+| Per-game timestamp | `game_time` |
+| Rank | `rank` |
+| User historical win-rate bucket | `user_game_win_rate_bucket` |
+| User games-played bucket | `user_n_games_bucket` |
+
+## 2. Persistent player identifier
+
+No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute.
+
+## 3. Dataset totals (computed, not transcribed)
+
+- Total games (rows): **241727**
+- Total drafts (distinct `draft_id`): **43161**
+- Total columns: **985**
+- Malformed rows (wrong width): **0**
+- `draft_time` span: 2026-08-11 15:43:42 .. 2026-08-29 23:39:41
+
+Manifest declares rows=241727, drafts=43161, columns=1165. Observed matches declared: rows=True, drafts=True, columns=False.
+
+> **Discrepancy.** At least one declared total does not match the file. Per the card, this is a finding, reported rather than reconciled silently.
+
+## 4. Column census by family
+
+| Family | Columns |
+| --- | --- |
+| `deck_` | 193 |
+| `sideboard_` | 193 |
+| `opening_hand_` | 193 |
+| `drawn_` | 193 |
+| `tutored_` | 193 |
+| non-card | 20 |
+
+Non-card columns: `expansion`, `event_type`, `draft_id`, `draft_time`, `game_time`, `build_index`, `match_number`, `game_number`, `rank`, `opp_rank`, `main_colors`, `splash_colors`, `on_play`, `num_mulligans`, `opp_num_mulligans`, `opp_colors`, `num_turns`, `won`, `user_n_games_bucket`, `user_game_win_rate_bucket`
+
+## 5. Within-draft deck variation
+
+- Drafts with more than one deck configuration: **8191** (0.189778 of drafts)
+- Games played after a deck change: **28397** (0.117475 of games)
+- Distinct deck configurations per draft (configs: drafts): 1: 34970, 2: 6636, 3: 1314, 4: 210, 5: 29, 6: 2
+
+## 6. `build_index` -- what it actually varies with
+
+- Drafts where `build_index` is non-constant: 8241
+- Drafts where the deck config is non-constant: 8191
+- Drafts where `build_index` determines the deck config: 43161
+- Drafts where the deck config determines `build_index`: 43100
+- Drafts where `build_index` <-> deck config is bijective: 43100
+- `build_index` varies while the deck is constant: 50
+- Deck varies while `build_index` is constant: 0
+
+## 7. Deck-size distribution and legality
+
+- Legal Limited minimum deck size: 40
+- Observed deck size: min 40, max 60, modal 40
+- Rows below the legal minimum: **0**
+- Distribution (size: rows): 40: 226047, 41: 13424, 42: 1064, 43: 568, 44: 245, 45: 142, 46: 63, 47: 27, 48: 36, 49: 24, 50: 27, 51: 5, 52: 8, 53: 10, 54: 12, 55: 8, 56: 3, 57: 4, 58: 5, 60: 5
+
+## 8. Card-count consistency
+
+No standalone deck-size column exists; deck size is defined as the sum of the deck_ columns. The consistency check is whether that sum lands on the modal legal size on every row.
+
+- Rows off the modal deck size: **15680**
+- Rows below the legal minimum: **0**
+
+## 9. Skill-variable constancy within draft
+
+| Column | Drafts where it is not constant |
+| --- | --- |
+| `rank` | 5420 |
+| `user_game_win_rate_bucket` | 0 |
+| `user_n_games_bucket` | 0 |
+
+## 10. Recommended observational unit
+
+**Unit: game.**
+
+The deck is recorded per game and it changes within a draft: 0.1898 of drafts carry more than one deck configuration and 0.1175 of games are played after a deck change. Averaging a draft's games would blend distinct decks in exactly those drafts, so the observational unit is the game, keyed by draft_id + game_time. This follows benchmark section 6.
+
+This is a recommendation; the operator ratifies the unit at card 007. The machine-readable form of every number above is in `reports/modeling_data_audit.json`.
+
+```
+
+### reports/modeling_data_audit.json
+
+```
+{
+  "column_census": {
+    "card_family_counts": {
+      "deck_": 193,
+      "drawn_": 193,
+      "opening_hand_": 193,
+      "sideboard_": 193,
+      "tutored_": 193
+    },
+    "non_card_column_count": 20,
+    "non_card_columns": [
+      "expansion",
+      "event_type",
+      "draft_id",
+      "draft_time",
+      "game_time",
+      "build_index",
+      "match_number",
+      "game_number",
+      "rank",
+      "opp_rank",
+      "main_colors",
+      "splash_colors",
+      "on_play",
+      "num_mulligans",
+      "opp_num_mulligans",
+      "opp_colors",
+      "num_turns",
+      "won",
+      "user_n_games_bucket",
+      "user_game_win_rate_bucket"
+    ],
+    "total_columns": 985
+  },
+  "dataset": {
+    "draft_time_max": "2026-08-29 23:39:41",
+    "draft_time_min": "2026-08-11 15:43:42",
+    "malformed_rows": 0,
+    "path": "data/raw/game_data_public.HOB.PremierDraft.csv.gz",
+    "total_columns": 985,
+    "total_drafts": 43161,
+    "total_games": 241727
+  },
+  "deck_size": {
+    "card_count_consistency": {
+      "note": "No standalone deck-size column exists; deck size is defined as the sum of the deck_ columns. The consistency check is whether that sum lands on the modal legal size on every row.",
+      "rows_below_legal_min": 0,
+      "rows_off_modal_size": 15680
+    },
+    "distribution": [
+      [
+        40,
+        226047
+      ],
+      [
+        41,
+        13424
+      ],
+      [
+        42,
+        1064
+      ],
+      [
+        43,
+        568
+      ],
+      [
+        44,
+        245
+      ],
+      [
+        45,
+        142
+      ],
+      [
+        46,
+        63
+      ],
+      [
+        47,
+        27
+      ],
+      [
+        48,
+        36
+      ],
+      [
+        49,
+        24
+      ],
+      [
+        50,
+        27
+      ],
+      [
+        51,
+        5
+      ],
+      [
+        52,
+        8
+      ],
+      [
+        53,
+        10
+      ],
+      [
+        54,
+        12
+      ],
+      [
+        55,
+        8
+      ],
+      [
+        56,
+        3
+      ],
+      [
+        57,
+        4
+      ],
+      [
+        58,
+        5
+      ],
+      [
+        60,
+        5
+      ]
+    ],
+    "illegal_deck_size_counts": [],
+    "legal_min_deck_size": 40,
+    "max_observed": 60,
+    "min_observed": 40,
+    "modal_size": 40,
+    "rows_below_legal_min": 0
+  },
+  "declared_vs_observed_match": {
+    "columns": false,
+    "drafts": true,
+    "rows": true
+  },
+  "key_columns": {
+    "deck_contents": "deck_ column family",
+    "draft_identifier": "draft_id",
+    "draft_timestamp": "draft_time",
+    "per_game_outcome": "won",
+    "per_game_timestamp": "game_time",
+    "present": {
+      "build_index": true,
+      "draft_id": true,
+      "draft_time": true,
+      "game_number": true,
+      "game_time": true,
+      "match_number": true,
+      "rank": true,
+      "user_game_win_rate_bucket": true,
+      "user_n_games_bucket": true,
+      "won": true
+    },
+    "rank": "rank",
+    "user_games_played_bucket": "user_n_games_bucket",
+    "user_historical_win_rate_bucket": "user_game_win_rate_bucket"
+  },
+  "manifest_declared": {
+    "columns": 1165,
+    "drafts": 43161,
+    "rows": 241727
+  },
+  "player_identifier": {
+    "persistent_player_id_exists": false,
+    "statement": "No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute."
+  },
+  "recommended_observational_unit": {
+    "rationale": "The deck is recorded per game and it changes within a draft: 0.1898 of drafts carry more than one deck configuration and 0.1175 of games are played after a deck change. Averaging a draft's games would blend distinct decks in exactly those drafts, so the observational unit is the game, keyed by draft_id + game_time. This follows benchmark section 6.",
+    "unit": "game"
+  },
+  "within_draft": {
+    "build_index_behavior": {
+      "drafts_build_index_and_config_bijective": 43100,
+      "drafts_build_index_determines_deck_config": 43161,
+      "drafts_build_index_nonconstant": 8241,
+      "drafts_build_index_varies_while_deck_constant": 50,
+      "drafts_deck_config_determines_build_index": 43100,
+      "drafts_deck_config_nonconstant": 8191,
+      "drafts_deck_varies_while_build_index_constant": 0
+    },
+    "skill_columns_nonconstant_within_draft": {
+      "rank": 5420,
+      "user_game_win_rate_bucket": 0,
+      "user_n_games_bucket": 0
+    },
+    "total_drafts": 43161,
+    "total_games_from_draft_map": 241727,
+    "within_draft_deck_variation": {
+      "distinct_configs_per_draft_distribution": [
+        [
+          1,
+          34970
+        ],
+        [
+          2,
+          6636
+        ],
+        [
+          3,
+          1314
+        ],
+        [
+          4,
+          210
+        ],
+        [
+          5,
+          29
+        ],
+        [
+          6,
+          2
+        ]
+      ],
+      "drafts_with_more_than_one_deck": 8191,
+      "fraction_drafts_with_more_than_one_deck": 0.189778,
+      "fraction_games_after_a_deck_change": 0.117475,
+      "games_after_a_deck_change": 28397
+    }
+  }
+}
+
+```
+
+## Section 5: Supplementary Context (See Also)
+
+The following files are referenced by the task via `## See Also`. They are supplementary context only and are not part of the deliverable under review.
+
+### docs/modeling_pipeline.md
+
+```
+# Modeling arm ΓÇö current state
+
+**There is no working modeling pipeline in this repository right now.** The arm is
+between a discarded implementation and a rebuild that has not started.
+
+## Status, 2026-09-07
+
+Every Python script that produced the previous M0/M1 results was quarantined to
+[`attic/haiku-2026-09-07/`](../attic/haiku-2026-09-07/), together with everything
+it emitted (`results/`, `figures/`, `data/processed/`). That code did not follow
+its specification reliably, so its outputs are untrusted; the reasoning and the
+catalogue of known defects are in
+[the attic README](../attic/haiku-2026-09-07/README.md), and the decision is
+recorded in `LABNOTEBOOK.md`.
+
+Do not cite the numbers that were previously reported here. They contradicted each
+other across runs, and where an interval was computed it crossed zero.
+
+Unaffected by the quarantine: `scripts/R/` (the earlier causal analysis, written
+2025-12 to 2026-02) and the entire knowledge-graph arm.
+
+## What survives
+
+**The raw data.** `data/raw/game_data_public.HOB.PremierDraft.csv.gz` ΓÇö the 17Lands
+public game-level dataset, one row per game: 241,727 rows across 43,161 drafts,
+1,165 columns, `draft_time` spanning 2026-08-11 to 2026-08-29. Deck composition is
+carried by the `deck_*` columns; the 18 non-card columns include `draft_id`,
+`draft_time`, `rank`, `opp_rank`, `on_play`, `num_turns`, `won`.
+
+The file is not tracked in git (16 MB, binary, publicly re-downloadable). Its URL,
+SHA256 and shape are in [`data/raw/source_manifest.json`](../data/raw/source_manifest.json).
+Fetch it and verify the hash.
+
+**Three findings**, established by the discarded work and worth carrying forward:
+
+1. `identity_matrix_*` was a 43,160 ├ù 6 rank-bucket indicator matrix, not a deck
+   representation. The deck representation is
+   `D_ij = count(card j in deck i) / deck_size_i`.
+2. `rank` is a six-level skill bucket. This dataset has **no** persistent player
+   identifier, which is why splitting must be by draft ID and leakage control is
+   weaker than a player-grouped design would give.
+3. The reliability-adjusted historical skill proxy ΓÇö `hist_w` map, ╬╗ = 5,
+   shrinkage in logit space toward ╬╝ ΓÇö is reusable as the fixed baseline `p_base`.
+   It is a nuisance representation and is not a measurement of skill.
+
+## What governs the rebuild
+
+[`MTG_Deck-Strength_Modeling_Benchmark.md`](./MTG_Deck-Strength_Modeling_Benchmark.md).
+It supersedes `Model_Building.md` in full.
+
+The design is two axes against frozen splits, one learner family, one metric panel:
+
+- **Target formulation** ΓÇö T0 raw outcome, T1 bump against the historical skill
+  proxy, T2 bump against a cross-fitted learned skill model.
+- **Deck representation** ΓÇö R0 skill only, R1 card identity, R2 knowledge graph,
+  R3 game script, R4/R5 combinations.
+
+Its ┬º17 fixes the first step and halts before any model is fit: audit the raw
+game-level data, quantify how often deck configuration changes within a draft,
+build the game-level table, verify the skill variables, freeze the splits, produce
+an audit report, stop for review.
+
+That step is a clean task card ΓÇö every criterion is checkable, and no holdout is
+opened. It is the next thing to do.
+
+## Interpretive caution, carried forward
+
+The 7-wins / 3-losses stopping rule concentrates the outcome distribution and puts
+an irreducible binomial-sampling floor under the residual variance. A low R┬▓ here
+is not comparable to R┬▓ from an unbounded-length outcome, and the ceiling is
+unknown without the latent `p_i` distribution. Do not describe any observed R┬▓ as
+approaching a theoretical maximum.
+
+And per ┬º13 of the benchmark: a null incremental R┬▓ does **not** establish that
+deck composition has no causal effect on win probability. It supports only the
+narrower claim that a given representation, learner and dataset failed to detect
+one.
+
+```
+
+### attic/haiku-2026-09-07/README.md
+
+```
+# Quarantined: modeling pipeline written 2026-09-07
+
+**Nothing in this directory governs, runs, or may be cited.** It is kept because
+`INSTRUCTIONS.md` ┬º6 preserves dead ends rather than erasing them ΓÇö not because
+any of it is usable.
+
+## What this is
+
+The entire Python modeling pipeline as it stood on 2026-09-07, plus everything it
+produced. It was generated by Claude Haiku, which the project owner found did not
+follow the specification reliably. The code is untrusted; therefore so is every
+number downstream of it.
+
+The decision to quarantine is recorded in the `DECISION` entry of 2026-09-07 in
+`LABNOTEBOOK.md`. The files were tracked and pushed before that decision, in
+commit `529baf3`, so they remain in git history at that commit regardless of
+this move.
+
+## What is here, and where it came from
+
+| Now at | Was at |
+|---|---|
+| `build_identity_matrix.py` | repository root |
+| `scripts/build_model_table.py` | `scripts/` |
+| `scripts/00_outcome_and_split.py` | `scripts/` |
+| `scripts/01_fit_m0_m1.py` | `scripts/` |
+| `scripts/01_fit_m0_m1_old.py` | `scripts/` |
+| `scripts/02_comprehensive_metrics.py` | `scripts/` |
+| `scripts/03_model_comparison_and_plots.py` | `scripts/` |
+| `src_data/build_model_table.py` | `src/data/` |
+| `results/` | `results/` |
+| `figures/` | `figures/` |
+| `data_processed/` | `data/processed/` |
+
+The two `build_model_table.py` files are kept in separate subdirectories because
+they share a basename and had **diverged** ΓÇö the `scripts/` one was newer and added
+NaN defaults for missing skill buckets; the `src/data/` one sat at the path the
+(now also superseded) `docs/Model_Building.md` specified. Neither was ever
+reconciled. That duplication is itself a symptom.
+
+`data_processed/MANIFEST.sha256` is tracked so the discarded state stays
+identifiable; the parquet/npy blobs it names, and the `.xgb` model binaries, are
+gitignored and exist only on disk.
+
+## What was NOT quarantined, and why
+
+- **`data/raw/game_data_public.HOB.PremierDraft.csv.gz`** ΓÇö source data from
+  17Lands, not produced here. Provenance in `data/raw/source_manifest.json`.
+- **`scripts/R/`** ΓÇö written 2025-12 to 2026-02, a different author and the
+  earlier causal analysis.
+- **The whole knowledge-graph arm** ΓÇö `src/hobkg/`, `tests/`, and
+  `scripts/build_set_network_html.py` date from 2026-09-05 and earlier and are
+  unaffected.
+
+## Known defects, recorded so the rebuild does not repeat them
+
+1. **`identity_matrix_*` is not a deck representation.** `build_identity_matrix.py`
+   builds a 43,160 ├ù 6 **rank-bucket** indicator matrix and its "player index" is
+   keyed on `rank`. Rank is a six-level skill bucket, not a player identifier;
+   this dataset carries no persistent player ID. The true representation is
+   `D_ij = count(card j in deck i) / deck_size_i`, from the `deck_*` columns.
+
+2. **The reported results contradict each other.** `results/model_comparison_report.txt`
+   gives M0 R┬▓ = ΓêÆ0.0001 and M1 R┬▓ = 0.0471. An earlier README revision, describing
+   the same M0-vs-M1 holdout comparison, gave 0.1594 and 0.1785. Both cannot be
+   right. Where a confidence interval was computed at all, it crossed zero ΓÇö so
+   the headline "M1 improves on M0" was never supported by its own numbers.
+
+3. **A `KEY FINDINGS` section asserting three checkmarked improvements**, in the
+   same file whose companion analysis reports the effect as statistically
+   insignificant.
+
+4. **`draft_model_table.parquet` was regenerated after the rest**, so the hashes in
+   `data_processed/MANIFEST.sha256` do not describe a single coherent pipeline run.
+
+5. **Date range reported as 1988ΓÇô2025.** The actual `draft_time` span is
+   2026-08-11 to 2026-08-29 ΓÇö three weeks. The old figure looks like numeric game
+   fields parsed as years.
+
+## The replacement
+
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs the rebuild. Its ┬º17 fixes
+the first step and stops before any model is fit: audit the raw game-level data,
+quantify how often deck configuration changes within a draft, build the game-level
+table, verify the skill variables, freeze the splits, report, and hold for review.
+
+Start from that spec and the raw CSV. Do not start from this directory.
+
+```
+
+
+### [2026-09-08 09:41] ASSISTANT
+VERDICT: PASS
+
+CRITERIA:
+- **Names each key column verbatim in the .md** â€” PASS. Section 1 table gives `draft_id` (draft identifier), `won` (per-game outcome), `deck_ column family` (deck contents), `draft_time` + `game_time` (timestamps), `rank`, `user_game_win_rate_bucket` (historical win-rate), `user_n_games_bucket` (games-played). All present.
+- **Explicit persistent-player-id statement, no substitute nominated** â€” PASS. Section 2 (and JSON `player_identifier.statement`): "No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute." Uses the required "none exists" framing and refuses `rank`/`opp_rank` as substitutes.
+- **Total games/drafts/columns computed, not transcribed** â€” PASS. Section 3: 241727 games, 43161 drafts, 985 columns. `run_audit` streams and counts; the anti-hardcoding grep test (below) proves these are not source literals.
+- **Within-draft deck variation quantified** â€” PASS. Section 5: distinct-configs-per-draft distribution `1:34970, 2:6636, 3:1314, 4:210, 5:29, 6:2`; drafts with >1 deck = 8191 (0.189778); games after a deck change = 28397 (0.117475). All three required quantities present.
+- **Deck-size distribution + illegal flag** â€” PASS. Section 7 gives the full sizeâ†’rows distribution (40..60), floor `LEGAL_MIN_DECK_SIZE=40`, and 0 rows below. The module correctly notes Limited has no maximum, so "outside range" = below 40 (per comprehensive rule 100.2b) â€” a sound rules interpretation, not an omission.
+- **Card-count consistency check with a count** â€” PASS (with disclosed interpretation). Section 8 states no standalone deck-size column exists, defines deck size as the sum of `deck_` columns, and reports rows off the modal legal size = 15680 and rows below legal min = 0. The interpretation is explicitly disclosed rather than silently assumed, which the reviewer rules acceptable given the absent column.
+- **Skill-variable within-draft constancy count** â€” PASS. Section 9: `rank` non-constant in 5420 drafts, `user_game_win_rate_bucket` 0, `user_n_games_bucket` 0.
+- **Observational-unit recommendation with justifying numbers** â€” PASS. Section 10 recommends the game level, citing 0.1898 of drafts with >1 deck and 0.1175 of games after a change, keyed by `draft_id + game_time`, and flags it as a recommendation the operator ratifies at card 007.
+- **JSON carries every number machine-readably** â€” PASS. `reports/modeling_data_audit.json` mirrors all report fields (dataset totals, census, within_draft, deck_size, build_index_behavior, recommendation) for card 004 to consume.
+- **Byte-identical JSON across two runs** â€” PASS. `write_reports` uses `json.dumps(sort_keys=True)` and `_round_floats(..., 6)`; digest is `blake2b` (unseeded). `test_json_report_is_byte_identical_across_two_runs` passed in the audit entry (10 passed).
+- **No hardcoded column list / row / draft literals; grep test present** â€” PASS. Column families are matched by prefix and non-card columns computed; `test_module_source_has_no_hardcoded_totals` greps `audit.py` and asserts `total_games`/`total_drafts`/`total_columns` do not appear as literals. Verified absent in source (semantic anchors like `"draft_id"` are individual role constants, not the file's column list).
+- **Chunked read, no full 1165-column matrix in memory** â€” PASS. `_iter_chunks` batches the `csv.reader` at `CHUNK_ROWS=20000`; only per-draft aggregates (digests, skill values) accumulate â€” no full matrix retained. Observed 985 columns (â‰  declared 1165) is surfaced as a discrepancy, per the card's instruction to report rather than reconcile.
+- **Tests pass; clean under ruff and mypy --strict** â€” PASS. Audit entry: `pytest tests/test_deckbench_audit.py -q` â†’ 10 passed (both check and validation); `ruff check --select E,F,I,B,UP` â†’ all passed; `mypy --strict src/deckbench/audit.py` â†’ success.
+
+SUMMARY:
+Every acceptance criterion is satisfied with concrete evidence from the delivered files and the passing audit entry. The audit computes all totals by streaming the raw CSV, discovers column families by prefix rather than a baked-in list, names each semantic column verbatim, refuses to nominate a player-id substitute, quantifies within-draft deck variation and build_index behavior, and recommends the game-level unit with the measured fractions that justify it. Determinism, anti-hardcoding, chunked reading, and lint/type cleanliness are all independently verified by passing tests and validation commands. Two judgment calls â€” defining the card-count check against the modal legal size (no standalone deck-size column) and treating "illegal" as below the 40-card floor (Limited has no maximum) â€” are explicitly disclosed in the report and are sound, and the 985-vs-1165 column mismatch is correctly reported as a finding.

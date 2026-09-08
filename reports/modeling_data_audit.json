@@ -1,0 +1,229 @@
+{
+  "column_census": {
+    "card_family_counts": {
+      "deck_": 193,
+      "drawn_": 193,
+      "opening_hand_": 193,
+      "sideboard_": 193,
+      "tutored_": 193
+    },
+    "non_card_column_count": 20,
+    "non_card_columns": [
+      "expansion",
+      "event_type",
+      "draft_id",
+      "draft_time",
+      "game_time",
+      "build_index",
+      "match_number",
+      "game_number",
+      "rank",
+      "opp_rank",
+      "main_colors",
+      "splash_colors",
+      "on_play",
+      "num_mulligans",
+      "opp_num_mulligans",
+      "opp_colors",
+      "num_turns",
+      "won",
+      "user_n_games_bucket",
+      "user_game_win_rate_bucket"
+    ],
+    "total_columns": 985
+  },
+  "dataset": {
+    "draft_time_max": "2026-08-29 23:39:41",
+    "draft_time_min": "2026-08-11 15:43:42",
+    "malformed_rows": 0,
+    "path": "data/raw/game_data_public.HOB.PremierDraft.csv.gz",
+    "total_columns": 985,
+    "total_drafts": 43161,
+    "total_games": 241727
+  },
+  "deck_size": {
+    "card_count_consistency": {
+      "note": "No standalone deck-size column exists; deck size is defined as the sum of the deck_ columns. The consistency check is whether that sum lands on the modal legal size on every row.",
+      "rows_below_legal_min": 0,
+      "rows_off_modal_size": 15680
+    },
+    "distribution": [
+      [
+        40,
+        226047
+      ],
+      [
+        41,
+        13424
+      ],
+      [
+        42,
+        1064
+      ],
+      [
+        43,
+        568
+      ],
+      [
+        44,
+        245
+      ],
+      [
+        45,
+        142
+      ],
+      [
+        46,
+        63
+      ],
+      [
+        47,
+        27
+      ],
+      [
+        48,
+        36
+      ],
+      [
+        49,
+        24
+      ],
+      [
+        50,
+        27
+      ],
+      [
+        51,
+        5
+      ],
+      [
+        52,
+        8
+      ],
+      [
+        53,
+        10
+      ],
+      [
+        54,
+        12
+      ],
+      [
+        55,
+        8
+      ],
+      [
+        56,
+        3
+      ],
+      [
+        57,
+        4
+      ],
+      [
+        58,
+        5
+      ],
+      [
+        60,
+        5
+      ]
+    ],
+    "illegal_deck_size_counts": [],
+    "legal_min_deck_size": 40,
+    "max_observed": 60,
+    "min_observed": 40,
+    "modal_size": 40,
+    "rows_below_legal_min": 0
+  },
+  "declared_vs_observed_match": {
+    "columns": false,
+    "drafts": true,
+    "rows": true
+  },
+  "key_columns": {
+    "deck_contents": "deck_ column family",
+    "draft_identifier": "draft_id",
+    "draft_timestamp": "draft_time",
+    "per_game_outcome": "won",
+    "per_game_timestamp": "game_time",
+    "present": {
+      "build_index": true,
+      "draft_id": true,
+      "draft_time": true,
+      "game_number": true,
+      "game_time": true,
+      "match_number": true,
+      "rank": true,
+      "user_game_win_rate_bucket": true,
+      "user_n_games_bucket": true,
+      "won": true
+    },
+    "rank": "rank",
+    "user_games_played_bucket": "user_n_games_bucket",
+    "user_historical_win_rate_bucket": "user_game_win_rate_bucket"
+  },
+  "manifest_declared": {
+    "columns": 1165,
+    "drafts": 43161,
+    "rows": 241727
+  },
+  "player_identifier": {
+    "persistent_player_id_exists": false,
+    "statement": "No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute."
+  },
+  "recommended_observational_unit": {
+    "rationale": "The deck is recorded per game and it changes within a draft: 0.1898 of drafts carry more than one deck configuration and 0.1175 of games are played after a deck change. Averaging a draft's games would blend distinct decks in exactly those drafts, so the observational unit is the game, keyed by draft_id + game_time. This follows benchmark section 6.",
+    "unit": "game"
+  },
+  "within_draft": {
+    "build_index_behavior": {
+      "drafts_build_index_and_config_bijective": 43100,
+      "drafts_build_index_determines_deck_config": 43161,
+      "drafts_build_index_nonconstant": 8241,
+      "drafts_build_index_varies_while_deck_constant": 50,
+      "drafts_deck_config_determines_build_index": 43100,
+      "drafts_deck_config_nonconstant": 8191,
+      "drafts_deck_varies_while_build_index_constant": 0
+    },
+    "skill_columns_nonconstant_within_draft": {
+      "rank": 5420,
+      "user_game_win_rate_bucket": 0,
+      "user_n_games_bucket": 0
+    },
+    "total_drafts": 43161,
+    "total_games_from_draft_map": 241727,
+    "within_draft_deck_variation": {
+      "distinct_configs_per_draft_distribution": [
+        [
+          1,
+          34970
+        ],
+        [
+          2,
+          6636
+        ],
+        [
+          3,
+          1314
+        ],
+        [
+          4,
+          210
+        ],
+        [
+          5,
+          29
+        ],
+        [
+          6,
+          2
+        ]
+      ],
+      "drafts_with_more_than_one_deck": 8191,
+      "fraction_drafts_with_more_than_one_deck": 0.189778,
+      "fraction_games_after_a_deck_change": 0.117475,
+      "games_after_a_deck_change": 28397
+    }
+  }
+}

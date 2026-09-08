@@ -71,9 +71,10 @@
                         "file_mtime_local":  "2026-09-05T10:05:59-04:00",
                         "rows":  241727,
                         "drafts":  43161,
-                        "columns":  1165,
+                        "columns":  985,
+                        "columns_corrected_from":  1165,
                         "draft_time_range":  ["2026-08-11 15:43:42", "2026-08-29 23:39:41"],
-                        "note":  "17Lands public game-level dataset for HOB Premier Draft, one row per game. Deck composition is carried by the deck_<card> columns (also opening_hand_/drawn_/tutored_/sideboard_ families); 18 non-card columns include draft_id, draft_time, rank, opp_rank, on_play, num_turns, won. NOT tracked in git -- 6x larger than any other source here and the only binary one; re-download from the URL above and verify the sha256. Retrieval timestamp was not logged at download time; file_mtime_local is the best available proxy. Consumed by the modeling arm (docs/Model_Building.md), not by the knowledge graph."
+                        "note":  "17Lands public game-level dataset for HOB Premier Draft, one row per game. 985 columns = 20 non-card + 5 card families of 193 each (deck_, sideboard_, opening_hand_, drawn_, tutored_). Deck composition is carried by the deck_<card> family. The 20 non-card columns are expansion, event_type, draft_id, draft_time, game_time, build_index, match_number, game_number, rank, opp_rank, main_colors, splash_colors, on_play, num_mulligans, opp_num_mulligans, opp_colors, num_turns, won, user_n_games_bucket, user_game_win_rate_bucket. CORRECTION 2026-09-08: this entry previously recorded 1165 columns and 18 non-card columns. Both were wrong. The count came from splitting the header on commas, but 170 field names contain a comma (e.g. \"opening_hand_Azog, Moria's Ruin\"), which inflated the total by 180 and corrupted the non-card list, dropping the two user_*_bucket columns the modeling arm depends on. Found by the card 003 audit, which parses with csv.reader; verified independently. NOT tracked in git -- 6x larger than any other source here and the only binary one; re-download from the URL above and verify the sha256. Retrieval timestamp was not logged at download time; file_mtime_local is the best available proxy. Consumed by the modeling arm (docs/MTG_Deck-Strength_Modeling_Benchmark.md), not by the knowledge graph."
                     }
                 ]
 }

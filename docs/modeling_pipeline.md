@@ -23,9 +23,15 @@ Unaffected by the quarantine: `scripts/R/` (the earlier causal analysis, written
 
 **The raw data.** `data/raw/game_data_public.HOB.PremierDraft.csv.gz` — the 17Lands
 public game-level dataset, one row per game: 241,727 rows across 43,161 drafts,
-1,165 columns, `draft_time` spanning 2026-08-11 to 2026-08-29. Deck composition is
-carried by the `deck_*` columns; the 18 non-card columns include `draft_id`,
-`draft_time`, `rank`, `opp_rank`, `on_play`, `num_turns`, `won`.
+**985 columns**, `draft_time` spanning 2026-08-11 to 2026-08-29. That is 20
+non-card columns plus five card families of 193 each (`deck_`, `sideboard_`,
+`opening_hand_`, `drawn_`, `tutored_`). Deck composition is carried by the
+`deck_*` family.
+
+> An earlier revision of this file said 1,165 columns and 18 non-card columns.
+> Both were wrong, from splitting the header on commas when 170 field names
+> contain one. The card 003 audit caught it and `data/raw/source_manifest.json`
+> records the correction.
 
 The file is not tracked in git (16 MB, binary, publicly re-downloadable). Its URL,
 SHA256 and shape are in [`data/raw/source_manifest.json`](../data/raw/source_manifest.json).

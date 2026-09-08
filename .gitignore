@@ -31,7 +31,7 @@ audit/artifacts.db-journal
 audit/artifacts.db-wal
 audit/artifacts.db-shm
 
-# 17Lands public game-data snapshot: 16MB gzipped, 1165 columns, 241727 game rows.
+# 17Lands public game-data snapshot: 16MB gzipped, 985 columns, 241727 game rows.
 # Six times larger than any other tracked source and the only binary one. It is a
 # public download, so provenance (url + sha256 + bytes) is recorded in
 # data/raw/source_manifest.json instead and the file is fetched, not versioned.
