@@ -2099,3 +2099,27 @@ Quarantined with them: `results/`, `figures/`, `data/processed/`.
 **Next step is unchanged and now unambiguous:** benchmark §17. Audit the raw game-level data, quantify within-draft deck changes, build the game-level table, verify the skill variables, freeze the splits, report, stop for review. Start from the spec and the raw CSV — not from the attic.
 
 Refs: `attic/haiku-2026-09-07/README.md`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md`; `docs/modeling_pipeline.md`; commit `529baf3` (where the quarantined files remain in history); [[tracer-bullet-portability]]
+
+---
+
+## [2026-09-08 14:23] RESULT — Benchmark Phase 1 frozen; audit report delivered; halt before model fitting (card 007)
+
+Card 007 consolidates the benchmark's Phase 1 (cards 003–006) into one operator-readable audit and stops for review, as section 17 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md` requires. No model is fit, no metric is computed on any partition, and the external holdout is not opened — `cycle/holdout_ledger.jsonl` is byte-identical (empty, 0 bytes) before and after. Every number in the report was recomputed from the frozen artifacts, not restated from card prose.
+
+**Frozen dataset (row counts recomputed from the parquet files; digests from `data/processed/MANIFEST.sha256` and the two report inputs):**
+- Observations: **241727** games; drafts: **43161**. Unit ratified as the **game** because deck configuration changes within a draft (8191 drafts / 0.1898; 28397 games / 0.1175 after a change) — averaging a draft's games would blend distinct decks.
+- Card-identity representation `D_ij = count(j)/deck_size_i`: **193 features** over 241727 rows (`deck_identity.parquet` `e09a9217…`; name map `card_identity_manifest.csv` `73d18aee…`).
+- `base_p` (reliability-shrunk historical-WR proxy, T1's fixed baseline — a nuisance representation, **not** skill): `skill_features.parquet` `0f399d1f…`, **166 null** `base_p`/`base_p_raw` (near-new players, kept null, never imputed).
+- Frozen split (`model_split.parquet` `17c7cc7d…`, pinned in `split_manifest.json` `fa5af944…`, seed 20260908, `time_based_holdout`): dev **194348** rows / **34529** drafts, holdout **47379** rows / **8632** drafts (0.2000 of drafts, 0.1960 of games); **5** dev folds (39316/39067/38915/38479/38571), holdout fold −1. **No draft spans two partitions (0) or two folds (0).**
+
+**Leakage checks (recomputed):** `won` appears only in `model_table.parquet` as carried metadata — in no feature table (`deck_identity`/`skill_features`/`model_split` verified to lack it); split is by draft, not game row; cross-fitting is internal to dev; the four processed tables share one `obs_id` set exactly (total joins).
+
+**Player identity:** none exists (`persistent_player_id_exists = false`); `rank` is a skill bucket, used nowhere as a grouping key. The player-grouped split is therefore unavailable and the time-based holdout is a **weaker** leakage control (same player may recur across the time boundary) — recorded, not treated as equivalent.
+
+**Findings carried to the operator (uncertainties, not resolved by assumption):** declared column count 1165 vs observed **985** (a raw-manifest discrepancy — the observed count is the authority); the 166 null-proxy rows' disposition (keep vs exclude) is an operator call; 15680 rows carry a non-modal deck size (all ≥ legal min 40); `mu` = 0.546211 is a per-game mean; the `hist_w` map is inherited, not derived.
+
+**Tooling delivered:** `tools/check_append_only.py` verifies a file's committed **git blob** is a byte-level prefix of its working tree, comparing blobs (via `git hash-object`/`cat-file`) rather than working copies — so `* text=auto` LF/CRLF normalization cannot manufacture a false violation (the exact failure noted for this repo on 2026-09-07). It exits non-zero naming the first differing byte offset. `tests/test_check_append_only.py` covers a genuine append, a mid-file edit, and a blob-vs-working line-ending difference (5 tests pass). `python tools/check_append_only.py LABNOTEBOOK.md` exits zero on this very entry, proving the notebook was appended to, not edited.
+
+**Phase 2 is not authorized to begin until the operator has reviewed `reports/benchmark_phase1_audit.md`.** The report's "what Phase 2 may assume" section pins seven numbered claims to artifact SHA256s so the next phase verifies the ground rather than trusting a recollection — the adjudicable record the quarantined 2026-09-07 pipeline lacked.
+
+Refs: `reports/benchmark_phase1_audit.md`; `tools/check_append_only.py`; `tests/test_check_append_only.py`; `reports/{modeling_data_audit,model_table_build,skill_proxy,split_and_seal}.md`; `data/processed/MANIFEST.sha256`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§§16–17); `INSTRUCTIONS.md` §3; [[phase4-frozen]]
