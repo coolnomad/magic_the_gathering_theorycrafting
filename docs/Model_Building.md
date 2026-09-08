@@ -1,3 +1,31 @@
+> # ⚠ SUPERSEDED — 2026-09-07
+>
+> **This document no longer governs.** It is replaced in full by
+> [`MTG_Deck-Strength_Modeling_Benchmark.md`](./MTG_Deck-Strength_Modeling_Benchmark.md).
+> Do not implement against it, and do not treat any instruction here as current
+> even where the benchmark is silent.
+>
+> It is kept, unedited below this banner, because the repository preserves dead
+> ends rather than erasing them (`INSTRUCTIONS.md` §6). Two things in it remain
+> historically load-bearing and are carried forward by the benchmark:
+>
+> * the correction that `data/processed/identity_matrix_*` is a 43,160 × 6
+>   **rank-bucket** matrix and not a deck representation;
+> * the reliability-shrunk historical skill proxy (`hist_w` map, λ = 5, logit-space
+>   shrinkage toward μ), which the benchmark reuses as T1's fixed baseline.
+>
+> Where the two documents disagree — the observational unit (this one says draft,
+> the benchmark prefers game), the outcome (grouped binomial vs. the T0/T1/T2
+> target axis), and the model ladder (M0–M4 vs. the target × representation
+> matrix) — **the benchmark wins**.
+>
+> Note also that commit `a0d01ce` describes the benchmark as *subsuming* this
+> document and retaining it as a secondary replication benchmark. That was wrong;
+> the owner's decision is supersession. See the `DECISION` entry of 2026-09-07 in
+> `LABNOTEBOOK.md`.
+
+---
+
 We are rebuilding the MTG Premier Draft deck-strength model.
 
 Important correction: the files currently called `identity_matrix_*` are NOT the deck identity representation. They are a 43,160 × 6 rank-bucket indicator matrix. Do not use those as the deck representation.

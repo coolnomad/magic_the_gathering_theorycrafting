@@ -2043,3 +2043,33 @@ Review `PHASE4_review_pt18.md` (verdict **REPAIR**, reviewed_commit `a8ead2f`) c
 Commit trailers: `Role: worker`, `Phase: Phase 4`, `Iteration: 4f-repair2`, `Addresses-Review:`/`Addresses-Implementation:` for pt18/a8ead2f. Reviewer's uncommitted artifacts left untouched.
 
 Refs: `src/hobkg/effect_semantics.py` (`_exile_effects` controller block); `tests/test_effect_exile.py`; `data/graph_global/effect_records.jsonl`; `docs/hob_effect_semantics_repair_instructions_PHASE4_review_pt18.md`; [[phase4-frozen]]
+
+---
+
+## [2026-09-07 21:40] DECISION — `MTG_Deck-Strength_Modeling_Benchmark.md` supersedes `Model_Building.md`
+
+**Decision (owner).** The deck-strength modeling benchmark replaces `docs/Model_Building.md` **in full**. Model_Building is not retained as a secondary draft-level replication benchmark; it does not govern any part of the modeling arm. It stays on disk, unedited beneath a superseded banner, per `INSTRUCTIONS.md` §6 (dead ends are recorded, not erased).
+
+**Correction to the record.** Commit `a0d01ce`, which introduced the benchmark, states in its message that the benchmark *subsumes* Model_Building and keeps it as a secondary replication benchmark at draft level. That was the assistant's inference from reading the two documents side by side — the benchmark's §6 says the draft/run-level formulation "may be retained" — and it was not the owner's intent. The commit message cannot be amended (already pushed, and `cycle/ledger.jsonl` plus `tests/test_commit_trailers.py` make rewriting the range costly for no benefit). This entry is the correction; the banner in `Model_Building.md` points here.
+
+**What changes, concretely.** Three points where the documents disagreed now resolve to the benchmark:
+
+| Axis | Model_Building (superseded) | Benchmark (governing) |
+|---|---|---|
+| observational unit | draft | **game**, where the audit shows deck configuration is recorded per game; splits by draft ID regardless |
+| outcome | grouped binomial, `label=wins/games`, `weight=games` | **target axis** T0 raw / T1 original bump / T2 cross-fitted learned-skill bump |
+| model ladder | M0 → M4, representation only | **target × representation matrix**, R0–R5 |
+
+The consequence worth flagging: under Model_Building, "does residualizing skill expose deck signal?" was a fixed methodological choice. Under the benchmark it is **H2**, a hypothesis with a predicted ordering (deck signal under T2 > T1 > T0) that the experiment can refute. That is a strict improvement in falsifiability and the main reason the supersession is not merely bookkeeping.
+
+**What is carried forward** rather than discarded with the superseded document:
+
+1. The correction that `data/processed/identity_matrix_*` (43,160 × 6) is a **rank-bucket** indicator matrix, not a deck identity representation. The true representation remains `D_ij = count(card j in deck i) / deck_size_i`, recoverable from the `deck_*` columns confirmed present in the raw CSV.
+2. The reliability-adjusted historical skill proxy (`hist_w` map, λ = 5, logit-space shrinkage toward μ), which the benchmark reuses unchanged as T1's fixed baseline `p_base`. It is a nuisance representation and is still not to be called true skill.
+3. The prohibition on treating `rank` as a player identifier. No persistent player ID exists in this dataset; the six rank buckets are not six players.
+
+**Open, not decided here.** Two artifacts still cover one job and will drift if left: `scripts/build_model_table.py` (newer, adds NaN defaults for missing skill buckets) and `src/data/build_model_table.py` (older, at the path the superseded document specified). The benchmark's §17 audit is the natural place to collapse them.
+
+**Next step is fixed by the benchmark, not by choice.** §17 halts work before any model is fit: audit the raw game-level data, quantify how often deck configuration changes within a draft, build the game-level table, verify the skill variables, freeze the splits, produce an audit report, stop for review. No holdout is opened during that step.
+
+Refs: `docs/MTG_Deck-Strength_Modeling_Benchmark.md`; `docs/Model_Building.md` (superseded banner); `docs/modeling_pipeline.md`; commits `529baf3`, `a0d01ce`; [[phase4-frozen]]

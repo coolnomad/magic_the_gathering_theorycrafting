@@ -26,14 +26,25 @@ Phases 0–6 of [`docs/hob-knowledge-graph-build-spec.md`](./docs/hob-knowledge-
 are complete and frozen, with an effect-semantics overlay through Phase 4f.
 Layer 2 derives ports for all 210 faces with zero unresolved abilities.
 
-**2. A statistical modeling pipeline** over 43,161 real Premier Draft events,
-comparing progressively richer deck representations against a fixed outcome, split
-and metric set — M0 (skill) → M1 (+ card identity) → M2 (+ KG) → M3 → M4.
-See [`docs/modeling_pipeline.md`](./docs/modeling_pipeline.md) and the rebuild spec
-[`docs/Model_Building.md`](./docs/Model_Building.md).
+**2. A statistical modeling benchmark** over 43,161 real Premier Draft events
+(241,727 games), estimating what deck construction contributes to win probability
+once player skill is accounted for. The design is two axes held against frozen
+splits, one learner family and one metric panel:
 
-The arms meet at **M2**: whether the mechanistic graph carries predictive signal
+- **target formulation** — T0 raw outcome, T1 bump against the historical skill
+  proxy, T2 bump against a cross-fitted learned skill model;
+- **deck representation** — R0 skill only, R1 card identity, R2 knowledge graph,
+  R3 game script, and their combinations.
+
+The governing spec is
+[`docs/MTG_Deck-Strength_Modeling_Benchmark.md`](./docs/MTG_Deck-Strength_Modeling_Benchmark.md);
+the current pipeline state is [`docs/modeling_pipeline.md`](./docs/modeling_pipeline.md).
+(`docs/Model_Building.md` is superseded and kept only as record.)
+
+The arms meet at **R2**: whether the mechanistic graph carries predictive signal
 that raw card identity does not is the load-bearing empirical test of this project.
+R3 sharpens it further — knowing a mechanism *exists* is not the same as knowing
+it is *reliably reachable* in a real game.
 
 ## The record
 

@@ -4,9 +4,10 @@ The statistical arm of this repository: predict per-game win probability in HOB
 Premier Draft from a skill proxy plus deck representation, so that increasingly
 rich representations can be compared under a fixed outcome, split and metric set.
 
-> **Status (2026-09-07): this pipeline is being rebuilt.** See
-> [`Model_Building.md`](./Model_Building.md). The artifacts described below were
-> produced before that spec was written and carry a known defect — the files named
+> **Status (2026-09-07): this pipeline is being rebuilt.** The governing spec is
+> [`MTG_Deck-Strength_Modeling_Benchmark.md`](./MTG_Deck-Strength_Modeling_Benchmark.md),
+> which supersedes `Model_Building.md` in full. The artifacts described below were
+> produced before either spec was written and carry a known defect — the files named
 > `identity_matrix_*` are a 43,160 x 6 **rank-bucket** indicator matrix, not a deck
 > identity representation. The true representation is one row per draft, one column
 > per card, value = card count in deck / deck size, recoverable from the `deck_*`
@@ -40,9 +41,10 @@ byte-for-byte, the same role `frozen_manifest.json` plays for `data/graph_global
 † **Two variants of this script exist and need reconciling.**
 `scripts/build_model_table.py` is the newer one (adds NaN defaults for missing
 `user_game_win_rate_bucket` / `user_n_games_bucket`); `src/data/build_model_table.py`
-is the earlier one, but sits at the path [`Model_Building.md`](./Model_Building.md)
-specifies in its Deliverables. Both are committed to preserve the state; pick one
-during the rebuild rather than letting them drift.
+is the earlier one, but sits at the path the superseded
+[`Model_Building.md`](./Model_Building.md) specified in its Deliverables. Both are
+committed to preserve the state; pick one during the rebuild rather than letting
+them drift.
 
 ```bash
 python scripts/build_model_table.py
