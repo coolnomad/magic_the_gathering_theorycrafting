@@ -14,19 +14,65 @@ transcribed from the prose of the cards. Where a number appears, it was recomput
 from the parquet/CSV/JSON file named beside it. Artifact digests are pinned so a
 later card can confirm the ground has not moved.
 
+**This report was re-frozen at card 008.** The operator reviewed it, decided the
+two open questions of section 7, and card 008 applied those decisions and
+re-derived every artifact. All counts and digests below reflect the re-frozen
+dataset; the amendment immediately following records what changed. The full
+change log is `reports/phase1_refreeze.md`.
+
 ---
 
-## 1. What Phase 1 produced
+## 0. Amendment — the operator decisions applied (card 008)
+
+Section 7 of the original report put two questions to the operator. Both were
+answered at the phase-1 review, and card 008 applies them by re-deriving the
+dataset from the raw CSV under a new **modeling population** definition. No model
+is fit, no metric is computed, and the holdout is not opened
+(`cycle/holdout_ledger.jsonl` stays byte-identical, 0 bytes).
+
+1. **The 166 null-skill games are excluded from the modeling population.** They
+   have no historical win-rate bucket and so cannot be scored by R0. Measured
+   from the raw file, they belong to **59 drafts, every one entirely null** (no
+   partial draft), so excluding games and excluding drafts are one operation. The
+   exclusion is applied once, in `deckbench.table`, and every downstream table
+   inherits that population. The split is **recomputed** on the smaller
+   population, not filtered.
+
+2. **The games-played bucket set is taken from the data.** The inherited `1000`
+   `hist_w` entry never occurs in this dataset and was removed; the accepted set
+   is now derived from the data and the weights remain the inherited assumption.
+   Card 005's structurally-absent-null carve-out is deleted — a null win-rate
+   bucket in the population now stops the run.
+
+| Quantity | Before (card 007) | After (card 008) |
+| --- | --- | --- |
+| Observations (games) | 241,727 | **241,561** |
+| Drafts | 43,161 | **43,102** |
+| Null-skill games / drafts excluded | 0 / 0 | **166 / 59** |
+| Development rows / drafts | 194,348 / 34,529 | **194,215 / 34,482** |
+| Holdout rows / drafts | 47,379 / 8,632 | **47,346 / 8,620** |
+| Dev fold sizes | 39316 / 39067 / 38915 / 38479 / 38571 | **39280 / 39038 / 38902 / 38446 / 38549** |
+| `mu` | 0.546211 | **0.546211** (unchanged by construction) |
+| Games-played buckets | {1,5,10,50,100,500,1000} | **{1,5,10,50,100,500}** |
+
+The **halt of section 8 is now satisfied for the phase-1 dataset**: the operator
+reviewed this report and the dataset is re-frozen under their decisions. Phase 2
+authorization still depends on the operator writing Phase 2 acceptance criteria;
+nothing here begins Phase 2.
+
+---
+
+## 1. What Phase 1 produced (re-frozen at card 008)
 
 | Card | Concern | Primary artifact | SHA256 |
 | --- | --- | --- | --- |
 | 003 | Raw data audit | `reports/modeling_data_audit.json` | `c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c` |
-| 004 | Game-level table | `data/processed/model_table.parquet` | `59576fbedd96458271766f84ccd86e5e821a0c7ee765a6cb59a078cd9810d4bb` |
-| 004 | Card-identity representation | `data/processed/deck_identity.parquet` | `e09a92176cb0feb3732a50a50cfb3fa2f07d27dfcf0f4dc2394e748710d026d1` |
-| 004 | Card-identity name map | `data/processed/card_identity_manifest.csv` | `73d18aee9367a6fba6cff778e1c0afc63e1cfdbd63a03387f36c785c5a351e77` |
-| 005 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `0f399d1fc4eb6090e66e08c5145027f162abdea92d14582293d0a572fc75d119` |
-| 006 | Frozen split + folds | `data/processed/model_split.parquet` | `17c7cc7de643987ef2dcccfba27af8a11dc4ac16462e93ea2078aa10ee2e7479` |
-| 006 | Split provenance / seal | `data/splits/split_manifest.json` | `fa5af944084d3862a56a03ddd1147f02661e1f16762ff3a3f3abc284af368922` |
+| 004 / 008 | Game-level table | `data/processed/model_table.parquet` | `d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750` |
+| 004 / 008 | Card-identity representation | `data/processed/deck_identity.parquet` | `2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c` |
+| 004 / 008 | Card-identity name map | `data/processed/card_identity_manifest.csv` | `8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9` |
+| 005 / 008 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc` |
+| 006 / 008 | Frozen split + folds | `data/processed/model_split.parquet` | `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4` |
+| 006 / 008 | Split provenance / seal | `data/splits/split_manifest.json` | `6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163` |
 
 The five `data/processed` artifacts are the ones pinned in
 `data/processed/MANIFEST.sha256`; `sha256sum -c data/processed/MANIFEST.sha256`
@@ -55,6 +101,11 @@ is well defined (benchmark section 6). The split is nonetheless assigned by draf
 never by game row (section 4 below), so this choice does not create cross-partition
 leakage.
 
+The counts in this section are the audit's measurements over the **raw file**
+(241727 games, 43161 drafts); they justified the unit before the population was
+defined. The modeling population after the card-008 null-skill exclusion is
+241561 games across 43102 drafts (section 4).
+
 ---
 
 ## 3. Persistent player identifier, and what its absence implies
@@ -76,22 +127,24 @@ nowhere as a grouping key, player id, or stratifier.
 
 ---
 
-## 4. Final row counts
+## 4. Final row counts (re-frozen at card 008)
 
-All counts recomputed from the parquet files named.
+All counts recomputed from the parquet files named; the population is
+post-exclusion (the 166 null-skill games in 59 drafts are gone).
 
 | Quantity | Value | Source artifact |
 | --- | --- | --- |
-| Observations (games) | **241727** | all four `data/processed/*.parquet` (row counts agree) |
-| Drafts | **43161** | `model_split.parquet` distinct `draft_id` (34529 dev + 8632 holdout) |
+| Observations (games) | **241561** | all four `data/processed/*.parquet` (row counts agree) |
+| Drafts | **43102** | `model_split.parquet` distinct `draft_id` (34482 dev + 8620 holdout) |
+| Null-skill games / drafts excluded | **166 / 59** | `model_table_build.md` (derived from the raw file) |
 | Card-identity features | **193** | `deck_identity.parquet` (194 cols − `obs_id`); `card_identity_manifest.csv` 193 rows |
-| Development rows | **194348** | `model_split.parquet` `partition == dev` |
-| Development drafts | **34529** | `model_split.parquet` |
-| Holdout rows | **47379** | `model_split.parquet` `partition == holdout` |
-| Holdout drafts | **8632** | `model_split.parquet` |
-| Holdout fraction | **0.2000 of drafts, 0.1960 of games** | `split_manifest.json` |
+| Development rows | **194215** | `model_split.parquet` `partition == dev` |
+| Development drafts | **34482** | `model_split.parquet` |
+| Holdout rows | **47346** | `model_split.parquet` `partition == holdout` |
+| Holdout drafts | **8620** | `model_split.parquet` |
+| Holdout fraction | **0.199991 of drafts, 0.196000 of games** | `split_manifest.json` |
 | Cross-fitting folds (dev) | **5** | `model_split.parquet` |
-| Fold sizes (dev rows) | 0 → 39316, 1 → 39067, 2 → 38915, 3 → 38479, 4 → 38571 | `model_split.parquet` |
+| Fold sizes (dev rows) | 0 → 39280, 1 → 39038, 2 → 38902, 3 → 38446, 4 → 38549 | `model_split.parquet` |
 | Holdout fold marker | −1 (all holdout rows) | `model_split.parquet` |
 | Split seed | **20260908** | `split_manifest.json` |
 | Split rule | `time_based_holdout` | `split_manifest.json` |
@@ -109,42 +162,43 @@ verify these digests before relying on the claim; a mismatch means the dataset
 moved and any comparison built on it is void. This is the adjudicable record the
 quarantined pipeline lacked.
 
-1. **The modeling unit is the game, and there are 241727 of them.**
+1. **The modeling unit is the game, and there are 241561 of them** (the raw file
+   has 241727; the 166 null-skill games are excluded from the population).
    `data/processed/model_table.parquet`
-   (`59576fbedd96458271766f84ccd86e5e821a0c7ee765a6cb59a078cd9810d4bb`),
-   241727 rows, one per `obs_id`.
+   (`d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750`),
+   241561 rows, one per `obs_id`.
 
 2. **The card-identity representation is `D_ij = count(card j in deck i) / deck_size_i`,
    over 193 card features, one row per observation.**
    `data/processed/deck_identity.parquet`
-   (`e09a92176cb0feb3732a50a50cfb3fa2f07d27dfcf0f4dc2394e748710d026d1`),
-   241727 rows × 193 features; no feature column is the outcome.
+   (`2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c`),
+   241561 rows × 193 features; no feature column is the outcome.
 
 3. **The 193 feature names round-trip to their verbatim source columns.**
    `data/processed/card_identity_manifest.csv`
-   (`73d18aee9367a6fba6cff778e1c0afc63e1cfdbd63a03387f36c785c5a351e77`),
+   (`8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9`),
    193 rows, one-to-one `source_column ↔ feature_name`.
 
-4. **`base_p` is available as the T1 fixed baseline for every observation that
-   carries a historical win-rate bucket; 166 observations carry a null `base_p`.**
-   `data/processed/skill_features.parquet`
-   (`0f399d1fc4eb6090e66e08c5145027f162abdea92d14582293d0a572fc75d119`),
-   columns `obs_id, base_p_raw, base_p`; 166 nulls in both `base_p` and `base_p_raw`.
-   `base_p` is a reliability-shrunk historical win-rate proxy and a nuisance
-   representation; it is **not** a measurement of player skill and is not to be
-   described as one.
+4. **`base_p` is available as the T1 fixed baseline for every observation in the
+   population; there are no null values.** `data/processed/skill_features.parquet`
+   (`4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc`),
+   columns `obs_id, base_p_raw, base_p`; **0 nulls** in either column (the 166
+   null-bucket games were excluded from the population at card 008, so a null
+   here now fails the build). `base_p` is a reliability-shrunk historical
+   win-rate proxy and a nuisance representation; it is **not** a measurement of
+   player skill and is not to be described as one.
 
 5. **The train/test split is frozen and shared by every model, assigned at draft
    granularity.** `data/processed/model_split.parquet`
-   (`17c7cc7de643987ef2dcccfba27af8a11dc4ac16462e93ea2078aa10ee2e7479`):
-   dev 194348 rows / 34529 drafts, holdout 47379 rows / 8632 drafts, 5 dev folds,
+   (`ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`):
+   dev 194215 rows / 34482 drafts, holdout 47346 rows / 8620 drafts, 5 dev folds,
    holdout fold −1. **No draft spans two partitions (0) and no draft spans two
    folds (0)** — recomputed from the artifact.
 
 6. **The split's identity and the holdout seal are pinned.**
    `data/splits/split_manifest.json`
-   (`fa5af944084d3862a56a03ddd1147f02661e1f16762ff3a3f3abc284af368922`)
-   records `split_sha256 = 17c7cc7d…`, matching claim 5. The holdout is opened
+   (`6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163`)
+   records `split_sha256 = ad7f8596…`, matching claim 5. The holdout is opened
    only through `deckbench.holdout.load_holdout`, which verifies this hash and
    appends to `cycle/holdout_ledger.jsonl` on every read.
 
@@ -198,14 +252,15 @@ being wrong. None is resolved here by assumption.
    time boundary in a way that matters, generalization estimates on the holdout
    will be optimistic. There is no player id with which to bound this risk.
 
-3. **166 observations have a null historical win-rate bucket** (near-new players,
-   all in the lowest games-played buckets: 66 at bucket 1, 100 at bucket 5;
-   `reports/skill_proxy.md`, recomputed as 166 nulls in `skill_features.parquet`).
-   They were **not imputed** — kept null, excluded from the `mu` estimation
-   population. *Consequence:* their T1 baseline `base_p` is undefined; whether to
-   keep them with a null proxy or exclude them from the modeling set is an
-   operator decision this report puts in front of the review, not one Phase 2
-   should make silently.
+3. **RESOLVED at card 008 — the 166 null-win-rate games are excluded from the
+   modeling population.** They were near-new players (66 at games-played bucket 1,
+   100 at bucket 5) with no historical win rate, so R0 cannot score them. The
+   operator decided the exclusion lands at the population definition rather than
+   being carried into Phase 2. Measured from the raw file, all 166 belong to 59
+   **wholly-null** drafts, so games and drafts are excluded as one operation
+   (241727 → 241561 games, 43161 → 43102 drafts). `skill_features.parquet` now
+   carries **0 nulls**, and a null win-rate bucket in the population fails the
+   build. There is no longer a null-handling policy for Phase 2 to invent.
 
 4. **15680 rows carry a deck size other than the modal 40** (max observed 60;
    rows below the legal minimum: 0; `reports/modeling_data_audit.json`,
@@ -219,19 +274,23 @@ being wrong. None is resolved here by assumption.
    Phase 2 fit that quietly aggregates to draft level would blend distinct decks
    in those drafts and misattribute their outcomes.
 
-6. **`mu` is a per-game mean** of `base_p_raw` (= 0.546211 over 241561
-   bucket-bearing rows; `reports/skill_proxy.md`), so drafts with more games
+6. **`mu` is a per-game mean** of `base_p_raw` (= 0.546211 over the whole
+   241561-row population; `reports/skill_proxy.md`), so drafts with more games
    weight the shrinkage target more. Because the historical bucket is constant
    within a draft, this is the only weighting choice that arises; it is recorded
-   rather than hidden. *Consequence if unexamined:* the shrinkage target carries
-   a per-game (not per-player) weighting that a Phase 2 reader should know about.
+   rather than hidden. `mu` is **unchanged** by the card-008 re-freeze: the
+   excluded games never carried a bucket, so they were never in the mean.
+   *Consequence if unexamined:* the shrinkage target carries a per-game (not
+   per-player) weighting that a Phase 2 reader should know about.
 
-7. **`hist_w` reliability map is inherited, not derived** (seven entries,
-   λ = 5; `reports/skill_proxy.md`). Every games-played bucket observed in this
-   file is present in the map; an unmapped bucket fails the run rather than being
-   defaulted. *Consequence:* the map is an assumption carried from the prior R
-   implementation; if a future set of the data introduces a new games bucket, the
-   proxy build halts by design and the map must be extended deliberately.
+7. **`hist_w` reliability map is inherited, not derived** (six entries after
+   card 008, λ = 5; `reports/skill_proxy.md`). The inherited `1000` entry, which
+   this dataset never contains, was removed; the map's keys are now exactly the
+   games-played buckets the population presents, and the accepted set is derived
+   from the data. An unmapped bucket fails the run rather than being defaulted.
+   *Consequence:* the weights are an assumption carried from the prior R
+   implementation; if a future set introduces a new games bucket, the proxy build
+   halts by design and the map must be extended deliberately.
 
 ---
 
@@ -247,5 +306,10 @@ writing Phase 2 acceptance criteria before this report exists would mean writing
 them against unmeasured facts. That is the failure the quarantined pipeline made.
 
 No model is fit, no metric is computed on any partition, and no predictive
-quantity is reported in this document. The dataset is frozen and pinned; the
-next step is the operator's review.
+quantity is reported in this document. The dataset is frozen and pinned.
+
+**Update (card 008):** the operator's review has since happened — its two
+decisions are recorded in section 0 and applied by card 008, which re-froze the
+dataset. The dataset is now coherent with those decisions and carries no
+outstanding null-handling policy. Phase 2 still begins only when the operator
+sets its acceptance criteria; card 008 does not start it.

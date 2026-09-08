@@ -209,6 +209,123 @@ def test_two_builds_are_byte_identical(synthetic: Path) -> None:
 
 
 # --------------------------------------------------------------------------
+# Null-skill exclusion: the modeling population defined here (card 008).
+# --------------------------------------------------------------------------
+
+# A synthetic file that carries the two skill-bucket columns, so the exclusion
+# has something to key on. d1/d2 have a historical win-rate bucket; d4 is wholly
+# null and is excluded together with its whole draft.
+_WR_META = [
+    "draft_id",
+    "game_time",
+    "match_number",
+    "game_number",
+    "won",
+    "rank",
+    "user_game_win_rate_bucket",
+    "user_n_games_bucket",
+]
+_WR_HEADER = _WR_META + ["deck_Ada, the First", "deck_Bob's Bane"]
+_WR_ROWS = [
+    ["d1", "2026-01-01 10:00:00", "1", "1", "True", "gold", "0.55", "10", "2", "1"],
+    ["d1", "2026-01-01 11:00:00", "2", "1", "False", "gold", "0.55", "10", "1", "3"],
+    ["d2", "2026-01-02 09:00:00", "1", "1", "True", "plat", "0.60", "50", "2", "2"],
+    # d4: every game null in the win-rate bucket -> the whole draft is excluded
+    ["d4", "2026-01-04 09:00:00", "1", "1", "False", "gold", "", "10", "3", "1"],
+    ["d4", "2026-01-04 10:00:00", "2", "1", "True", "gold", "", "10", "1", "1"],
+]
+
+
+def _skill_audit(path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "recommended_observational_unit": {"unit": "game"},
+                "key_columns": {
+                    "user_historical_win_rate_bucket": "user_game_win_rate_bucket",
+                    "user_games_played_bucket": "user_n_games_bucket",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture
+def wr_synthetic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    raw = tmp_path / "wr_synthetic.csv.gz"
+    _write_gzip_csv(raw, _WR_HEADER, _WR_ROWS)
+    audit = tmp_path / "audit.json"
+    _skill_audit(audit)
+    monkeypatch.setattr(table, "RAW_CSV", raw)
+    monkeypatch.setattr(table, "AUDIT_JSON", audit)
+    return raw
+
+
+def test_null_skill_draft_is_excluded_and_counted(wr_synthetic: Path) -> None:
+    observations, stats = table.collect_observations()
+    assert stats.skill_bucket_column == "user_game_win_rate_bucket"
+    assert stats.total_rows == len(_WR_ROWS)
+    assert stats.zero_size_dropped == 0
+    assert stats.null_skill_excluded_rows == 2  # d4's two games
+    assert stats.null_skill_excluded_drafts == 1  # the draft d4
+    assert stats.kept_rows == 3
+    assert stats.kept_drafts == 2  # d1, d2
+    # d4 is gone entirely; no game of an excluded draft survives.
+    assert {o.sort_key[0] for o in observations} == {"d1", "d2"}
+
+
+def test_population_obs_ids_excludes_null_drafts(wr_synthetic: Path) -> None:
+    pop = table.population_obs_ids()
+    assert len(pop) == 3
+    # The obs ids of the kept rows are exactly the population.
+    kept, _ = table.collect_observations()
+    assert pop == {o.obs_id for o in kept}
+
+
+def test_partial_null_draft_fails_naming_the_draft(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Make d4 partially null: one game keeps a bucket. Excluding games and
+    # excluding drafts are then no longer the same operation, and the run stops.
+    rows = [list(r) for r in _WR_ROWS]
+    wr_index = _WR_META.index("user_game_win_rate_bucket")
+    rows[3][wr_index] = "0.5"  # d4 game 1 now has a bucket; game 2 still null
+    raw = tmp_path / "partial.csv.gz"
+    _write_gzip_csv(raw, _WR_HEADER, rows)
+    audit = tmp_path / "audit.json"
+    _skill_audit(audit)
+    monkeypatch.setattr(table, "RAW_CSV", raw)
+    monkeypatch.setattr(table, "AUDIT_JSON", audit)
+    with pytest.raises(table.PartiallyNullDraft) as excinfo:
+        table.collect_observations()
+    assert "d4" in str(excinfo.value)
+
+
+def test_exclusion_is_outcome_independent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Flipping every `won` value must not change which games are excluded: the
+    # criterion is the pre-draft win-rate bucket, never the outcome.
+    won_index = _WR_META.index("won")
+
+    def _population(rows: list[list[str]]) -> set[str]:
+        raw = tmp_path / f"case_{rows[0][won_index]}.csv.gz"
+        _write_gzip_csv(raw, _WR_HEADER, rows)
+        audit = tmp_path / "audit.json"
+        _skill_audit(audit)
+        monkeypatch.setattr(table, "RAW_CSV", raw)
+        monkeypatch.setattr(table, "AUDIT_JSON", audit)
+        return table.population_obs_ids()
+
+    base = [list(r) for r in _WR_ROWS]
+    flipped = [list(r) for r in _WR_ROWS]
+    for row in flipped:
+        row[won_index] = "False" if row[won_index] == "True" else "True"
+    assert _population(base) == _population(flipped)
+
+
+# --------------------------------------------------------------------------
 # Real-data acceptance (skipped when the raw file is absent).
 # --------------------------------------------------------------------------
 
@@ -231,6 +348,29 @@ def test_real_unit_is_game_from_audit() -> None:
 def test_real_totals_coherent(real_stats: table.BuildStats) -> None:
     assert real_stats.unit == "game"
     assert real_stats.total_rows > 0
-    assert real_stats.kept_rows == real_stats.total_rows - real_stats.zero_size_dropped
+    # The population is the raw rows minus both exclusions (zero-size decks and
+    # null-skill drafts); card 008 added the second.
+    assert real_stats.kept_rows == (
+        real_stats.total_rows
+        - real_stats.zero_size_dropped
+        - real_stats.null_skill_excluded_rows
+    )
     assert real_stats.key_collisions == 0
     assert real_stats.n_deck_columns == 193
+
+
+@requires_raw
+def test_real_null_skill_exclusion_matches_operator_decision(
+    real_stats: table.BuildStats,
+) -> None:
+    # The figures the operator decision rests on, recomputed from the raw file:
+    # 166 null-win-rate games in 59 wholly-null drafts, leaving 241,561 games
+    # across 43,102 drafts. The code derives these; this test is the acceptance
+    # check that they are what the card expected.
+    assert real_stats.skill_bucket_column == "user_game_win_rate_bucket"
+    assert real_stats.total_rows == 241727
+    assert real_stats.zero_size_dropped == 0
+    assert real_stats.null_skill_excluded_rows == 166
+    assert real_stats.null_skill_excluded_drafts == 59
+    assert real_stats.kept_rows == 241561
+    assert real_stats.kept_drafts == 43102

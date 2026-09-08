@@ -3,9 +3,12 @@
 The proxy is a closed-form transform, so it is checked against **arithmetic**,
 not against its own output: the expected ``base_p`` is recomputed by hand in the
 test from the written formula. The load-bearing guards encode this card's
-centre -- a missing bucket is never imputed with a placeholder, an unmapped
-games bucket fails the run, and the module never reads the outcome column, so
-the proxy cannot absorb current-event information.
+centre after the card-008 re-freeze -- the modeling population has no null
+win-rate buckets, so a null in the population now *fails the run* (the card-005
+carve-out is gone); the games-played buckets accepted are derived from the data
+and the inherited ``1000`` weight is gone; an unmapped games bucket still fails;
+and the module never reads the outcome column, so the proxy cannot absorb
+current-event information.
 """
 
 from __future__ import annotations
@@ -24,14 +27,14 @@ from deckbench import skill
 ROOT = Path(__file__).resolve().parent.parent
 
 # --- Synthetic model table --------------------------------------------------
-# Three rows in the estimation population plus one with an absent historical
-# bucket. base_p_raw over the estimation population is {0.4, 0.6, 0.6} but the
-# duplicate 0.6 is chosen so mu is a clean 0.5 only in the two-value case; here
-# we keep it simple and assert mu against an explicit mean.
-_OBS = ["a", "b", "c", "d"]
-_WIN_RATE = ["0.4", "0.6", "0.5", ""]  # d: empty historical bucket -> null
-_N_GAMES = ["10", "1000", "50", "1"]  # hist_w 3, 14, 6, 1
-_WON = ["True", "False", "True", "True"]  # present so the disjointness test bites
+# The re-frozen population has NO null win-rate bucket, so the synthetic table
+# is three complete rows. Games-played buckets are drawn from the map that
+# remains after card 008 removed the never-used 1000 entry. base_p_raw is
+# {0.4, 0.6, 0.5}, whose mean mu is exactly 0.5.
+_OBS = ["a", "b", "c"]
+_WIN_RATE = ["0.4", "0.6", "0.5"]
+_N_GAMES = ["10", "500", "50"]  # hist_w 3, 12, 6
+_WON = ["True", "False", "True"]  # present so the disjointness test bites
 
 
 def _write_model_table(path: Path) -> None:
@@ -108,13 +111,13 @@ def _hand_base_p(base_p_raw: float, hist_w: float, mu: float) -> float:
 
 def test_base_p_matches_hand_computation(wired: Path) -> None:
     result = skill.build_proxy()
-    # mu is the mean of base_p_raw over the estimation population {a, b, c}.
+    # mu is the mean of base_p_raw over the whole population {a, b, c} = 0.5.
     expected_mu = (0.4 + 0.6 + 0.5) / 3
     assert result.mu == pytest.approx(expected_mu)
 
     by_id = dict(zip(result.obs_ids, result.base_p, strict=True))
     assert by_id["a"] == pytest.approx(_hand_base_p(0.4, 3.0, expected_mu))
-    assert by_id["b"] == pytest.approx(_hand_base_p(0.6, 14.0, expected_mu))
+    assert by_id["b"] == pytest.approx(_hand_base_p(0.6, 12.0, expected_mu))
     assert by_id["c"] == pytest.approx(_hand_base_p(0.5, 6.0, expected_mu))
 
 
@@ -202,22 +205,54 @@ def test_unparseable_win_rate_fails_naming_the_observation() -> None:
     assert "obs-99" in str(exc.value)
 
 
-def test_absent_historical_bucket_is_null_never_imputed(wired: Path) -> None:
-    # Row 'd' has an empty historical win-rate bucket. It must NOT be filled
-    # with 0.5, with mu, or with any other value, and must NOT enter mu.
+def test_empty_win_rate_bucket_fails_naming_the_observation() -> None:
+    # The card-005 carve-out is gone: an empty historical bucket is no longer a
+    # counted null, it is a defect that stops the run naming the observation.
+    with pytest.raises(skill.MissingWinRateBucket) as exc:
+        skill._parse_win_rate("", "obs-13")
+    assert "obs-13" in str(exc.value)
+
+
+def test_null_win_rate_in_population_fails_the_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A null win-rate bucket must never survive into the population; if one is
+    # present (it should have been excluded upstream), build_proxy stops rather
+    # than imputing it with 0.5, the mean, or any placeholder. This is the
+    # stricter rule that replaced the structurally-absent carve-out.
+    processed = tmp_path / "processed"
+    processed.mkdir()
+    mt = processed / "model_table.parquet"
+    pa_tbl = pa.table(
+        {
+            "obs_id": pa.array(["a", "z"], type=pa.string()),
+            "user_game_win_rate_bucket": pa.array(["0.5", ""], type=pa.string()),
+            "user_n_games_bucket": pa.array(["10", "10"], type=pa.string()),
+        }
+    )
+    pq.write_table(pa_tbl, mt)
+    audit = tmp_path / "audit.json"
+    audit.write_text(json.dumps(_audit_payload()), encoding="utf-8")
+    monkeypatch.setattr(skill, "MODEL_TABLE_PARQUET", mt)
+    monkeypatch.setattr(skill, "AUDIT_JSON", audit)
+    with pytest.raises(skill.MissingWinRateBucket) as exc:
+        skill.build_proxy()
+    assert "z" in str(exc.value)
+
+
+def test_no_1000_bucket_key_in_the_map() -> None:
+    # The inherited weight for a games-played bucket the data never contains was
+    # removed at card 008; the map declares weights only for buckets that occur.
+    assert 1000 not in skill.HIST_W_MAP
+
+
+def test_accepted_bucket_set_is_derived_from_the_data(wired: Path) -> None:
+    # The accepted set is whatever the population contains, not a declared list.
     result = skill.build_proxy()
-    by_raw = dict(zip(result.obs_ids, result.base_p_raw, strict=True))
-    by_p = dict(zip(result.obs_ids, result.base_p, strict=True))
-    assert by_raw["d"] is None
-    assert by_p["d"] is None
-    assert result.n_undefined == 1
-    assert result.undefined_by_games_bucket == {1: 1}
-    # mu is the mean over {a, b, c} only; the absent row cannot drag it.
-    assert result.n_estimation == 3
-    assert result.mu == pytest.approx((0.4 + 0.6 + 0.5) / 3)
-    # The absent row is null (asserted above), never the 0.5 or mu placeholder
-    # the quarantined pipeline used.
-    assert by_p["d"] is None
+    assert skill.accepted_games_buckets(result) == result.observed_games_buckets
+    assert result.observed_games_buckets == [10, 50, 500]  # the synthetic buckets
+    # Every observed bucket has a declared weight, or the build would have failed.
+    assert set(result.observed_games_buckets) <= set(skill.HIST_W_MAP)
 
 
 # --------------------------------------------------------------------------
@@ -344,10 +379,15 @@ requires_real = pytest.mark.skipif(
 def test_real_data_counts_and_no_writes() -> None:
     # Read-only: build_proxy does not write, so this touches no tracked file.
     result = skill.build_proxy()
-    assert result.n_obs == 241727
-    assert result.n_estimation + result.n_undefined == result.n_obs
-    # The finding this card surfaces: 166 absent historical win-rate buckets,
-    # all in the lowest games-played buckets.
-    assert result.n_undefined == 166
-    assert set(result.undefined_by_games_bucket) <= {1, 5}
+    # The re-frozen population: the 166 null games are gone, none remain.
+    assert result.n_obs == 241561
+    assert None not in result.base_p_raw
+    assert None not in result.base_p
+    # The accepted (=observed) buckets are exactly the map keys; no 1000.
+    assert skill.accepted_games_buckets(result) == [1, 5, 10, 50, 100, 500]
+    assert set(skill.HIST_W_MAP) == set(result.observed_games_buckets)
+    assert 1000 not in skill.HIST_W_MAP
+    # mu is unchanged from the pre-008 freeze -- the excluded games were never in
+    # the estimation population, so removing them cannot move the mean.
+    assert result.mu == pytest.approx(0.546211, abs=5e-7)
     assert 0.0 < result.mu < 1.0

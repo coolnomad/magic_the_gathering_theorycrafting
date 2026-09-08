@@ -20,9 +20,9 @@ Every partition and every fold is assigned at the `draft_id` level, so no draft'
 
 ## Partition sizes
 
-- Observations: **241727** across **43161** drafts.
-- Development: **194348** rows / **34529** drafts (draft_time 2026-08-11 15:43:42 .. 2026-08-22 12:12:35).
-- Holdout: **47379** rows / **8632** drafts (draft_time 2026-08-22 12:13:19 .. 2026-08-29 23:39:41).
+- Observations: **241561** across **43102** drafts.
+- Development: **194215** rows / **34482** drafts (draft_time 2026-08-11 15:43:42 .. 2026-08-22 12:12:35).
+- Holdout: **47346** rows / **8620** drafts (draft_time 2026-08-22 12:13:19 .. 2026-08-29 23:33:09).
 - Holdout fraction: **0.2000** of drafts, **0.1960** of games.
 
 Every observation is assigned exactly one partition; no row is unassigned and no row is in both.
@@ -33,11 +33,11 @@ Every development observation carries one of **5** cross-fitting folds (benchmar
 
 | fold | dev rows |
 | --- | --- |
-| 0 | 39316 |
-| 1 | 39067 |
-| 2 | 38915 |
-| 3 | 38479 |
-| 4 | 38571 |
+| 0 | 39280 |
+| 1 | 39038 |
+| 2 | 38902 |
+| 3 | 38446 |
+| 4 | 38549 |
 
 ## Determinism and the seed
 

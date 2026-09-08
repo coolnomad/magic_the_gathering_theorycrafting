@@ -27,11 +27,21 @@ Every family the audit found is accounted for explicitly:
 
 The non-card metadata columns (draft id, timestamps, outcome, ranks, colours, turn counts, skill buckets, ...) are carried verbatim as strings; typing them is left to the cards that consume them.
 
+## Modeling population -- null-skill exclusion (card 008)
+
+A game with an empty historical win-rate bucket (column `user_game_win_rate_bucket`) cannot be scored by the benchmark's R0 representation, whose only feature is `base_p`. The operator decided at the phase-1 review that this exclusion lands here, at the point the modeling population is defined, so every downstream table inherits one coherent population rather than each filtering independently. The criterion is a pre-draft covariate; `won` is never consulted.
+
+- Games excluded (empty win-rate bucket): **166**
+- Drafts excluded (every game null): **59**
+
+The excluded set is derived from the data at run time, never hardcoded. Each excluded draft is **entirely** null: the build fails if it ever finds a draft only partially affected, because that would make excluding games and excluding drafts different operations. Here every affected draft is fully null, so the two are the same and no tie-break rule is needed.
+
 ## Row accounting
 
 - Raw rows read: **241727**
 - Zero-size decks dropped: **0** (0.0 of rows)
-- Observations kept: **241727**
+- Null-skill games excluded: **166** across **59** drafts
+- Observations kept: **241561** across **43102** drafts
 - Duplicate-key collisions after keying: **0**
 - Metadata columns carried: **20** (plus `obs_id` and `deck_size`)
 - Deck card columns summed for deck size: **193**
@@ -46,7 +56,7 @@ Rows are written in a fixed order (`draft_id`, `game_time`, `match_number`, `gam
 
 Card 004, part 2. `deckbench.identity` builds `D_ij = count(card j in deck i) / deck size i` from the `deck_` family -- one row per observation, one column per card. It reads only the observation key and the deck counts; the outcome column is never touched, so no feature can derive from wins or losses.
 
-- Observations (rows): **241727**
+- Observations (rows): **241561**
 - Card features (columns): **193**
 - Cards never maindecked (kept at count 0): **0**
 
@@ -60,4 +70,4 @@ Fractions are integer counts over an integer deck size, so each row's true sum i
 
 ### Join and determinism
 
-`deck_identity.parquet` shares the model table's obs-id set exactly (both drop the same zero-size decks) and is written in the same fixed row order, so the two join on `obs_id` with no unmatched rows in either direction. Columns are fixed as `obs_id` then the card features in header order. `data/processed/MANIFEST.sha256` is regenerated over the model table, the identity table and the card manifest.
+`deck_identity.parquet` shares the model table's obs-id set exactly -- it inherits the population from `deckbench.table.population_obs_ids` (the zero-size drop and the null-skill exclusion), rather than re-deriving either -- and is written in the same fixed row order, so the two join on `obs_id` with no unmatched rows in either direction. Columns are fixed as `obs_id` then the card features in header order. `data/processed/MANIFEST.sha256` is regenerated over the model table, the identity table and the card manifest.

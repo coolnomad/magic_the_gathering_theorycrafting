@@ -15,7 +15,7 @@ game-win-rate bucket toward the population mean, in logit space::
 
 with ``base_p_raw`` the historical win-rate bucket, ``hist_w`` set by the
 games-played bucket through :data:`HIST_W_MAP`, ``mu`` the mean of
-``base_p_raw`` over the estimation population, and :data:`LAMBDA` fixed.
+``base_p_raw`` over the modeling population, and :data:`LAMBDA` fixed.
 
 ``base_p`` is **not a measurement of skill**. It is an interim nuisance
 representation and nothing here calls it skill, true skill, or player strength.
@@ -24,6 +24,15 @@ This module reads the two skill-bucket columns and the observation id from the
 already-built ``model_table.parquet``; it never reads ``won``, wins, or losses,
 so the proxy cannot absorb current-event outcome information. It fits nothing
 and tunes nothing -- it is a closed-form transform of two input columns.
+
+The modeling population no longer carries a null win-rate bucket (card 008 moved
+that exclusion upstream to :mod:`deckbench.table`). So every row here has a
+bucket, ``mu`` is the mean over the whole population, and a null win-rate bucket
+in the population is now a defect that **stops the run** -- card 005's
+structurally-absent carve-out is gone rather than left dormant. The set of
+games-played buckets the run accepts is *derived from the data*; the weight
+attached to each is the inherited modeling assumption, declared as data in
+:data:`HIST_W_MAP`, and a bucket observed with no declared weight still fails.
 
 Run it with::
 
@@ -67,9 +76,14 @@ LAMBDA = 5.0
 
 # Reliability weight of the historical win-rate bucket, keyed by the
 # games-played bucket. Declared as DATA, not inlined in the arithmetic, so a
-# reviewer can see the seven-entry inherited map and change it in one place for
-# a Phase-2 sensitivity check. A games-played bucket absent from this map fails
-# the run -- it is never defaulted, rounded to a neighbour, or dropped.
+# reviewer can see the inherited map and change it in one place for a Phase-2
+# sensitivity check. The keys are exactly the buckets this dataset contains --
+# the inherited `1000` entry, which never occurs here, was dropped at card 008
+# because it declared a weight for a bucket the data does not have. The *set* of
+# accepted buckets is derived from the data at run time (see
+# :func:`accepted_games_buckets`); this map supplies the weights, and a games
+# bucket observed with no weight fails the run -- it is never defaulted, rounded
+# to a neighbour, or dropped.
 HIST_W_MAP: dict[int, float] = {
     1: 1.0,
     5: 2.0,
@@ -77,7 +91,6 @@ HIST_W_MAP: dict[int, float] = {
     50: 6.0,
     100: 8.0,
     500: 12.0,
-    1000: 14.0,
 }
 
 # Symmetric clip applied to every probability before any logit. Declared here
@@ -88,8 +101,9 @@ CLIP_EPS = 1e-7
 # Fixed float precision for the report so it renders identically across runs.
 FLOAT_NDIGITS = 6
 
-# The empty cell used by the source for a player who has no historical win-rate
-# bucket yet. See :class:`SkillProxyResult` and the report for the disposition.
+# The empty cell the source uses for a missing bucket. In the frozen modeling
+# population it must not occur: the null-win-rate games were excluded upstream
+# (card 008). If one is seen here it is an unexpected defect and stops the run.
 EMPTY_CELL = ""
 
 
@@ -103,6 +117,16 @@ class UnmappedGamesBucket(ValueError):
 
 class MissingGamesBucket(ValueError):
     """Raised when a row has no games-played bucket at all."""
+
+
+class MissingWinRateBucket(ValueError):
+    """Raised when a population row has no historical win-rate bucket.
+
+    The null-win-rate games are excluded from the modeling population upstream
+    (card 008), so this must never fire on the frozen data. It is the stricter
+    rule that replaced card 005's structurally-absent carve-out: in the
+    population, a null win-rate bucket is a defect, not an expected value.
+    """
 
 
 class UnparseableSkillBucket(ValueError):
@@ -207,17 +231,23 @@ def _parse_games_bucket(raw: str, obs_id: str) -> int:
         ) from exc
 
 
-def _parse_win_rate(raw: str, obs_id: str) -> float | None:
-    """Parse a historical win-rate bucket.
+def _parse_win_rate(raw: str, obs_id: str) -> float:
+    """Parse a historical win-rate bucket, failing on any null or garbage.
 
-    Returns ``None`` for the empty cell -- a player with no historical win rate
-    yet. That is recorded downstream as an undefined proxy (never imputed with
-    0.5, the mean, or any other placeholder) and the count is reported. A
-    non-empty cell that will not parse is an unexpected corruption and fails the
-    run naming the observation.
+    In the frozen modeling population every row carries a bucket -- the
+    null-win-rate games were excluded upstream (card 008). So an empty cell here
+    is not an expected value to carve out; it is a defect that stops the run
+    naming the observation. This is the stricter rule that replaced card 005's
+    structurally-absent carve-out. A non-empty cell that will not parse is an
+    unexpected corruption and likewise fails naming the observation.
     """
     if raw == EMPTY_CELL:
-        return None
+        raise MissingWinRateBucket(
+            f"observation {obs_id} has no historical win-rate bucket. Null "
+            "buckets are excluded from the modeling population upstream (card "
+            "008); one appearing here is a defect, never imputed and never "
+            "carved out."
+        )
     try:
         return float(raw)
     except ValueError as exc:
@@ -231,24 +261,24 @@ class SkillProxyResult:
     """The built proxy table plus the numbers the report needs."""
 
     obs_ids: list[str]
-    base_p_raw: list[float | None]
-    base_p: list[float | None]
+    base_p_raw: list[float]
+    base_p: list[float]
     mu: float
     n_obs: int
-    n_estimation: int
-    n_undefined: int
-    undefined_by_games_bucket: dict[int, int] = field(default_factory=dict)
+    observed_games_buckets: list[int] = field(default_factory=list)
 
 
 def build_proxy() -> SkillProxyResult:
     """Read the two buckets from the model table and build the proxy.
 
-    ``mu`` is the mean of ``base_p_raw`` over the **estimation population**: the
-    observations that carry a historical win-rate bucket. Rows with an empty
-    historical bucket (a player with too few games to have one) are excluded
-    from ``mu`` -- not to drop them, but so an absent value cannot drag the
-    shrinkage target -- and their proxy is recorded as undefined. No row is
-    excluded on any outcome-dependent criterion and ``won`` is never read.
+    Every population row carries a historical win-rate bucket (the null ones
+    were excluded upstream at card 008), so ``mu`` is the mean of ``base_p_raw``
+    over the **whole population** and there is no undefined proxy to record. A
+    null win-rate bucket in the population fails the run. The set of games-played
+    buckets is *derived from the data* -- whatever the population contains -- and
+    each must have a declared weight in :data:`HIST_W_MAP` or the run stops
+    naming the value. No row is excluded on any outcome-dependent criterion and
+    ``won`` is never read.
     """
     if not MODEL_TABLE_PARQUET.exists():
         raise ModelTableMissing(
@@ -263,51 +293,52 @@ def build_proxy() -> SkillProxyResult:
     win_rate_raw: list[str] = table.column(win_rate_col).to_pylist()
     games_raw: list[str] = table.column(games_played_col).to_pylist()
 
-    # First pass: parse both buckets (failing loudly on any unexpected value)
-    # and determine the estimation population for mu.
-    parsed_raw: list[float | None] = []
+    # First pass: parse both buckets (failing loudly on any null or unexpected
+    # value), gather the observed games-played buckets, and sum for mu.
+    base_p_raw: list[float] = []
     hist_weights: list[float] = []
-    undefined_by_games_bucket: dict[int, int] = {}
-    estimation_sum = 0.0
-    estimation_n = 0
+    observed_buckets: set[int] = set()
+    population_sum = 0.0
     for obs_id, wr_raw, g_raw in zip(obs_ids, win_rate_raw, games_raw, strict=True):
         games_bucket = _parse_games_bucket(g_raw if g_raw is not None else "", obs_id)
+        observed_buckets.add(games_bucket)
         hist_weights.append(hist_w_for(games_bucket))
-        base_p_raw = _parse_win_rate(wr_raw if wr_raw is not None else "", obs_id)
-        parsed_raw.append(base_p_raw)
-        if base_p_raw is None:
-            undefined_by_games_bucket[games_bucket] = (
-                undefined_by_games_bucket.get(games_bucket, 0) + 1
-            )
-        else:
-            estimation_sum += base_p_raw
-            estimation_n += 1
+        raw_value = _parse_win_rate(wr_raw if wr_raw is not None else "", obs_id)
+        base_p_raw.append(raw_value)
+        population_sum += raw_value
 
-    if estimation_n == 0:
+    if not obs_ids:
         raise ValueError(
-            "no observation carries a historical win-rate bucket; mu is "
-            "undefined and the proxy cannot be built for this dataset."
+            "the modeling population is empty; mu is undefined and the proxy "
+            "cannot be built."
         )
-    mu = estimation_sum / estimation_n
+    mu = population_sum / len(obs_ids)
 
-    # Second pass: the closed-form transform on the rows that have a bucket.
-    base_p: list[float | None] = []
-    for base_p_raw, hist_w in zip(parsed_raw, hist_weights, strict=True):
-        if base_p_raw is None:
-            base_p.append(None)
-        else:
-            base_p.append(compute_base_p(base_p_raw, hist_w, mu))
+    # Second pass: the closed-form transform on every row.
+    base_p = [
+        compute_base_p(raw_value, hist_w, mu)
+        for raw_value, hist_w in zip(base_p_raw, hist_weights, strict=True)
+    ]
 
     return SkillProxyResult(
         obs_ids=obs_ids,
-        base_p_raw=parsed_raw,
+        base_p_raw=base_p_raw,
         base_p=base_p,
         mu=mu,
         n_obs=len(obs_ids),
-        n_estimation=estimation_n,
-        n_undefined=len(obs_ids) - estimation_n,
-        undefined_by_games_bucket=dict(sorted(undefined_by_games_bucket.items())),
+        observed_games_buckets=sorted(observed_buckets),
     )
+
+
+def accepted_games_buckets(result: SkillProxyResult) -> list[int]:
+    """The games-played buckets the run accepted -- derived from the data.
+
+    This is exactly the set observed in the modeling population (every one of
+    which had a declared weight, or the build would have failed). It is not a
+    hardcoded list; the population determines it, and the report and tests key
+    off it.
+    """
+    return list(result.observed_games_buckets)
 
 
 def _proxy_table(result: SkillProxyResult) -> pa.Table:
@@ -414,24 +445,18 @@ def _within_draft_note() -> str:
 def write_report(result: SkillProxyResult) -> None:
     """Write the human-readable report for the skill proxy."""
     win_rate_col, games_played_col = skill_column_names()
-    undefined_rows = (
-        ", ".join(
-            f"{n} at games-played bucket {b}"
-            for b, n in result.undefined_by_games_bucket.items()
-        )
-        or "none"
-    )
     hist_w_rows = "\n".join(
         f"| {b} | {w:g} |" for b, w in sorted(HIST_W_MAP.items())
     )
+    observed = ", ".join(str(b) for b in result.observed_games_buckets)
     lines = [
         "# Skill proxy `base_p` -- reliability-adjusted historical win rate",
         "",
-        "Card 005. `deckbench.skill` reproduces the benchmark's nuisance skill "
-        "representation `base_p`: the R0 representation and T1's fixed baseline "
-        "(benchmark sections 3-4). It is a closed-form shrinkage of two columns "
-        "of the game-level model table; it fits nothing, tunes nothing, and "
-        "reads no outcome.",
+        "Card 005 (re-frozen at card 008). `deckbench.skill` reproduces the "
+        "benchmark's nuisance skill representation `base_p`: the R0 "
+        "representation and T1's fixed baseline (benchmark sections 3-4). It is a "
+        "closed-form shrinkage of two columns of the game-level model table; it "
+        "fits nothing, tunes nothing, and reads no outcome.",
         "",
         "> **`base_p` is not a measurement of skill.** It is an interim nuisance "
         "representation reproduced verbatim from the inherited R implementation so "
@@ -453,21 +478,29 @@ def write_report(result: SkillProxyResult) -> None:
         f"`{win_rate_col}`.",
         f"- `hist_w` -- reliability weight set by the games-played bucket "
         f"(`{games_played_col}`) through the inherited map below.",
-        f"- `mu` -- the mean of `base_p_raw` over the estimation population "
+        f"- `mu` -- the mean of `base_p_raw` over the modeling population "
         f"(defined below); computed here as **{_round(result.mu)}**.",
         f"- `LAMBDA` -- shrinkage strength toward `logit(mu)`, fixed at "
         f"**{LAMBDA:g}**.",
         "",
-        "The `hist_w` map is kept as **data, not arithmetic**, so the inherited "
-        "seven-entry assumption is visible and changeable in one place:",
+        "## Games-played buckets -- observed set and inherited weights",
+        "",
+        "The set of games-played buckets the run accepts is **derived from the "
+        f"data**: the population contains buckets `{{{observed}}}`, and the run "
+        "processes exactly those. The *weight* attached to each is the inherited "
+        "modeling assumption, kept as **data, not arithmetic**, so it is visible "
+        "and changeable in one place:",
         "",
         "| games-played bucket | hist_w |",
         "| --- | --- |",
         hist_w_rows,
         "",
-        "A games-played bucket absent from this map fails the run naming the "
-        "value; it is never defaulted, rounded to a neighbour, or dropped. The "
-        "buckets observed in this file are all present in the map.",
+        "A games-played bucket observed with no declared weight fails the run "
+        "naming the value; it is never defaulted, rounded to a neighbour, or "
+        "dropped. At card 008 the inherited `1000` entry was removed from the "
+        "map: it declared a weight for a bucket this dataset does not contain and "
+        "so was never exercised. The map's keys are now exactly the buckets the "
+        "population presents.",
         "",
         "## Clipping",
         "",
@@ -477,48 +510,41 @@ def write_report(result: SkillProxyResult) -> None:
         "symmetric on purpose: an asymmetric clip would bias the logit and the "
         "bias would survive the shrinkage.",
         "",
-        "## Estimation population and `mu`",
+        "## Modeling population and `mu`",
         "",
-        f"The estimation population for `mu` is **every observation that carries "
-        f"a historical win-rate bucket**: {result.n_estimation} of "
-        f"{result.n_obs} game-level rows. `mu` is their per-observation "
-        f"(per-game) mean of `base_p_raw` = **{_round(result.mu)}**. No row is "
-        "excluded on any outcome-dependent criterion, and `won` is never read to "
-        "select the population.",
+        f"Every one of the **{result.n_obs}** population rows carries a historical "
+        "win-rate bucket -- the null-win-rate games were excluded upstream at "
+        "card 008, at the point the model table defines the population. So `mu` "
+        "is the per-observation (per-game) mean of `base_p_raw` over the **whole "
+        f"population** = **{_round(result.mu)}**. No row is excluded on any "
+        "outcome-dependent criterion, and `won` is never read to select the "
+        "population.",
+        "",
+        "This value is unchanged from the pre-008 freeze (`mu = 0.546211`). That "
+        "is expected, not a coincidence: card 005 already computed `mu` over the "
+        "rows that carried a bucket -- the same 241,561 rows that now constitute "
+        "the whole population -- so removing the 166 null-bucket games removed "
+        "exactly the rows that were never in the mean. The old and new `mu` "
+        "coincide by construction.",
         "",
         "`mu` is a per-game mean, so a draft with more games weights `mu` more "
         "heavily; because the historical bucket is constant within a draft (see "
         "below), this is the only weighting choice that arises, and it is stated "
         "rather than hidden.",
         "",
-        "## Missing historical win-rate buckets -- a finding, and a documented deviation",
+        "## No null win-rate buckets (card 008 removed the carve-out)",
         "",
-        f"**{result.n_undefined} of {result.n_obs} observations carry an empty "
-        f"historical win-rate bucket** ({undefined_rows}). Every one sits in the "
-        "lowest games-played buckets: these are players with too few recorded "
-        "games to have an established historical win rate yet. The audit "
-        "(`reports/modeling_data_audit.json`) did not count them; this card "
-        "surfaces them.",
-        "",
-        "The quarantined pipeline filled exactly this gap with `0.5` (see "
-        "`attic/haiku-2026-09-07/README.md`), inserting a fabricated average "
-        "player at the centre of the distribution and -- because `mu` is the mean "
-        "of the same column -- dragging the shrinkage target itself. This card "
-        "does the opposite: a missing historical bucket is **never imputed** with "
-        "0.5, the mean, or any placeholder. It is recorded as **null** in both "
-        "`base_p_raw` and `base_p`, and **excluded from the estimation population** "
-        "so it cannot move `mu`.",
-        "",
-        "This is a deliberate, documented deviation from the letter of the card's "
-        "\"a missing bucket fails the run\" criterion, made per the benchmark's "
-        "rule that any deviation is documented rather than silently changed "
-        "(section 5). The run fails loudly on every *unexpected* bucket state "
-        "(an unmapped games bucket, a missing games bucket, a non-empty bucket "
-        "that will not parse); it treats only the *structurally-absent* historical "
-        "win rate of a near-new player as a known, characterised null. The "
-        "final disposition of these rows -- keep with a null proxy, or exclude "
-        "from the modelling set -- is an operator decision that belongs to the "
-        "phase-1 review at card 007, with this count now in front of it.",
+        "Card 005 permitted a structurally-absent historical win-rate bucket as a "
+        "counted null, because failing on it would have made that card's own "
+        "output unsatisfiable. Card 008 excluded those games from the modeling "
+        "population upstream, so the branch is unreachable -- and unreachable "
+        "safety behaviour is worse than none. It is **removed**: a null win-rate "
+        "bucket in the population is now a defect that stops the run naming the "
+        "observation, restoring the original intent of card 005's criterion that "
+        "any null in the population is a defect. The quarantined pipeline filled "
+        "exactly this gap with `0.5` (see `attic/haiku-2026-09-07/README.md`), "
+        "dragging the shrinkage target with a fabricated average player; nothing "
+        "here imputes a missing bucket with 0.5, the mean, or any placeholder.",
         "",
         "## Within-draft variation of the skill columns",
         "",
@@ -530,8 +556,8 @@ def write_report(result: SkillProxyResult) -> None:
         "`base_p`. **Both** the input bucket and the shrunk value are saved, not "
         "just the shrunk value. Keyed on the observation id; it joins to "
         "`model_table.parquet` on that id with no unmatched rows in either "
-        "direction (every model-table row is present; the null-proxy rows are "
-        "present too).",
+        "direction -- both tables carry exactly the modeling population, and "
+        "neither `base_p_raw` nor `base_p` contains a null.",
         "- The proxy is emitted as its own table rather than mutating "
         "`model_table.parquet`, so card 004's artifact stays byte-stable and the "
         "provenance stays legible.",
@@ -563,11 +589,10 @@ def build() -> SkillProxyResult:
 def main() -> None:
     result = build()
     print(
-        f"Skill proxy built: {result.n_obs} observations, "
-        f"{result.n_estimation} in the estimation population "
-        f"(mu = {_round(result.mu)}), {result.n_undefined} with an absent "
-        f"historical win-rate bucket recorded as null. Wrote "
-        f"{SKILL_FEATURES_PARQUET.relative_to(REPO_ROOT).as_posix()} and "
+        f"Skill proxy built: {result.n_obs} observations, mu = "
+        f"{_round(result.mu)}, over games-played buckets "
+        f"{result.observed_games_buckets} (no null win-rate buckets remain). "
+        f"Wrote {SKILL_FEATURES_PARQUET.relative_to(REPO_ROOT).as_posix()} and "
         f"{SHA256_MANIFEST.relative_to(REPO_ROOT).as_posix()}."
     )
 

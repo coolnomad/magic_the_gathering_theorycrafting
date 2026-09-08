@@ -296,8 +296,11 @@ requires_real = pytest.mark.skipif(
 @requires_real
 def test_real_data_split_is_draft_disjoint_and_sized() -> None:
     # Read-only: build_split does not write, so this touches no tracked file.
+    # The split is recomputed on the re-frozen population (card 008): 241,561
+    # games across 43,102 drafts, the null-skill drafts already excluded upstream.
     result = split.build_split()
-    assert result.n_obs == 241727
+    assert result.n_obs == 241561
+    assert result.n_drafts == 43102
     assert result.n_dev_rows + result.n_holdout_rows == result.n_obs
     dev = {d for d, p in zip(result.draft_ids, result.partitions, strict=True) if p == split.DEV}
     hold = {

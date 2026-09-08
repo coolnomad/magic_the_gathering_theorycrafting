@@ -151,9 +151,15 @@ def build_representation() -> IdentityResult:
     """Stream the raw file and build the normalized card-fraction matrix.
 
     Only the observation key and the ``deck_`` counts are read; the outcome and
-    every other metadata column are ignored. Zero-size decks are dropped (same
-    rule as the model table), so the two tables carry an identical obs-id set.
+    every other metadata column are ignored. The modeling population is **not**
+    re-derived here: it is taken from :func:`deckbench.table.population_obs_ids`,
+    which drops zero-size decks and excludes the null-skill drafts (card 008), so
+    this table inherits exactly the model table's obs-id set rather than
+    filtering independently. A row whose obs id is not in that population is
+    skipped before its fraction is computed, so an excluded row never divides by
+    a zero deck size.
     """
+    population = table.population_obs_ids()
     handle, reader, header = open_raw_reader()
     try:
         layout = build_layout(header)
@@ -167,7 +173,10 @@ def build_representation() -> IdentityResult:
             if sum(counts) == 0:
                 continue  # zero-size deck: no representation, dropped upstream
             key_parts = tuple(row[i] for i in key_indices)
-            obs_ids.append(make_obs_id(key_parts))
+            obs_id = make_obs_id(key_parts)
+            if obs_id not in population:
+                continue  # not in the modeling population (inherited, not re-derived)
+            obs_ids.append(obs_id)
             draft_id, game_time, match_no, game_no = key_parts
             sort_keys.append(
                 (draft_id, game_time, table._to_int(match_no), table._to_int(game_no))
@@ -324,12 +333,14 @@ def append_report(result: IdentityResult) -> None:
         "",
         "### Join and determinism",
         "",
-        "`deck_identity.parquet` shares the model table's obs-id set exactly "
-        "(both drop the same zero-size decks) and is written in the same fixed "
-        "row order, so the two join on `obs_id` with no unmatched rows in either "
-        "direction. Columns are fixed as `obs_id` then the card features in "
-        "header order. `data/processed/MANIFEST.sha256` is regenerated over the "
-        "model table, the identity table and the card manifest.",
+        "`deck_identity.parquet` shares the model table's obs-id set exactly -- "
+        "it inherits the population from `deckbench.table.population_obs_ids` "
+        "(the zero-size drop and the null-skill exclusion), rather than "
+        "re-deriving either -- and is written in the same fixed row order, so the "
+        "two join on `obs_id` with no unmatched rows in either direction. Columns "
+        "are fixed as `obs_id` then the card features in header order. "
+        "`data/processed/MANIFEST.sha256` is regenerated over the model table, "
+        "the identity table and the card manifest.",
         "",
     ]
     REPORT_MD.write_text(existing + "\n".join(section), encoding="utf-8", newline="\n")

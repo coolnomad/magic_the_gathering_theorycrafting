@@ -7,6 +7,14 @@ the assignment once, and pins it by hash. It fits nothing, builds no feature, an
 computes no metric -- it produces a partition and, together with
 :mod:`deckbench.holdout`, a gate.
 
+The split is a deterministic function of the model table it reads and the
+declared seed, so the modeling population is defined entirely upstream: card 008
+excluded the null-skill drafts in :mod:`deckbench.table`, and this module simply
+reads the already-excluded ``model_table.parquet`` and **recomputes** the split
+on that population -- the holdout fraction and the five fold sizes are derived
+fresh, never filtered down from an earlier split. Re-running it after the
+re-freeze is all that is needed to re-derive the split byte-for-byte.
+
 The partitioning rules the benchmark fixes, and how this card follows them:
 
 * **Split by draft, never by game row** (section 7). Every partition and every

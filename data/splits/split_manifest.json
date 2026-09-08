@@ -4,34 +4,34 @@
     "2026-08-22 12:12:35"
   ],
   "drafts_per_partition": {
-    "dev": 34529,
-    "holdout": 8632
+    "dev": 34482,
+    "holdout": 8620
   },
   "fold_sizes": {
-    "0": 39316,
-    "1": 39067,
-    "2": 38915,
-    "3": 38479,
-    "4": 38571
+    "0": 39280,
+    "1": 39038,
+    "2": 38902,
+    "3": 38446,
+    "4": 38549
   },
-  "holdout_fraction_drafts": 0.199995,
-  "holdout_fraction_rows": 0.196002,
+  "holdout_fraction_drafts": 0.199991,
+  "holdout_fraction_rows": 0.196,
   "holdout_fraction_target": 0.2,
   "holdout_time_range": [
     "2026-08-22 12:13:19",
-    "2026-08-29 23:39:41"
+    "2026-08-29 23:33:09"
   ],
   "k_folds": 5,
-  "n_drafts": 43161,
-  "n_obs": 241727,
+  "n_drafts": 43102,
+  "n_obs": 241561,
   "persistent_player_id_exists": false,
   "reason": "No persistent player identifier exists in the dataset (see reports/modeling_data_audit.json player_identifier), so the benchmark's preferred player-grouped split is not available. The fallback is a time-based external holdout of approximately the latest 20 percent of drafts by draft_time. This is a weaker leakage control than player grouping: the same player can appear in both partitions under different drafts, and is not treated as equivalent to a player-grouped split. rank is a skill bucket, not a player id, and is used nowhere as a grouping key, player id, or stratifier.",
   "rows_per_partition": {
-    "dev": 194348,
-    "holdout": 47379
+    "dev": 194215,
+    "holdout": 47346
   },
   "rule": "time_based_holdout",
   "seed": 20260908,
   "split_parquet": "data/processed/model_split.parquet",
-  "split_sha256": "17c7cc7de643987ef2dcccfba27af8a11dc4ac16462e93ea2078aa10ee2e7479"
+  "split_sha256": "ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4"
 }

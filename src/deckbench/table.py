@@ -13,6 +13,18 @@ is discovered to be ``(draft_id, game_time, match_number, game_number)`` --
 ``(draft_id, game_time)`` alone is *not* unique in this file, and the collision
 count is reported rather than silently deduplicated.
 
+This module is also where the **modeling population** is defined (card 008). A
+game whose historical win-rate bucket is empty cannot be scored by the R0
+representation, whose only feature is ``base_p``, so such games are excluded
+here -- once, at the source -- and every downstream table (:mod:`deckbench.identity`,
+:mod:`deckbench.skill`, :mod:`deckbench.split`) inherits the same population
+rather than re-deriving the exclusion. The excluded set is derived from the data,
+never hardcoded, and the exclusion is outcome-independent: it consults the
+pre-draft skill covariate, never ``won``. The audit records that the empty
+buckets fall on whole drafts; the run **fails** if it ever finds a draft only
+partially affected, because that would break the equivalence between excluding
+games and excluding drafts.
+
 Nothing about the file's card set is baked into this source: the column
 families are matched by prefix against the header, exactly as the audit does.
 Run it with::
@@ -28,6 +40,7 @@ import csv
 import gzip
 import hashlib
 import json
+from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -73,6 +86,17 @@ KEY_COLUMNS: tuple[str, ...] = (
 # later cards predict); it is never turned into a deck feature.
 OUTCOME_COL = "won"
 
+# The audit key under which the historical win-rate bucket column is named. The
+# modeling population excludes games with an empty value in this column; the
+# column's actual name is read from the audit, not assumed, so a different file
+# with a differently-named bucket is handled by the same code.
+SKILL_WIN_RATE_AUDIT_KEY = "user_historical_win_rate_bucket"
+
+# The value a source cell carries when a player has no historical win-rate
+# bucket yet. It is the emptiness that marks a game for exclusion; it is never
+# imputed or filled.
+EMPTY_CELL = ""
+
 # blake2b is not hash-seeded, so an obs id is stable across runs and machines.
 OBS_ID_DIGEST_SIZE = 16
 # Field separator inside the obs-id preimage: a control byte that cannot occur
@@ -93,6 +117,16 @@ class UnexpectedObservationalUnit(ValueError):
 
 class UnresolvableRow(ValueError):
     """Raised when a row's deck counts cannot be parsed. Names the obs id."""
+
+
+class PartiallyNullDraft(ValueError):
+    """Raised when a draft has both null and non-null historical win-rate rows.
+
+    The population exclusion drops whole drafts whose games all lack a
+    historical win-rate bucket. A draft that is only partially affected would
+    make "exclude games" and "exclude drafts" different operations, so it stops
+    the run rather than being resolved by a silent tie-break.
+    """
 
 
 def _require_raw_file() -> None:
@@ -124,6 +158,27 @@ def observational_unit() -> str:
             "implemented. This builder does not aggregate games into decks."
         )
     return str(unit)
+
+
+def win_rate_column() -> str | None:
+    """The historical win-rate bucket column name from the audit, or ``None``.
+
+    Card 003 established what the skill columns are actually called; the
+    population exclusion takes the win-rate column's name from the audit's
+    ``key_columns`` block rather than assuming it. Returns ``None`` when the
+    audit is absent or does not name the column -- in which case no exclusion is
+    applied and the population is just the zero-size-filtered set. That branch is
+    for a header that carries no such column at all (the synthetic fixtures); on
+    the real file the audit names it and the exclusion runs.
+    """
+    if not AUDIT_JSON.exists():
+        return None
+    payload = json.loads(AUDIT_JSON.read_text(encoding="utf-8"))
+    key_columns = payload.get("key_columns")
+    if not isinstance(key_columns, dict):
+        return None
+    column = key_columns.get(SKILL_WIN_RATE_AUDIT_KEY)
+    return column if isinstance(column, str) and column else None
 
 
 @dataclass(frozen=True)
@@ -242,10 +297,14 @@ class BuildStats:
     unit: str
     total_rows: int
     zero_size_dropped: int
+    null_skill_excluded_rows: int
+    null_skill_excluded_drafts: int
     kept_rows: int
+    kept_drafts: int
     key_collisions: int
     n_non_card_columns: int
     n_deck_columns: int
+    skill_bucket_column: str
 
 
 def _iter_observations() -> Iterator[Observation]:
@@ -258,15 +317,78 @@ def _iter_observations() -> Iterator[Observation]:
         handle.close()
 
 
-def collect_observations() -> tuple[list[Observation], BuildStats]:
-    """Stream the file, drop zero-size decks, and return sorted observations.
+def _win_rate_index(non_card_columns: tuple[str, ...]) -> int | None:
+    """Index of the historical win-rate column within the metadata columns.
 
-    Row order is fixed by :attr:`Observation.sort_key` so the parquet output is
-    byte-reproducible and joins to the identity table on ``obs_id`` in the same
-    order. The count of dropped zero-size decks and of duplicate keys are
-    reported, never silently swallowed.
+    ``None`` when the audit does not name the column, or names one absent from
+    this header. Both cases mean the null-skill exclusion cannot apply, so the
+    population is just the zero-size-filtered set. On the real file the column is
+    named and present, so the exclusion runs.
+    """
+    column = win_rate_column()
+    if column is None or column not in non_card_columns:
+        return None
+    return non_card_columns.index(column)
+
+
+def _exclude_null_skill_drafts(
+    observations: list[Observation], wr_index: int
+) -> tuple[list[Observation], int, int]:
+    """Drop every game belonging to a draft with no historical win-rate bucket.
+
+    A draft is excluded when *all* of its games carry an empty bucket. The run
+    fails naming the offender if any draft is only partially affected, since the
+    equivalence between excluding games and excluding drafts rests on that not
+    happening. Returns the surviving observations plus the excluded row and
+    draft counts. The criterion is the pre-draft win-rate covariate; ``won`` is
+    never consulted.
+    """
+    per_draft: defaultdict[str, list[int]] = defaultdict(lambda: [0, 0])
+    for obs in observations:
+        draft_id = obs.sort_key[0]
+        if obs.non_card[wr_index] == EMPTY_CELL:
+            per_draft[draft_id][0] += 1
+        else:
+            per_draft[draft_id][1] += 1
+
+    partial = sorted(
+        draft_id
+        for draft_id, (n_null, n_present) in per_draft.items()
+        if n_null > 0 and n_present > 0
+    )
+    if partial:
+        raise PartiallyNullDraft(
+            f"{len(partial)} draft(s) have both null and non-null historical "
+            f"win-rate buckets; the first is {partial[0]!r}. Excluding games and "
+            "excluding drafts are no longer the same operation, so the run stops "
+            "rather than choosing a tie-break silently."
+        )
+
+    excluded_drafts = {
+        draft_id for draft_id, (n_null, _n_present) in per_draft.items() if n_null > 0
+    }
+    kept = [obs for obs in observations if obs.sort_key[0] not in excluded_drafts]
+    excluded_rows = len(observations) - len(kept)
+    return kept, excluded_rows, len(excluded_drafts)
+
+
+def collect_observations() -> tuple[list[Observation], BuildStats]:
+    """Stream the file, define the modeling population, and return it sorted.
+
+    Two exclusions define the population: a zero-size deck (no card-fraction
+    representation, would divide by zero) is dropped, and a game with no
+    historical win-rate bucket is excluded together with the rest of its draft
+    (card 008). Row order is fixed by :attr:`Observation.sort_key` so the parquet
+    output is byte-reproducible and joins to the identity table on ``obs_id`` in
+    the same order. Every drop count is reported, never silently swallowed.
     """
     unit = observational_unit()
+    # Layout for the column positions (cheap reopen; the streaming pass below
+    # does not surface the header). This also validates the raw file exists.
+    handle, _reader, header = open_raw_reader()
+    handle.close()
+    non_card_columns = build_layout(header).non_card_columns
+
     kept: list[Observation] = []
     seen: set[str] = set()
     total = 0
@@ -293,17 +415,39 @@ def collect_observations() -> tuple[list[Observation], BuildStats]:
             f"{KEY_COLUMNS} is not injective on this file"
         )
 
+    wr_index = _win_rate_index(non_card_columns)
+    excluded_rows = 0
+    excluded_drafts = 0
+    if wr_index is not None:
+        kept, excluded_rows, excluded_drafts = _exclude_null_skill_drafts(kept, wr_index)
+
     kept.sort(key=lambda o: o.sort_key)
+    kept_drafts = len({o.sort_key[0] for o in kept})
     stats = BuildStats(
         unit=unit,
         total_rows=total,
         zero_size_dropped=dropped,
+        null_skill_excluded_rows=excluded_rows,
+        null_skill_excluded_drafts=excluded_drafts,
         kept_rows=len(kept),
+        kept_drafts=kept_drafts,
         key_collisions=collisions,
         n_non_card_columns=n_non_card,
         n_deck_columns=n_deck,
+        skill_bucket_column=win_rate_column() or "",
     )
     return kept, stats
+
+
+def population_obs_ids() -> set[str]:
+    """The obs-id set of the modeling population, defined once here.
+
+    The downstream card-identity representation reads this rather than
+    re-deriving the exclusion, so the null-skill drop lives in exactly one place
+    and every table carries the same population.
+    """
+    observations, _stats = collect_observations()
+    return {obs.obs_id for obs in observations}
 
 
 def _model_table(observations: list[Observation], layout: Layout) -> pa.Table:
@@ -392,12 +536,37 @@ def write_report(stats: BuildStats) -> None:
         "colours, turn counts, skill buckets, ...) are carried verbatim as "
         "strings; typing them is left to the cards that consume them.",
         "",
+        "## Modeling population -- null-skill exclusion (card 008)",
+        "",
+        "A game with an empty historical win-rate bucket (column "
+        f"`{stats.skill_bucket_column}`) cannot be scored by the benchmark's R0 "
+        "representation, whose only feature is `base_p`. The operator decided at "
+        "the phase-1 review that this exclusion lands here, at the point the "
+        "modeling population is defined, so every downstream table inherits one "
+        "coherent population rather than each filtering independently. The "
+        "criterion is a pre-draft covariate; `won` is never consulted.",
+        "",
+        f"- Games excluded (empty win-rate bucket): "
+        f"**{stats.null_skill_excluded_rows}**",
+        f"- Drafts excluded (every game null): "
+        f"**{stats.null_skill_excluded_drafts}**",
+        "",
+        "The excluded set is derived from the data at run time, never hardcoded. "
+        "Each excluded draft is **entirely** null: the build fails if it ever "
+        "finds a draft only partially affected, because that would make "
+        "excluding games and excluding drafts different operations. Here every "
+        "affected draft is fully null, so the two are the same and no tie-break "
+        "rule is needed.",
+        "",
         "## Row accounting",
         "",
         f"- Raw rows read: **{stats.total_rows}**",
         f"- Zero-size decks dropped: **{stats.zero_size_dropped}** "
         f"({frac_dropped} of rows)",
-        f"- Observations kept: **{stats.kept_rows}**",
+        f"- Null-skill games excluded: **{stats.null_skill_excluded_rows}** "
+        f"across **{stats.null_skill_excluded_drafts}** drafts",
+        f"- Observations kept: **{stats.kept_rows}** across "
+        f"**{stats.kept_drafts}** drafts",
         f"- Duplicate-key collisions after keying: **{stats.key_collisions}**",
         f"- Metadata columns carried: **{stats.n_non_card_columns}** "
         "(plus `obs_id` and `deck_size`)",
@@ -424,8 +593,11 @@ def main() -> None:
     stats = build_model_table()
     write_report(stats)
     print(
-        f"Model table built: {stats.kept_rows} observations "
-        f"({stats.zero_size_dropped} zero-size decks dropped from "
+        f"Model table built: {stats.kept_rows} observations across "
+        f"{stats.kept_drafts} drafts "
+        f"({stats.zero_size_dropped} zero-size decks and "
+        f"{stats.null_skill_excluded_rows} null-skill games in "
+        f"{stats.null_skill_excluded_drafts} drafts dropped from "
         f"{stats.total_rows} rows), {stats.n_non_card_columns} metadata columns. "
         f"Wrote {MODEL_TABLE_PARQUET.relative_to(REPO_ROOT).as_posix()}."
     )
