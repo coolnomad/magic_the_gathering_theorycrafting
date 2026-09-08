@@ -1,7 +1,117 @@
 # HANDOFF — read this first
 
-A fresh session is picking up the HOB (The Hobbit) mechanistic knowledge-graph build.
-Read the items below **in order**, then check the status line, then wait for direction.
+**Last updated 2026-09-08.** Everything below the "KNOWLEDGE-GRAPH ARM" heading
+dates from 2026-08-17 and describes the KG arm only; it is still accurate for
+that arm. Read this top section first — the project has a second arm and the
+active work is there.
+
+---
+
+# CURRENT STATE (2026-09-08)
+
+## Two arms
+
+**1. Knowledge graph (HOB)** — frozen and complete through layer 3. Detail in
+the KG section below. Layer 4 (capacity projection) is unbuilt. Nothing here
+needs attention unless you are asked for it.
+
+**2. Deck-strength modeling benchmark** — this is where the work is. Governed by
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md`, which **supersedes**
+`docs/Model_Building.md` in full (that file carries a superseded banner).
+
+## Where the modeling arm stands
+
+**Phase 1 is complete.** Cards 003–008 are DONE; milestone `benchmark-p1` is
+detected but **not yet confirmed** (`compact milestone ... benchmark-p1`).
+
+The frozen dataset, all pinned by `data/processed/MANIFEST.sha256` (tracked;
+the parquet blobs are gitignored):
+
+| | |
+|---|---|
+| observational unit | **the game** (decks change within 19% of drafts) |
+| population | **241,561 games across 43,102 drafts** |
+| card features | 193, as normalized deck fractions |
+| split | time-based, dev 194,215 / holdout 47,346, 5 folds, seed 20260908 |
+| skill proxy | `base_p`, reliability-shrunk, λ=5 — **never call it skill** |
+| player id | **none exists**; `rank` is a skill bucket, never a player id |
+
+**The holdout is sealed.** `deckbench.holdout.load_holdout(card_id, reason)`
+verifies a hash, refuses without a card id and reason, and appends to
+`cycle/holdout_ledger.jsonl`. That file is **0 bytes** — zero reads so far. It is
+the record that makes "untouched holdout" checkable rather than asserted. Do not
+bypass it.
+
+## The gate — read this before proposing Phase 2
+
+`reports/benchmark_phase1_audit.md` §8 says **Phase 2 is not authorized until
+the operator has reviewed that report**. As of 2026-09-08 the operator was
+reading it. Do not start Phase 2 cards without confirmation.
+
+Its §7 leaves three items genuinely open: 15,680 rows carry a non-modal deck
+size (40–60, all legal, nobody has looked at what they are); `mu = 0.546211` is
+a per-game mean so heavy players weigh more in the shrinkage target; and the
+`hist_w` weights are inherited from the R implementation, not derived.
+
+## Phase 2 when authorized — six cards, 009–014
+
+009 estimator API · 010 metric + calibration panel · 011 T0 · 012 T1 · 013 T2
+(cross-fitted, the hard one) · 014 the single holdout read with the paired
+cluster bootstrap.
+
+Two orderings are load-bearing: **010 before any fitting**, so metrics cannot be
+chosen after seeing results; and **014 opens the seal exactly once** for all six
+models rather than each card evaluating separately.
+
+## Hazards that cost real time — read these
+
+- `python -m hobkg.cli ports` **with no arguments derives the 11-face pilot and
+  overwrites the 210-face `card_ports.jsonl`.** Unrecognized flags are silently
+  ignored, so `ports --help` destroys the artifact. Always pass `--all`.
+- `python -m pytest -q` **rewrites `data/review/llm_accepted.jsonl` and
+  `llm_queued.jsonl` non-deterministically** — different bytes on consecutive
+  runs. Restore them after any full run. This is a real open defect, registered
+  in `registry.md` Success Criteria, and it falsifies "two serial builds agree".
+- Compact applies **two different timeouts**: 300s for `## Checks`, **60s for
+  `## Output Validation`**, neither documented in its GUIDE. Put slow commands
+  in Checks. A validation timeout is serialized into the audit entry as
+  `exit code 0`, which reads as success on a FAIL line.
+- The gate displays skipped default checks as `[DEFAULT]` as though they will
+  run. Display-only; `resolve_checks()` honours the skip.
+- Append-only checks must compare **git blobs, not working copies** — `*
+  text=auto` stores LF while the working copy is CRLF, so the naive comparison
+  reports a violation on every append. `tools/check_append_only.py` does it
+  correctly; use it rather than rolling your own.
+
+## Loose ends
+
+- **Card 001 is still `REVIEW`** — the only card not in a terminal state.
+- `control_plane` has two unpushed local commits (`9a4b829` reviewer binary-file
+  fix, `26eb892` a defects log entry).
+- The quarantined 2026-09-07 modeling pipeline is in `attic/haiku-2026-09-07/`.
+  Its numbers are untrusted and must not be cited; its README explains why.
+
+## How work is run
+
+Cards under `tasks/`, executed by **compact** from the `control_plane` repo:
+
+```
+echo "n" | uv --directory C:/GitHub/control_plane run compact run <this repo> <id>   # gate dry run, no side effects
+echo "y" | uv --directory C:/GitHub/control_plane run compact run <this repo> <id>   # real
+uv --directory C:/GitHub/control_plane run compact review <this repo> <id>           # reviewer only
+```
+
+Dry-running the gate with `n` is free and has caught two blockers that would
+otherwise have wasted a paid run. Do it every time.
+
+Commit trailers must be readable by git's own parser — see `INSTRUCTIONS.md` §8.
+
+---
+
+# KNOWLEDGE-GRAPH ARM (as of 2026-08-17)
+
+The remainder of this file describes the KG build. Test counts here are stale
+(the suite is now 627 tests, covering both arms); the KG facts are current.
 
 ## 1. Mandated project rules (always first)
 - `CLAUDE.md` → it points to `INSTRUCTIONS.md`. **Read both fully.** They set the mission
