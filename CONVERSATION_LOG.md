@@ -80131,3 +80131,1616 @@ CRITERIA:
 
 SUMMARY:
 Re-reviewed against the operator's 2026-09-08 amendment, which split the former single "a missing bucket fails the run" criterion into three: uncharacterized bad states still fail loudly, the one structurally-absent new-player case is permitted as a counted null, and the anti-placeholder rule stands alone. The implementation satisfies all three cleanly â€” it fails loudly on every uncharacterized bad state (missing/unparseable/unmapped), records the 166 real-data empty historical-win-rate buckets as null (excluded from `mu`, counted by games-played bucket), and never substitutes 0.5, the mean, or any placeholder, with a test enforcing it. The module is closed-form, outcome-blind, deterministic, root-relative in its manifest, and clean under ruff and mypy --strict. The only blemish is that the unmapped-games-bucket exception names the offending value and the full map but not the observation id, unlike its sibling failure paths; because that path fails loudly, never defaults, is dataset-level in nature, and does not fire on this dataset, it is a minor consistency note rather than a blocking defect. Task passes.
+
+### [2026-09-08 13:33] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: ACTIVE
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-07
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] reports/modeling_data_audit.json
+
+{
+  "column_census": {
+    "card_family_counts": {
+      "deck_": 193,
+      "drawn_": 193,
+      "opening_hand_": 193,
+      "sideboard_": 193,
+      "tutored_": 193
+    },
+    "non_card_column_count": 20,
+    "non_card_columns": [
+      "expansion",
+      "event_type",
+      "draft_id",
+      "draft_time",
+      "game_time",
+      "build_index",
+      "match_number",
+      "game_number",
+      "rank",
+      "opp_rank",
+      "main_colors",
+      "splash_colors",
+      "on_play",
+      "num_mulligans",
+      "opp_num_mulligans",
+      "opp_colors",
+      "num_turns",
+      "won",
+      "user_n_games_bucket",
+      "user_game_win_rate_bucket"
+    ],
+    "total_columns": 985
+  },
+  "dataset": {
+    "draft_time_max": "2026-08-29 23:39:41",
+    "draft_time_min": "2026-08-11 15:43:42",
+    "malformed_rows": 0,
+    "path": "data/raw/game_data_public.HOB.PremierDraft.csv.gz",
+    "total_columns": 985,
+    "total_drafts": 43161,
+    "total_games": 241727
+  },
+  "deck_size": {
+    "card_count_consistency": {
+      "note": "No standalone deck-size column exists; deck size is defined as the sum of the deck_ columns. The consistency check is whether that sum lands on the modal legal size on every row.",
+      "rows_below_legal_min": 0,
+      "rows_off_modal_size": 15680
+    },
+    "distribution": [
+      [
+        40,
+        226047
+      ],
+      [
+        41,
+        13424
+      ],
+      [
+        42,
+        1064
+      ],
+      [
+        43,
+        568
+      ],
+      [
+        44,
+        245
+      ],
+      [
+        45,
+        142
+      ],
+      [
+        46,
+        63
+      ],
+      [
+        47,
+        27
+      ],
+      [
+        48,
+        36
+      ],
+      [
+        49,
+        24
+      ],
+      [
+        50,
+        27
+      ],
+      [
+        51,
+        5
+      ],
+      [
+        52,
+        8
+      ],
+      [
+        53,
+        10
+      ],
+      [
+        54,
+        12
+      ],
+      [
+        55,
+        8
+      ],
+      [
+        56,
+        3
+      ],
+      [
+        57,
+        4
+      ],
+      [
+        58,
+        5
+      ],
+      [
+        60,
+        5
+      ]
+    ],
+    "illegal_deck_size_counts": [],
+    "legal_min_deck_size": 40,
+    "max_observed": 60,
+    "min_observed": 40,
+    "modal_size": 40,
+    "rows_below_legal_min": 0
+  },
+  "declared_vs_observed_match": {
+    "columns": false,
+    "drafts": true,
+    "rows": true
+  },
+  "key_columns": {
+    "deck_contents": "deck_ column family",
+    "draft_identifier": "draft_id",
+    "draft_timestamp": "draft_time",
+    "per_game_outcome": "won",
+    "per_game_timestamp": "game_time",
+    "present": {
+      "build_index": true,
+      "draft_id": true,
+      "draft_time": true,
+      "game_number": true,
+      "game_time": true,
+      "match_number": true,
+      "rank": true,
+      "user_game_win_rate_bucket": true,
+      "user_n_games_bucket": true,
+      "won": true
+    },
+    "rank": "rank",
+    "user_games_played_bucket": "user_n_games_bucket",
+    "user_historical_win_rate_bucket": "user_game_win_rate_bucket"
+  },
+  "manifest_declared": {
+    "columns": 1165,
+    "drafts": 43161,
+    "rows": 241727
+  },
+  "player_identifier": {
+    "persistent_player_id_exists": false,
+    "statement": "No persistent player identifier exists in the dataset. rank and opp_rank are six-level skill buckets, not player ids, and are not nominated as a substitute."
+  },
+  "recommended_observational_unit": {
+    "rationale": "The deck is recorded per game and it changes within a draft: 0.1898 of drafts carry more than one deck configuration and 0.1175 of games are played after a deck change. Averaging a draft's games would blend distinct decks in exactly those drafts, so the observational unit is the game, keyed by draft_id + game_time. This follows benchmark section 6.",
+    "unit": "game"
+  },
+  "within_draft": {
+    "build_index_behavior": {
+      "drafts_build_index_and_config_bijective": 43100,
+      "drafts_build_index_determines_deck_config": 43161,
+      "drafts_build_index_nonconstant": 8241,
+      "drafts_build_index_varies_while_deck_constant": 50,
+      "drafts_deck_config_determines_build_index": 43100,
+      "drafts_deck_config_nonconstant": 8191,
+      "drafts_deck_varies_while_build_index_constant": 0
+    },
+    "skill_columns_nonconstant_within_draft": {
+      "rank": 5420,
+      "user_game_win_rate_bucket": 0,
+      "user_n_games_bucket": 0
+    },
+    "total_drafts": 43161,
+    "total_games_from_draft_map": 241727,
+    "within_draft_deck_variation": {
+      "distinct_configs_per_draft_distribution": [
+        [
+          1,
+          34970
+        ],
+        [
+          2,
+          6636
+        ],
+        [
+          3,
+          1314
+        ],
+        [
+          4,
+          210
+        ],
+        [
+          5,
+          29
+        ],
+        [
+          6,
+          2
+        ]
+      ],
+      "drafts_with_more_than_one_deck": 8191,
+      "fraction_drafts_with_more_than_one_deck": 0.189778,
+      "fraction_games_after_a_deck_change": 0.117475,
+      "games_after_a_deck_change": 28397
+    }
+  }
+}
+
+
+[READ-ONLY INPUT] docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+# MTG Deck-Strength Modeling Benchmark
+
+## 1. Objective
+
+Build a controlled benchmark for estimating the contribution of **deck construction to win probability after accounting for player skill**.
+
+The experiment has two independent dimensions:
+
+1. **Target formulation** ΓÇö what quantity the model is asked to predict.
+2. **Deck representation** ΓÇö how information about the deck is presented to the model.
+
+The central experimental design is therefore:
+
+$$
+\boxed{\text{Target formulation} \times \text{Deck representation}}
+$$
+
+All model variants must use identical train/validation/test partitions and be evaluated using the same metrics.
+
+The purpose is to distinguish:
+
+* whether skill adjustment exposes deck-level signal;
+* whether raw card identity contains recoverable deck-strength information;
+* whether structured representations such as the mechanistic knowledge graph or game-script features recover additional signal;
+* whether structured representations add information beyond raw card identity.
+
+This is initially a **predictive representation benchmark**. Causal intervention estimation will be layered on after the predictive architecture is characterized.
+
+---
+
+# 2. Fundamental decomposition
+
+Conceptually, assume win probability contains at least:
+
+$$
+P(Y=1) = F(S,D)
+$$
+
+where:
+
+* \(S\) = player skill/context;
+* \(D\) = deck;
+* \(Y\) = game win/loss or corresponding observed win-rate outcome.
+
+A useful conceptual approximation is:
+
+$$
+p_i \approx p_{\text{skill},i}+\Delta_{\text{deck},i}.
+$$
+
+Player skill may generate substantially more between-observation variation than deck quality. For example, player baselines may span approximately 45ΓÇô65% WR while deck effects may operate on the order of approximately \(\pm5\) percentage points.
+
+Consequently, direct prediction of \(Y\) may be dominated by skill even when deck quality has a real and practically important effect.
+
+The benchmark will explicitly test whether residualizing skill improves recovery of deck-level signal.
+
+---
+
+# 3. Experimental axis A: target formulation
+
+## T0 ΓÇö Raw outcome
+
+Predict the observed outcome directly:
+
+$$
+Y_i.
+$$
+
+For game-level modeling:
+
+$$
+Y_{ig}\in\{0,1\}.
+$$
+
+The model estimates:
+
+$$
+\hat p_{ig}=f(S_i,D_{ig}).
+$$
+
+This is the conventional prediction problem.
+
+### Purpose
+
+Establish how much deck information improves prediction of actual outcomes beyond skill.
+
+---
+
+## T1 ΓÇö Original bump
+
+Reproduce the original deck-bump formulation as closely as possible.
+
+Define:
+
+$$
+B_i^{original}
+=
+Y_i-p_{\text{base},i},
+$$
+
+where \(p_{\text{base}}\) is the existing constructed historical skill proxy.
+
+The deck model predicts:
+
+$$
+\widehat B_i^{original}
+=
+f(D_i,S_i).
+$$
+
+Reconstructed win probability is:
+
+$$
+\hat p_i
+=
+p_{\text{base},i}
++
+\widehat B_i^{original}.
+$$
+
+### Purpose
+
+Reproduce the original approach and determine whether directly subtracting the historical skill proxy exposes deck signal better than raw-outcome prediction.
+
+---
+
+## T2 ΓÇö Learned-skill bump
+
+Replace the fixed skill baseline with a learned expected-win model.
+
+First estimate:
+
+$$
+m(S)=E[Y\mid S].
+$$
+
+For every training observation, obtain a **cross-fitted** prediction:
+
+$$
+\hat m_{-i}(S_i).
+$$
+
+Define:
+
+$$
+B_i^{learned}
+=
+Y_i-\hat m_{-i}(S_i).
+$$
+
+Then model:
+
+$$
+\widehat B_i^{learned}
+=
+f(D_i,S_i).
+$$
+
+Final prediction is:
+
+$$
+\hat p_i
+=
+\hat m(S_i)
++
+\widehat B_i^{learned}.
+$$
+
+### Critical requirement
+
+Residuals used to train the deck model must be generated out-of-fold.
+
+An observation must never be used to train the skill model that generates its own baseline prediction.
+
+The external test set must remain completely untouched during this procedure.
+
+### Purpose
+
+Test whether a learned estimate of expected performance given skill provides a cleaner baseline than directly using the historical WR proxy.
+
+---
+
+# 4. Experimental axis B: deck representation
+
+The same deck representations should be tested across the target formulations wherever technically appropriate.
+
+## R0 ΓÇö Skill only
+
+$$
+S
+$$
+
+No deck information.
+
+This is the baseline model.
+
+For residual targets, the exact role of \(S\) should be documented carefully because skill has already been used in construction of the target.
+
+---
+
+## R1 ΓÇö Card identity
+
+$$
+D_{\text{identity}}
+$$
+
+Deck represented by individual card composition.
+
+Preferred representation:
+
+$$
+D_{ij}
+=
+\frac{\text{count of card }j}
+{\text{deck size}}.
+$$
+
+If modeling individual games, this representation must correspond to the deck actually recorded for that game.
+
+Do not aggregate multiple different deck configurations into a synthetic average deck without explicitly testing and documenting that choice.
+
+---
+
+## R2 ΓÇö Knowledge-graph representation
+
+$$
+Z_{\text{KG}}=\phi_{\text{KG}}(D,G).
+$$
+
+Project the deck into the existing mechanistic MTG knowledge graph.
+
+Features should describe functional/mechanistic structure rather than merely relabel card identities.
+
+Exact KG feature engineering will be specified separately.
+
+---
+
+## R3 ΓÇö Game-script representation
+
+$$
+Z_{\text{script}}=\phi_{\text{script}}(D,G).
+$$
+
+Represent the probability distribution over meaningful early/mid-game capabilities generated by the deck.
+
+Candidate features include:
+
+* probability of meaningful T1ΓÇôT10 plays;
+* probability of T2/T3 curve-out;
+* probability of using available mana;
+* expected wasted mana;
+* probability of color screw;
+* probability of developing a creature by a given turn;
+* probability of having interaction available;
+* castable spell count by turn;
+* probability of no meaningful action;
+* probability of reaching important KG-defined synergies or motifs by a useful turn.
+
+The important conceptual distinction is:
+
+$$
+\boxed{\text{Mechanism exists} \neq \text{mechanism is reliably reachable}}
+$$
+
+---
+
+## R4 ΓÇö Identity + KG
+
+$$
+D_{\text{identity}}+Z_{\text{KG}}.
+$$
+
+Tests whether the KG contributes information beyond raw card identity.
+
+---
+
+## R5 ΓÇö Identity + KG + game script
+
+$$
+D_{\text{identity}}
++
+Z_{\text{KG}}
++
+Z_{\text{script}}.
+$$
+
+This is the richest planned representation.
+
+Additional ablations such as KG + script without identity may be added later.
+
+---
+
+# 5. Core experimental matrix
+
+The intended benchmark is:
+
+| Target                | Skill only | Identity | KG | Script | Identity + KG | Identity + KG + Script |
+| --------------------- | ---------: | -------: | -: | -----: | ------------: | ---------------------: |
+| T0 Raw outcome        |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T1 Original bump      |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T2 Learned-skill bump |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+
+Not every cell must necessarily use an identical feature list. For example, skill may appear both in target construction and as a predictor in bump models.
+
+Any deviation must be documented rather than silently changed.
+
+---
+
+# 6. Data unit
+
+The primary new analysis should preferentially operate at the **game level** if the raw dataset provides the deck used for each individual game.
+
+Each observation should then correspond to:
+
+$$
+(S_i,D_{ig},Y_{ig}).
+$$
+
+This avoids averaging together decks when players modify their deck between games.
+
+Before modeling, audit:
+
+* number of games;
+* number of drafts;
+* number of unique deck configurations per draft;
+* fraction of drafts with more than one deck configuration;
+* fraction of games occurring after a deck change;
+* deck-size distribution;
+* card-count consistency;
+* skill-variable consistency within draft.
+
+The original draft/run-level formulation may be retained as a secondary benchmark and direct replication of previous work.
+
+---
+
+# 7. Data splitting
+
+All models must use the **same frozen splits**.
+
+At minimum:
+
+* training;
+* internal validation/cross-fitting;
+* external test set.
+
+Games from the same draft must never cross partitions.
+
+Therefore:
+
+$$
+\boxed{\text{split by draft ID, not game row}}
+$$
+
+If a genuine player identifier exists, prefer player-level separation where appropriate so the same player cannot appear across train and test.
+
+Do not treat rank as player identity.
+
+A time-based external holdout should be considered if genuine player IDs are unavailable.
+
+Save the split assignments to disk and reuse them for every subsequent model.
+
+---
+
+# 8. Common learner
+
+Initially hold the learner family constant so representation changes are not confounded with algorithm changes.
+
+Recommended initial learner:
+
+**XGBoost**
+
+Use appropriate objectives:
+
+* binary/logistic objective for raw game outcomes;
+* regression objective for continuous bump/residual targets.
+
+Hyperparameter tuning procedures should be identical across comparable models.
+
+Do not introduce GNNs or specialized graph learners in the first benchmark.
+
+The immediate question is whether the representation contains useful information, not whether a specialized architecture can exploit it.
+
+---
+
+# 9. Evaluation framework
+
+Every final model should produce predictions on the same untouched external test observations.
+
+Report a common evaluation panel.
+
+## Core metrics
+
+### R┬▓
+
+For continuous bump/residual targets:
+
+$$
+R^2
+=
+1-\frac{\sum_i(y_i-\hat y_i)^2}
+{\sum_i(y_i-\bar y)^2}.
+$$
+
+For Bernoulli/raw-outcome models, do not silently report ordinary regression \(R^2\). Use a clearly defined probability-prediction analogue such as Brier Skill Score or explicitly labeled pseudo-\(R^2\).
+
+---
+
+### RMSE
+
+$$
+RMSE
+=
+\sqrt{
+\frac{1}{N}
+\sum_i(y_i-\hat y_i)^2
+}.
+$$
+
+---
+
+### MAE
+
+$$
+MAE
+=
+\frac{1}{N}
+\sum_i|y_i-\hat y_i|.
+$$
+
+Provides an error measure less sensitive to large misses than RMSE.
+
+---
+
+### Brier score
+
+For final win probabilities:
+
+$$
+BS
+=
+\frac{1}{N}
+\sum_i(\hat p_i-y_i)^2.
+$$
+
+This should be a primary metric for game-level probability predictions.
+
+---
+
+### Log loss
+
+$$
+-\frac{1}{N}
+\sum_i
+[
+y_i\log(\hat p_i)
++
+(1-y_i)\log(1-\hat p_i)
+].
+$$
+
+Useful because it penalizes confident incorrect predictions strongly.
+
+---
+
+### AUC
+
+Report as a secondary discrimination metric.
+
+AUC is not sufficient by itself because the primary scientific interest concerns accurate win probabilities, not merely ranking winners above losers.
+
+---
+
+# 10. Calibration evaluation
+
+Every model producing final win probabilities should undergo identical calibration analysis.
+
+## Calibration intercept
+
+Ideal:
+
+$$
+0.
+$$
+
+Tests systematic overprediction/underprediction.
+
+---
+
+## Calibration slope
+
+Ideal:
+
+$$
+1.
+$$
+
+A slope below 1 generally indicates predictions are too extreme.
+
+A slope above 1 generally indicates predictions are too conservative.
+
+---
+
+## Binned calibration
+
+Create identical probability bins for all models.
+
+For each bin compare:
+
+$$
+\text{mean predicted probability}
+$$
+
+against
+
+$$
+\text{observed win frequency}.
+$$
+
+Use the same binning strategy across models.
+
+Produce a calibration plot with the 45-degree identity line.
+
+---
+
+## Smooth calibration
+
+In addition to bins, fit a smooth calibration function so results do not depend entirely on arbitrary bin boundaries.
+
+The exact implementation can be selected after inspecting the prediction distribution.
+
+GAMLSS should not currently be treated as a required evaluation metric. If a distributional/smooth calibration method based on GAMLSS is considered later, add it as a separate diagnostic rather than conflating it with the core metrics.
+
+---
+
+# 11. Incremental-value analysis
+
+Absolute model performance is not sufficient.
+
+The primary scientific question is:
+
+> How much additional information does a deck representation contribute beyond skill?
+
+Therefore calculate paired differences such as:
+
+$$
+\Delta R^2
+=
+R^2(M_k)-R^2(M_0),
+$$
+
+$$
+\Delta RMSE
+=
+RMSE(M_k)-RMSE(M_0),
+$$
+
+$$
+\Delta BS
+=
+BS(M_k)-BS(M_0),
+$$
+
+and
+
+$$
+\Delta LL
+=
+LL(M_k)-LL(M_0).
+$$
+
+The same principle should be used to compare representations directly, e.g.:
+
+$$
+M_{\text{KG}}-M_{\text{identity}}
+$$
+
+and
+
+$$
+M_{\text{script}}-M_{\text{identity}}.
+$$
+
+---
+
+# 12. Uncertainty
+
+Use a **paired cluster bootstrap** for model comparisons.
+
+Cluster at the draft level so games from a draft are resampled together.
+
+For each bootstrap replicate:
+
+1. sample draft IDs;
+2. include all corresponding games;
+3. evaluate every model on exactly that bootstrap sample;
+4. calculate metric differences.
+
+Report confidence intervals for:
+
+$$
+\Delta R^2,\quad
+\Delta RMSE,\quad
+\Delta Brier,\quad
+\Delta LogLoss
+$$
+
+and other important pairwise comparisons.
+
+The paired design is important because all models predict the same observations.
+
+---
+
+# 13. Interpretation rules
+
+Do not equate lack of incremental predictive performance with absence of a causal deck effect.
+
+For example:
+
+$$
+R^2(S+D)\approx R^2(S)
+$$
+
+supports:
+
+> Card identity provides little detectable incremental predictive information beyond skill under this representation, learner and dataset.
+
+It does **not** establish:
+
+> Deck composition does not affect win probability.
+
+Possible explanations include:
+
+* deck effects are small relative to skill;
+* deck effects are interaction-dependent;
+* card identity is an inefficient representation;
+* outcome noise overwhelms small effects;
+* skill partially proxies expected deck quality because stronger players draft better decks.
+
+This distinction should be maintained throughout the analysis.
+
+---
+
+# 14. Primary hypotheses
+
+### H1 ΓÇö Skill dominance
+
+Skill alone explains substantially more predictable variation in raw outcomes than deck identity.
+
+---
+
+### H2 ΓÇö Residualization
+
+Deck signal is easier to recover when the dominant skill component is removed.
+
+Expected ordering, if this hypothesis is correct:
+
+$$
+\text{deck signal under T2}
+>
+\text{deck signal under T1}
+>
+\text{deck signal under T0}.
+$$
+
+This is a hypothesis, not an assumed result.
+
+---
+
+### H3 ΓÇö Structured representation
+
+Functional deck representations outperform raw identity:
+
+$$
+Z_{\text{KG}}
+\text{ and/or }
+Z_{\text{script}}
+>
+D_{\text{identity}}.
+$$
+
+---
+
+### H4 ΓÇö Reachability
+
+Game-script features add information beyond static mechanistic structure:
+
+$$
+D+Z_{\text{KG}}+Z_{\text{script}}
+>
+D+Z_{\text{KG}}.
+$$
+
+This would support the idea that knowing a mechanism exists is insufficient; its probability of being realized during actual games matters.
+
+---
+
+# 15. Required outputs
+
+For every completed model, save:
+
+* model identifier;
+* target formulation;
+* representation;
+* feature list/version;
+* split version;
+* hyperparameters;
+* test predictions;
+* reconstructed final win probability where applicable;
+* all evaluation metrics;
+* calibration data;
+* bootstrap comparisons;
+* model artifact;
+* random seed;
+* code/git commit.
+
+Create a master results table with one row per model.
+
+At minimum include:
+
+| Model | Target | Representation | R┬▓ | RMSE | MAE | Brier | Log Loss | AUC | Cal. Intercept | Cal. Slope |
+| ----- | ------ | -------------- | -: | ---: | --: | ----: | -------: | --: | -------------: | ---------: |
+
+Also create pairwise/incremental tables relative to the appropriate skill-only and identity baselines.
+
+---
+
+# 16. Implementation order
+
+Do not attempt the full matrix immediately.
+
+### Phase 1 ΓÇö Data audit
+
+Establish the correct observational unit, audit deck changes within drafts, validate skill fields, freeze splits.
+
+### Phase 2 ΓÇö Target benchmark
+
+Using skill and card identity only, implement:
+
+$$
+T0=\text{raw outcome}
+$$
+
+$$
+T1=\text{original bump}
+$$
+
+$$
+T2=\text{learned-skill bump}.
+$$
+
+This determines whether target construction materially affects recovery of deck signal.
+
+### Phase 3 ΓÇö Representation benchmark
+
+Once the target architecture is understood, add:
+
+$$
+D_{\text{identity}}
+\rightarrow
+Z_{\text{KG}}
+\rightarrow
+Z_{\text{script}}
+\rightarrow
+\text{combined representations}.
+$$
+
+### Phase 4 ΓÇö Causal estimation
+
+Only after the predictive benchmark is characterized should the project move to explicit deck/card interventions, g-computation, orthogonalization/DML, substitution effects, or draft-pick policy estimation.
+
+---
+
+# 17. Immediate task
+
+Do **not** start training the complete model matrix yet.
+
+First:
+
+1. audit the raw HOB game-level dataset;
+2. determine whether deck configurations change within drafts and quantify how often;
+3. construct the correct game-level modeling table;
+4. verify the skill variables and reproduce the existing skill proxy;
+5. define and save frozen train/validation/test splits;
+6. produce an audit report;
+7. stop for review before model fitting.
+
+The benchmark architecture above should then be implemented against that frozen dataset.
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+(none)
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/model_table_build.md
+
+# Model table build -- game-level modeling table
+
+Card 004, part 1. `deckbench.table` turns the raw 17Lands HOB Premier Draft file into one row of outcome and metadata per observation. No card fractions, skill proxy, split or model are produced here.
+
+Source file: `data/raw/game_data_public.HOB.PremierDraft.csv.gz`
+Output: `data/processed/model_table.parquet`
+
+## Observational unit
+
+**Unit: game.** Read verbatim from `reports/modeling_data_audit.json` (`recommended_observational_unit.unit`); it is not re-derived or overridden here. The audit ratified the game as the unit because the deck changes within a draft, so averaging a draft's games would blend distinct decks.
+
+## Observation key
+
+The audit recommends keying by `draft_id` + `game_time`. That pair is **not unique** in this file: five game rows share a `(draft_id, game_time)` with another row, distinguishable only by `match_number`. The observation key is therefore the injective 4-tuple `draft_id, game_time, match_number, game_number`, and `obs_id` is a blake2b digest of it. The run fails if any two rows still collide on that key.
+
+## Column families -- included and excluded
+
+Every family the audit found is accounted for explicitly:
+
+| Family | Disposition | Reason |
+| --- | --- | --- |
+| `deck_` | **included** | The maindeck the player registered for this game. This is the deck whose strength the benchmark (R1) represents. |
+| `sideboard_` | excluded | Cards held out of the played 40; not part of the deck that played this game. |
+| `opening_hand_` | excluded | A per-game *realisation* of draws from the deck, not the deck's composition; it is downstream of the shuffle. |
+| `drawn_` | excluded | Same: cards actually drawn during the game, a realised outcome rather than the static deck. Reachability lives in the R3 game-script representation, not in R1 identity. |
+| `tutored_` | excluded | Cards fetched during play; another realised in-game event, not deck construction. |
+
+The non-card metadata columns (draft id, timestamps, outcome, ranks, colours, turn counts, skill buckets, ...) are carried verbatim as strings; typing them is left to the cards that consume them.
+
+## Row accounting
+
+- Raw rows read: **241727**
+- Zero-size decks dropped: **0** (0.0 of rows)
+- Observations kept: **241727**
+- Duplicate-key collisions after keying: **0**
+- Metadata columns carried: **20** (plus `obs_id` and `deck_size`)
+- Deck card columns summed for deck size: **193**
+
+A zero-size deck carries no card-fraction representation (its row sum would divide by zero), so such rows are dropped from both tables and the count is reported here rather than silently discarded.
+
+## Determinism
+
+Rows are written in a fixed order (`draft_id`, `game_time`, `match_number`, `game_number`) and columns in a fixed order (`obs_id`, the metadata columns in header order, then `deck_size`). Two consecutive builds produce byte-identical parquet. The hash is pinned in `data/processed/MANIFEST.sha256`, regenerated by `deckbench.identity`.
+
+## Card-identity representation
+
+Card 004, part 2. `deckbench.identity` builds `D_ij = count(card j in deck i) / deck size i` from the `deck_` family -- one row per observation, one column per card. It reads only the observation key and the deck counts; the outcome column is never touched, so no feature can derive from wins or losses.
+
+- Observations (rows): **241727**
+- Card features (columns): **193**
+- Cards never maindecked (kept at count 0): **0**
+
+### Feature names and reversibility
+
+Each source column such as `deck_<Name, With A Comma>` (card names carry commas and apostrophes) becomes a clean identifier such as `card_name_with_a_comma`. The slug alone cannot recover the comma and apostrophe, so the manifest `card_identity_manifest.csv` records the **verbatim source column** beside every clean name; the mapping is enforced to be one-to-one and the round trip is tested. A card absent from the whole dataset keeps its row with `total_count = 0`, so the feature space is reproducible from the manifest alone.
+
+### Row-sum tolerance
+
+Fractions are integer counts over an integer deck size, so each row's true sum is exactly 1; only float division perturbs it. The tolerance is **1e-09** and any row breaching it fails the run. The worst deviation observed here was **2.220e-16**, well inside the bound.
+
+### Join and determinism
+
+`deck_identity.parquet` shares the model table's obs-id set exactly (both drop the same zero-size decks) and is written in the same fixed row order, so the two join on `obs_id` with no unmatched rows in either direction. Columns are fixed as `obs_id` then the card features in header order. `data/processed/MANIFEST.sha256` is regenerated over the model table, the identity table and the card manifest.
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] INSTRUCTIONS.md
+
+# INSTRUCTIONS ΓÇö Read This First
+
+> **Any LLM (or human) working in this repository must read this file before doing anything else, and must follow the rules in it for the entire session.**
+
+---
+
+## 1. Mission
+
+This repository exists to **develop a mechanistic theory of Limited Magic: The Gathering formats**.
+
+- **Mechanistic** means: we are not satisfied with heuristics or lore ("this deck feels good"). We want *models* ΓÇö explicit, falsifiable statements about *why* things work, grounded in the underlying game mechanics (mana, tempo, card advantage, board state, curve, archetype signals, pack/pick dynamics, etc.).
+- **Limited** means: formats where you build a deck from a restricted, freshly-opened card pool (Draft and Sealed), as opposed to Constructed.
+- **First emphasis: Draft.** Sealed and other Limited formats come later.
+
+The end goal is a body of theory: definitions, hypotheses, models, and experiments that together explain and predict outcomes in Limited play.
+
+---
+
+## 2. The Three Persistent Artifacts
+
+This repo maintains three living documents. **All three are APPEND-ONLY.** See the append-only rules in ┬º3.
+
+| File | Purpose |
+|------|---------|
+| [`LABNOTEBOOK.md`](./LABNOTEBOOK.md) | The scientific record: hypotheses, definitions, experiments, observations, results, decisions. This is where the *theory* is built. |
+| [`CONVERSATION_LOG.md`](./CONVERSATION_LOG.md) | A verbatim transcript of every exchange between the user and any assistant working in this repo. |
+| [`INSTRUCTIONS.md`](./INSTRUCTIONS.md) | This file ΓÇö the rules of the repo. (Editable, but changes should be deliberate and logged in the lab notebook.) |
+
+---
+
+## 3. Append-Only Discipline (NON-NEGOTIABLE)
+
+`LABNOTEBOOK.md` and `CONVERSATION_LOG.md` are **append-only**. This means:
+
+1. **Never edit, reword, reorder, or delete any existing content** in these files. What was written stays written.
+2. **New material is added only at the end** of the file (after the last existing entry).
+3. **Corrections and retractions are new entries**, not edits. If a past hypothesis was wrong, write a *new* lab-notebook entry that references the old one (by its date/title) and explains the correction. The original stays intact ΓÇö being wrong is part of the record.
+4. **The only permitted edit is appending.** If you catch yourself using find-and-replace or deleting lines in these two files, stop.
+
+Rationale: a mechanistic theory is only trustworthy if its full development ΓÇö including dead ends and mistakes ΓÇö is preserved. The history *is* the data.
+
+---
+
+## 4. Conversation Log Rules
+
+Every turn, the assistant must append the exchange to [`CONVERSATION_LOG.md`](./CONVERSATION_LOG.md):
+
+- Append the **user's message verbatim**, then the **assistant's response** (verbatim or a faithful, complete summary if the response was very long / mostly tool calls).
+- Each message gets a header: `### [YYYY-MM-DD HH:MM] USER` or `### [YYYY-MM-DD HH:MM] ASSISTANT`.
+- Do this as part of the same turn, before considering the turn complete.
+
+> **Reliability note:** instruction-following is best-effort. For *guaranteed* capture of every turn, this should be enforced by a Claude Code hook (see ┬º7). Until a hook is in place, the assistant appends manually each turn.
+
+---
+
+## 5. Lab Notebook Rules
+
+`LABNOTEBOOK.md` is the heart of the project. Append a new entry whenever something worth recording happens: a new idea, a definition, an experiment, a result, a design decision, a question.
+
+**Entry format:**
+
+```
+## [YYYY-MM-DD HH:MM] TYPE ΓÇö Short Title
+
+<body>
+
+Refs: <links to other entries, files, or external sources, if any>
+```
+
+**Entry TYPEs:**
+
+- `DEFINITION` ΓÇö a term given a precise meaning (e.g. "tempo", "playable", "signal").
+- `HYPOTHESIS` ΓÇö a falsifiable claim about how Limited works.
+- `EXPERIMENT` ΓÇö a plan to test a hypothesis (what data, what method, what would confirm/refute).
+- `OBSERVATION` ΓÇö raw findings, data, or noticed patterns.
+- `RESULT` ΓÇö the outcome of an experiment, tied back to its hypothesis.
+- `MODEL` ΓÇö a formal or semi-formal model (equations, algorithms, diagrams).
+- `DECISION` ΓÇö a methodological or scope decision and its rationale.
+- `QUESTION` ΓÇö an open question to revisit.
+- `CORRECTION` ΓÇö a retraction/revision of an earlier entry (must reference it).
+
+Keep entries self-contained and dated. Prefer many small entries over one giant one.
+
+---
+
+## 6. Working Principles
+
+- **Falsifiability first.** A hypothesis that can't be tested doesn't belong in the theory; put it under `QUESTION` until you can frame a test.
+- **Define before you build.** Ambiguous terms ("value", "bomb", "curve") get a `DEFINITION` entry before they're used load-bearingly.
+- **Cite reality.** Ground claims in game rules, real draft/game data, or explicit reasoning ΓÇö not vibes.
+- **Preserve dead ends.** Wrong turns are recorded, not erased (┬º3).
+- **Small, frequent commits.** Commit after meaningful changes with clear messages. Handshake commits additionally carry a machine-readable trailer block -- see section 8.
+
+---
+
+## 7. For Claude Code Specifically
+
+- `CLAUDE.md` points here; read this whole file at session start.
+- **Automatic conversation logging is configured** via hooks in `.claude/settings.json`:
+  - `UserPromptSubmit` ΓåÆ `.claude/hooks/log_user.ps1` appends the user's prompt.
+  - `Stop` ΓåÆ `.claude/hooks/log_assistant.ps1` appends the assistant's response (parsed from the session transcript; de-duplicated by message uuid).
+  - These are Windows/PowerShell scripts. They fail silently (never block a turn) and locate `CONVERSATION_LOG.md` relative to themselves.
+- **Caveat:** Claude Code only watches `.claude/` for settings changes if a settings file existed when the session started. After first adding/enabling these hooks, open `/hooks` once (or restart) to activate them; the turn in which they are created is not auto-logged and should be appended by hand.
+- On a non-Windows machine, port the two scripts (e.g. to `jq`+shell) and update the `command`/`shell` fields accordingly.
+
+---
+
+## 8. Commit Trailers (machine-readable)
+
+A commit that is part of the implement/review handshake carries a trailer block
+that **git's own parser can read**. Putting the lines in the message is not the
+same thing, and the difference is invisible until something tries to read them.
+
+### The rules
+
+1. **The trailer block is the last paragraph.** Nothing comes after it.
+2. **`Co-Authored-By` goes inside that block**, not in a paragraph of its own.
+   It is a trailer; git treats it as one; it belongs with the others.
+3. **Keys.** `Role` (`worker` | `reviewer`), `Phase`, `Iteration`;
+   `Reviewed-Commit` on reviewer commits; `Addresses-Review` and
+   `Addresses-Implementation` on repair commits; `Verdict` on reviewer commits;
+   `Validation`, repeatable, one per command.
+4. **`Phase` is namespace-qualified.** Two numbering schemes are live in this
+   repository -- the build spec's Phases 0-6 and the effect-semantics repair's
+   Phases 1-4f, and both have a "Phase 4". Write `effect-4f` or `buildspec-6`,
+   never a bare `Phase 4`.
+5. **Verify after committing.** One command, below.
+
+### Correct
+
+    Effect-semantics <phase>: <what changed>
+
+    <body paragraphs explaining the change>
+
+    Role: worker
+    Phase: effect-4f
+    Iteration: repair2
+    Addresses-Review: <sha>
+    Validation: pytest (434 passed)
+    Co-Authored-By: <name> <email>
+
+### Wrong -- and this is what 36 of the 80 commits before `0315399` do
+
+    ...
+    Role: worker
+    Phase: Phase 4
+    Iteration: 4f-repair2
+
+    Co-Authored-By: <name> <email>
+
+The blank line makes `Co-Authored-By` its own paragraph. Git reads the last
+paragraph and nothing else, so it reports that one trailer and the entire
+handshake block is invisible. Measured on 2026-09-02: 36 of the last 80 commits
+carried a complete, correct block; **zero were readable** by git or by
+`ratchet.gitstate.trailers.parse_trailers`, which follows the same rule.
+
+The discipline was being followed. The lab notebook entry for `0315399` even
+records the trailers as present, which is true of the text and false of the
+commit. Nothing would have caught the difference -- which is the whole argument
+for a check.
+
+### Verify
+
+```
+git log -1 --format='%(trailers:key=Role,valueonly,separator=;)'
+```
+
+Empty output on a handshake commit means the block is shadowed. Fix it with
+`git commit --amend` before moving on.
+
+`tests/test_commit_trailers.py` enforces this over every commit since the epoch
+`0315399b8a28defb7d3c7a9117a7a339a38a03b5`. Commits before the epoch predate the
+convention and are out of scope; they are not rewritten, because
+`tests/fixtures/MANIFEST.json` and `src/ratchet/replay.py` in the orchestrator
+both pin HOB SHAs and a history rewrite would invalidate them.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 006
+status: TODO
+reviewer: none
+milestone: benchmark-p1
+---
+# Task 006: Freeze the split and seal the external holdout
+
+## Objective
+
+Create the one split object every model in the benchmark will use, and make the
+external holdout mechanically hard to read by accident.
+
+The split half is ordinary: partition by draft id so no draft's games straddle a
+boundary, hold out a time-based external test set, assign cross-fitting folds
+inside development, write it once, pin it by hash.
+
+The seal is the part that does not exist yet and is the reason this card is
+separate. A frozen split that anything can read is not a control -- the failure
+it is meant to prevent is evaluating on the holdout repeatedly and reporting the
+run that looked best, and that failure leaves no trace in a diff. So holdout
+access goes through one function that refuses to answer without a card id and a
+reason, and appends a line to an append-only ledger every time it does answer.
+Afterwards, how many times the holdout was opened is a countable fact rather
+than a recollection.
+
+This card carries `reviewer: none`. Every claim in the acceptance criteria is
+machine-observable, and the evidence must come entirely from output validation.
+
+## Acceptance Criteria
+
+- [ ] Every observation in the model table is assigned exactly one partition, dev or holdout, with no row unassigned and no row in both
+- [ ] No `draft_id` appears in both partitions; a test asserts the intersection of draft ids across partitions is empty
+- [ ] Every dev observation carries a cross-fitting fold, and no `draft_id` spans two folds
+- [ ] The partition rule follows the benchmark's preference order and the choice is justified in the manifest: player-grouped if card 003 found a persistent player identifier, otherwise a time-based external holdout of approximately the latest 20 percent
+- [ ] `rank` is not used as a grouping key, a player identifier, or a stratifier; a test asserts the split module never reads it for that purpose
+- [ ] Two consecutive runs produce a byte-identical `data/processed/model_split.parquet`, with any randomness drawn from a declared seed recorded in the manifest
+- [ ] `data/splits/split_manifest.json` pins the SHA256 of the split parquet, the row count per partition, the fold sizes, the rule chosen, the reason, and the seed
+- [ ] `data/processed/MANIFEST.sha256` gains `model_split.parquet` alongside the four artifacts cards 004 and 005 left there, and keeps the repository-root-relative path format so `sha256sum -c data/processed/MANIFEST.sha256` still exits zero when run from the repository root
+- [ ] `deckbench.holdout.load_holdout` raises a typed `HoldoutSealError` when the split parquet's SHA256 does not match the manifest; a test proves it by tampering with a copy
+- [ ] `load_holdout` raises `HoldoutSealError` when the card id is missing, empty, or malformed, and raises when the reason is missing or empty
+- [ ] A refused holdout read appends nothing to the ledger; a test asserts the ledger is byte-identical before and after a refusal
+- [ ] A permitted holdout read appends exactly one line to `cycle/holdout_ledger.jsonl` carrying timestamp, card id, reason, git commit SHA, and the split SHA256 that was read
+- [ ] A second read by the same card id is refused unless an explicit repeat flag is passed, and when it is passed the ledger line records that the read was a repeat
+- [ ] The ledger is append-only: a test asserts that after any sequence of reads the previous lines are unchanged byte-for-byte
+- [ ] `deckbench.holdout.load_dev` returns development rows without touching the ledger and without requiring a card id, so ordinary work does not have to go through the seal
+- [ ] `load_dev` never returns a holdout row; a test asserts the returned observation ids are disjoint from the holdout partition
+- [ ] All new tests pass and both modules are clean under ruff and mypy --strict
+
+## Inputs
+
+- reports/modeling_data_audit.json
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+## See Also
+
+- reports/model_table_build.md
+- INSTRUCTIONS.md
+
+## Outputs
+
+- src/deckbench/split.py
+- src/deckbench/holdout.py
+- tests/test_deckbench_split.py
+- tests/test_deckbench_holdout_seal.py
+- data/processed/model_split.parquet
+- data/processed/MANIFEST.sha256
+- data/splits/split_manifest.json
+- cycle/holdout_ledger.jsonl
+- reports/split_and_seal.md
+
+## Requirements
+
+- Split by `draft_id`, never by game row; games from one draft must not straddle any partition or fold boundary
+- Do not treat `rank` as player identity anywhere in this card, including as a stratification key
+- If no persistent player identifier exists, say so in the manifest and record that leakage control is correspondingly weaker; do not present a time-based split as equivalent to a player-grouped one
+- The seal must fail closed: any error reading or verifying the manifest raises rather than falling back to returning rows
+- Do not catch a bare `Exception` around the hash verification; a masked verification failure is the one bug that makes this whole card decorative
+- The ledger is append-only in the same sense as `LABNOTEBOOK.md`: new lines only, never a rewrite, never a reorder, never a deletion
+- Write the ledger line before returning the rows, so an interrupted read is still recorded
+- Do not build features, fit a model, or compute a metric; this card produces a partition and a gate
+- Do not read the holdout partition anywhere in this card's own tests except through `load_holdout`, and use a temporary ledger in tests so the real ledger is not polluted by the test suite
+- Tests must not depend on the state of the real `cycle/holdout_ledger.jsonl`, since it accumulates across the project's life
+- Do not regress `data/processed/MANIFEST.sha256` to bare filenames; card 005 rewrote it with repository-root-relative paths precisely because compact runs every check with the working directory set to the project root and `shell=False`, so a bare-filename manifest exits 1 there
+- The split parquet is pinned twice on purpose -- by `split_manifest.json`, which the seal verifies before returning holdout rows, and by `MANIFEST.sha256`, which covers every derived artifact uniformly. Keep both; they answer different questions
+
+## Checks
+
+- python -m pytest tests/test_deckbench_split.py tests/test_deckbench_holdout_seal.py -q
+
+## Skip Default Checks
+
+- python -m pytest -q
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_split.py tests/test_deckbench_holdout_seal.py -q
+- python -m deckbench.split
+- python -m deckbench.split --verify
+- sha256sum -c data/processed/MANIFEST.sha256
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/split.py src/deckbench/holdout.py
+- mypy --strict src/deckbench/split.py src/deckbench/holdout.py
+
+## Blocked By
+
+- 003
+- 004
+
+## Notes
+
+**Why `reviewer: none`.** The guide reserves this for keystone tasks where
+pass/fail is entirely machine-observable. Every criterion above is a property a
+test can decide: set intersections, byte equality, a raised exception type, a
+line count in a file. There is no judgment call for a reviewer to make, and
+asking one to read prose about a seal is weaker evidence than running the seal.
+
+**Why the seal is worth a card at all.** This session quarantined an entire
+modeling pipeline whose two surviving reports disagreed about the same holdout
+comparison -- one claimed three checkmarked improvements, the other reported the
+effect as statistically insignificant with a confidence interval crossing zero.
+Nothing in the repository can now say how many times that holdout was evaluated,
+because nothing recorded it. That is the gap this card closes. Section 9 of the
+benchmark requires predictions on "the same untouched external test
+observations", and untouched is only a meaningful claim if it is checkable.
+
+**One read per card is the default, not a limit.** The repeat flag exists
+because there are legitimate reasons to look twice -- a crashed run, a corrected
+bug. Making the repeat explicit and logged means the count of comparisons is
+visible when the results are interpreted, which is what section 12's paired
+bootstrap needs in order to mean anything.
+
+**`load_dev` matters as much as `load_holdout`.** If the only ergonomic way to
+get data is the sealed path, people will route ordinary development through it
+and the ledger fills with noise until nobody reads it. The unsealed dev path
+keeps the ledger's signal high.
+
+**The split parquet is gitignored; the manifest is not.** `data/splits/` is a
+new tracked directory holding only the manifest, so the frozen contract survives
+in git while the artifact it describes does not. `cycle/holdout_ledger.jsonl`
+sits beside `cycle/ledger.jsonl`, which already records worker/reviewer state
+transitions, and is tracked for the same reason.
+
+**On failing closed.** The hash check exists to catch a split that was
+regenerated after models were fit against it. If it raises, that is the system
+working. Anything that turns the raise into a warning and returns rows anyway
+has removed the only guarantee this card provides.
+
+### [2026-09-08 13:42] ASSISTANT
+I'll start by exploring the existing codebase structure to understand the patterns established by cards 004 and 005.
+
+Let me read the existing modules to understand established patterns.
+
+Now let me look at the identity module, the audit test patterns, gitignore, and the existing cycle ledger.
+
+Now let me read the table.py module (key helpers), the audit JSON, gitignore, and the cycle ledger format.
+
+Now let me check the gitignore, __init__, a test file for patterns, and the cycle ledger.
+
+Now let me check the audit JSON for player identifier details and the gitignore.
+
+I have enough context. Let me verify the model table columns and check what git SHA looks like, then write the modules.
+
+Now I'll write the split module.
+
+Now the holdout seal module.
+
+I need to fix the pyarrow.compute import in holdout.py.
+
+Now let me build the split to confirm it runs, then write tests.
+
+The package isn't installed in the active venv. Let me install it editable so `python -m deckbench.split` works as the orchestrator expects.
+
+pip isn't available in this locked env; the orchestrator runs validation in its own env (cards 004/005 passed identical `python -m deckbench.*` validations). I'll verify locally with PYTHONPATH.
+
+The split builds, verifies, and the manifest checks out. Let me look at the generated split_manifest.json, then write the tests.
+
+The dev/holdout time ranges are clean and non-overlapping. Now the split tests.
+
+Now the holdout seal tests.
+
+All 39 pass. Now run ruff and mypy on the two modules.
+
+mypy is clean. Fix the one ruff UP017 finding.
+
+Now create the tracked (empty) ledger file, then run the full validation set.
+
+Now the remaining output-validation commands, and a full-suite regression check to ensure nothing else broke.
+
+The real ledger stayed at 0 bytes â€” the suite didn't pollute it. Let me confirm the full test collection has no errors introduced by the new files.
+
+The three collection errors are pre-existing and unrelated â€” `networkx` (a base dependency) isn't installed in this locked `control_plane` venv, so the HOB graph tests (`test_network`, `test_assemble`, `test_phase3`) can't import. They don't touch anything in this card, and the card scopes its checks to the two new test files (and skips default checks). Everything in scope passes.
+
+## Summary
+
+I implemented Task 006 â€” freezing the benchmark split and sealing the external holdout. All nine declared outputs were created:
+
+**`src/deckbench/split.py`** â€” builds `data/processed/model_split.parquet` from the model table, reading only `obs_id`, `draft_id`, `draft_time` (never `rank`).
+- Partitions by draft, never by game row. The audit reports no persistent player id, so it takes the benchmark's fallback: a time-based external holdout of the latest ~20% of drafts (8,632 drafts / 47,379 games; dev ends `2026-08-22 12:12:35`, holdout starts `12:13:19` â€” a clean boundary).
+- Assigns each dev draft one of 5 cross-fitting folds via a deterministic `hash(seed, draft_id)`, so no draft spans two folds and two runs are byte-identical. Seed `20260908` is recorded.
+- Pins the split twice: `data/splits/split_manifest.json` (sha256, per-partition row counts, fold sizes, rule, reason, seed â€” plus the explicitly-recorded note that a time-based split is *weaker* leakage control than player grouping) and `data/processed/MANIFEST.sha256` (adds `model_split.parquet` as a 5th root-relative member).
+- `--verify` rebuilds in memory and checks byte-identity plus both pins.
+
+**`src/deckbench/holdout.py`** â€” the seal.
+- `load_holdout(card_id, reason, *, repeat=False)` verifies the split's sha256 against the manifest and **fails closed** with typed `HoldoutSealError` on any mismatch/missing/corrupt manifest (specific `JSONDecodeError` catch â€” no bare `except` around the hash check). Requires a well-formed 3-digit card id and non-empty reason. Refuses a second read by the same card id unless `repeat=True`. Appends exactly one ledger line (timestamp, card id, reason, git SHA, split sha256, is_repeat) to `cycle/holdout_ledger.jsonl` **before** returning rows. A refused read writes nothing.
+- `load_dev()` â€” the unsealed path: dev rows, no card id, no ledger, never a holdout row.
+
+**Tests** (`test_deckbench_split.py`, `test_deckbench_holdout_seal.py`) â€” 39 tests covering every acceptance criterion; all reads go through the module and use a temp ledger, so the real `cycle/holdout_ledger.jsonl` (created empty, tracked) stays untouched.
+
+Validation: 39/39 pass; `python -m deckbench.split` + `--verify` succeed; `sha256sum -c data/processed/MANIFEST.sha256` exits zero (5/5 OK); ruff (E,F,I,B,UP) and `mypy --strict` both clean.

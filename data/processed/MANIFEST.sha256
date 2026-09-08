@@ -1,8 +1,8 @@
-# Hash manifest for the card-004 and card-005 modeling artifacts.
+# Hash manifest for the card-004, card-005 and card-006 modeling artifacts.
 #
 # The parquet/csv blobs are gitignored and regenerable from data/raw via
 #   python -m deckbench.table && python -m deckbench.identity && \
-#   python -m deckbench.skill
+#   python -m deckbench.skill && python -m deckbench.split
 # This manifest is tracked so a rebuild is checked byte-for-byte. Paths
 # are repository-root-relative; verify from the repository root with:
 #   sha256sum -c data/processed/MANIFEST.sha256
@@ -11,3 +11,4 @@
 e09a92176cb0feb3732a50a50cfb3fa2f07d27dfcf0f4dc2394e748710d026d1 *data/processed/deck_identity.parquet
 73d18aee9367a6fba6cff778e1c0afc63e1cfdbd63a03387f36c785c5a351e77 *data/processed/card_identity_manifest.csv
 0f399d1fc4eb6090e66e08c5145027f162abdea92d14582293d0a572fc75d119 *data/processed/skill_features.parquet
+17c7cc7de643987ef2dcccfba27af8a11dc4ac16462e93ea2078aa10ee2e7479 *data/processed/model_split.parquet
