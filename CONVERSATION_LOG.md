@@ -119385,3 +119385,1445 @@ CRITERIA:
 
 SUMMARY:
 Every acceptance criterion is backed by concrete evidence in the supplied source and report: the shared `write_jsonl_lines` helper is bounded, silent, backed-off and re-raises the original error; two tests prove byte-identity (incl. post-retry) and the retry's boundedness/silence; `_filehash` now delays; the seven leaked handles are closed with an AST guard asserting zero offenders; and the reproduction, dual-interpreter 3Ã— runs, wall times, and `@requires_raw` fixture analysis are all recorded. The one point of tension â€” "every reproject-style writer in src/hobkg" â€” is resolved in the card's favor because the card's `Modifies` list confines changes to `{equip, completeness, audit_repair}`, all of which are routed through the helper, and the report is transparent about the out-of-scope modules left as a follow-up rather than overclaiming. The latest audit corroborates a clean full-suite pass. PASS.
+
+### [2026-09-09 13:33] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: ACTIVE
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-07
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] registry.md
+
+---
+project_id: hobkg
+status: ACTIVE
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-07
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+[CURRENT STATE - TO BE EDITED] src/hobkg/phase3.py
+
+"""Phase 3: LLM semantic extraction ΓÇö control plane.
+
+The "LLM" is a Claude Code session / sub-agents (not the Anthropic API ΓÇö see the
+user's standing preference). This module is the deterministic control plane:
+
+  build_tasks()      -> one self-contained task packet per Oracle-bearing face
+  build_prompt()     -> the extractor prompt (shared context + packet + schema)
+  critic_prompt()    -> the independent-critic prompt over a candidate
+  validate_output()  -> JSON-Schema + predicate-vocab + provenance + no-evaluative-language
+  ingest()           -> route validated extractions to candidates / rejections
+  reconcile()        -> accept where extractor & critic agree; queue the rest
+
+No model calls happen here. Agents produce JSON conforming to
+schema/llm_output.schema.json; this module validates and routes it. Never
+silently repair invalid output ΓÇö reject or queue it (spec discipline #8).
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+from typing import get_args
+
+from jsonschema import Draft202012Validator
+
+from . import rules
+from .models import Predicate
+from .pipeline import REPO, _load_dicts, _write_jsonl  # reuse helpers
+
+SCHEMA_VERSION = "hobkg-llm-output-1"
+PREDICATES = list(get_args(Predicate))
+NODE_TYPES = [
+    "Card", "CardFace", "Ability", "Operation", "Event", "Resource",
+    "ObjectClass", "Zone", "CounterType", "State", "Gate", "Cost",
+    "Effect", "Rule", "TokenSpec",
+]
+
+# Curated evaluative / value-judgment terms the LLM must not use (spec: reject
+# outputs containing evaluative language). Conservative to avoid false rejects.
+_EVALUATIVE = re.compile(
+    r"\b(synerg(y|ies|ize|istic)|win\s?rate|good card|bad card|better than|worse than|"
+    r"overpowered|underpowered|\bbomb\b|archetype|tier\s?\d|playab|strong(er|est)?\b|"
+    r"weak(er|est)?\b|powerful|value\s?engine)\b",
+    re.I,
+)
+
+
+# --- output schema (single source of truth; exported to schema/) ------------
+
+def llm_output_schema() -> dict:
+    prov = {
+        "type": "object",
+        "properties": {
+            "oracle_span": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2},
+            "text": {"type": "string"},
+            "rule_ref": {"type": "string"},
+            "note": {"type": "string"},
+        },
+        "additionalProperties": True,
+    }
+    ability = {
+        "type": "object",
+        "required": ["ability_id", "kind", "effects", "oracle_spans", "confidence", "unresolved"],
+        # Descriptive keys (controller, duration, target, ...) the spec itself names are
+        # allowed; the hard guards are the required fields + enums below.
+        "additionalProperties": True,
+        "properties": {
+            "ability_id": {"type": "string"},
+            "kind": {"enum": ["triggered", "activated", "static", "replacement", "spell_effect"]},
+            "trigger": {"type": ["object", "null"]},
+            "costs": {"type": "array"},
+            "conditions": {"type": "array"},
+            "effects": {"type": "array"},
+            "oracle_spans": {
+                "type": "array", "minItems": 1,
+                "items": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2},
+            },
+            "confidence": {"enum": ["high", "medium", "low"]},
+            "unresolved": {"type": "array", "items": {"type": "string"}},
+        },
+    }
+    edge = {
+        "type": "object",
+        "required": ["source", "target", "predicate", "provenance"],
+        # Descriptive annotations (note, ...) allowed; predicate enum + provenance are the guards.
+        "additionalProperties": True,
+        "properties": {
+            "source": {"type": "string"},
+            "target": {"type": "string"},
+            "predicate": {"enum": PREDICATES},
+            "polarity": {"enum": ["positive", "negative"]},
+            "timing": {"type": ["string", "null"]},
+            "scope": {"type": ["string", "null"]},
+            "optional": {"type": "boolean"},
+            "condition": {"type": ["string", "object", "null"]},
+            "certainty": {"enum": ["rules_explicit", "high", "medium", "low"]},
+            "provenance": prov,
+        },
+    }
+    ext = {
+        "type": "object",
+        "required": ["proposed_predicate", "rationale"],
+        "additionalProperties": False,
+        "properties": {
+            "proposed_predicate": {"type": "string"},
+            "rationale": {"type": "string"},
+            "oracle_span": {"type": "array", "items": {"type": "integer"}},
+        },
+    }
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "hobkg LLM extraction output",
+        "type": "object",
+        "required": ["face_id", "abilities", "proposed_edges", "schema_extension_requests"],
+        "additionalProperties": False,
+        "properties": {
+            "face_id": {"type": "string"},
+            "abilities": {"type": "array", "items": ability},
+            "proposed_edges": {"type": "array", "items": edge},
+            "schema_extension_requests": {"type": "array", "items": ext},
+        },
+    }
+
+
+def export_schema(repo: Path = REPO) -> str:
+    p = repo / "schema" / "llm_output.schema.json"
+    p.write_text(json.dumps(llm_output_schema(), indent=2), encoding="utf-8")
+    return str(p.relative_to(repo))
+
+
+# --- shared context (stable across faces) -----------------------------------
+
+def _mechanic_templates() -> list[dict]:
+    return [
+        {"mechanic": "Recruit", "rule_ref": rules.RULE_REFS["recruit"],
+         "summary": "Keyword action: draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier."},
+        {"mechanic": "Storied", "rule_ref": rules.RULE_REFS["storied"],
+         "summary": "Once you control >=3 permanents that are legendary, artifacts, and/or Sagas, you get the enduring story designation for the rest of the game."},
+        {"mechanic": "hone", "rule_ref": rules.RULE_REFS["hone"],
+         "summary": "A hone counter on an Equipment gives +1/+0 to the creature that Equipment is attached to."},
+        {"mechanic": "Adventure", "rule_ref": rules.RULE_REFS["adventure"],
+         "summary": "Cast the Adventure (instant/sorcery) face from hand; on resolution it exiles; you may later cast the permanent face from exile. The permanent may also be cast normally from hand."},
+        {"mechanic": "Saga", "rule_ref": rules.RULE_REFS["saga"],
+         "summary": "Enters with a lore counter, adds one after your draw step; chapter abilities trigger as the lore count reaches their number; sacrificed after the final chapter."},
+        {"mechanic": "Amass", "rule_ref": rules.RULE_REFS["amass"], "rule_node": "rule:amass",
+         "summary": "amass <Subtype> N: if you control no Army, create a 0/0 Army token of that subtype; then put N +1/+1 counters on an Army you control (it becomes that subtype). INSTANTIATES rule:amass (no AMASSES predicate); focus edges on this card's own preceding/following effects and supply subtype + N."},
+        {"mechanic": "typecycling", "rule_ref": rules.RULE_REFS["typecycling"], "rule_node": "rule:typecycling",
+         "summary": "<Type>cycling {cost}: pay the cost and discard this card to search your library for a card of <Type>, reveal it, put it into hand, then shuffle. INSTANTIATES rule:typecycling; supply the searched type."},
+    ]
+
+
+def build_shared_context(repo: Path = REPO) -> dict:
+    tokens = _load_dicts(repo / "data" / "normalized" / "tokens.jsonl")
+    known_tokens = [
+        {"id": t["id"], "name": t["name"], "type_line": t.get("type_line_raw"),
+         "colors": t.get("colors", []), "power": t.get("power"), "toughness": t.get("toughness"),
+         "oracle_text": t.get("oracle_text")}
+        for t in tokens
+    ]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "controlled_predicates": PREDICATES,
+        "node_types": NODE_TYPES,
+        "predicate_signatures": {k: {"source_types": sorted(v[0]), "target_types": sorted(v[1])}
+                                 for k, v in PREDICATE_SIGNATURES.items()},
+        "predicate_signature_note": (
+            "These relational predicates are STRICTLY typed and validated: "
+            "TRIGGERS is Event->Ability (never Ability->Event or CounterType->Ability); "
+            "HAS_COUNTER_TYPE is State->CounterType; ENABLES is State/Event/Gate->Ability/Operation. "
+            "For a reflexive 'when you do' sequence, the preceding ability/effect CAUSES an Event, "
+            "then that Event TRIGGERS the reflexive ability. Do NOT emit Saga chapter triggers as "
+            "'counter:lore TRIGGERS <ability>'; reference the Saga template instead. Other (actor) "
+            "predicates may take a CardFace/Ability/Operation subject (card-local convention)."),
+        "mechanic_templates": _mechanic_templates(),
+        "known_tokens": known_tokens,
+        "relevant_rules": {
+            "recruit": rules.RULE_REFS["recruit"], "storied": rules.RULE_REFS["storied"],
+            "hone": rules.RULE_REFS["hone"], "adventure": rules.RULE_REFS["adventure"],
+            "saga": rules.RULE_REFS["saga"],
+        },
+    }
+
+
+# --- per-face task packets ---------------------------------------------------
+
+def safe_id(face_id: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "_", face_id)
+
+
+def build_tasks(repo: Path = REPO) -> dict:
+    faces = _load_dicts(repo / "data" / "normalized" / "faces.jsonl")
+    cards = {c["id"]: c for c in _load_dicts(repo / "data" / "normalized" / "cards.jsonl")}
+    exts = _load_dicts(repo / "data" / "normalized" / "mechanical_extractions.jsonl")
+    mechs = _load_dicts(repo / "data" / "rules" / "mechanics.jsonl")
+    ext_by_face: dict[str, list] = {}
+    for e in exts:
+        ext_by_face.setdefault(e["face_id"], []).append(e)
+    mech_by_face: dict[str, list] = {}
+    for m in mechs:
+        mech_by_face.setdefault(m["face_id"], []).append(m["mechanic"])
+
+    tasks_dir = repo / "data" / "llm" / "tasks"
+    tasks_dir.mkdir(parents=True, exist_ok=True)
+    index = []
+    n = 0
+    for f in faces:
+        if not f.get("oracle_text"):
+            continue  # spec: only Oracle-bearing faces (209 of 210)
+        card = cards[f["card_id"]]
+        packet = {
+            "face_id": f["id"],
+            "card": {"id": card["id"], "name": card["name"], "layout": card["layout"],
+                     "color_identity": card.get("color_identity", []),
+                     "keywords_scryfall": card.get("keywords_scryfall", [])},
+            "face": {"id": f["id"], "name": f["name"], "role": f["role"],
+                     "type_line": f.get("type_line_raw"), "mana_cost": f.get("mana_cost_raw"),
+                     "power": f.get("power"), "toughness": f.get("toughness"),
+                     "produced_mana": f.get("produced_mana", []),
+                     "oracle_text": f["oracle_text"]},
+            "detected_mechanics": sorted(set(mech_by_face.get(f["id"], []))),
+            "mechanical_extractions": [
+                {"kind": e["kind"], "quantity": e.get("quantity"),
+                 "detail": e.get("detail", {}), "qualifiers": e.get("qualifiers", []),
+                 "text": e["provenance"].get("text")}
+                for e in ext_by_face.get(f["id"], [])
+            ],
+        }
+        (tasks_dir / f"{safe_id(f['id'])}.json").write_text(
+            json.dumps(packet, ensure_ascii=False, indent=2), encoding="utf-8")
+        index.append({"face_id": f["id"], "card": card["name"], "file": f"{safe_id(f['id'])}.json"})
+        n += 1
+
+    (repo / "data" / "llm" / "tasks_index.jsonl").write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in index) + "\n", encoding="utf-8")
+    shared = build_shared_context(repo)
+    (repo / "data" / "llm" / "shared_context.json").write_text(
+        json.dumps(shared, ensure_ascii=False, indent=2), encoding="utf-8")
+    export_schema(repo)
+    return {"faces_with_oracle_text": n, "tasks_dir": str(tasks_dir.relative_to(repo))}
+
+
+# --- prompts (used by the spawned agents) -----------------------------------
+
+EXTRACTOR_SYSTEM = """\
+You extract a rules-grounded, mechanistic structured representation of ONE Magic: The Gathering
+card face for the HOB knowledge graph. Output JSON only, conforming to the provided schema.
+
+DO:
+1. Split the Oracle text into distinct abilities/clauses; classify each kind
+   (triggered|activated|static|replacement|spell_effect).
+2. Identify trigger, costs, conditions, effects, duration, controller, optionality.
+3. Resolve pronouns/local references ("it", "that card", "this creature", "this way").
+4. Distinguish costs from effects and replacement effects from triggers.
+5. Identify resources/states produced and requirements consumed; conditional branches and ordering.
+6. Identify when one effect changes the magnitude/timing/target-set/availability of another.
+7. Cite exact Oracle character spans [start,end) for every ability and proposed edge.
+8. Flag rules ambiguity in `unresolved` rather than guessing.
+9. Propose a controlled-vocabulary extension (schema_extension_requests) only if no predicate fits.
+
+DO NOT:
+- infer that a card is good/bad, or infer empirical synergy or win rate;
+- use color/archetype co-membership as an interaction; invent edges from shared theme;
+- treat co-occurrence as causation; omit conditions to simplify;
+- infer opponent cooperation; assert a pair interaction without an explicit mechanistic path;
+- translate flavor text into mechanics; use ANY evaluative/value-judgment language.
+
+Only use predicates from `controlled_predicates` and node types from `node_types`.
+Every proposed_edge must carry provenance (an oracle_span or a rule_ref). Return JSON only."""
+
+CRITIC_SYSTEM = """\
+You are an INDEPENDENT critic of a candidate structured extraction of one MTG card face.
+Given the Oracle text, normalized fields, mechanic rules, and the candidate assertions:
+1. identify assertions not entailed by the rules;
+2. identify missing conditions, scope, timing, optionality, or duration;
+3. identify omitted mechanistic outputs or requirements;
+4. identify incorrect identity/pronoun resolution;
+5. return CORRECTED JSON (same schema), not prose. Do not add evaluative language.
+Return JSON only conforming to the schema."""
+
+
+def build_prompt(face_id: str, repo: Path = REPO) -> str:
+    shared = json.loads((repo / "data" / "llm" / "shared_context.json").read_text(encoding="utf-8"))
+    packet = json.loads((repo / "data" / "llm" / "tasks" / f"{safe_id(face_id)}.json").read_text(encoding="utf-8"))
+    schema = llm_output_schema()
+    return (
+        f"{EXTRACTOR_SYSTEM}\n\n"
+        f"# Shared context\n{json.dumps(shared, ensure_ascii=False)}\n\n"
+        f"# Output JSON schema\n{json.dumps(schema)}\n\n"
+        f"# Card face to extract\n{json.dumps(packet, ensure_ascii=False, indent=2)}\n\n"
+        f'Return a single JSON object for face_id "{face_id}".'
+    )
+
+
+def critic_prompt(face_id: str, candidate: dict, repo: Path = REPO) -> str:
+    packet = json.loads((repo / "data" / "llm" / "tasks" / f"{safe_id(face_id)}.json").read_text(encoding="utf-8"))
+    schema = llm_output_schema()
+    return (
+        f"{CRITIC_SYSTEM}\n\n"
+        f"# Output JSON schema\n{json.dumps(schema)}\n\n"
+        f"# Card face\n{json.dumps(packet, ensure_ascii=False, indent=2)}\n\n"
+        f"# Candidate extraction to review\n{json.dumps(candidate, ensure_ascii=False)}\n\n"
+        f'Return the corrected JSON object for face_id "{face_id}".'
+    )
+
+
+# --- validation --------------------------------------------------------------
+
+_VALIDATOR = Draft202012Validator(llm_output_schema())
+
+# --- predicate domain/range signatures (Phase 3 closure, per review) ---------
+# Resolve a local/edge node id to its node type by id convention. Ability ids
+# declared on the face resolve to Ability; the rest by prefix.
+_NODE_PREFIX_TYPES = {
+    "event:": "Event", "op:": "Operation", "ability:": "Ability", "ab:": "Ability",
+    "face:": "CardFace", "card:": "Card", "zone:": "Zone", "counter:": "CounterType",
+    "countertype:": "CounterType", "token:": "TokenSpec", "state:": "State",
+    "gate:": "Gate", "rule:": "Rule", "effect:": "Effect", "cost:": "Cost",
+    "obj:": "ObjectClass", "resource:": "Resource", "kw:": "ObjectClass",
+    "keyword:": "ObjectClass",
+}
+
+
+def resolve_node_type(nid: str, ability_ids: set) -> str:
+    if nid in ability_ids:
+        return "Ability"
+    for pre, t in _NODE_PREFIX_TYPES.items():
+        if nid.startswith(pre):
+            return t
+    return "Unknown"
+
+
+# Only the RELATIONAL predicates whose direction/domain is load-bearing are
+# enforced. The "actor" predicates (MOVES_*, CREATES_OBJECT, ADDS_COUNTER,
+# PRODUCES, CAUSES, MODIFIES, SCALES_WITH, REFERENCES_RULE, INSTANTIATES, ...)
+# admit a CardFace/Ability/Operation actor subject as a deliberate Phase-3
+# card-local convention; Phase 4 canonicalizes actors into Operation nodes.
+PREDICATE_SIGNATURES = {
+    "TRIGGERS": ({"Event"}, {"Ability"}),
+    "HAS_COUNTER_TYPE": ({"State"}, {"CounterType"}),
+    "PERSISTS_AS": ({"State"}, {"State"}),
+    "COUNTS": ({"Gate"}, {"ObjectClass"}),
+    "CONTRIBUTES_TO": ({"CardFace", "ObjectClass", "TokenSpec"}, {"Gate"}),
+    "QUALIFIES_FOR": ({"CardFace", "ObjectClass", "TokenSpec"}, {"Gate"}),
+    "ATTACHED_TO": ({"ObjectClass", "CardFace", "TokenSpec"}, {"ObjectClass", "CardFace", "TokenSpec"}),
+    "HAS_STATE": ({"ObjectClass", "CardFace", "TokenSpec"}, {"State"}),
+    "SATISFIES": ({"Resource", "State", "Event"}, {"Cost", "Gate"}),
+    "ENABLES": ({"State", "Resource", "Event", "Gate"}, {"Ability", "Operation"}),
+    "HAS_FACE": ({"Card"}, {"CardFace"}),
+    "HAS_ABILITY": ({"CardFace", "ObjectClass"}, {"Ability", "Operation"}),
+}
+
+
+def signature_violations(obj: dict) -> list[str]:
+    """Domain/range violations of the enforced relational predicates. Endpoints that
+    don't resolve to a known type are skipped (not penalized)."""
+    ability_ids = {a.get("ability_id") for a in obj.get("abilities", [])}
+    out = []
+    for e in obj.get("proposed_edges", []):
+        sig = PREDICATE_SIGNATURES.get(e.get("predicate"))
+        if not sig:
+            continue
+        s = resolve_node_type(e["source"], ability_ids)
+        t = resolve_node_type(e["target"], ability_ids)
+        if s == "Unknown" or t == "Unknown":
+            continue
+        if s not in sig[0] or t not in sig[1]:
+            out.append(f"predicate signature: {e['source']}({s}) -{e['predicate']}-> {e['target']}({t}) "
+                       f"violates {e['predicate']} :: {sorted(sig[0])} -> {sorted(sig[1])}")
+    return out
+
+
+def _strings(obj):
+    if isinstance(obj, str):
+        yield obj
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            yield from _strings(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _strings(v)
+
+
+def validate_output(obj: dict, face_id: str | None = None, oracle_len: int | None = None) -> list[str]:
+    """Return a list of validation errors; empty list means the output is acceptable."""
+    errors = [f"schema: {e.message}" for e in _VALIDATOR.iter_errors(obj)]
+    errors += signature_violations(obj)
+    if face_id is not None and obj.get("face_id") != face_id:
+        errors.append(f"face_id mismatch: expected {face_id}, got {obj.get('face_id')}")
+    # evaluative language
+    for s in _strings(obj):
+        m = _EVALUATIVE.search(s)
+        if m:
+            errors.append(f"evaluative language: '{m.group(0)}'")
+            break
+    # oracle spans: a broken START is a hard error; an END overrunning the text is a
+    # soft provenance drift (the `text` quote is the real provenance) -> see span_warnings().
+    if oracle_len is not None:
+        for ab in obj.get("abilities", []):
+            for span in ab.get("oracle_spans", []):
+                if len(span) == 2 and not (0 <= span[0] <= span[1] and span[0] <= oracle_len):
+                    errors.append(f"oracle span start invalid: {span} (len {oracle_len})")
+    return errors
+
+
+def span_warnings(obj: dict, oracle_len: int | None) -> list[str]:
+    """Soft provenance issues that do NOT block acceptance (recorded, not repaired)."""
+    warns = []
+    if oracle_len is None:
+        return warns
+    for ab in obj.get("abilities", []):
+        for span in ab.get("oracle_spans", []):
+            if len(span) == 2 and span[1] > oracle_len:
+                warns.append(f"span end {span[1]} > oracle_len {oracle_len} in {ab.get('ability_id')}")
+    return warns
+
+
+def _oracle_len(face_id: str, repo: Path) -> int | None:
+    p = repo / "data" / "llm" / "tasks" / f"{safe_id(face_id)}.json"
+    if not p.exists():
+        return None
+    return len(json.loads(p.read_text(encoding="utf-8"))["face"]["oracle_text"])
+
+
+# --- ingest & reconcile ------------------------------------------------------
+
+def _write_dicts(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="\n") as fh:
+        for r in rows:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
+def _load_json_dir(d: Path) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    if not d.exists():
+        return out
+    for p in sorted(d.glob("*.json")):
+        obj = json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(obj, dict) and obj.get("face_id"):
+            out[obj["face_id"]] = obj
+    return out
+
+
+def ingest(repo: Path = REPO) -> dict:
+    """Validate raw extractor outputs (data/llm/extractions/*.json) and route them to
+    llm_candidates.jsonl (valid) or llm_rejections.jsonl (invalid). Never repairs."""
+    raw = _load_json_dir(repo / "data" / "llm" / "extractions")
+    candidates, rejections, warnings = [], [], []
+    for face_id, obj in raw.items():
+        olen = _oracle_len(face_id, repo)
+        errs = validate_output(obj, face_id=face_id, oracle_len=olen)
+        if errs:
+            rejections.append({"face_id": face_id, "errors": errs, "raw": obj})
+        else:
+            candidates.append(obj)
+            w = span_warnings(obj, olen)
+            if w:
+                warnings.append({"face_id": face_id, "warnings": w})
+    review = repo / "data" / "review"
+    _write_dicts(review / "llm_candidates.jsonl", candidates)
+    _write_dicts(review / "llm_rejections.jsonl", rejections)
+    _write_dicts(review / "llm_span_warnings.jsonl", warnings)
+    return {"extractions": len(raw), "candidates": len(candidates),
+            "rejections": len(rejections), "span_warnings": len(warnings)}
+
+
+def _edge_key(e: dict) -> tuple:
+    return (e["source"], e["predicate"], e["target"])
+
+
+def _ability_key(a: dict) -> tuple:
+    # Key on the stable ability_id + kind, NOT the span: the critic legitimately
+    # corrects Oracle spans, and span-only fixes must not read as a disagreement.
+    return (a.get("ability_id"), a.get("kind"))
+
+
+def reconcile(repo: Path = REPO) -> dict:
+    """Accept assertions on which extractor and critic agree AND which validate;
+    queue the rest (spec Phase 3 second-pass acceptance rule)."""
+    candidates = {c["face_id"]: c for c in _load_dicts(repo / "data" / "review" / "llm_candidates.jsonl")}
+    critiques = _load_json_dir(repo / "data" / "llm" / "critiques")
+    accepted, queued = [], []
+    for face_id, cand in candidates.items():
+        crit = critiques.get(face_id)
+        if crit is None:
+            queued.append({"face_id": face_id, "reason": "no critic review", "candidate": cand})
+            continue
+        errs = validate_output(crit, face_id=face_id, oracle_len=_oracle_len(face_id, repo))
+        if errs:
+            queued.append({"face_id": face_id, "reason": "critic output invalid", "errors": errs})
+            continue
+        # edge-level agreement
+        c_edges = {_edge_key(e): e for e in cand.get("proposed_edges", [])}
+        k_edges = {_edge_key(e): e for e in crit.get("proposed_edges", [])}
+        agreed_edges = [k_edges[k] for k in c_edges.keys() & k_edges.keys()]
+        disputed_edges = [c_edges[k] for k in c_edges.keys() - k_edges.keys()] + \
+                         [k_edges[k] for k in k_edges.keys() - c_edges.keys()]
+        # ability-level agreement
+        c_ab = {_ability_key(a): a for a in cand.get("abilities", [])}
+        k_ab = {_ability_key(a): a for a in crit.get("abilities", [])}
+        agreed_ab = [k_ab[k] for k in c_ab.keys() & k_ab.keys()]
+        disputed_ab = [c_ab[k] for k in c_ab.keys() - k_ab.keys()] + \
+                      [k_ab[k] for k in k_ab.keys() - c_ab.keys()]
+
+        accepted.append({"face_id": face_id, "abilities": agreed_ab, "proposed_edges": agreed_edges,
+                         "schema_extension_requests": crit.get("schema_extension_requests", [])})
+        if disputed_edges or disputed_ab:
+            queued.append({"face_id": face_id, "reason": "extractor/critic disagreement",
+                           "disputed_edges": disputed_edges, "disputed_abilities": disputed_ab})
+    review = repo / "data" / "review"
+    _write_dicts(review / "llm_accepted.jsonl", accepted)
+    _write_dicts(review / "llm_queued.jsonl", queued)
+    total_edges = sum(len(a["proposed_edges"]) for a in accepted)
+    return {"faces": len(candidates), "accepted_faces": len(accepted),
+            "accepted_edges": total_edges, "queued_items": len(queued)}
+
+
+def finalize_faces(repo: Path = REPO) -> dict:
+    """Emit a Phase 3 disposition for EVERY normalized face (all 210), not just the
+    Oracle-bearing ones. Oracle-bearing faces are 'extracted'; a face with no Oracle
+    text gets an explicit 'reviewed_empty' record (empty abilities/edges) with a reason.
+    Prevents the pipeline from silently redefining its denominator. Idempotent."""
+    faces = _load_dicts(repo / "data" / "normalized" / "faces.jsonl")
+    cards = {c["id"]: c for c in _load_dicts(repo / "data" / "normalized" / "cards.jsonl")}
+    review = repo / "data" / "review"
+    accepted = {a["face_id"]: a for a in _load_dicts(review / "llm_accepted.jsonl")}
+
+    status_rows, empty = [], 0
+    for f in faces:
+        card = cards[f["card_id"]]
+        has_text = bool(f.get("oracle_text"))
+        if has_text:
+            status = "extracted"
+            reason = None
+        else:
+            status = "reviewed_empty"
+            reason = ("No Oracle text requiring semantic extraction ΓÇö vanilla creature "
+                      f"({f.get('type_line_raw')}); Scryfall returns empty oracle_text for "
+                      "cards with no printed rules text.")
+            accepted.setdefault(f["id"], {
+                "face_id": f["id"], "status": "reviewed_empty",
+                "abilities": [], "proposed_edges": [], "schema_extension_requests": [],
+                "unresolved": [], "reason": reason})
+            empty += 1
+        status_rows.append({"face_id": f["id"], "card": card["name"], "role": f["role"],
+                            "has_oracle_text": has_text, "status": status,
+                            **({"reason": reason} if reason else {})})
+
+    _write_dicts(review / "llm_accepted.jsonl", list(accepted.values()))
+    _write_dicts(review / "llm_face_status.jsonl", status_rows)
+    return {"normalized_faces": len(faces), "extracted": len(faces) - empty,
+            "reviewed_empty": empty, "accepted_records": len(accepted)}
+
+
+def apply_dispositions(repo: Path = REPO) -> dict:
+    """Fold human/agent adjudications (data/review/llm_dispositions.jsonl) into the
+    accepted graph. Each disposition record: {face_id, include_edges:[...],
+    include_abilities:[...], unresolved:[{kind, object, reason}], verdicts:[...]}.
+    Verdicts assign accepted_extractor|accepted_critic|corrected|unresolved per item;
+    only non-unresolved items land in `include_*`. Unresolved items are preserved out
+    of the accepted graph (data/review/llm_unresolved.jsonl). Idempotent: rebuilt from
+    the reconcile-agreed base each run."""
+    review = repo / "data" / "review"
+    disp_path = review / "llm_dispositions.jsonl"
+    if not disp_path.exists():
+        return {"dispositions": 0, "note": "no llm_dispositions.jsonl"}
+    disp = {d["face_id"]: d for d in _load_dicts(disp_path)}
+    accepted = {a["face_id"]: a for a in _load_dicts(review / "llm_accepted.jsonl")}
+
+    added_edges = added_abils = 0
+    unresolved_rows = []
+    verdict_counts: dict[str, int] = {}
+    for face_id, d in disp.items():
+        acc = accepted.setdefault(face_id, {"face_id": face_id, "abilities": [],
+                                            "proposed_edges": [], "schema_extension_requests": []})
+        for e in d.get("include_edges", []):
+            acc["proposed_edges"].append(e); added_edges += 1
+        for a in d.get("include_abilities", []):
+            acc["abilities"].append(a); added_abils += 1
+        for u in d.get("unresolved", []):
+            unresolved_rows.append({"face_id": face_id, **u})
+        for v in d.get("verdicts", []):
+            verdict_counts[v.get("verdict", "?")] = verdict_counts.get(v.get("verdict", "?"), 0) + 1
+
+    # dedup within each face so re-applying is idempotent
+    for a in accepted.values():
+        seen_e, ded_e = set(), []
+        for e in a["proposed_edges"]:
+            k = (e["source"], e["predicate"], e["target"])
+            if k not in seen_e:
+                seen_e.add(k); ded_e.append(e)
+        a["proposed_edges"] = ded_e
+        seen_a, ded_a = set(), []
+        for ab in a["abilities"]:
+            k = ab.get("ability_id")
+            if k not in seen_a:
+                seen_a.add(k); ded_a.append(ab)
+        a["abilities"] = ded_a
+
+    # validate the resolved accepted graph
+    errors = []
+    for face_id, a in accepted.items():
+        for e in validate_output(a, oracle_len=_oracle_len(face_id, repo)):
+            errors.append(f"{face_id}: {e}")
+
+    _write_dicts(review / "llm_accepted.jsonl", list(accepted.values()))
+    _write_dicts(review / "llm_unresolved.jsonl", unresolved_rows)
+    total_edges = sum(len(a["proposed_edges"]) for a in accepted.values())
+    return {"dispositions": len(disp), "verdicts": verdict_counts,
+            "edges_added": added_edges, "abilities_added": added_abils,
+            "unresolved": len(unresolved_rows), "accepted_edges_total": total_edges,
+            "validation_errors": errors}
+
+
+[CURRENT STATE - TO BE EDITED] src/hobkg/audit_repair.py
+
+"""Additive `audit_repair` layer ΓÇö applies the HUMAN gold-set audit corrections
+(`data/review/human_audit_verdicts.jsonl`, 2026-08-17) WITHOUT touching the frozen core graph.
+
+Design (per the owner's directive): represent each corrected mechanism ONCE at the object-class
+level (a canonical class edge grounded in the responsible card's Oracle text), then derive ALL
+eligible card pairs mechanically from card characteristics ΓÇö never hard-code an audited pair. The
+derived pair relations are tagged `generic: true` (object-class expansions) so they are filterable,
+and carry `origin: audit_repair` + provenance to the audit item. Two kinds of correction:
+
+  * ADD / RETYPE ΓÇö a canonical class edge + derived pairs (anthem MODIFIES; targeted +1/+1
+    ADDS_COUNTER; targeted pump MODIFIES; tutor SUPPLIES_RESOURCE; token-enter ENABLES_TRIGGER;
+    tribal-entry ENABLES_TRIGGER, which also RETYPES the mechanism-layer SUPPLIES_RESOURCE it
+    replaces via a suppression).
+  * SUPPRESS ΓÇö retract a projected relation the human judged wrong (a false self-loop; a
+    coincidental resource match that is really a cast-trigger).
+
+Outputs (all under data/graph_global/): `audit_repair_nodes.jsonl` (object-class nodes),
+`audit_repair_edges.jsonl` (canonical class edges), `card_pair_projection_audit_repair.jsonl`
+(derived generic pairs), `audit_repair_suppressions.jsonl`. Deterministic; no Date/random.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+from .equip import write_jsonl_lines  # shared resilient graph-projection writer (card 012)
+from .pipeline import REPO, _load_dicts
+
+AUDIT = "human_audit_verdicts.jsonl (2026-08-17)"
+
+
+def _sid(*parts) -> str:
+    return "ar" + hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:15]
+
+
+class _Cards:
+    """Card characteristics derived from the normalized faces (the eligibility basis)."""
+    def __init__(self, repo: Path):
+        self.faces = _load_dicts(repo / "data/normalized/faces.jsonl")
+        self.by_card = {}
+        self.name_to_card = {}
+        self.card_faces = {}
+        for f in self.faces:
+            self.by_card.setdefault(f["card_id"], []).append(f)
+            self.name_to_card[f["name"]] = f["card_id"]
+            self.card_faces.setdefault(f["card_id"], []).append(f)
+
+    def face_id(self, name: str) -> str:
+        for f in self.faces:
+            if f["name"] == name:
+                return f["id"]
+        raise KeyError(name)
+
+    def card_of_name(self, name: str) -> str:
+        return self.name_to_card[name]
+
+    def _has(self, cid, pred):
+        return any(pred(f) for f in self.by_card.get(cid, []))
+
+    def _types(self, f):
+        return (f.get("type_line") or {}).get("types", [])
+
+    def _subs(self, f):
+        return (f.get("type_line") or {}).get("subtypes", [])
+
+    def _sups(self, f):
+        return (f.get("type_line") or {}).get("supertypes", [])
+
+    def creatures(self):
+        return {c for c in self.by_card if self._has(c, lambda f: "Creature" in self._types(f))}
+
+    def legendary_creatures(self):
+        return {c for c in self.by_card
+                if self._has(c, lambda f: "Creature" in self._types(f) and "Legendary" in self._sups(f))}
+
+    def dwarves_or_equipment(self):
+        return {c for c in self.by_card
+                if self._has(c, lambda f: "Dwarf" in self._subs(f) or "Equipment" in self._subs(f))}
+
+    def token_makers(self):
+        import re
+        pat = re.compile(r"\bcreate[s]?\b[^.]*\btokens?\b|\bamass\b", re.IGNORECASE)
+        # exclude reminder-only mentions ("it's an artifact with ΓÇª") is unnecessary: a Treasure/Food
+        # token still enters under your control and triggers a token-enter payoff.
+        return {c for c in self.by_card
+                if self._has(c, lambda f: bool(pat.search(f.get("oracle_text") or "")))}
+
+
+# --------------------------------------------------------------------------- #
+#  The corrections, grounded in the responsible card's ability (not in pairs)   #
+# --------------------------------------------------------------------------- #
+import re
+
+# DERIVED P/T mechanisms (Class 2, GENERALIZED): every card whose Oracle text matches the pattern is
+# a source ΓÇö no hand-picked list. Restricted to the GENERAL 'any creature' forms; equipment
+# ('Equipped creature ΓÇª', handled by the equip layer), self-pumps ('This creature ΓÇª'), tribal anthems
+# ('Other Elves/Bears ΓÇª', partly in graph_repair) and Amass ('ΓÇª on an Army') are excluded by the
+# patterns. target=every creature (a targeted/your-controlled creature can be any creature).
+_RE_ANTHEM = re.compile(r"\b(?:other )?creatures you control get \+\d+/\+\d+", re.I)
+_RE_PUMP = re.compile(r"\btarget creature(?: you control| an opponent controls)?[^.]*?\bgets? \+\d+/\+\d+", re.I)
+_RE_COUNTER = re.compile(r"\+1/\+1 counter(?:s)? on (?:up to \w+ |two |three |x |a )?(?:other )?"
+                         r"target creature(?: you control)?\b", re.I)
+# (slug, regex, predicate, class_node, note, {audited_source_name: [items]})
+_DERIVED = [
+    ("anthem", _RE_ANTHEM, "MODIFIES", "obj:creature-you-control",
+     "Static/mass anthem: 'creatures you control get +N/+N' modifies every creature you control.",
+     {"The Arkenstone": [66, 72, 74]}),
+    ("targeted-pump", _RE_PUMP, "MODIFIES", "obj:target-creature",
+     "Targeted pump: 'target creature ΓÇª gets +N/+N' modifies a creature.",
+     {"Lake-town Toymaker": [75]}),
+    ("targeted-counter", _RE_COUNTER, "ADDS_COUNTER", "obj:target-creature",
+     "Targeted +1/+1 counter: 'put a +1/+1 counter on target creature'.",
+     {"Meager Meal": [67, 68, 71]}),
+]
+
+# ANCHORED specific-card mechanisms (NOT anthem/pump; unchanged):
+# (slug, anchor_card, side, predicate, class_node, eligibility, note, items, retype)
+_ANCHORED = [
+    ("seek-the-heart-tutor", "Seek the Heart", "targets", "SUPPLIES_RESOURCE",
+     "obj:legendary-creature-card", "legendary_creatures",
+     "Tutor: 'Search your library for a legendary creature card' supplies that creature.",
+     [74], None),
+    ("belladonna-token-enter", "Belladonna Took", "sources", "ENABLES_TRIGGER",
+     "event:token-you-control-enters", "token_makers",
+     "A token entering your control triggers Belladonna Took's token-enter payoff.",
+     [82], None),
+    ("kili-tribal-entry", "K├¡li the Resourceful", "sources", "ENABLES_TRIGGER",
+     "event:another-dwarf-or-equipment-enters", "dwarves_or_equipment",
+     "A Dwarf/Equipment entering triggers K├¡li's 'whenever another Dwarf or Equipment enters, draw'.",
+     [54], ("SUPPLIES_RESOURCE", "mechanism")),
+]
+
+# SUPPRESS: (src_name, tgt_name, relation, layer, note, items)
+_SUPPRESS = [
+    ("Head of the Hunt", "Head of the Hunt", "ENABLES_TRIGGER", "mechanical",
+     "Not a self-loop: the token trigger fires from an OPPONENT's creature being exiled, not from "
+     "Head of the Hunt itself.", [111]),
+    ("Plunder the Trollshaws", "Uncover the Moon-Letters", "SUPPLIES_RESOURCE", "mechanical",
+     "Coincidental card-in-hand match: casting the spell TRIGGERS the enchantment, it does not supply "
+     "a consumed resource.", [58]),
+]
+
+
+def materialize(repo: Path = REPO) -> dict:
+    repo = Path(repo)
+    C = _Cards(repo)
+    out = repo / "data" / "graph_global"
+    eligible = {"creatures": C.creatures(), "legendary_creatures": C.legendary_creatures(),
+                "dwarves_or_equipment": C.dwarves_or_equipment(), "token_makers": C.token_makers()}
+
+    nodes, edges, pairs, suppressions = [], [], [], []
+    seen = set()
+
+    def add_pair(s, t, rel, slug, prov, retype=None):
+        if s == t or (s, t, rel) in seen:                  # no self-pair; dedupe across mechanisms
+            return
+        seen.add((s, t, rel))
+        pairs.append({"source_card": s, "target_card": t, "relation": rel, "self_pair": False,
+                      "generic": True, "class_edge": slug, "origin": "audit_repair", "provenance": [prov]})
+        if retype:                                         # the new relation REPLACES a mis-typed one
+            suppressions.append({"source_card": s, "target_card": t, "relation": retype[0],
+                                 "layer": retype[1], "reason": f"retyped to {rel} by {slug}",
+                                 "audit_items": prov.get("audit_items")})
+
+    creatures = eligible["creatures"]
+    # DERIVED P/T mechanisms ΓÇö every matching card is a source (Class 2 generalized to all anthem/pump)
+    for slug, regex, pred, class_node, note, audited in _DERIVED:
+        nodes.append({"id": class_node, "kind": class_node.split(":")[0], "origin": "audit_repair"})
+        for f in sorted(C.faces, key=lambda x: x["id"]):
+            if not regex.search(f.get("oracle_text") or ""):
+                continue
+            prov = {"source": AUDIT + " ┬╖ Class 2 generalization (all anthem/pump)", "mechanism": slug,
+                    "note": note, "anchor_face": f["id"], "audit_items": audited.get(f["name"])}
+            edges.append({"id": _sid(slug, f["id"], pred, class_node), "source": f["id"],
+                          "predicate": pred, "target": class_node, "origin": "audit_repair",
+                          "generic": True, "provenance": [prov]})
+            for cid in sorted(creatures):
+                add_pair(f["card_id"], cid, pred, slug, prov)
+
+    # ANCHORED specific-card mechanisms (tutor / token-enter / tribal-entry)
+    for slug, anchor, side, pred, class_node, elig, note, items, retype in _ANCHORED:
+        anchor_face = C.face_id(anchor)
+        anchor_card = C.card_of_name(anchor)
+        nodes.append({"id": class_node, "kind": class_node.split(":")[0], "origin": "audit_repair"})
+        prov = {"source": AUDIT, "audit_items": items, "note": note, "anchor_face": anchor_face}
+        e_src, e_tgt = (anchor_face, class_node) if side == "targets" else (class_node, anchor_face)
+        edges.append({"id": _sid(slug, e_src, pred, e_tgt), "source": e_src, "predicate": pred,
+                      "target": e_tgt, "origin": "audit_repair", "generic": True, "provenance": [prov]})
+        for cid in sorted(eligible[elig]):
+            s, t = (anchor_card, cid) if side == "targets" else (cid, anchor_card)
+            add_pair(s, t, pred, slug, prov, retype)
+
+    for src, tgt, rel, layer, note, items in _SUPPRESS:
+        suppressions.append({"source_card": C.card_of_name(src), "target_card": C.card_of_name(tgt),
+                             "relation": rel, "layer": layer, "reason": note, "audit_items": items})
+
+    _write(out / "audit_repair_nodes.jsonl", _dedup(nodes, "id"))
+    _write(out / "audit_repair_edges.jsonl", sorted(edges, key=lambda e: e["id"]))
+    _write(out / "card_pair_projection_audit_repair.jsonl",
+           sorted(pairs, key=lambda p: (p["source_card"], p["target_card"], p["relation"])))
+    _write(out / "audit_repair_suppressions.jsonl",
+           sorted(suppressions, key=lambda s: (s["layer"], s["source_card"], s["target_card"], s["relation"])))
+    return {"class_edges": len(edges), "derived_pairs": len(pairs), "suppressions": len(suppressions),
+            "eligible_counts": {k: len(v) for k, v in eligible.items()}}
+
+
+def _dedup(rows, key):
+    seen, out = set(), []
+    for r in rows:
+        if r[key] not in seen:
+            seen.add(r[key]); out.append(r)
+    return out
+
+
+def _write(path: Path, rows: list):
+    # all four audit_repair outputs land under data/graph_global/, so this single
+    # sink routes them through the shared resilient writer (card 012).
+    write_jsonl_lines(
+        path, (json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows)
+    )
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/suite_stability.md
+
+# Suite stability ΓÇö card 012
+
+*Stop the suite failing cards for reasons the cards did not cause.*
+
+This card does **not** claim a root cause for the intermittent
+`OSError: [Errno 22] Invalid argument` seen when a graph-projection layer opens
+`data/graph_global/*.jsonl` for write inside a full pytest session. The OS-level
+mechanism is unestablished. What is done here is verifiable without it: the
+observed failure point is wrapped in a bounded, backed-off retry that provably
+changes no bytes; the known-bad file-handle hygiene in `tests/` is fixed; and the
+reproduction and its measured before/after are recorded below.
+
+## The reproduction
+
+Under the orchestrator's interpreter, working directory set to this repository:
+
+```
+C:/GitHub/control_plane/.venv/Scripts/python.exe -m pytest \
+    tests/test_equip.py tests/test_completeness.py tests/test_audit_repair.py -q
+```
+
+The prior session (2026-09-09, recorded in `tasks/012.md`) measured this failing
+in ~7 s with `OSError: [Errno 22]` opening
+`data/graph_global/card_pair_projection_completeness.jsonl` for write, while each
+file passed **alone** under that interpreter and all three passed **together**
+under the project interpreter. A standalone open-for-write of the same file under
+the failing interpreter succeeded. That points to a cross-module interaction
+inside a pytest session (accumulated handle pressure is one consistent
+explanation, not the only one), not permissions, not a path problem, and not a
+defect in any single test.
+
+### Environment
+
+| | Orchestrator (compact) | Project (declared) |
+|---|---|---|
+| interpreter | `C:/GitHub/control_plane/.venv/Scripts/python.exe` | `C:/Python314/python.exe` |
+| CPython | 3.14.0 | 3.14.0 |
+| pytest | **8.4.2** | **9.0.2** |
+
+Both are CPython 3.14.0; the divergence is the pytest version and the package set
+of the environment (`pythonpath=["src"]` in `pyproject.toml` makes `hobkg`/
+`deckbench` importable in either). See "Environment divergence" below ΓÇö that is an
+operator decision, not a change made by this card.
+
+### As re-measured this session (2026-09-09)
+
+The `[Errno 22]` is intermittent. It did **not** recur in any run this session:
+
+| what | interpreter | runs | result |
+|---|---|---|---|
+| 3-file subset (the reproduction) | orchestrator | 12 | 12 pass |
+| 3-file subset | orchestrator | further ad-hoc | pass |
+| full suite `pytest -q` | orchestrator | 1 (baseline) + 3 (after) | all pass |
+| full suite `pytest -q` | system | 1 (baseline) + 3 (after) | all pass |
+
+Non-reproduction is expected for a rare, pressure-dependent transient and is
+consistent with the card's framing. The failure count in the prior session grew
+with the number of projection-writing modules in a session, so the full suite is
+the higher-pressure case; it too passed here. The fix is therefore defence in
+depth for a condition that is real but rare, plus the hygiene that plausibly
+contributes.
+
+## What changed
+
+### 1. A shared, resilient JSONL writer
+
+`hobkg.equip.write_jsonl_lines(path, lines, *, max_attempts=5, backoff_seconds=0.2)`
+wraps the open-and-write of a graph-projection JSONL file in a **bounded** retry
+with a **real, growing** backoff (`0.2┬╖attempt` seconds between tries). It is
+completely silent on the success path and, after the final attempt, re-raises the
+**original** exception with its traceback intact ΓÇö a silent forever-retry would be
+a worse failure than the one being fixed.
+
+Every `reproject`-style writer in this card's declared scope goes through it:
+
+- `equip.py` ΓÇö `equip_{nodes,edges,conditions,dispositions}.jsonl` and
+  `card_pair_projection_equip.jsonl` (5 writers).
+- `completeness.py` ΓÇö `completeness_{nodes,edges,conditions}.jsonl` and
+  `card_pair_projection_completeness.jsonl` (4 writers), importing the helper.
+- `audit_repair.py` ΓÇö the single `_write` sink through which all four
+  `audit_repair_*` / `card_pair_projection_audit_repair.jsonl` outputs flow.
+
+The helper lives in `equip.py` rather than the natural infrastructure home
+(`pipeline.py`) because this card's declared **Modifies** scope is exactly
+`{equip, completeness, audit_repair}`; `completeness.py` and `audit_repair.py`
+import it from there. **Scope note (defence in depth):** other modules also write
+`data/graph_global/*.jsonl` ΓÇö `project.py`, `graph_repair.py`,
+`complete_mechanisms.py`, `lifecycle.py`, `modules.py`, `coverage.py`,
+`audit.py`. They are outside this card's Modifies list and were left unrouted;
+routing them through the same helper is a low-risk follow-up.
+
+### 2. Retry changes no output ΓÇö proven
+
+`tests/test_equip.py::test_write_helper_bytes_identical_including_after_a_retry`
+asserts the bytes the helper writes equal the bytes a direct
+`open("w", encoding="utf-8", newline="\n")` write produces ΓÇö both on the success
+path and after a forced first-attempt failure. Combined with the layers'
+existing byte-identity / determinism tests and the frozen-manifest guard, the
+frozen and derived artifacts remain byte-identical:
+`git diff --ignore-cr-at-eol` reports no content change to any
+`data/graph_global/*.jsonl` after a rebuild (only the expected LF/CRLF phantom).
+
+`tests/test_equip.py::test_write_helper_retry_is_bounded_silent_and_reraises`
+asserts the retry is bounded (exactly `max_attempts` opens), silent (no stdout/
+stderr), backs off with a growing delay (`[0.01, 0.02, 0.03]` for 4 attempts,
+none after the last), and re-raises the original `OSError` (errno 22).
+
+### 3. `_filehash` retry now has a real delay
+
+`tests/test_equip.py::_filehash` already carried a five-attempt retry naming this
+exact `[Errno 22]`, but retried **instantly** ΓÇö which cannot help a transient.
+It now sleeps `0.2┬╖(attempt+1)` seconds between attempts. It protects a *read*;
+every failure seen has been on the *write* side, which is what the new writer
+protects. This finishes the job that earlier patch started.
+
+### 4. Leaked file handles in `tests/` closed
+
+Seven sites opened a file without a context manager and never closed it. All are
+now converted, and
+`tests/test_equip.py::test_no_leaked_file_handles_in_tests` AST-scans every
+`tests/*.py` and asserts no `open()`/`io.open()`/`x.open()` call remains outside
+a `with` statement (it correctly allows `with gzip.open(...)` and
+`with open(str(path), "rb")`). The scan reports **0** offenders.
+
+| file | before | fix |
+|---|---|---|
+| `test_attribution_amass.py` | `json.load(open(g, ΓÇª))` in a comprehension | `_proposed_edges()` helper with `with open(...)` |
+| `test_frozen_manifest.py` (├ù2) | `json.load(io.open(MANIFEST, ΓÇª))` | `with open(MANIFEST, ΓÇª) as fh` (+ dropped unused `import io`) |
+| `test_sac_schema.py` | `json.load(io.open(scryfall_fin.json, ΓÇª))` | `with open(...) as fh` (+ dropped unused `import io`) |
+| `test_sac_setwide.py` | `json.load(io.open(scryfall_fin.json, ΓÇª))` | `with open(...) as fh` (+ dropped local `import io`) |
+| `test_deckbench_identity.py` (├ù2) | `csv.reader(CARD_MANIFEST_CSV.open(ΓÇª))` | `with CARD_MANIFEST_CSV.open(ΓÇª) as handle: rows = list(csv.reader(handle))` |
+
+**Did closing the handles alone fix it?** Unknown, and not claimed. The
+`[Errno 22]` did not reproduce this session either before or after the change, so
+this session cannot attribute the fix to the leak. `src/hobkg` already opened
+every file through a context manager, so the production writers never leaked; the
+seven test leaks are worth closing on their own merits. The retry is kept
+regardless, as defence in depth, exactly as the card requires.
+
+## Wall time ΓÇö before and after
+
+`python -m pytest -q`, whole suite, wall-clock seconds:
+
+| interpreter | before (702 tests) | after (705 tests) |
+|---|---|---|
+| orchestrator (pytest 8.4.2) | 196.85 s | 170.30 / 169.42 / 172.74 s (avg Γëê 170.8 s) |
+| system (pytest 9.0.2) | 183.87 s | 173.50 / 169.28 / 173.13 s (avg Γëê 171.9 s) |
+
+After adds three new tests (the writer/hygiene tests) and still runs faster. A
+reduction is observed but **not attributed** to this change with confidence: no
+session-scoped fixture was added (see below), so the heavy `requires_raw` tests
+still repeat their setup, and the difference is within run-to-run variance and
+warm-cache effects. A reduction was expected but not required; the number is
+reported either way.
+
+## The four heaviest `@requires_raw` tests
+
+Profiled (`--durations`, system interpreter) against the 16.5 MB raw 17Lands CSV:
+
+| test | cost | file in Modifies? |
+|---|---|---|
+| `test_deckbench_identity.py::test_real_representation_is_normalized_and_matches_model_table` | 33.7 s call | yes |
+| `test_deckbench_audit.py::test_json_report_is_byte_identical_across_two_runs` | 28.3 s call | no |
+| `test_deckbench_table.py::test_real_totals_coherent` | 16.8 s setup | no |
+| `test_deckbench_audit.py::test_totals_are_positive_and_coherent` | 13.9 s setup | no |
+
+Γëê 92.7 s of Γëê 184 s wall ΓÇö roughly the "58 percent" the card cites once
+associated import/teardown is included. **None can be given a session-scoped
+fixture within this card's scope, for a distinct reason each:**
+
+1. **identity real test** ΓÇö it is the *only* `requires_raw`/real test in
+   `test_deckbench_identity.py` (the file *is* in Modifies). A session-scoped
+   fixture would have exactly one consumer and save nothing: there is no repeated
+   setup to hoist.
+2. **audit byte-identical-across-two-runs** ΓÇö genuinely repeats `run_audit()`
+   (which the module already computes once in its `scope="module"` `summary`
+   fixture), so a fixture *could* help ΓÇö but `test_deckbench_audit.py` is
+   **outside this card's Modifies list**. It also builds twice *on purpose* to
+   prove determinism, so any refactor must preserve two independent builds.
+3. **table `real_totals_coherent` setup** ΓÇö already served by a `scope="module"`
+   `real_stats` fixture (its cost is the first consumer triggering that fixture,
+   not repeated setup); and `test_deckbench_table.py` is **outside Modifies**.
+4. **audit `totals_are_positive_and_coherent` setup** ΓÇö already served by the
+   `scope="module"` `summary` fixture (shared, not repeated); file **outside
+   Modifies**.
+
+So two of the four already share a module-scoped fixture (nothing to hoist), one
+is a lone test (nothing to share with), and the one with genuinely repeated setup
+lives in a file this card is not permitted to modify. Promoting those module
+fixtures to session scope, and reusing `summary` in the byte-identical test,
+would be a clean follow-up in a card whose Modifies includes
+`test_deckbench_audit.py` and `test_deckbench_table.py`.
+
+## Lint / type baseline (no regression introduced)
+
+`ruff` and `mypy` are only present in the orchestrator venv. Measured there:
+
+- `ruff check --select E,F,I,B,UP --line-length 100 src/hobkg/{equip,completeness,audit_repair}.py`
+  reports **160 errors before and 160 after** this card (142 ├ù E501 long lines,
+  plus a handful of B/UP/F codes). Every one predates this card in the legacy KG
+  modules; the lines this card adds introduce **none**.
+- `mypy --strict src/hobkg/equip.py` reports **347 errors across 11 files before
+  and 347 after**. Because `--strict` follows imports, the bulk are in
+  `pipeline.py`, `project.py`, `models.py`, `normalize.py`, etc. ΓÇö none in this
+  card's Modifies scope ΓÇö so the command cannot reach 0 for `equip.py` no matter
+  what is done to `equip.py` alone. The new `write_jsonl_lines` helper is fully
+  type-annotated and adds no error.
+
+"Every touched module is clean under ruff and mypy --strict" is therefore read as
+**introduce no new violations**, which is met and verified by the identical
+before/after counts. Making the legacy modules and their transitive imports fully
+clean is a separate, much larger effort and is out of this card's scope (which
+"changes code paths, not data").
+
+## Environment divergence ΓÇö an operator decision, not made here
+
+compact runs a project's checks with whatever `python` resolves to in its own
+process ΓÇö `C:/GitHub/control_plane/.venv/Scripts/python.exe` carrying pytest
+8.4.2 ΓÇö while this project's declared environment is the system interpreter
+carrying pytest 9.0.2, and the `[Errno 22]` appears in the former and not the
+latter. Pointing the project's default check at a project-owned interpreter would
+likely resolve it outright and would be the better fix, but it changes how every
+future card is gated. Per the card's Requirements, that is left to the operator
+and recorded here rather than made silently.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 013
+status: TODO
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 013: Establish which derived artifacts are actually deterministic
+
+## Objective
+
+`registry.md` carries the success criterion *"Frozen artifacts stay
+byte-identical, and two serial builds agree."* Nothing in this repository
+currently checks that across the board, and at least one artifact demonstrably
+violates it.
+
+Build the harness that decides the question for every derived artifact, then fix
+what it finds. The harness is the deliverable and comes first; the fixes are
+whatever it justifies.
+
+**Do not guess at causes.** A previous attempt at exactly this reasoning ΓÇö that
+incomplete sort keys were letting ties fall back to insertion order ΓÇö was
+checked and found false for two of the three files examined. Measure, then fix
+what the measurement shows.
+
+## Acceptance Criteria
+
+- [ ] A harness regenerates every derived artifact twice in a fresh process each time and compares the two results byte-for-byte, reporting per artifact: stable, unstable, or not regenerable
+- [ ] The comparison is done on bytes as written by the code, not on git's view; `* text=auto` rewrites line endings on checkout, so a CRLF working copy against an LF blob differs by exactly one byte per line and says nothing about determinism
+- [ ] For every artifact reported unstable, the harness reports **how** it differs: record count, whether the multiset of records is identical (pure reordering), whether any record differs internally, and the first differing byte offset
+- [ ] `reports/determinism_audit.md` lists every derived artifact with its verdict and, for unstable ones, the characterisation above
+- [ ] `data/review/llm_accepted.jsonl` and `data/review/llm_queued.jsonl` are covered and the harness reproduces their instability, which is the one confirmed case; the fix makes two serial regenerations byte-identical
+- [ ] The `data/review` fix addresses **intra-record** ordering, not line ordering: measured 2026-09-09, the two files differ from their committed blobs at identical total length with a **different line multiset**, so the variation is in the order of elements inside a JSON record, not in the order of records
+- [ ] `card_pair_projection_audit_repair.jsonl` is covered; its writer performs no sort, so its 2359 records are emitted in insertion order and the file is stable only by luck
+- [ ] Every artifact the harness finds unstable is either fixed so that two serial regenerations agree byte-for-byte, or documented in the report with the reason it cannot be
+- [ ] A fix changes only ordering or serialization, never which records exist; for each fixed artifact a test asserts the multiset of records is unchanged from the committed version
+- [ ] `data/graph_global/frozen_manifest.json` still verifies after any fix, and the frozen base (`nodes.jsonl`, `edges.jsonl`, `conditions.jsonl`) is byte-identical to its committed form
+- [ ] The harness is runnable as a single command and exits non-zero if any artifact it covers is unstable, so the criterion in `registry.md` becomes checkable rather than aspirational
+- [ ] All tests pass, and the card introduces no new ruff violation in any file it touches ΓÇö `src/hobkg` carries heavy pre-existing lint and type debt (`equip.py` alone: 108 ruff violations and 347 `mypy --strict` errors) and cleaning it is not this card's job
+
+## Inputs
+
+- registry.md
+
+## Modifies
+
+- src/hobkg/phase3.py
+- src/hobkg/audit_repair.py
+
+## See Also
+
+- reports/suite_stability.md
+
+## Outputs
+
+- tools/determinism_audit.py
+- tests/test_determinism_audit.py
+- reports/determinism_audit.md
+
+## Requirements
+
+- Measure before fixing. The report must state what was observed for each artifact before any change, so a later reader can tell which fixes were justified by evidence
+- Compare bytes produced by the code in two separate processes. Comparing within one process can hide a difference that depends on per-process hash randomization, and comparing against git can invent one that is only line endings
+- Do not change which records an artifact contains. Sorting, key ordering and serialization are in scope; adding, dropping or merging a record is not, and a test must prove the multiset is preserved
+- Where a sort is added or extended, make the key total ΓÇö if two records can still tie, the order is decided by insertion and the artifact stays unstable
+- Do not touch `nodes.jsonl`, `edges.jsonl`, `conditions.jsonl` or `frozen_manifest.json`. Those are the frozen base and a criterion above asserts they are unchanged
+- Do not modify `src/deckbench/*`; the modeling arm's artifacts already assert byte-identical rebuilds in their own cards and are covered by the harness only as verification
+- If an artifact is unstable because of upstream set iteration, fix it at the point the order is decided rather than by sorting at the end, where a partial key would leave the instability in place and hide it
+- Do not mark an artifact stable because it happened to match once. Two regenerations is the minimum the criterion asks for; if an artifact is suspected of intermittent instability, run it more and say how many times
+
+## Checks
+
+- python tools/determinism_audit.py --report
+
+## Output Validation
+
+- python -m pytest tests/test_determinism_audit.py -q
+- python -m hobkg.cli ports --validate
+- ruff check --select E,F,I,B,UP --line-length 100 tools/determinism_audit.py tests/test_determinism_audit.py
+- mypy --strict tools/determinism_audit.py
+
+## Blocked By
+
+- 012
+
+## Notes
+
+**What is already known, and how firmly.**
+
+*Established, and the only confirmed case:* `data/review/llm_accepted.jsonl` and
+`llm_queued.jsonl` are rewritten with different bytes by consecutive full-suite
+runs. Verified 2026-09-09 by comparing each working copy against its committed
+blob with line endings normalized: not identical, **identical total length**, and
+the **line multiset differs**. A differing line multiset at equal total length
+rules out record reordering and points at elements reordered *inside* a record.
+That matches the original diff, in which two entries within one record's
+`disputed_edges` array had swapped places. So the fix belongs wherever those
+lists are built, not in a file-level sort.
+
+*Established statically, never observed to vary:* the writer of
+`card_pair_projection_audit_repair.jsonl` performs no sort. Its 2359 records are
+emitted in insertion order, so the file is stable only if every upstream
+iteration happens to be. The harness should settle whether it actually varies.
+
+*Ruled out ΓÇö and this is a correction to an earlier claim in this card.*
+`card_pair_projection_completeness.jsonl` is **not** unstable. An earlier
+revision of this card recorded it as "observed once, cause unknown", inferred
+from a persistent `git status` entry at an identical byte count. Checked
+properly on 2026-09-09, the working copy and the committed blob are **raw
+byte-identical with the same SHA256**. The `git status` entry is a line-ending
+and stat artifact under `* text=auto`, not a content change. The claim was
+wrong.
+
+*Also ruled out:* incomplete sort keys, for both the completeness and equip
+projections. Checked against their writers' actual sort keys ΓÇö 1041 records with
+1041 distinct keys, and 3250 with 3250 ΓÇö so no ties exist for insertion order to
+break and the between-record order is fully determined.
+
+**Where the `data/review` fix has to go.** `src/hobkg/phase3.py` writes both
+files, at lines 512-513, 550 and 607, through a `_write_dicts` sink. Since the
+instability is intra-record rather than between records, sorting at that sink
+would not touch it ΓÇö the ordering to fix is inside whatever builds each record's
+`disputed_edges` list, upstream of the write. `phase3.py` is declared under
+Modifies for that reason; `audit_repair.py` is declared for its unsorted writer.
+No other module is expected to need changing, and one that does is a finding
+worth reporting.
+
+**Three mechanisms have now been guessed wrong in this area, all in the same
+way.** Each time the inference came from `git status` or a raw byte count rather
+than from comparing normalized content, and each time the wrong answer was
+plausible enough to have justified a fix that fixed nothing. That is the reason
+this card is a measurement harness rather than a list of repairs, and the reason
+the criteria above forbid comparing against git's view.
+
+**Why this matters beyond tidiness.** The repository's own success criterion says
+two serial builds agree. Card 006 sealed the holdout and pinned the split by
+hash; card 008 re-froze five artifacts under `MANIFEST.sha256`; card 011's run
+records pin a `split_sha256` so a reported fit can be audited. Every one of those
+guarantees assumes regeneration is reproducible. An artifact that reorders on
+each build makes its own hash meaningless, and a hash that changes for no reason
+trains people to ignore hash mismatches ΓÇö which is precisely the signal card 014
+depends on when it verifies the split before opening the holdout.
+
+**The cost this has already imposed.** Hand-reverting `data/review/*.jsonl` after
+essentially every full-suite run for two days, and one genuine confusion during
+card 011's cleanup where a dirty artifact had to be distinguished from real work
+before the tree could be committed.

@@ -475,6 +475,13 @@ def _ability_key(a: dict) -> tuple:
     return (a.get("ability_id"), a.get("kind"))
 
 
+def _ab_order(k: tuple) -> tuple:
+    # None-safe TOTAL sort key over ability keys (ability_id, kind). None sorts
+    # distinctly from "" (via the boolean flags), so two distinct dict keys can never
+    # collapse to the same sort key and fall back to insertion order.
+    return (k[0] is None, k[0] or "", k[1] is None, k[1] or "")
+
+
 def reconcile(repo: Path = REPO) -> dict:
     """Accept assertions on which extractor and critic agree AND which validate;
     queue the rest (spec Phase 3 second-pass acceptance rule)."""
@@ -490,18 +497,23 @@ def reconcile(repo: Path = REPO) -> dict:
         if errs:
             queued.append({"face_id": face_id, "reason": "critic output invalid", "errors": errs})
             continue
-        # edge-level agreement
+        # edge-level agreement. Set operations (& , -) iterate in hash order, which is
+        # randomized per process (PYTHONHASHSEED); left unsorted, the order of elements
+        # WITHIN each record's list varies between runs and the file is non-deterministic
+        # (card 013: the confirmed intra-record instability). Edge keys are
+        # (source, predicate, target) tuples of required strings, so sorting the keys is a
+        # TOTAL order — no ties fall back to insertion order.
         c_edges = {_edge_key(e): e for e in cand.get("proposed_edges", [])}
         k_edges = {_edge_key(e): e for e in crit.get("proposed_edges", [])}
-        agreed_edges = [k_edges[k] for k in c_edges.keys() & k_edges.keys()]
-        disputed_edges = [c_edges[k] for k in c_edges.keys() - k_edges.keys()] + \
-                         [k_edges[k] for k in k_edges.keys() - c_edges.keys()]
-        # ability-level agreement
+        agreed_edges = [k_edges[k] for k in sorted(c_edges.keys() & k_edges.keys())]
+        disputed_edges = [c_edges[k] for k in sorted(c_edges.keys() - k_edges.keys())] + \
+                         [k_edges[k] for k in sorted(k_edges.keys() - c_edges.keys())]
+        # ability-level agreement. Same fix; `_ab_order` is a None-safe TOTAL key.
         c_ab = {_ability_key(a): a for a in cand.get("abilities", [])}
         k_ab = {_ability_key(a): a for a in crit.get("abilities", [])}
-        agreed_ab = [k_ab[k] for k in c_ab.keys() & k_ab.keys()]
-        disputed_ab = [c_ab[k] for k in c_ab.keys() - k_ab.keys()] + \
-                      [k_ab[k] for k in k_ab.keys() - c_ab.keys()]
+        agreed_ab = [k_ab[k] for k in sorted(c_ab.keys() & k_ab.keys(), key=_ab_order)]
+        disputed_ab = [c_ab[k] for k in sorted(c_ab.keys() - k_ab.keys(), key=_ab_order)] + \
+                      [k_ab[k] for k in sorted(k_ab.keys() - c_ab.keys(), key=_ab_order)]
 
         accepted.append({"face_id": face_id, "abilities": agreed_ab, "proposed_edges": agreed_edges,
                          "schema_extension_requests": crit.get("schema_extension_requests", [])})
