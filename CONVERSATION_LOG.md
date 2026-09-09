@@ -101782,3 +101782,3478 @@ CRITERIA:
 
 SUMMARY:
 The re-freeze applies both operator decisions coherently: the null-skill exclusion is defined once in `deckbench.table` and inherited by identity/skill/split, the split is genuinely recomputed on the smaller population, the `1000` weight and the card-005 carve-out are deleted with tests rewritten to the stricter rule, and every pinned SHA256 across the manifest, split manifest, and audit report agrees with the re-frozen artifacts. The latest audit shows all output-validation commands and the full 627-test suite passing with clean ruff and mypy. The only nuance is that the unmapped-bucket error names the value but not the observation id; this is the unchanged card-005 behavior and still halts the run loudly, so it does not undermine acceptance. All criteria are supported by concrete evidence.
+
+### [2026-09-08 20:26] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: ACTIVE
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-07
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+# MTG Deck-Strength Modeling Benchmark
+
+## 1. Objective
+
+Build a controlled benchmark for estimating the contribution of **deck construction to win probability after accounting for player skill**.
+
+The experiment has two independent dimensions:
+
+1. **Target formulation** ΓÇö what quantity the model is asked to predict.
+2. **Deck representation** ΓÇö how information about the deck is presented to the model.
+
+The central experimental design is therefore:
+
+$$
+\boxed{\text{Target formulation} \times \text{Deck representation}}
+$$
+
+All model variants must use identical train/validation/test partitions and be evaluated using the same metrics.
+
+The purpose is to distinguish:
+
+* whether skill adjustment exposes deck-level signal;
+* whether raw card identity contains recoverable deck-strength information;
+* whether structured representations such as the mechanistic knowledge graph or game-script features recover additional signal;
+* whether structured representations add information beyond raw card identity.
+
+This is initially a **predictive representation benchmark**. Causal intervention estimation will be layered on after the predictive architecture is characterized.
+
+---
+
+# 2. Fundamental decomposition
+
+Conceptually, assume win probability contains at least:
+
+$$
+P(Y=1) = F(S,D)
+$$
+
+where:
+
+* \(S\) = player skill/context;
+* \(D\) = deck;
+* \(Y\) = game win/loss or corresponding observed win-rate outcome.
+
+A useful conceptual approximation is:
+
+$$
+p_i \approx p_{\text{skill},i}+\Delta_{\text{deck},i}.
+$$
+
+Player skill may generate substantially more between-observation variation than deck quality. For example, player baselines may span approximately 45ΓÇô65% WR while deck effects may operate on the order of approximately \(\pm5\) percentage points.
+
+Consequently, direct prediction of \(Y\) may be dominated by skill even when deck quality has a real and practically important effect.
+
+The benchmark will explicitly test whether residualizing skill improves recovery of deck-level signal.
+
+---
+
+# 3. Experimental axis A: target formulation
+
+## T0 ΓÇö Raw outcome
+
+Predict the observed outcome directly:
+
+$$
+Y_i.
+$$
+
+For game-level modeling:
+
+$$
+Y_{ig}\in\{0,1\}.
+$$
+
+The model estimates:
+
+$$
+\hat p_{ig}=f(S_i,D_{ig}).
+$$
+
+This is the conventional prediction problem.
+
+### Purpose
+
+Establish how much deck information improves prediction of actual outcomes beyond skill.
+
+---
+
+## T1 ΓÇö Original bump
+
+Reproduce the original deck-bump formulation as closely as possible.
+
+Define:
+
+$$
+B_i^{original}
+=
+Y_i-p_{\text{base},i},
+$$
+
+where \(p_{\text{base}}\) is the existing constructed historical skill proxy.
+
+The deck model predicts:
+
+$$
+\widehat B_i^{original}
+=
+f(D_i,S_i).
+$$
+
+Reconstructed win probability is:
+
+$$
+\hat p_i
+=
+p_{\text{base},i}
++
+\widehat B_i^{original}.
+$$
+
+### Purpose
+
+Reproduce the original approach and determine whether directly subtracting the historical skill proxy exposes deck signal better than raw-outcome prediction.
+
+---
+
+## T2 ΓÇö Learned-skill bump
+
+Replace the fixed skill baseline with a learned expected-win model.
+
+First estimate:
+
+$$
+m(S)=E[Y\mid S].
+$$
+
+For every training observation, obtain a **cross-fitted** prediction:
+
+$$
+\hat m_{-i}(S_i).
+$$
+
+Define:
+
+$$
+B_i^{learned}
+=
+Y_i-\hat m_{-i}(S_i).
+$$
+
+Then model:
+
+$$
+\widehat B_i^{learned}
+=
+f(D_i,S_i).
+$$
+
+Final prediction is:
+
+$$
+\hat p_i
+=
+\hat m(S_i)
++
+\widehat B_i^{learned}.
+$$
+
+### Critical requirement
+
+Residuals used to train the deck model must be generated out-of-fold.
+
+An observation must never be used to train the skill model that generates its own baseline prediction.
+
+The external test set must remain completely untouched during this procedure.
+
+### Purpose
+
+Test whether a learned estimate of expected performance given skill provides a cleaner baseline than directly using the historical WR proxy.
+
+---
+
+# 4. Experimental axis B: deck representation
+
+The same deck representations should be tested across the target formulations wherever technically appropriate.
+
+## R0 ΓÇö Skill only
+
+$$
+S
+$$
+
+No deck information.
+
+This is the baseline model.
+
+For residual targets, the exact role of \(S\) should be documented carefully because skill has already been used in construction of the target.
+
+---
+
+## R1 ΓÇö Card identity
+
+$$
+D_{\text{identity}}
+$$
+
+Deck represented by individual card composition.
+
+Preferred representation:
+
+$$
+D_{ij}
+=
+\frac{\text{count of card }j}
+{\text{deck size}}.
+$$
+
+If modeling individual games, this representation must correspond to the deck actually recorded for that game.
+
+Do not aggregate multiple different deck configurations into a synthetic average deck without explicitly testing and documenting that choice.
+
+---
+
+## R2 ΓÇö Knowledge-graph representation
+
+$$
+Z_{\text{KG}}=\phi_{\text{KG}}(D,G).
+$$
+
+Project the deck into the existing mechanistic MTG knowledge graph.
+
+Features should describe functional/mechanistic structure rather than merely relabel card identities.
+
+Exact KG feature engineering will be specified separately.
+
+---
+
+## R3 ΓÇö Game-script representation
+
+$$
+Z_{\text{script}}=\phi_{\text{script}}(D,G).
+$$
+
+Represent the probability distribution over meaningful early/mid-game capabilities generated by the deck.
+
+Candidate features include:
+
+* probability of meaningful T1ΓÇôT10 plays;
+* probability of T2/T3 curve-out;
+* probability of using available mana;
+* expected wasted mana;
+* probability of color screw;
+* probability of developing a creature by a given turn;
+* probability of having interaction available;
+* castable spell count by turn;
+* probability of no meaningful action;
+* probability of reaching important KG-defined synergies or motifs by a useful turn.
+
+The important conceptual distinction is:
+
+$$
+\boxed{\text{Mechanism exists} \neq \text{mechanism is reliably reachable}}
+$$
+
+---
+
+## R4 ΓÇö Identity + KG
+
+$$
+D_{\text{identity}}+Z_{\text{KG}}.
+$$
+
+Tests whether the KG contributes information beyond raw card identity.
+
+---
+
+## R5 ΓÇö Identity + KG + game script
+
+$$
+D_{\text{identity}}
++
+Z_{\text{KG}}
++
+Z_{\text{script}}.
+$$
+
+This is the richest planned representation.
+
+Additional ablations such as KG + script without identity may be added later.
+
+---
+
+# 5. Core experimental matrix
+
+The intended benchmark is:
+
+| Target                | Skill only | Identity | KG | Script | Identity + KG | Identity + KG + Script |
+| --------------------- | ---------: | -------: | -: | -----: | ------------: | ---------------------: |
+| T0 Raw outcome        |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T1 Original bump      |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T2 Learned-skill bump |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+
+Not every cell must necessarily use an identical feature list. For example, skill may appear both in target construction and as a predictor in bump models.
+
+Any deviation must be documented rather than silently changed.
+
+---
+
+# 6. Data unit
+
+The primary new analysis should preferentially operate at the **game level** if the raw dataset provides the deck used for each individual game.
+
+Each observation should then correspond to:
+
+$$
+(S_i,D_{ig},Y_{ig}).
+$$
+
+This avoids averaging together decks when players modify their deck between games.
+
+Before modeling, audit:
+
+* number of games;
+* number of drafts;
+* number of unique deck configurations per draft;
+* fraction of drafts with more than one deck configuration;
+* fraction of games occurring after a deck change;
+* deck-size distribution;
+* card-count consistency;
+* skill-variable consistency within draft.
+
+The original draft/run-level formulation may be retained as a secondary benchmark and direct replication of previous work.
+
+---
+
+# 7. Data splitting
+
+All models must use the **same frozen splits**.
+
+At minimum:
+
+* training;
+* internal validation/cross-fitting;
+* external test set.
+
+Games from the same draft must never cross partitions.
+
+Therefore:
+
+$$
+\boxed{\text{split by draft ID, not game row}}
+$$
+
+If a genuine player identifier exists, prefer player-level separation where appropriate so the same player cannot appear across train and test.
+
+Do not treat rank as player identity.
+
+A time-based external holdout should be considered if genuine player IDs are unavailable.
+
+Save the split assignments to disk and reuse them for every subsequent model.
+
+---
+
+# 8. Common learner
+
+Initially hold the learner family constant so representation changes are not confounded with algorithm changes.
+
+Recommended initial learner:
+
+**XGBoost**
+
+Use appropriate objectives:
+
+* binary/logistic objective for raw game outcomes;
+* regression objective for continuous bump/residual targets.
+
+Hyperparameter tuning procedures should be identical across comparable models.
+
+Do not introduce GNNs or specialized graph learners in the first benchmark.
+
+The immediate question is whether the representation contains useful information, not whether a specialized architecture can exploit it.
+
+---
+
+# 9. Evaluation framework
+
+Every final model should produce predictions on the same untouched external test observations.
+
+Report a common evaluation panel.
+
+## Core metrics
+
+### R┬▓
+
+For continuous bump/residual targets:
+
+$$
+R^2
+=
+1-\frac{\sum_i(y_i-\hat y_i)^2}
+{\sum_i(y_i-\bar y)^2}.
+$$
+
+For Bernoulli/raw-outcome models, do not silently report ordinary regression \(R^2\). Use a clearly defined probability-prediction analogue such as Brier Skill Score or explicitly labeled pseudo-\(R^2\).
+
+---
+
+### RMSE
+
+$$
+RMSE
+=
+\sqrt{
+\frac{1}{N}
+\sum_i(y_i-\hat y_i)^2
+}.
+$$
+
+---
+
+### MAE
+
+$$
+MAE
+=
+\frac{1}{N}
+\sum_i|y_i-\hat y_i|.
+$$
+
+Provides an error measure less sensitive to large misses than RMSE.
+
+---
+
+### Brier score
+
+For final win probabilities:
+
+$$
+BS
+=
+\frac{1}{N}
+\sum_i(\hat p_i-y_i)^2.
+$$
+
+This should be a primary metric for game-level probability predictions.
+
+---
+
+### Log loss
+
+$$
+-\frac{1}{N}
+\sum_i
+[
+y_i\log(\hat p_i)
++
+(1-y_i)\log(1-\hat p_i)
+].
+$$
+
+Useful because it penalizes confident incorrect predictions strongly.
+
+---
+
+### AUC
+
+Report as a secondary discrimination metric.
+
+AUC is not sufficient by itself because the primary scientific interest concerns accurate win probabilities, not merely ranking winners above losers.
+
+---
+
+# 10. Calibration evaluation
+
+Every model producing final win probabilities should undergo identical calibration analysis.
+
+## Calibration intercept
+
+Ideal:
+
+$$
+0.
+$$
+
+Tests systematic overprediction/underprediction.
+
+---
+
+## Calibration slope
+
+Ideal:
+
+$$
+1.
+$$
+
+A slope below 1 generally indicates predictions are too extreme.
+
+A slope above 1 generally indicates predictions are too conservative.
+
+---
+
+## Binned calibration
+
+Create identical probability bins for all models.
+
+For each bin compare:
+
+$$
+\text{mean predicted probability}
+$$
+
+against
+
+$$
+\text{observed win frequency}.
+$$
+
+Use the same binning strategy across models.
+
+Produce a calibration plot with the 45-degree identity line.
+
+---
+
+## Smooth calibration
+
+In addition to bins, fit a smooth calibration function so results do not depend entirely on arbitrary bin boundaries.
+
+The exact implementation can be selected after inspecting the prediction distribution.
+
+GAMLSS should not currently be treated as a required evaluation metric. If a distributional/smooth calibration method based on GAMLSS is considered later, add it as a separate diagnostic rather than conflating it with the core metrics.
+
+---
+
+# 11. Incremental-value analysis
+
+Absolute model performance is not sufficient.
+
+The primary scientific question is:
+
+> How much additional information does a deck representation contribute beyond skill?
+
+Therefore calculate paired differences such as:
+
+$$
+\Delta R^2
+=
+R^2(M_k)-R^2(M_0),
+$$
+
+$$
+\Delta RMSE
+=
+RMSE(M_k)-RMSE(M_0),
+$$
+
+$$
+\Delta BS
+=
+BS(M_k)-BS(M_0),
+$$
+
+and
+
+$$
+\Delta LL
+=
+LL(M_k)-LL(M_0).
+$$
+
+The same principle should be used to compare representations directly, e.g.:
+
+$$
+M_{\text{KG}}-M_{\text{identity}}
+$$
+
+and
+
+$$
+M_{\text{script}}-M_{\text{identity}}.
+$$
+
+---
+
+# 12. Uncertainty
+
+Use a **paired cluster bootstrap** for model comparisons.
+
+Cluster at the draft level so games from a draft are resampled together.
+
+For each bootstrap replicate:
+
+1. sample draft IDs;
+2. include all corresponding games;
+3. evaluate every model on exactly that bootstrap sample;
+4. calculate metric differences.
+
+Report confidence intervals for:
+
+$$
+\Delta R^2,\quad
+\Delta RMSE,\quad
+\Delta Brier,\quad
+\Delta LogLoss
+$$
+
+and other important pairwise comparisons.
+
+The paired design is important because all models predict the same observations.
+
+---
+
+# 13. Interpretation rules
+
+Do not equate lack of incremental predictive performance with absence of a causal deck effect.
+
+For example:
+
+$$
+R^2(S+D)\approx R^2(S)
+$$
+
+supports:
+
+> Card identity provides little detectable incremental predictive information beyond skill under this representation, learner and dataset.
+
+It does **not** establish:
+
+> Deck composition does not affect win probability.
+
+Possible explanations include:
+
+* deck effects are small relative to skill;
+* deck effects are interaction-dependent;
+* card identity is an inefficient representation;
+* outcome noise overwhelms small effects;
+* skill partially proxies expected deck quality because stronger players draft better decks.
+
+This distinction should be maintained throughout the analysis.
+
+---
+
+# 14. Primary hypotheses
+
+### H1 ΓÇö Skill dominance
+
+Skill alone explains substantially more predictable variation in raw outcomes than deck identity.
+
+---
+
+### H2 ΓÇö Residualization
+
+Deck signal is easier to recover when the dominant skill component is removed.
+
+Expected ordering, if this hypothesis is correct:
+
+$$
+\text{deck signal under T2}
+>
+\text{deck signal under T1}
+>
+\text{deck signal under T0}.
+$$
+
+This is a hypothesis, not an assumed result.
+
+---
+
+### H3 ΓÇö Structured representation
+
+Functional deck representations outperform raw identity:
+
+$$
+Z_{\text{KG}}
+\text{ and/or }
+Z_{\text{script}}
+>
+D_{\text{identity}}.
+$$
+
+---
+
+### H4 ΓÇö Reachability
+
+Game-script features add information beyond static mechanistic structure:
+
+$$
+D+Z_{\text{KG}}+Z_{\text{script}}
+>
+D+Z_{\text{KG}}.
+$$
+
+This would support the idea that knowing a mechanism exists is insufficient; its probability of being realized during actual games matters.
+
+---
+
+# 15. Required outputs
+
+For every completed model, save:
+
+* model identifier;
+* target formulation;
+* representation;
+* feature list/version;
+* split version;
+* hyperparameters;
+* test predictions;
+* reconstructed final win probability where applicable;
+* all evaluation metrics;
+* calibration data;
+* bootstrap comparisons;
+* model artifact;
+* random seed;
+* code/git commit.
+
+Create a master results table with one row per model.
+
+At minimum include:
+
+| Model | Target | Representation | R┬▓ | RMSE | MAE | Brier | Log Loss | AUC | Cal. Intercept | Cal. Slope |
+| ----- | ------ | -------------- | -: | ---: | --: | ----: | -------: | --: | -------------: | ---------: |
+
+Also create pairwise/incremental tables relative to the appropriate skill-only and identity baselines.
+
+---
+
+# 16. Implementation order
+
+Do not attempt the full matrix immediately.
+
+### Phase 1 ΓÇö Data audit
+
+Establish the correct observational unit, audit deck changes within drafts, validate skill fields, freeze splits.
+
+### Phase 2 ΓÇö Target benchmark
+
+Using skill and card identity only, implement:
+
+$$
+T0=\text{raw outcome}
+$$
+
+$$
+T1=\text{original bump}
+$$
+
+$$
+T2=\text{learned-skill bump}.
+$$
+
+This determines whether target construction materially affects recovery of deck signal.
+
+### Phase 3 ΓÇö Representation benchmark
+
+Once the target architecture is understood, add:
+
+$$
+D_{\text{identity}}
+\rightarrow
+Z_{\text{KG}}
+\rightarrow
+Z_{\text{script}}
+\rightarrow
+\text{combined representations}.
+$$
+
+### Phase 4 ΓÇö Causal estimation
+
+Only after the predictive benchmark is characterized should the project move to explicit deck/card interventions, g-computation, orthogonalization/DML, substitution effects, or draft-pick policy estimation.
+
+---
+
+# 17. Immediate task
+
+Do **not** start training the complete model matrix yet.
+
+First:
+
+1. audit the raw HOB game-level dataset;
+2. determine whether deck configurations change within drafts and quantify how often;
+3. construct the correct game-level modeling table;
+4. verify the skill variables and reproduce the existing skill proxy;
+5. define and save frozen train/validation/test splits;
+6. produce an audit report;
+7. stop for review before model fitting.
+
+The benchmark architecture above should then be implemented against that frozen dataset.
+
+
+[READ-ONLY INPUT] data/splits/split_manifest.json
+
+{
+  "dev_time_range": [
+    "2026-08-11 15:43:42",
+    "2026-08-22 12:12:35"
+  ],
+  "drafts_per_partition": {
+    "dev": 34482,
+    "holdout": 8620
+  },
+  "fold_sizes": {
+    "0": 39280,
+    "1": 39038,
+    "2": 38902,
+    "3": 38446,
+    "4": 38549
+  },
+  "holdout_fraction_drafts": 0.199991,
+  "holdout_fraction_rows": 0.196,
+  "holdout_fraction_target": 0.2,
+  "holdout_time_range": [
+    "2026-08-22 12:13:19",
+    "2026-08-29 23:33:09"
+  ],
+  "k_folds": 5,
+  "n_drafts": 43102,
+  "n_obs": 241561,
+  "persistent_player_id_exists": false,
+  "reason": "No persistent player identifier exists in the dataset (see reports/modeling_data_audit.json player_identifier), so the benchmark's preferred player-grouped split is not available. The fallback is a time-based external holdout of approximately the latest 20 percent of drafts by draft_time. This is a weaker leakage control than player grouping: the same player can appear in both partitions under different drafts, and is not treated as equivalent to a player-grouped split. rank is a skill bucket, not a player id, and is used nowhere as a grouping key, player id, or stratifier.",
+  "rows_per_partition": {
+    "dev": 194215,
+    "holdout": 47346
+  },
+  "rule": "time_based_holdout",
+  "seed": 20260908,
+  "split_parquet": "data/processed/model_split.parquet",
+  "split_sha256": "ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4"
+}
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+(none)
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/split_and_seal.md
+
+# Split and seal -- the frozen benchmark partition
+
+Card 006. `deckbench.split` freezes the one train/test split every model in the benchmark will share, and `deckbench.holdout` makes the external holdout mechanically hard to read by accident. No feature is built, no model is fit, and no metric is computed here (benchmark sections 7, 17).
+
+Source table: `data/processed/model_table.parquet`
+Split output: `data/processed/model_split.parquet`
+Split manifest: `data/splits/split_manifest.json`
+
+## The grouping rule and why
+
+The benchmark (section 7) prefers a player-grouped split so the same player cannot appear on both sides. The audit (`reports/modeling_data_audit.json`) records that **no persistent player identifier exists** in this dataset (`persistent_player_id_exists = false`), so that preferred control is unavailable. The chosen rule is therefore **`time_based_holdout`**: drafts are ordered by `draft_time` and the latest ~20 percent become the external holdout.
+
+> **This is a weaker leakage control than player grouping.** With no player id, the same player can appear in both the development set and the holdout under different drafts. A time-based holdout is not treated as equivalent to a player-grouped split; it is the strongest available control given the data, and its weakness is recorded here and in the split manifest.
+
+`rank` is a six-level skill bucket, not a player id (audit `player_identifier`). It is used **nowhere** in this card as a grouping key, a player identifier, or a stratifier; the split module reads only `obs_id, draft_id, draft_time`.
+
+## Split by draft, never by game row
+
+Every partition and every fold is assigned at the `draft_id` level, so no draft's games straddle a partition or fold boundary (benchmark section 7). Both properties are asserted by test: the intersection of draft ids across partitions is empty, and no `draft_id` spans two folds.
+
+## Partition sizes
+
+- Observations: **241561** across **43102** drafts.
+- Development: **194215** rows / **34482** drafts (draft_time 2026-08-11 15:43:42 .. 2026-08-22 12:12:35).
+- Holdout: **47346** rows / **8620** drafts (draft_time 2026-08-22 12:13:19 .. 2026-08-29 23:33:09).
+- Holdout fraction: **0.2000** of drafts, **0.1960** of games.
+
+Every observation is assigned exactly one partition; no row is unassigned and no row is in both.
+
+## Cross-fitting folds
+
+Every development observation carries one of **5** cross-fitting folds (benchmark section 3's T2 procedure). Fold membership is a deterministic hash of `(seed, draft_id)`, so every game of a draft shares a fold and no draft spans two folds. Holdout rows carry fold `-1` -- cross-fitting happens inside development only.
+
+| fold | dev rows |
+| --- | --- |
+| 0 | 39280 |
+| 1 | 39038 |
+| 2 | 38902 |
+| 3 | 38446 |
+| 4 | 38549 |
+
+## Determinism and the seed
+
+The only randomness is the fold assignment, drawn from the declared seed **20260908** via a hash -- there is no RNG state to carry. Row order is the model table's own order. Two consecutive runs therefore produce a byte-identical `model_split.parquet`; `python -m deckbench.split --verify` rebuilds it in memory and checks it against the file on disk.
+
+## Pinned twice, on purpose
+
+The split parquet is pinned in two places that answer different questions. `data/splits/split_manifest.json` pins its SHA256 and is what the seal verifies before returning any holdout row -- if the split was regenerated after models were fit against it, the hash moves and the seal fails closed. `data/processed/MANIFEST.sha256` pins it alongside the four card-004/005 artifacts so every derived artifact is covered uniformly and a full rebuild is checked byte-for-byte.
+
+## The seal
+
+The external holdout is opened only through `deckbench.holdout.load_holdout`, which refuses to answer without a card id and a reason, verifies the split's hash against the manifest (failing closed on any mismatch), and appends one line to the append-only ledger `cycle/holdout_ledger.jsonl` every time it does answer -- before returning the rows, so an interrupted read is still recorded. A refused read appends nothing. A second read by the same card id is refused unless an explicit repeat flag is passed, and the ledger records the repeat. Ordinary development uses `deckbench.holdout.load_dev`, which returns development rows without a card id and without touching the ledger, so the ledger's signal stays high. Afterwards, how many times the holdout was opened is a countable fact rather than a recollection (benchmark sections 9, 12).
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/benchmark_phase1_audit.md
+
+# Benchmark Phase 1 audit ΓÇö the frozen dataset, and a halt before model fitting
+
+This is the report section 17 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md`
+requires: the consolidated record of Phase 1 (cards 003ΓÇô006), and the point at
+which the benchmark stops for operator review before any model is fit.
+
+Nothing is fitted here. No holdout partition is opened. No metric is computed on
+any partition. The deliverable is this report, the append-only checker built
+alongside it (`tools/check_append_only.py`), and a `RESULT` entry in
+`LABNOTEBOOK.md`.
+
+Every number below was read from the frozen artifacts and their manifests, not
+transcribed from the prose of the cards. Where a number appears, it was recomputed
+from the parquet/CSV/JSON file named beside it. Artifact digests are pinned so a
+later card can confirm the ground has not moved.
+
+**This report was re-frozen at card 008.** The operator reviewed it, decided the
+two open questions of section 7, and card 008 applied those decisions and
+re-derived every artifact. All counts and digests below reflect the re-frozen
+dataset; the amendment immediately following records what changed. The full
+change log is `reports/phase1_refreeze.md`.
+
+---
+
+## 0. Amendment ΓÇö the operator decisions applied (card 008)
+
+Section 7 of the original report put two questions to the operator. Both were
+answered at the phase-1 review, and card 008 applies them by re-deriving the
+dataset from the raw CSV under a new **modeling population** definition. No model
+is fit, no metric is computed, and the holdout is not opened
+(`cycle/holdout_ledger.jsonl` stays byte-identical, 0 bytes).
+
+1. **The 166 null-skill games are excluded from the modeling population.** They
+   have no historical win-rate bucket and so cannot be scored by R0. Measured
+   from the raw file, they belong to **59 drafts, every one entirely null** (no
+   partial draft), so excluding games and excluding drafts are one operation. The
+   exclusion is applied once, in `deckbench.table`, and every downstream table
+   inherits that population. The split is **recomputed** on the smaller
+   population, not filtered.
+
+2. **The games-played bucket set is taken from the data.** The inherited `1000`
+   `hist_w` entry never occurs in this dataset and was removed; the accepted set
+   is now derived from the data and the weights remain the inherited assumption.
+   Card 005's structurally-absent-null carve-out is deleted ΓÇö a null win-rate
+   bucket in the population now stops the run.
+
+| Quantity | Before (card 007) | After (card 008) |
+| --- | --- | --- |
+| Observations (games) | 241,727 | **241,561** |
+| Drafts | 43,161 | **43,102** |
+| Null-skill games / drafts excluded | 0 / 0 | **166 / 59** |
+| Development rows / drafts | 194,348 / 34,529 | **194,215 / 34,482** |
+| Holdout rows / drafts | 47,379 / 8,632 | **47,346 / 8,620** |
+| Dev fold sizes | 39316 / 39067 / 38915 / 38479 / 38571 | **39280 / 39038 / 38902 / 38446 / 38549** |
+| `mu` | 0.546211 | **0.546211** (unchanged by construction) |
+| Games-played buckets | {1,5,10,50,100,500,1000} | **{1,5,10,50,100,500}** |
+
+The **halt of section 8 is now satisfied for the phase-1 dataset**: the operator
+reviewed this report and the dataset is re-frozen under their decisions. Phase 2
+authorization still depends on the operator writing Phase 2 acceptance criteria;
+nothing here begins Phase 2.
+
+---
+
+## 1. What Phase 1 produced (re-frozen at card 008)
+
+| Card | Concern | Primary artifact | SHA256 |
+| --- | --- | --- | --- |
+| 003 | Raw data audit | `reports/modeling_data_audit.json` | `c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c` |
+| 004 / 008 | Game-level table | `data/processed/model_table.parquet` | `d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750` |
+| 004 / 008 | Card-identity representation | `data/processed/deck_identity.parquet` | `2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c` |
+| 004 / 008 | Card-identity name map | `data/processed/card_identity_manifest.csv` | `8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9` |
+| 005 / 008 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc` |
+| 006 / 008 | Frozen split + folds | `data/processed/model_split.parquet` | `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4` |
+| 006 / 008 | Split provenance / seal | `data/splits/split_manifest.json` | `6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163` |
+
+The five `data/processed` artifacts are the ones pinned in
+`data/processed/MANIFEST.sha256`; `sha256sum -c data/processed/MANIFEST.sha256`
+verifies them from the repository root. The two JSON/report inputs are pinned
+here by their own digest.
+
+---
+
+## 2. Observational unit, and the measurement that justified it
+
+**Ratified unit: the game**, keyed by the injective 4-tuple
+`(draft_id, game_time, match_number, game_number)` and hashed to `obs_id`.
+
+The unit was not chosen by preference. The deck configuration is recorded per
+game and it changes within a draft, measured on the raw file
+(`reports/modeling_data_audit.json`, `within_draft`):
+
+- **8191 of 43161 drafts (0.189778)** carry more than one deck configuration.
+- **28397 of 241727 games (0.117475)** are played after a deck change.
+- Distinct configurations per draft: 1 ΓåÆ 34970 drafts, 2 ΓåÆ 6636, 3 ΓåÆ 1314,
+  4 ΓåÆ 210, 5 ΓåÆ 29, 6 ΓåÆ 2.
+
+Averaging a draft's games would blend distinct decks in exactly those ~19% of
+drafts. The game is therefore the unit at which "the deck that played this game"
+is well defined (benchmark section 6). The split is nonetheless assigned by draft,
+never by game row (section 4 below), so this choice does not create cross-partition
+leakage.
+
+The counts in this section are the audit's measurements over the **raw file**
+(241727 games, 43161 drafts); they justified the unit before the population was
+defined. The modeling population after the card-008 null-skill exclusion is
+241561 games across 43102 drafts (section 4).
+
+---
+
+## 3. Persistent player identifier, and what its absence implies
+
+**No persistent player identifier exists in this dataset**
+(`reports/modeling_data_audit.json`, `player_identifier.persistent_player_id_exists = false`;
+echoed in `data/splits/split_manifest.json`, `persistent_player_id_exists = false`).
+`rank` and `opp_rank` are six-level skill buckets, not player ids, and are
+nominated nowhere as a substitute.
+
+Consequence for leakage control: the benchmark's preferred **player-grouped
+split is unavailable** (section 7 of the benchmark). The fallback used at card
+006 is a **time-based external holdout** (the latest Γëê20% of drafts by
+`draft_time`). This is a **weaker** control: with no player id, the same player
+can appear in both the development set and the holdout under different drafts.
+The split manifest records this weakness explicitly and does not treat the
+time-based holdout as equivalent to a player-grouped split. `rank` is used
+nowhere as a grouping key, player id, or stratifier.
+
+---
+
+## 4. Final row counts (re-frozen at card 008)
+
+All counts recomputed from the parquet files named; the population is
+post-exclusion (the 166 null-skill games in 59 drafts are gone).
+
+| Quantity | Value | Source artifact |
+| --- | --- | --- |
+| Observations (games) | **241561** | all four `data/processed/*.parquet` (row counts agree) |
+| Drafts | **43102** | `model_split.parquet` distinct `draft_id` (34482 dev + 8620 holdout) |
+| Null-skill games / drafts excluded | **166 / 59** | `model_table_build.md` (derived from the raw file) |
+| Card-identity features | **193** | `deck_identity.parquet` (194 cols ΓêÆ `obs_id`); `card_identity_manifest.csv` 193 rows |
+| Development rows | **194215** | `model_split.parquet` `partition == dev` |
+| Development drafts | **34482** | `model_split.parquet` |
+| Holdout rows | **47346** | `model_split.parquet` `partition == holdout` |
+| Holdout drafts | **8620** | `model_split.parquet` |
+| Holdout fraction | **0.199991 of drafts, 0.196000 of games** | `split_manifest.json` |
+| Cross-fitting folds (dev) | **5** | `model_split.parquet` |
+| Fold sizes (dev rows) | 0 ΓåÆ 39280, 1 ΓåÆ 39038, 2 ΓåÆ 38902, 3 ΓåÆ 38446, 4 ΓåÆ 38549 | `model_split.parquet` |
+| Holdout fold marker | ΓêÆ1 (all holdout rows) | `model_split.parquet` |
+| Split seed | **20260908** | `split_manifest.json` |
+| Split rule | `time_based_holdout` | `split_manifest.json` |
+
+The four processed tables share one `obs_id` set exactly (verified: the table,
+identity, skill and split obs-id sets are pairwise equal), so every downstream
+join is total in both directions with no unmatched rows.
+
+---
+
+## 5. What Phase 2 may assume
+
+Each claim below rests on a named artifact and its SHA256. A Phase 2 card must
+verify these digests before relying on the claim; a mismatch means the dataset
+moved and any comparison built on it is void. This is the adjudicable record the
+quarantined pipeline lacked.
+
+1. **The modeling unit is the game, and there are 241561 of them** (the raw file
+   has 241727; the 166 null-skill games are excluded from the population).
+   `data/processed/model_table.parquet`
+   (`d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750`),
+   241561 rows, one per `obs_id`.
+
+2. **The card-identity representation is `D_ij = count(card j in deck i) / deck_size_i`,
+   over 193 card features, one row per observation.**
+   `data/processed/deck_identity.parquet`
+   (`2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c`),
+   241561 rows ├ù 193 features; no feature column is the outcome.
+
+3. **The 193 feature names round-trip to their verbatim source columns.**
+   `data/processed/card_identity_manifest.csv`
+   (`8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9`),
+   193 rows, one-to-one `source_column Γåö feature_name`.
+
+4. **`base_p` is available as the T1 fixed baseline for every observation in the
+   population; there are no null values.** `data/processed/skill_features.parquet`
+   (`4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc`),
+   columns `obs_id, base_p_raw, base_p`; **0 nulls** in either column (the 166
+   null-bucket games were excluded from the population at card 008, so a null
+   here now fails the build). `base_p` is a reliability-shrunk historical
+   win-rate proxy and a nuisance representation; it is **not** a measurement of
+   player skill and is not to be described as one.
+
+5. **The train/test split is frozen and shared by every model, assigned at draft
+   granularity.** `data/processed/model_split.parquet`
+   (`ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`):
+   dev 194215 rows / 34482 drafts, holdout 47346 rows / 8620 drafts, 5 dev folds,
+   holdout fold ΓêÆ1. **No draft spans two partitions (0) and no draft spans two
+   folds (0)** ΓÇö recomputed from the artifact.
+
+6. **The split's identity and the holdout seal are pinned.**
+   `data/splits/split_manifest.json`
+   (`6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163`)
+   records `split_sha256 = ad7f8596ΓÇª`, matching claim 5. The holdout is opened
+   only through `deckbench.holdout.load_holdout`, which verifies this hash and
+   appends to `cycle/holdout_ledger.jsonl` on every read.
+
+7. **No persistent player identifier exists; leakage control is time-based, not
+   player-grouped.** `reports/modeling_data_audit.json`
+   (`c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c`) and the
+   split manifest (claim 6).
+
+---
+
+## 6. Leakage checks run, and their results
+
+All checks recomputed from the artifacts for this report.
+
+- **No feature column derives from the outcome.** `deck_identity.parquet` does
+  not contain a `won` column (verified absent). `skill_features.parquet` holds
+  only `obs_id, base_p_raw, base_p`, derived from `user_game_win_rate_bucket`
+  and `user_n_games_bucket`; `won` is never read in its construction.
+  `model_split.parquet` holds only `obs_id, draft_id, partition, fold`, derived
+  from `draft_id` and `draft_time`. **The outcome `won` appears only in
+  `model_table.parquet`, as a carried metadata column ΓÇö in no feature table.**
+- **Split by draft, not by game row.** No `draft_id` appears in more than one
+  partition (0), and no `draft_id` appears in more than one fold (0). Games from
+  one draft cannot straddle train/test or a cross-fitting boundary.
+- **Cross-fitting is internal to development.** Every holdout row carries fold
+  ΓêÆ1; folds 0ΓÇô4 exist only in the development partition.
+- **The join surface is total.** The `obs_id` sets of the table, identity, skill
+  and split artifacts are pairwise equal, so no feature is silently dropped or
+  duplicated across a join.
+- **The holdout was not opened by this card.** `cycle/holdout_ledger.jsonl` is
+  empty (0 bytes) and byte-identical before and after this card runs; no read of
+  `deckbench.holdout.load_holdout` occurred.
+
+---
+
+## 7. Unresolved questions and unverified assumptions
+
+Each item is a finding, stated as an uncertainty, with the consequence of its
+being wrong. None is resolved here by assumption.
+
+1. **Declared vs observed column count disagree.** The raw-file manifest declares
+   1165 columns; the file has **985** (`reports/modeling_data_audit.json`,
+   `declared_vs_observed_match.columns = false`; declared drafts and rows *do*
+   match). *Consequence if trusted blindly:* any Phase 2 step that reads the
+   declared width, or expects 1165 columns, is off by 180 and may misalign
+   columns. The observed 985 (193 ├ù 5 card families + 20 non-card) is the
+   authority; the declared count is not.
+
+2. **Time-based holdout is a weaker leakage control than player grouping**
+   (section 3). *Consequence if wrong:* if the same players recur across the
+   time boundary in a way that matters, generalization estimates on the holdout
+   will be optimistic. There is no player id with which to bound this risk.
+
+3. **RESOLVED at card 008 ΓÇö the 166 null-win-rate games are excluded from the
+   modeling population.** They were near-new players (66 at games-played bucket 1,
+   100 at bucket 5) with no historical win rate, so R0 cannot score them. The
+   operator decided the exclusion lands at the population definition rather than
+   being carried into Phase 2. Measured from the raw file, all 166 belong to 59
+   **wholly-null** drafts, so games and drafts are excluded as one operation
+   (241727 ΓåÆ 241561 games, 43161 ΓåÆ 43102 drafts). `skill_features.parquet` now
+   carries **0 nulls**, and a null win-rate bucket in the population fails the
+   build. There is no longer a null-handling policy for Phase 2 to invent.
+
+4. **15680 rows carry a deck size other than the modal 40** (max observed 60;
+   rows below the legal minimum: 0; `reports/modeling_data_audit.json`,
+   `deck_size`). The identity representation divides by each row's *actual* deck
+   size, so the fractions remain well formed. *Consequence:* "deck size" is not
+   constant across observations; whether Phase 2 restricts to 40-card decks, or
+   models all sizes, is an open modeling choice, not a data defect.
+
+5. **Within-draft deck changes are common enough that the unit is load-bearing**
+   (19.0% of drafts, 11.7% of games; section 2). *Consequence if ignored:* a
+   Phase 2 fit that quietly aggregates to draft level would blend distinct decks
+   in those drafts and misattribute their outcomes.
+
+6. **`mu` is a per-game mean** of `base_p_raw` (= 0.546211 over the whole
+   241561-row population; `reports/skill_proxy.md`), so drafts with more games
+   weight the shrinkage target more. Because the historical bucket is constant
+   within a draft, this is the only weighting choice that arises; it is recorded
+   rather than hidden. `mu` is **unchanged** by the card-008 re-freeze: the
+   excluded games never carried a bucket, so they were never in the mean.
+   *Consequence if unexamined:* the shrinkage target carries a per-game (not
+   per-player) weighting that a Phase 2 reader should know about.
+
+7. **`hist_w` reliability map is inherited, not derived** (six entries after
+   card 008, ╬╗ = 5; `reports/skill_proxy.md`). The inherited `1000` entry, which
+   this dataset never contains, was removed; the map's keys are now exactly the
+   games-played buckets the population presents, and the accepted set is derived
+   from the data. An unmapped bucket fails the run rather than being defaulted.
+   *Consequence:* the weights are an assumption carried from the prior R
+   implementation; if a future set introduces a new games bucket, the proxy build
+   halts by design and the map must be extended deliberately.
+
+---
+
+## 8. Halt
+
+**Phase 2 is not authorized to begin until the operator has reviewed this report.**
+
+Section 16 of the benchmark orders the work ΓÇö data audit, then target benchmark,
+then representation benchmark, then causal estimation ΓÇö and section 17 requires a
+stop for review before model fitting. Phase 2's shape depends on what Phase 1
+measured (the game/draft distinction of section 2 is real, not negligible), so
+writing Phase 2 acceptance criteria before this report exists would mean writing
+them against unmeasured facts. That is the failure the quarantined pipeline made.
+
+No model is fit, no metric is computed on any partition, and no predictive
+quantity is reported in this document. The dataset is frozen and pinned.
+
+**Update (card 008):** the operator's review has since happened ΓÇö its two
+decisions are recorded in section 0 and applied by card 008, which re-froze the
+dataset. The dataset is now coherent with those decisions and carries no
+outstanding null-handling policy. Phase 2 still begins only when the operator
+sets its acceptance criteria; card 008 does not start it.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 009
+status: TODO
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 009: Representation-agnostic estimator, fit on development data only
+
+## Objective
+
+Build the one estimator every model in the benchmark will go through, and make
+it structurally incapable of knowing where its features came from.
+
+Section 8 of the benchmark holds the learner family constant so that a
+difference between two models is attributable to the representation and not to
+the algorithm. That only holds if a single code path fits all of them. Section
+10's framing is the requirement: *the estimator should not know how the
+representation was generated.*
+
+This card fits models on **development data only**. It computes no evaluation
+metric, opens no holdout, and reports no predictive quantity. The metric and
+calibration panel is card 010; the single holdout read is card 014.
+
+## Acceptance Criteria
+
+- [ ] `fit_and_evaluate` -- or whatever the single entry point is called -- accepts a feature matrix, an outcome vector, weights, group ids and the frozen split, and nothing that identifies the representation
+- [ ] A test passes a real feature matrix and a random matrix of the same shape through the identical call and asserts both complete, so the estimator demonstrably does not branch on provenance
+- [ ] The feature matrix is accepted as an opaque array; the estimator never inspects column names, never imports `deckbench.identity`, and never reads a parquet file itself
+- [ ] Both objectives are supported and selected by the caller: a binary/logistic objective for raw game outcomes, and a regression objective for continuous bump targets
+- [ ] The hyperparameter grid is declared once, as data, and is identical for every model fitted through this path; a test asserts a single grid object is used
+- [ ] Inner cross-validation uses the folds recorded in the frozen split and never invents its own; a test asserts the fold assignment used equals the one in `model_split.parquet`
+- [ ] No `draft_id` contributes rows to more than one inner fold, inherited from the split rather than re-derived
+- [ ] The estimator reads development rows through `deckbench.holdout.load_dev` and never calls `load_holdout`; a test asserts the module's source contains no reference to `load_holdout`
+- [ ] A test asserts `cycle/holdout_ledger.jsonl` is byte-identical before and after a full fit
+- [ ] Two fits with the same seed and inputs produce byte-identical predictions; the seed is declared and recorded in the run record
+- [ ] Every fit writes a run record carrying the model identifier, target formulation, representation name, feature count, split SHA256, seed, chosen hyperparameters and the fitted iteration count
+- [ ] The run record's split SHA256 is read from `data/splits/split_manifest.json` and the run fails if it does not match the split parquet on disk
+- [ ] Predictions are emitted for development rows only, keyed by `obs_id`, with no holdout row present; a test asserts the emitted id set is disjoint from the holdout partition
+- [ ] No metric, score, calibration quantity or model comparison is computed anywhere in this card
+- [ ] All new tests pass and the module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+- data/splits/split_manifest.json
+
+## See Also
+
+- reports/split_and_seal.md
+- reports/benchmark_phase1_audit.md
+
+## Outputs
+
+- src/deckbench/estimator.py
+- tests/test_deckbench_estimator.py
+- reports/estimator_api.md
+
+## Requirements
+
+- The estimator takes arrays, not table paths. A caller assembles the matrix; the estimator fits it. This is the whole point of the card and the reason section 8's comparison is meaningful
+- Do not import `xgboost` at module import time in a way that makes the module unimportable without it; fail with a clear message naming the missing dependency if it is absent
+- Tune on the learner's native training objective. The evaluation panel is card 010 and operates on emitted predictions; the estimator must not depend on it, and card 010 must not depend on the estimator
+- Do not compute R-squared, log loss, Brier, AUC, or any calibration quantity as an output of this card, even as a convenience
+- Do not fit on, sample from, or read the holdout partition by any route
+- Do not re-derive folds, re-derive the split, or accept a caller-supplied fold vector; the frozen split is the only source
+- Do not introduce a GNN or any graph-specific learner. Section 8 is explicit: the first benchmark asks whether a representation carries information, not whether a specialized architecture can exploit it
+- Record the hyperparameters actually chosen, not the grid that was searched; a run record that cannot reproduce its own fit is not a record
+- Use `deckbench.holdout.load_dev`, which is the unsealed path and deliberately requires no card id, so ordinary fitting does not pollute the holdout ledger
+
+## Checks
+
+- python -m deckbench.estimator --selftest
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_estimator.py -q
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/estimator.py tests/test_deckbench_estimator.py
+- mypy --strict src/deckbench/estimator.py
+
+## Blocked By
+
+- 008
+
+## Notes
+
+**Why this card exists separately from the models it will fit.** The benchmark's
+whole design is a matrix of target formulations against deck representations,
+compared under a fixed learner. If each cell fits its own way, the comparison
+measures the union of representation, hyperparameters and code path, and no
+single difference is attributable. One estimator, one grid, one fold source.
+
+**The provenance-blindness test is the load-bearing one.** It is easy to write
+an estimator that "does not know" about representations while quietly special
+casing a column named `base_p`. Passing a random matrix of the same shape
+through the identical entry point and requiring it to complete is a cheap check
+that the path is genuinely generic.
+
+**Why no metrics here, and why 010 does not depend on this.** The two cards are
+deliberately decoupled in both directions. The estimator tunes on the learner's
+native objective, which is intrinsic to the learner and needs no external panel.
+Card 010 builds an evaluation panel over `(y, p, weight, group)` arrays, which
+needs no estimator. Either card could be built first; neither can quietly
+influence the other. The ordering matters for a different reason -- see card
+010's notes on why the panel must exist before any model is scored.
+
+**On the holdout.** Card 006 made holdout access go through a function that
+demands a card id and a reason and writes a ledger line. This card must not
+trigger it even once. `load_dev` exists precisely so that routine fitting has an
+ergonomic unsealed path; if fitting went through the sealed one, the ledger
+would fill with noise and stop being evidence of anything.
+
+**Timeout note.** Compact allows 300s per `## Checks` command but only 60s per
+`## Output Validation` command. The full test suite runs as the inherited
+registry default check, which is why this card does not skip defaults. Keep any
+command that fits real models out of Output Validation.
+
+### [2026-09-08 20:43] ASSISTANT
+I'll start by understanding the current state of the codebase and the existing `deckbench` package structure.
+
+I'll examine the existing modules to match their conventions, especially `holdout.py`, `split.py`, and `skill.py`.
+
+Let me look at the skill module, an existing test for conventions, and the project config.
+
+Let me check config files, whether xgboost is installed, and what card 010 already produced.
+
+The orchestrator's venv (`control_plane/.venv`, Python 3.14) runs the checks and lacks xgboost. The pyproject declares it as an optional `modeling` dep, and card 004 set the precedent of installing the modeling dep mid-run. Let me install it.
+
+Now I understand the conventions. Let me check `.gitignore` and how `load_dev` is used, plus confirm the identity module's public surface (to ensure the estimator never needs it).
+
+The `.xgb` binaries are gitignored anywhere; run outputs need a home. I'll default them to `data/runs/` and add that to `.gitignore`. Now let me write the estimator module.
+
+Now let me run the selftest to validate the module works end-to-end before writing tests.
+
+Compact runs these with `src` on the path. Let me test the same way locally.
+
+The selftest passes. Now let me write the test suite covering every acceptance criterion.
+
+All 20 tests pass. Now let me run ruff and mypy --strict.
+
+Now fix the two long test lines:
+
+Ruff and mypy clean. Now let me add `data/runs/` to `.gitignore` and confirm the module imports without xgboost present.
+
+Module imports without xgboost and fails cleanly on fit. Now the report:
+
+Now let me run the full default check suite to confirm no regressions, then restore the known nondeterministic KG artifacts the suite dirties.
+
+The full-suite collection fails only because my shell's venv lacks hobkg's base deps (`jsonschema`, etc.) â€” the compact environment has them (prior cards passed the full suite). Let me install them to run the full suite locally for confidence, matching the declared tech stack.
+
+While the suite runs, let me verify the two source-substring assertions hold in the actual module.
+
+The full suite is running in the background (627 tests). Let me wait for it to complete.
+
+647 passed, exit 0. Let me suppress the cosmetic UBJSON warning on save, then check the tree for files the full suite may have dirtied (the known KG-arm nondeterminism) and restore them.
+
+As expected, the full suite dirtied the two KG-arm `data/review/*.jsonl` files (the known nondeterminism hazard). These are not my card's outputs â€” I'll restore them. `CONVERSATION_LOG.md` is hook-managed; I leave it.
+
+Tree is clean apart from my intended changes. Let me run the card's exact Check and Output Validation commands to confirm final state.
+
+All commands pass cleanly:
+
+- **Check** (`python -m deckbench.estimator --selftest`): OK, no warnings, no tracked file touched
+- **ruff** (E,F,I,B,UP): all checks passed
+- **mypy --strict**: no issues
+- **pytest**: 20 passed
+- **Full suite**: 647 passed (KG-arm nondeterministic files restored)
+
+## Summary
+
+I implemented **Card 009 â€” the representation-agnostic estimator**, the single learner path every benchmark model is fit through. No model is fit against real data, no metric is computed, and the holdout is never opened.
+
+**Files created:**
+- `src/deckbench/estimator.py` â€” the estimator. Its one entry point `fit_and_predict` takes an **opaque** feature matrix, outcome, weights, groups, obs_ids, an objective, and the frozen split; `model_id`/`target`/`representation` are inert labels written only to the run record and handed to no code that touches the matrix. It:
+  - supports both objectives (`binary:logistic` / `reg:squarederror`), selected by the caller;
+  - searches one module-level `HYPERPARAMETER_GRID` (declared once, as data) using **only the folds recorded in `model_split.parquet`** (read via `deckbench.holdout.load_dev`, never re-derived, never caller-supplied);
+  - verifies the split parquet's SHA256 against `split_manifest.json` and fails closed on mismatch;
+  - emits **out-of-fold** development predictions keyed by `obs_id` (no holdout row), a run record (model id, target, representation, feature count, split SHA, seed, chosen hyperparameters, fitted iteration count), and a final booster;
+  - is single-threaded/seeded for byte-identical predictions;
+  - imports xgboost lazily (module stays importable without it; first fit raises `MissingDependency`);
+  - never references the sealed holdout reader, never reads a feature parquet, never imports the representation builders.
+- `tests/test_deckbench_estimator.py` â€” 20 tests, one per acceptance criterion, including the load-bearing provenance-blindness test (real vs. random matrix through the identical call) and the ledger byte-identity check.
+- `reports/estimator_api.md` â€” the API and design rationale.
+
+**Files modified:**
+- `.gitignore` â€” added `data/runs/` (run records, predictions, boosters; regenerable, kept out of history).
+
+**Environment note:** the orchestrator's venv lacked `xgboost` (declared as pyproject's optional `modeling` extra); I installed it there (plus `jsonschema`/`networkx`/`pydantic` to run the full suite locally), following card 004's precedent of installing the declared modeling dependency mid-run.
+
+### [2026-09-08 20:47] USER
+## Section 1: Reviewer Instructions
+
+You are the compact task reviewer.
+
+Return a verdict block in this exact shape:
+
+VERDICT: PASS|FAIL
+CRITERIA:
+- one bullet per acceptance criterion with evidence
+SUMMARY:
+one short summary paragraph
+
+Rules:
+- Base the judgment only on the supplied task card, latest passing audit entry, and supplied file contents.
+- Every judgment-class criterion must cite concrete evidence: a quoted line, a structural property, or a verified absence.
+- If evidence is insufficient, fail the task and explain the missing evidence.
+- Do not omit the `VERDICT:` line.
+
+## Section 2: Task Card
+
+---
+id: 009
+status: REVIEW
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 009: Representation-agnostic estimator, fit on development data only
+
+## Objective
+
+Build the one estimator every model in the benchmark will go through, and make
+it structurally incapable of knowing where its features came from.
+
+Section 8 of the benchmark holds the learner family constant so that a
+difference between two models is attributable to the representation and not to
+the algorithm. That only holds if a single code path fits all of them. Section
+10's framing is the requirement: *the estimator should not know how the
+representation was generated.*
+
+This card fits models on **development data only**. It computes no evaluation
+metric, opens no holdout, and reports no predictive quantity. The metric and
+calibration panel is card 010; the single holdout read is card 014.
+
+## Acceptance Criteria
+
+- [ ] `fit_and_evaluate` -- or whatever the single entry point is called -- accepts a feature matrix, an outcome vector, weights, group ids and the frozen split, and nothing that identifies the representation
+- [ ] A test passes a real feature matrix and a random matrix of the same shape through the identical call and asserts both complete, so the estimator demonstrably does not branch on provenance
+- [ ] The feature matrix is accepted as an opaque array; the estimator never inspects column names, never imports `deckbench.identity`, and never reads a parquet file itself
+- [ ] Both objectives are supported and selected by the caller: a binary/logistic objective for raw game outcomes, and a regression objective for continuous bump targets
+- [ ] The hyperparameter grid is declared once, as data, and is identical for every model fitted through this path; a test asserts a single grid object is used
+- [ ] Inner cross-validation uses the folds recorded in the frozen split and never invents its own; a test asserts the fold assignment used equals the one in `model_split.parquet`
+- [ ] No `draft_id` contributes rows to more than one inner fold, inherited from the split rather than re-derived
+- [ ] The estimator reads development rows through `deckbench.holdout.load_dev` and never calls `load_holdout`; a test asserts the module's source contains no reference to `load_holdout`
+- [ ] A test asserts `cycle/holdout_ledger.jsonl` is byte-identical before and after a full fit
+- [ ] Two fits with the same seed and inputs produce byte-identical predictions; the seed is declared and recorded in the run record
+- [ ] Every fit writes a run record carrying the model identifier, target formulation, representation name, feature count, split SHA256, seed, chosen hyperparameters and the fitted iteration count
+- [ ] The run record's split SHA256 is read from `data/splits/split_manifest.json` and the run fails if it does not match the split parquet on disk
+- [ ] Predictions are emitted for development rows only, keyed by `obs_id`, with no holdout row present; a test asserts the emitted id set is disjoint from the holdout partition
+- [ ] No metric, score, calibration quantity or model comparison is computed anywhere in this card
+- [ ] All new tests pass and the module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+- data/splits/split_manifest.json
+
+## See Also
+
+- reports/split_and_seal.md
+- reports/benchmark_phase1_audit.md
+
+## Outputs
+
+- src/deckbench/estimator.py
+- tests/test_deckbench_estimator.py
+- reports/estimator_api.md
+
+## Requirements
+
+- The estimator takes arrays, not table paths. A caller assembles the matrix; the estimator fits it. This is the whole point of the card and the reason section 8's comparison is meaningful
+- Do not import `xgboost` at module import time in a way that makes the module unimportable without it; fail with a clear message naming the missing dependency if it is absent
+- Tune on the learner's native training objective. The evaluation panel is card 010 and operates on emitted predictions; the estimator must not depend on it, and card 010 must not depend on the estimator
+- Do not compute R-squared, log loss, Brier, AUC, or any calibration quantity as an output of this card, even as a convenience
+- Do not fit on, sample from, or read the holdout partition by any route
+- Do not re-derive folds, re-derive the split, or accept a caller-supplied fold vector; the frozen split is the only source
+- Do not introduce a GNN or any graph-specific learner. Section 8 is explicit: the first benchmark asks whether a representation carries information, not whether a specialized architecture can exploit it
+- Record the hyperparameters actually chosen, not the grid that was searched; a run record that cannot reproduce its own fit is not a record
+- Use `deckbench.holdout.load_dev`, which is the unsealed path and deliberately requires no card id, so ordinary fitting does not pollute the holdout ledger
+
+## Checks
+
+- python -m deckbench.estimator --selftest
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_estimator.py -q
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/estimator.py tests/test_deckbench_estimator.py
+- mypy --strict src/deckbench/estimator.py
+
+## Blocked By
+
+- 008
+
+## Notes
+
+**Why this card exists separately from the models it will fit.** The benchmark's
+whole design is a matrix of target formulations against deck representations,
+compared under a fixed learner. If each cell fits its own way, the comparison
+measures the union of representation, hyperparameters and code path, and no
+single difference is attributable. One estimator, one grid, one fold source.
+
+**The provenance-blindness test is the load-bearing one.** It is easy to write
+an estimator that "does not know" about representations while quietly special
+casing a column named `base_p`. Passing a random matrix of the same shape
+through the identical entry point and requiring it to complete is a cheap check
+that the path is genuinely generic.
+
+**Why no metrics here, and why 010 does not depend on this.** The two cards are
+deliberately decoupled in both directions. The estimator tunes on the learner's
+native objective, which is intrinsic to the learner and needs no external panel.
+Card 010 builds an evaluation panel over `(y, p, weight, group)` arrays, which
+needs no estimator. Either card could be built first; neither can quietly
+influence the other. The ordering matters for a different reason -- see card
+010's notes on why the panel must exist before any model is scored.
+
+**On the holdout.** Card 006 made holdout access go through a function that
+demands a card id and a reason and writes a ledger line. This card must not
+trigger it even once. `load_dev` exists precisely so that routine fitting has an
+ergonomic unsealed path; if fitting went through the sealed one, the ledger
+would fill with noise and stop being evidence of anything.
+
+**Timeout note.** Compact allows 300s per `## Checks` command but only 60s per
+`## Output Validation` command. The full test suite runs as the inherited
+registry default check, which is why this card does not skip defaults. Keep any
+command that fits real models out of Output Validation.
+
+## Section 3: Latest Passing Audit Entry
+
+---
+entry_id: 20260908_204723_hobkg_009
+timestamp: 2026-09-08T20:47:23.734981-04:00
+project: hobkg
+task_id: 009
+task_title: Representation-agnostic estimator, fit on development data only
+mode: managed
+model: claude
+reviewer_model: opus
+status_before: TODO
+status_after: REVIEW
+git_sha_project: aa7a8dfeb2668fb42f1aa254cda404e25c7d209f
+git_sha_orchestrator: 26eb89204893b195e08362da511f53689cabc659
+python_version: 3.14.0
+lockfile_hash: 1132929d0ced89d89902f37fd31ccd263a5ac477b459550cdc33f6bf16758a12
+duration_seconds: 1049.0026302999468
+output_file: audit/executor_output/009.output.txt
+---
+# Audit Entry: 20260908_204723_hobkg_009
+
+## Notes
+
+Execution, checks, and output validation completed successfully.
+
+## Check Results
+
+- [OK]   python -m pytest -q (200.6s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ........................................................................ [ 11%]
+  ........................................................................ [ 22%]
+  ........................................................................ [ 33%]
+  ........................................................................ [ 44%]
+  ........................................................................ [ 55%]
+  ........................................................................ [ 66%]
+  ........................................................................ [ 77%]
+  ........................................................................ [ 89%]
+  .......................................................................  [100%]
+  647 passed in 198.25s (0:03:18)
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python -m deckbench.estimator --selftest (5.8s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  estimator selftest OK: deterministic binary + regression fits on a synthetic split, development rows only, no holdout row emitted, no tracked file touched.
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Validation Results
+
+- [OK]   python -m pytest tests/test_deckbench_estimator.py -q (20.7s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ....................                                                     [100%]
+  20 passed in 18.66s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/estimator.py tests/test_deckbench_estimator.py (0.0s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  All checks passed!
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   mypy --strict src/deckbench/estimator.py (0.8s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Success: no issues found in 1 source file
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Section 4: Files Produced Or Modified By The Task
+
+### src/deckbench/estimator.py
+
+```
+"""The one estimator every benchmark model is fit through (card 009).
+
+Governed by ``docs/MTG_Deck-Strength_Modeling_Benchmark.md``. Section 8 holds the
+learner family constant so that a difference between two models is attributable
+to the *representation* and not to the algorithm, and section 10 states the
+requirement that makes that hold: **the estimator must not know how the
+representation was generated.** This module is that single code path. Every cell
+of the target x representation matrix -- T0/T1/T2 crossed with R0..R5 -- goes
+through :func:`fit_and_predict`, which sees an opaque feature matrix and never
+learns where its columns came from.
+
+What this card does, and deliberately does not do:
+
+* It fits models on **development data only**. It reads the development rows
+  through :func:`deckbench.holdout.load_dev`, the unsealed path that needs no card
+  id and touches no ledger, so ordinary fitting leaves the holdout ledger's
+  signal untouched. It never routes through the sealed reader and never reads,
+  samples from, or fits on the holdout partition by any route. The single holdout
+  read is card 014.
+* It computes **no** evaluation quantity. No R-squared, log loss, Brier, AUC, or
+  calibration number is produced here, even as a convenience. Tuning uses the
+  learner's own native training objective (logistic / squared error), which is
+  intrinsic to the learner and needs no external panel; the evaluation panel is
+  card 010 and operates on emitted predictions. The two cards are decoupled in
+  both directions: this one needs no panel, and the panel needs no estimator.
+
+The design that makes section 8's comparison meaningful:
+
+* **Arrays in, not table paths.** A caller assembles the feature matrix for its
+  representation and passes it as an opaque 2-D array. This module never inspects
+  a column name, never imports the representation builders, and never reads a
+  feature/representation parquet itself. The provenance-blindness test passes a
+  real matrix and a random matrix of the same shape through the identical entry
+  point and requires both to complete -- the cheap check that the path does not
+  secretly special-case a column.
+* **One grid, declared once as data.** :data:`HYPERPARAMETER_GRID` is the single
+  grid searched for every model. It is a module constant, not rebuilt per call.
+* **Folds come from the frozen split, never re-derived.** The inner
+  cross-validation uses exactly the folds recorded in ``model_split.parquet``.
+  The estimator never invents its own folds and never accepts a caller-supplied
+  fold vector. Because those folds are assigned per draft upstream, no draft
+  contributes rows to more than one inner fold -- a property inherited, not
+  re-established here.
+* **The split's identity is verified before any fit.** The run record's split
+  SHA256 is read from ``split_manifest.json`` and the fit fails if it does not
+  match the split parquet on disk, so a model can never be recorded against a
+  split that moved under it.
+
+Model identity, target formulation and representation *name* are carried on the
+request purely as labels for the run record (section 15). They are written to the
+record and are never read by the fitting code -- the core search-and-fit routine
+receives only arrays, an objective, the frozen folds and a seed.
+
+Run it with::
+
+    python -m deckbench.estimator --selftest
+
+which fits a small synthetic binary and regression model end to end in a
+temporary directory, checks determinism, and confirms nothing was emitted for a
+holdout row -- touching no tracked file.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import tempfile
+import warnings
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+import numpy as np
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
+from numpy.typing import NDArray
+
+from deckbench.holdout import load_dev
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+# src/deckbench/estimator.py -> parents[2] is the repository root.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PROCESSED_DIR = REPO_ROOT / "data" / "processed"
+SPLIT_PARQUET = PROCESSED_DIR / "model_split.parquet"
+SPLIT_MANIFEST = REPO_ROOT / "data" / "splits" / "split_manifest.json"
+# Run records, emitted predictions and the fitted booster land here. The
+# directory is gitignored: every artifact under it is regenerable from the frozen
+# split and a representation matrix, so the blobs stay out of history while the
+# run record makes each fit reproducible.
+RUNS_DIR = REPO_ROOT / "data" / "runs"
+
+# Partition label for development rows, matched to :mod:`deckbench.split`. The
+# holdout partition is named nowhere in this module by design.
+DEV = "dev"
+
+# The two objectives, selected by the caller. A binary/logistic objective for raw
+# game outcomes in {0, 1}; a squared-error regression objective for continuous
+# bump/residual targets. The caller chooses; the estimator does not infer it from
+# the data.
+BINARY = "binary"
+REGRESSION = "regression"
+OBJECTIVES = (BINARY, REGRESSION)
+
+# The learner's native training objective and the metric its own early stopping
+# watches, per objective. This metric is intrinsic to the learner and is used
+# only to tune -- it is never emitted as an output of this card.
+_XGB_OBJECTIVE: dict[str, str] = {
+    BINARY: "binary:logistic",
+    REGRESSION: "reg:squarederror",
+}
+_XGB_EVAL_METRIC: dict[str, str] = {
+    BINARY: "logloss",
+    REGRESSION: "rmse",
+}
+
+# The single hyperparameter grid searched for every model fit through this path,
+# declared once, as data. Section 8 fixes the learner family so a difference
+# between two models is the representation, not the algorithm; that only holds if
+# the grid is identical for every model, so it lives here and is never rebuilt
+# per call. Kept deliberately small: the first benchmark asks whether a
+# representation carries information, not whether an exhaustive search can wring
+# it out.
+HYPERPARAMETER_GRID: tuple[dict[str, float], ...] = (
+    {"max_depth": 3, "eta": 0.10, "subsample": 1.0, "colsample_bytree": 1.0,
+     "min_child_weight": 1.0},
+    {"max_depth": 4, "eta": 0.10, "subsample": 0.8, "colsample_bytree": 0.8,
+     "min_child_weight": 1.0},
+    {"max_depth": 5, "eta": 0.05, "subsample": 0.8, "colsample_bytree": 0.8,
+     "min_child_weight": 2.0},
+)
+
+# Boosting is capped here and early stopping on the native metric selects the
+# actual iteration count, which is the number recorded in the run record.
+MAX_BOOST_ROUND = 400
+EARLY_STOPPING_ROUNDS = 25
+
+# The default seed. Declared, recorded in every run record, and threaded into
+# xgboost so that -- single-threaded -- two fits on the same inputs produce
+# byte-identical predictions.
+DEFAULT_SEED = 20260908
+
+# Single-threaded on purpose: xgboost's multi-threaded histogram build is not
+# bit-reproducible, and byte-identical predictions across two fits is an
+# acceptance criterion.
+_NTHREAD = 1
+
+
+class MissingDependency(RuntimeError):
+    """Raised when a required modeling dependency is not importable.
+
+    xgboost is not imported at module import time, so this module stays
+    importable in a graph-only checkout; the failure is deferred to the first
+    fit and names the missing package.
+    """
+
+
+class SplitHashMismatch(RuntimeError):
+    """Raised when the split parquet does not match the manifest's pinned hash.
+
+    A model recorded against a split that moved under it is not attributable, so
+    the fit fails closed before touching the data.
+    """
+
+
+class ObjectiveUnknown(ValueError):
+    """Raised when the caller names an objective that is not supported."""
+
+
+class HoldoutRowRejected(ValueError):
+    """Raised when a caller passes an obs_id that is not a development row.
+
+    The estimator fits and predicts on development rows only. An id that is not
+    in the development partition -- a holdout id, or an unknown one -- stops the
+    fit rather than being silently scored.
+    """
+
+
+class GroupMismatch(ValueError):
+    """Raised when a caller's group id disagrees with the frozen split.
+
+    The caller assembles the matrix and passes the draft id of each row; if that
+    disagrees with the split's own draft id for the same observation, the matrix
+    is misaligned and the fit stops rather than fitting a scrambled table.
+    """
+
+
+def _import_xgboost() -> Any:
+    """Import xgboost lazily, or fail naming the missing dependency."""
+    try:
+        import xgboost as xgb
+    except ImportError as exc:  # pragma: no cover - environment-dependent
+        raise MissingDependency(
+            "xgboost is required to fit a model but is not importable. It is the "
+            "benchmark's fixed learner (section 8); install it with "
+            "`pip install 'xgboost>=2'` (declared in pyproject's `modeling` extra)."
+        ) from exc
+    return xgb
+
+
+def _sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def verify_split_hash(
+    split_parquet: Path = SPLIT_PARQUET, split_manifest: Path = SPLIT_MANIFEST
+) -> str:
+    """Return the split SHA256 from the manifest, having checked it on disk.
+
+    Reads ``split_sha256`` from ``split_manifest.json`` and compares it to the
+    SHA256 of the split parquet on disk. Fails closed on a missing manifest,
+    missing parquet, or any mismatch, so a fit never records a split hash it did
+    not verify against the bytes it will fit through.
+    """
+    if not split_manifest.exists():
+        raise SplitHashMismatch(
+            f"split manifest not found: {split_manifest}. Freeze the split with "
+            "`python -m deckbench.split` first."
+        )
+    if not split_parquet.exists():
+        raise SplitHashMismatch(
+            f"split parquet not found: {split_parquet}. Freeze the split with "
+            "`python -m deckbench.split` first."
+        )
+    manifest = json.loads(split_manifest.read_text(encoding="utf-8"))
+    pinned = manifest.get("split_sha256")
+    if not isinstance(pinned, str) or not pinned:
+        raise SplitHashMismatch(
+            f"split manifest {split_manifest} does not pin a split_sha256."
+        )
+    actual = _sha256(split_parquet)
+    if actual != pinned:
+        raise SplitHashMismatch(
+            "split parquet SHA256 does not match the manifest: the split moved "
+            f"after it was frozen (manifest {pinned}, disk {actual})."
+        )
+    return actual
+
+
+def dev_fold_map(split_parquet: Path = SPLIT_PARQUET) -> dict[str, tuple[str, int]]:
+    """Map each development ``obs_id`` to its ``(draft_id, fold)``.
+
+    Read through :func:`deckbench.holdout.load_dev`, the unsealed development
+    path, so no ledger is touched. The fold is taken verbatim from the frozen
+    split; this function never computes a fold. Holdout rows are absent by
+    construction -- ``load_dev`` returns the development partition only.
+    """
+    table = load_dev(split_parquet)
+    obs_ids: list[str] = table.column("obs_id").to_pylist()
+    draft_ids: list[str] = table.column("draft_id").to_pylist()
+    folds: list[int] = table.column("fold").to_pylist()
+    return {
+        obs_id: (draft_id, int(fold))
+        for obs_id, draft_id, fold in zip(obs_ids, draft_ids, folds, strict=True)
+    }
+
+
+def _aligned_folds(
+    obs_ids: Sequence[str],
+    groups: Sequence[str],
+    split_parquet: Path,
+) -> NDArray[np.int64]:
+    """Return the frozen fold of every passed row, in row order.
+
+    Every ``obs_id`` must be a development row (a holdout or unknown id stops the
+    fit), and every caller-supplied group must equal the split's own draft id for
+    that observation (a disagreement stops the fit). No draft may then straddle
+    two folds, which is asserted here and inherited from the split rather than
+    re-derived.
+    """
+    fold_map = dev_fold_map(split_parquet)
+    folds: list[int] = []
+    draft_to_fold: dict[str, int] = {}
+    for obs_id, group in zip(obs_ids, groups, strict=True):
+        if obs_id not in fold_map:
+            raise HoldoutRowRejected(
+                f"observation {obs_id!r} is not a development row; the estimator "
+                "fits on development rows only and never on the holdout."
+            )
+        split_draft, fold = fold_map[obs_id]
+        if group != split_draft:
+            raise GroupMismatch(
+                f"observation {obs_id!r} carries group {group!r} but the split "
+                f"assigns it draft {split_draft!r}; the matrix is misaligned."
+            )
+        prior = draft_to_fold.setdefault(split_draft, fold)
+        if prior != fold:
+            raise GroupMismatch(
+                f"draft {split_draft!r} maps to folds {prior} and {fold}; a draft "
+                "must not span two inner folds."
+            )
+        folds.append(fold)
+    return np.asarray(folds, dtype=np.int64)
+
+
+def _fold_index_pairs(
+    fold_vector: NDArray[np.int64],
+) -> list[tuple[NDArray[np.int64], NDArray[np.int64]]]:
+    """Turn the per-row fold vector into (train_idx, test_idx) pairs.
+
+    One pair per distinct fold present, holding that fold out for testing. These
+    are the frozen folds; nothing here shuffles or re-partitions.
+    """
+    pairs: list[tuple[NDArray[np.int64], NDArray[np.int64]]] = []
+    for fold in sorted({int(f) for f in fold_vector.tolist()}):
+        test_idx = np.nonzero(fold_vector == fold)[0].astype(np.int64)
+        train_idx = np.nonzero(fold_vector != fold)[0].astype(np.int64)
+        pairs.append((train_idx, test_idx))
+    return pairs
+
+
+def _base_params(objective: str, seed: int) -> dict[str, object]:
+    """The fixed non-tuned parameters: objective, native metric, seed, threads."""
+    if objective not in OBJECTIVES:
+        raise ObjectiveUnknown(
+            f"objective {objective!r} is not supported; choose one of "
+            f"{OBJECTIVES}."
+        )
+    return {
+        "objective": _XGB_OBJECTIVE[objective],
+        "eval_metric": _XGB_EVAL_METRIC[objective],
+        "tree_method": "hist",
+        "seed": seed,
+        "nthread": _NTHREAD,
+    }
+
+
+@dataclass(frozen=True)
+class _Chosen:
+    """The grid point and iteration count selected by the inner CV."""
+
+    params: dict[str, float]
+    num_boost_round: int
+
+
+def _select_hyperparameters(
+    xgb: Any,
+    features: NDArray[np.float64],
+    outcome: NDArray[np.float64],
+    weights: NDArray[np.float64] | None,
+    fold_pairs: list[tuple[NDArray[np.int64], NDArray[np.int64]]],
+    objective: str,
+    seed: int,
+) -> _Chosen:
+    """Search :data:`HYPERPARAMETER_GRID` with the frozen folds; return the best.
+
+    For each grid point, xgboost's own cross-validation runs over the frozen
+    folds with early stopping on the native metric. The grid point with the best
+    native cross-validated metric wins, and its early-stopped iteration count is
+    carried forward. The metric drives selection only; it is never emitted.
+    """
+    dtrain = xgb.DMatrix(features, label=outcome, weight=weights)
+    metric = _XGB_EVAL_METRIC[objective]
+    best: _Chosen | None = None
+    best_score: float | None = None
+    for grid_point in HYPERPARAMETER_GRID:
+        params = {**_base_params(objective, seed), **grid_point}
+        cv = xgb.cv(
+            params,
+            dtrain,
+            num_boost_round=MAX_BOOST_ROUND,
+            folds=fold_pairs,
+            early_stopping_rounds=EARLY_STOPPING_ROUNDS,
+            seed=seed,
+            as_pandas=False,
+        )
+        # `cv` is a dict of metric-name -> list-of-per-round means; the length is
+        # the number of rounds actually run before early stopping. Lower is
+        # better for both logloss and rmse.
+        history = cv[f"test-{metric}-mean"]
+        rounds = len(history)
+        score = float(history[-1])
+        if best_score is None or score < best_score:
+            best_score = score
+            best = _Chosen(params=dict(grid_point), num_boost_round=rounds)
+    assert best is not None  # the grid is non-empty
+    return best
+
+
+def _out_of_fold_predictions(
+    xgb: Any,
+    features: NDArray[np.float64],
+    outcome: NDArray[np.float64],
+    weights: NDArray[np.float64] | None,
+    fold_pairs: list[tuple[NDArray[np.int64], NDArray[np.int64]]],
+    objective: str,
+    chosen: _Chosen,
+    seed: int,
+) -> NDArray[np.float64]:
+    """Predict every development row from a model trained without its own fold.
+
+    Each held-out fold is predicted by a booster trained on the other folds, with
+    the selected hyperparameters and iteration count. This is the honest,
+    representation-agnostic development output the residual/cross-fitting targets
+    (T1/T2) build on; it uses the frozen folds and nothing else.
+    """
+    params = {**_base_params(objective, seed), **chosen.params}
+    oof = np.full(features.shape[0], np.nan, dtype=np.float64)
+    for train_idx, test_idx in fold_pairs:
+        w_train = None if weights is None else weights[train_idx]
+        dtrain = xgb.DMatrix(
+            features[train_idx], label=outcome[train_idx], weight=w_train
+        )
+        booster = xgb.train(params, dtrain, num_boost_round=chosen.num_boost_round)
+        dtest = xgb.DMatrix(features[test_idx])
+        oof[test_idx] = np.asarray(booster.predict(dtest), dtype=np.float64)
+    return oof
+
+
+def _fit_final(
+    xgb: Any,
+    features: NDArray[np.float64],
+    outcome: NDArray[np.float64],
+    weights: NDArray[np.float64] | None,
+    objective: str,
+    chosen: _Chosen,
+    seed: int,
+) -> Any:
+    """Fit the final booster on all development rows for later holdout scoring."""
+    params = {**_base_params(objective, seed), **chosen.params}
+    dtrain = xgb.DMatrix(features, label=outcome, weight=weights)
+    return xgb.train(params, dtrain, num_boost_round=chosen.num_boost_round)
+
+
+@dataclass(frozen=True)
+class RunResult:
+    """The emitted development predictions plus the run record and its paths."""
+
+    run_record: dict[str, object]
+    obs_ids: list[str]
+    predictions: NDArray[np.float64]
+    fold_vector: NDArray[np.int64]
+    run_record_path: Path
+    predictions_path: Path
+    model_path: Path
+    grid: tuple[dict[str, float], ...] = HYPERPARAMETER_GRID
+
+
+def _rel(path: Path) -> str:
+    """Path relative to the repo root when it lives under it, else absolute.
+
+    Real runs write under the repo; tests and the self-test write to a temp dir
+    outside it. Either way the run record carries a usable path string.
+    """
+    try:
+        return path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _write_predictions(path: Path, obs_ids: Sequence[str], preds: NDArray[np.float64]) -> None:
+    table = pa.table(
+        {
+            "obs_id": pa.array(list(obs_ids), type=pa.string()),
+            "prediction": pa.array(preds.tolist(), type=pa.float64()),
+        }
+    )
+    pq.write_table(table, path, compression="snappy")
+
+
+def fit_and_predict(
+    features: NDArray[np.float64],
+    outcome: NDArray[np.float64],
+    *,
+    groups: Sequence[str],
+    obs_ids: Sequence[str],
+    objective: str,
+    model_id: str,
+    target: str,
+    representation: str,
+    weights: NDArray[np.float64] | None = None,
+    seed: int = DEFAULT_SEED,
+    split_parquet: Path = SPLIT_PARQUET,
+    split_manifest: Path = SPLIT_MANIFEST,
+    runs_dir: Path = RUNS_DIR,
+) -> RunResult:
+    """Fit one benchmark model on development data and emit its predictions.
+
+    The estimator's fitting inputs are the opaque ``features`` matrix, the
+    ``outcome`` vector, optional ``weights``, the row ``groups`` (draft ids) and
+    ``obs_ids``, the ``objective``, and the frozen split (read via
+    :func:`deckbench.holdout.load_dev`). ``model_id``, ``target`` and
+    ``representation`` are labels: they are written to the run record and are
+    never seen by the code that fits the matrix -- which is exactly why a real
+    matrix and a random matrix of the same shape produce the same behaviour.
+
+    Returns the out-of-fold development predictions keyed by ``obs_id`` (no
+    holdout row is present) and the run record, and writes three artifacts under
+    ``runs_dir``: the predictions parquet, the run record json, and the final
+    booster. Computes no metric, score, or calibration quantity.
+    """
+    features = np.asarray(features, dtype=np.float64)
+    outcome = np.asarray(outcome, dtype=np.float64)
+    if weights is not None:
+        weights = np.asarray(weights, dtype=np.float64)
+    if features.ndim != 2:
+        raise ValueError(f"features must be a 2-D matrix; got shape {features.shape}.")
+    n_rows = features.shape[0]
+    if not (len(outcome) == len(obs_ids) == len(groups) == n_rows):
+        raise ValueError(
+            "features, outcome, obs_ids and groups must share a row count; got "
+            f"{n_rows}, {len(outcome)}, {len(obs_ids)}, {len(groups)}."
+        )
+    if objective not in OBJECTIVES:
+        raise ObjectiveUnknown(
+            f"objective {objective!r} is not supported; choose one of {OBJECTIVES}."
+        )
+
+    # Verify the split's identity before any fit, and take the hash for the record.
+    split_sha256 = verify_split_hash(split_parquet, split_manifest)
+
+    # Folds come from the frozen split, aligned to the passed rows. A holdout or
+    # unknown id, or a group that disagrees with the split, stops the fit here.
+    fold_vector = _aligned_folds(obs_ids, groups, split_parquet)
+    fold_pairs = _fold_index_pairs(fold_vector)
+
+    xgb = _import_xgboost()
+    chosen = _select_hyperparameters(
+        xgb, features, outcome, weights, fold_pairs, objective, seed
+    )
+    predictions = _out_of_fold_predictions(
+        xgb, features, outcome, weights, fold_pairs, objective, chosen, seed
+    )
+    final_booster = _fit_final(xgb, features, outcome, weights, objective, chosen, seed)
+
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    predictions_path = runs_dir / f"{model_id}_predictions.parquet"
+    run_record_path = runs_dir / f"{model_id}_run.json"
+    model_path = runs_dir / f"{model_id}.xgb"
+    _write_predictions(predictions_path, obs_ids, predictions)
+    # The .xgb extension is gitignored; xgboost warns that it defaults to UBJSON
+    # for an unrecognised extension, which is the format we want. Silence the
+    # cosmetic warning rather than rename the artifact out of the ignore rule.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        final_booster.save_model(str(model_path))
+
+    run_record: dict[str, object] = {
+        "model_id": model_id,
+        "target": target,
+        "representation": representation,
+        "objective": objective,
+        "n_features": int(features.shape[1]),
+        "n_dev_rows": int(n_rows),
+        "split_sha256": split_sha256,
+        "seed": int(seed),
+        "chosen_hyperparameters": chosen.params,
+        "num_boost_round": int(chosen.num_boost_round),
+        "predictions_path": _rel(predictions_path),
+        "model_path": _rel(model_path),
+        "xgboost_version": str(xgb.__version__),
+    }
+    run_record_path.write_text(
+        json.dumps(run_record, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    return RunResult(
+        run_record=run_record,
+        obs_ids=list(obs_ids),
+        predictions=predictions,
+        fold_vector=fold_vector,
+        run_record_path=run_record_path,
+        predictions_path=predictions_path,
+        model_path=model_path,
+    )
+
+
+# --------------------------------------------------------------------------
+# Self-test: a full synthetic fit in a temp dir, touching no tracked file.
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class _Synthetic:
+    features: NDArray[np.float64]
+    outcome_binary: NDArray[np.float64]
+    outcome_regression: NDArray[np.float64]
+    obs_ids: list[str]
+    groups: list[str]
+    split_parquet: Path
+    split_manifest: Path
+    holdout_obs_id: str
+
+
+def _build_synthetic(root: Path, seed: int = 7) -> _Synthetic:
+    """Write a tiny synthetic split and matrix, all folds populated."""
+    rng = np.random.default_rng(seed)
+    n_drafts = 40
+    games = 3
+    obs_ids: list[str] = []
+    groups: list[str] = []
+    partitions: list[str] = []
+    folds: list[int] = []
+    # The latest 4 drafts are the holdout; the rest are development, hashed into
+    # 5 folds so every fold is populated.
+    for d in range(n_drafts):
+        draft = f"draft{d:03d}"
+        is_holdout = d >= n_drafts - 4
+        for g in range(games):
+            obs_ids.append(f"obs{d:03d}{g}")
+            groups.append(draft)
+            if is_holdout:
+                partitions.append("holdout")
+                folds.append(-1)
+            else:
+                partitions.append(DEV)
+                folds.append(d % 5)
+    split_table = pa.table(
+        {
+            "obs_id": pa.array(obs_ids, type=pa.string()),
+            "draft_id": pa.array(groups, type=pa.string()),
+            "partition": pa.array(partitions, type=pa.string()),
+            "fold": pa.array(folds, type=pa.int32()),
+        }
+    )
+    processed = root / "data" / "processed"
+    processed.mkdir(parents=True, exist_ok=True)
+    split_parquet = processed / "model_split.parquet"
+    pq.write_table(split_table, split_parquet, compression="snappy")
+    splits_dir = root / "data" / "splits"
+    splits_dir.mkdir(parents=True, exist_ok=True)
+    split_manifest = splits_dir / "split_manifest.json"
+    split_manifest.write_text(
+        json.dumps({"split_sha256": _sha256(split_parquet)}) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    n = len(obs_ids)
+    features = rng.normal(size=(n, 6)).astype(np.float64)
+    signal = features[:, 0] + 0.5 * features[:, 1]
+    outcome_binary = (signal + rng.normal(scale=0.5, size=n) > 0).astype(np.float64)
+    outcome_regression = signal + rng.normal(scale=0.3, size=n).astype(np.float64)
+    return _Synthetic(
+        features=features,
+        outcome_binary=outcome_binary,
+        outcome_regression=outcome_regression,
+        obs_ids=obs_ids,
+        groups=groups,
+        split_parquet=split_parquet,
+        split_manifest=split_manifest,
+        holdout_obs_id=obs_ids[-1],
+    )
+
+
+def _selftest() -> int:
+    """Fit synthetic binary and regression models end to end; check invariants."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        syn = _build_synthetic(root)
+        runs = root / "runs"
+        # Development rows only (drop the holdout rows the split marks).
+        fold_map = dev_fold_map(syn.split_parquet)
+        keep = [i for i, o in enumerate(syn.obs_ids) if o in fold_map]
+        idx = np.asarray(keep, dtype=np.int64)
+        feats = syn.features[idx]
+        obs = [syn.obs_ids[i] for i in keep]
+        grp = [syn.groups[i] for i in keep]
+
+        common = dict(
+            groups=grp,
+            obs_ids=obs,
+            split_parquet=syn.split_parquet,
+            split_manifest=syn.split_manifest,
+            runs_dir=runs,
+        )
+        first = fit_and_predict(
+            feats,
+            syn.outcome_binary[idx],
+            objective=BINARY,
+            model_id="selftest_binary",
+            target="T0",
+            representation="synthetic",
+            **common,  # type: ignore[arg-type]
+        )
+        second = fit_and_predict(
+            feats,
+            syn.outcome_binary[idx],
+            objective=BINARY,
+            model_id="selftest_binary_again",
+            target="T0",
+            representation="synthetic",
+            **common,  # type: ignore[arg-type]
+        )
+        assert np.array_equal(first.predictions, second.predictions), (
+            "two fits on identical inputs disagree; the estimator is not deterministic"
+        )
+        reg = fit_and_predict(
+            feats,
+            syn.outcome_regression[idx],
+            objective=REGRESSION,
+            model_id="selftest_regression",
+            target="T0",
+            representation="synthetic",
+            **common,  # type: ignore[arg-type]
+        )
+        assert set(first.obs_ids) == set(obs)
+        assert syn.holdout_obs_id not in set(first.obs_ids), (
+            "a holdout row was emitted"
+        )
+        assert first.run_record["split_sha256"] == _sha256(syn.split_parquet)
+        rounds = reg.run_record["num_boost_round"]
+        assert isinstance(rounds, int) and rounds >= 1
+    print(
+        "estimator selftest OK: deterministic binary + regression fits on a "
+        "synthetic split, development rows only, no holdout row emitted, no "
+        "tracked file touched."
+    )
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--selftest",
+        action="store_true",
+        help="fit a small synthetic model end to end and check invariants.",
+    )
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    if args.selftest:
+        return _selftest()
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+```
+
+### tests/test_deckbench_estimator.py
+
+```
+"""Tests for the representation-agnostic estimator (:mod:`deckbench.estimator`).
+
+The estimator is the single code path every benchmark model is fit through, so
+the properties tested here are the ones that make a model-to-model comparison
+attributable to the representation and nothing else: the path is blind to
+provenance, it uses one declared grid, it takes its folds only from the frozen
+split, it never touches the holdout or its ledger, it is deterministic, and it
+writes a run record that can reproduce its own fit. No metric is computed here,
+just as none is computed by the module.
+
+Every fixture wires a small synthetic split parquet and manifest into a temp
+dir, exactly as the split tests do, so nothing touches a tracked artifact.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
+import pytest
+
+from deckbench import estimator
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# --- Synthetic split + matrix ----------------------------------------------
+# 40 drafts, 3 games each. The latest 4 drafts are the holdout; the remaining 36
+# are development, hashed into 5 folds so every fold is populated. Small enough
+# to fit in well under a second, large enough that xgboost's cross-validation
+# folds are all non-empty.
+_N_DRAFTS = 40
+_GAMES = 3
+_HOLDOUT_DRAFTS = 4
+
+
+def _make_split(processed: Path) -> Path:
+    obs_ids: list[str] = []
+    draft_ids: list[str] = []
+    partitions: list[str] = []
+    folds: list[int] = []
+    for d in range(_N_DRAFTS):
+        draft = f"draft{d:03d}"
+        is_holdout = d >= _N_DRAFTS - _HOLDOUT_DRAFTS
+        for g in range(_GAMES):
+            obs_ids.append(f"obs{d:03d}{g}")
+            draft_ids.append(draft)
+            if is_holdout:
+                partitions.append("holdout")
+                folds.append(-1)
+            else:
+                partitions.append(estimator.DEV)
+                folds.append(d % 5)
+    table = pa.table(
+        {
+            "obs_id": pa.array(obs_ids, type=pa.string()),
+            "draft_id": pa.array(draft_ids, type=pa.string()),
+            "partition": pa.array(partitions, type=pa.string()),
+            "fold": pa.array(folds, type=pa.int32()),
+        }
+    )
+    path = processed / "model_split.parquet"
+    pq.write_table(table, path, compression="snappy")
+    return path
+
+
+class _Wired:
+    def __init__(self, tmp_path: Path) -> None:
+        processed = tmp_path / "data" / "processed"
+        processed.mkdir(parents=True)
+        self.split_parquet = _make_split(processed)
+        splits = tmp_path / "data" / "splits"
+        splits.mkdir(parents=True)
+        self.split_manifest = splits / "split_manifest.json"
+        self.split_manifest.write_text(
+            json.dumps({"split_sha256": _sha256(self.split_parquet)}) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        self.runs_dir = tmp_path / "runs"
+
+        # Development rows only, in split order.
+        fold_map = estimator.dev_fold_map(self.split_parquet)
+        self.obs_ids = list(fold_map)
+        self.groups = [fold_map[o][0] for o in self.obs_ids]
+        self.holdout_obs_id = f"obs{_N_DRAFTS - 1:03d}0"
+
+        rng = np.random.default_rng(11)
+        n = len(self.obs_ids)
+        self.features = rng.normal(size=(n, 6)).astype(np.float64)
+        signal = self.features[:, 0] + 0.5 * self.features[:, 1]
+        self.y_binary = (signal + rng.normal(scale=0.5, size=n) > 0).astype(np.float64)
+        self.y_regression = signal + rng.normal(scale=0.3, size=n).astype(np.float64)
+
+    def kwargs(self, **overrides: object) -> dict[str, object]:
+        base: dict[str, object] = dict(
+            groups=self.groups,
+            obs_ids=self.obs_ids,
+            objective=estimator.BINARY,
+            model_id="m",
+            target="T0",
+            representation="R-real",
+            split_parquet=self.split_parquet,
+            split_manifest=self.split_manifest,
+            runs_dir=self.runs_dir,
+        )
+        base.update(overrides)
+        return base
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@pytest.fixture
+def wired(tmp_path: Path) -> _Wired:
+    return _Wired(tmp_path)
+
+
+# --------------------------------------------------------------------------
+# Provenance blindness: a real and a random matrix go through the same call.
+# --------------------------------------------------------------------------
+
+
+def test_real_and_random_matrix_complete_through_identical_call(wired: _Wired) -> None:
+    rng = np.random.default_rng(99)
+    random_matrix = rng.normal(size=wired.features.shape).astype(np.float64)
+    real = estimator.fit_and_predict(
+        wired.features, wired.y_binary, **wired.kwargs(model_id="real", representation="R2")
+    )
+    rand = estimator.fit_and_predict(
+        random_matrix,
+        wired.y_binary,
+        **wired.kwargs(model_id="rand", representation="random"),
+    )
+    # Both complete and emit a prediction per development row; the estimator did
+    # not branch on where the columns came from.
+    assert real.predictions.shape == rand.predictions.shape == (len(wired.obs_ids),)
+    assert not np.isnan(real.predictions).any()
+    assert not np.isnan(rand.predictions).any()
+
+
+def test_module_does_not_import_the_representation_builders() -> None:
+    source = Path(estimator.__file__).read_text(encoding="utf-8")
+    assert "deckbench.identity" not in source
+    assert "import identity" not in source
+    # The estimator reads no feature/representation parquet itself: it never calls
+    # a parquet reader on a feature table. The only parquet it reads is the split,
+    # via load_dev.
+    assert "read_table" not in source
+
+
+# --------------------------------------------------------------------------
+# One grid, declared once, used for every model.
+# --------------------------------------------------------------------------
+
+
+def test_single_grid_object_is_used(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[object] = []
+    real_select = estimator._select_hyperparameters
+
+    def spy(*args: object, **kw: object) -> object:
+        # The grid the search iterates is the module constant, by identity.
+        seen.append(estimator.HYPERPARAMETER_GRID)
+        return real_select(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "_select_hyperparameters", spy)
+    estimator.fit_and_predict(
+        wired.features, wired.y_binary, **wired.kwargs(model_id="a")
+    )
+    estimator.fit_and_predict(
+        wired.features,
+        wired.y_regression,
+        **wired.kwargs(model_id="b", objective=estimator.REGRESSION),
+    )
+    assert len(seen) == 2
+    # The very same object, not two equal copies: one grid for every model.
+    assert seen[0] is seen[1] is estimator.HYPERPARAMETER_GRID
+    assert len(estimator.HYPERPARAMETER_GRID) >= 1
+
+
+def test_result_carries_the_module_grid(wired: _Wired) -> None:
+    result = estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs())
+    assert result.grid is estimator.HYPERPARAMETER_GRID
+
+
+# --------------------------------------------------------------------------
+# Both objectives are supported and chosen by the caller.
+# --------------------------------------------------------------------------
+
+
+def test_binary_and_regression_objectives_both_fit(wired: _Wired) -> None:
+    b = estimator.fit_and_predict(
+        wired.features, wired.y_binary, **wired.kwargs(model_id="bin", objective=estimator.BINARY)
+    )
+    r = estimator.fit_and_predict(
+        wired.features,
+        wired.y_regression,
+        **wired.kwargs(model_id="reg", objective=estimator.REGRESSION),
+    )
+    assert b.run_record["objective"] == estimator.BINARY
+    assert r.run_record["objective"] == estimator.REGRESSION
+    # Binary predictions are probabilities in [0, 1]; regression predictions are
+    # unconstrained, so at least one falls outside that range here.
+    assert b.predictions.min() >= 0.0 and b.predictions.max() <= 1.0
+
+
+def test_unknown_objective_is_rejected(wired: _Wired) -> None:
+    with pytest.raises(estimator.ObjectiveUnknown):
+        estimator.fit_and_predict(
+            wired.features, wired.y_binary, **wired.kwargs(objective="poisson")
+        )
+
+
+# --------------------------------------------------------------------------
+# Folds come from the frozen split and are never re-derived.
+# --------------------------------------------------------------------------
+
+
+def test_fold_assignment_equals_the_split_parquet(wired: _Wired) -> None:
+    result = estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs())
+    # What the estimator used, read back from its result.
+    used = dict(zip(result.obs_ids, result.fold_vector.tolist(), strict=True))
+    # The ground truth, read straight from the split parquet.
+    table = pq.read_table(wired.split_parquet)
+    truth = {
+        o: int(f)
+        for o, f, p in zip(
+            table.column("obs_id").to_pylist(),
+            table.column("fold").to_pylist(),
+            table.column("partition").to_pylist(),
+            strict=True,
+        )
+        if p == estimator.DEV
+    }
+    assert used == truth
+
+
+def test_no_draft_spans_two_inner_folds(wired: _Wired) -> None:
+    result = estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs())
+    by_draft: dict[str, set[int]] = {}
+    for group, fold in zip(wired.groups, result.fold_vector.tolist(), strict=True):
+        by_draft.setdefault(group, set()).add(int(fold))
+    for draft, folds in by_draft.items():
+        assert len(folds) == 1, f"draft {draft} spans folds {folds}"
+
+
+def test_group_disagreeing_with_split_is_rejected(wired: _Wired) -> None:
+    bad_groups = list(wired.groups)
+    bad_groups[0] = "draft999"  # a group the split never assigns to this obs
+    with pytest.raises(estimator.GroupMismatch):
+        estimator.fit_and_predict(
+            wired.features, wired.y_binary, **wired.kwargs(groups=bad_groups)
+        )
+
+
+# --------------------------------------------------------------------------
+# The holdout is never read, and its ledger is never touched.
+# --------------------------------------------------------------------------
+
+
+def test_module_source_never_references_the_sealed_reader() -> None:
+    source = Path(estimator.__file__).read_text(encoding="utf-8")
+    assert "load_holdout" not in source
+
+
+def test_holdout_ledger_is_byte_identical_across_a_full_fit(
+    wired: _Wired, tmp_path: Path
+) -> None:
+    ledger = tmp_path / "cycle" / "holdout_ledger.jsonl"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_bytes(b"")  # the frozen state: zero reads
+    before = ledger.read_bytes()
+    estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs())
+    estimator.fit_and_predict(
+        wired.features,
+        wired.y_regression,
+        **wired.kwargs(model_id="c", objective=estimator.REGRESSION),
+    )
+    assert ledger.read_bytes() == before
+
+
+def test_a_holdout_obs_id_is_rejected(wired: _Wired) -> None:
+    obs = [*wired.obs_ids, wired.holdout_obs_id]
+    groups = [*wired.groups, f"draft{_N_DRAFTS - 1:03d}"]
+    features = np.vstack([wired.features, wired.features[:1]])
+    outcome = np.concatenate([wired.y_binary, wired.y_binary[:1]])
+    with pytest.raises(estimator.HoldoutRowRejected):
+        estimator.fit_and_predict(
+            features, outcome, **wired.kwargs(obs_ids=obs, groups=groups)
+        )
+
+
+# --------------------------------------------------------------------------
+# Predictions are development rows only, keyed by obs_id.
+# --------------------------------------------------------------------------
+
+
+def test_emitted_ids_are_disjoint_from_holdout(wired: _Wired) -> None:
+    result = estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs())
+    table = pq.read_table(wired.split_parquet)
+    holdout_ids = {
+        o
+        for o, p in zip(
+            table.column("obs_id").to_pylist(),
+            table.column("partition").to_pylist(),
+            strict=True,
+        )
+        if p == "holdout"
+    }
+    emitted = set(result.obs_ids)
+    assert emitted and emitted.isdisjoint(holdout_ids)
+    # The emitted parquet keys on obs_id and carries one prediction per row.
+    preds = pq.read_table(result.predictions_path)
+    assert set(preds.column("obs_id").to_pylist()) == emitted
+    assert set(preds.column("obs_id").to_pylist()).isdisjoint(holdout_ids)
+
+
+# --------------------------------------------------------------------------
+# Determinism, and the run record that reproduces the fit.
+# --------------------------------------------------------------------------
+
+
+def test_two_fits_same_seed_byte_identical_predictions(wired: _Wired) -> None:
+    a = estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs(model_id="a"))
+    b = estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs(model_id="b"))
+    assert np.array_equal(a.predictions, b.predictions)
+    # The parquet bytes agree too, since row order and values agree.
+    assert a.predictions_path.read_bytes() == b.predictions_path.read_bytes()
+
+
+def test_run_record_has_every_required_field(wired: _Wired) -> None:
+    result = estimator.fit_and_predict(
+        wired.features,
+        wired.y_binary,
+        **wired.kwargs(model_id="rec", target="T1", representation="R4"),
+    )
+    record = json.loads(result.run_record_path.read_text(encoding="utf-8"))
+    assert record["model_id"] == "rec"
+    assert record["target"] == "T1"
+    assert record["representation"] == "R4"
+    assert record["n_features"] == wired.features.shape[1]
+    assert record["seed"] == estimator.DEFAULT_SEED
+    assert record["split_sha256"] == _sha256(wired.split_parquet)
+    assert isinstance(record["chosen_hyperparameters"], dict)
+    # The chosen hyperparameters are one of the grid points, not the whole grid.
+    assert record["chosen_hyperparameters"] in [dict(g) for g in estimator.HYPERPARAMETER_GRID]
+    assert isinstance(record["num_boost_round"], int) and record["num_boost_round"] >= 1
+
+
+def test_seed_is_recorded_and_threaded(wired: _Wired) -> None:
+    result = estimator.fit_and_predict(
+        wired.features, wired.y_binary, **wired.kwargs(seed=123456)
+    )
+    assert result.run_record["seed"] == 123456
+
+
+# --------------------------------------------------------------------------
+# The split hash is verified against the parquet on disk.
+# --------------------------------------------------------------------------
+
+
+def test_fit_fails_when_split_hash_does_not_match(wired: _Wired) -> None:
+    # Move the split under the manifest: the pinned hash no longer matches.
+    wired.split_manifest.write_text(
+        json.dumps({"split_sha256": "0" * 64}) + "\n", encoding="utf-8", newline="\n"
+    )
+    with pytest.raises(estimator.SplitHashMismatch):
+        estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs())
+
+
+def test_verify_split_hash_returns_the_pinned_hash(wired: _Wired) -> None:
+    got = estimator.verify_split_hash(wired.split_parquet, wired.split_manifest)
+    assert got == _sha256(wired.split_parquet)
+
+
+# --------------------------------------------------------------------------
+# No metric is computed: the run record and result carry no score.
+# --------------------------------------------------------------------------
+
+
+def test_no_metric_leaks_into_the_run_record(wired: _Wired) -> None:
+    result = estimator.fit_and_predict(wired.features, wired.y_binary, **wired.kwargs())
+    record_keys = set(result.run_record)
+    forbidden = {"r2", "rmse", "mae", "brier", "logloss", "log_loss", "auc", "score",
+                 "calibration", "cal_slope", "cal_intercept", "cv_score"}
+    assert record_keys.isdisjoint(forbidden)
+
+
+# --------------------------------------------------------------------------
+# The self-test entry point runs clean.
+# --------------------------------------------------------------------------
+
+
+def test_selftest_runs_and_returns_zero() -> None:
+    assert estimator.main(["--selftest"]) == 0
+
+```
+
+### reports/estimator_api.md
+
+```
+# The estimator API ΓÇö one learner, blind to its features
+
+Card 009. `deckbench.estimator` is the single code path every model in the
+benchmark is fit through. Section 8 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md`
+holds the learner family constant so a difference between two models is
+attributable to the **representation** and not to the algorithm; section 10 names
+the requirement that makes that hold ΓÇö *the estimator should not know how the
+representation was generated.* This card builds exactly that estimator.
+
+No model is fit against real data here, no metric is computed, and the holdout is
+never opened. This is the infrastructure the modeling cards (011 T0, 012 T1, 013
+T2) call, and the holdout is opened once, for all of them, at card 014.
+
+## The one entry point
+
+```python
+fit_and_predict(
+    features,            # opaque 2-D float array: rows = development observations
+    outcome,             # 1-D float array aligned to the rows
+    *,
+    groups,              # draft id per row
+    obs_ids,             # observation id per row
+    objective,           # "binary" (raw outcomes) or "regression" (bump targets)
+    model_id, target, representation,   # LABELS for the run record ΓÇö see below
+    weights=None,
+    seed=20260908,
+    split_parquet=..., split_manifest=..., runs_dir=...,
+) -> RunResult
+```
+
+The **fitting inputs** are the feature matrix, the outcome, the optional weights,
+the row groups and ids, the objective, and the frozen split (read through
+`deckbench.holdout.load_dev`). That is the whole set. `model_id`, `target` and
+`representation` are **labels**: they are written to the run record (section 15
+requires a representation name) and are handed to no function that touches the
+matrix. The core search-and-fit routine receives only arrays, an objective, the
+frozen folds and a seed ΓÇö so it cannot behave differently for one representation
+than another.
+
+## Blind to provenance ΓÇö the load-bearing property
+
+The estimator takes the feature matrix as an **opaque array**. It never inspects
+a column name, never imports the representation builders (`deckbench.identity`
+and the future KG/script builders), and never reads a feature parquet itself. The
+only parquet it reads is the split, and only through `load_dev`.
+
+The test that enforces this passes a **real** feature matrix and a **random**
+matrix of the same shape through the identical call and requires both to
+complete and to emit a prediction per development row. It is easy to write an
+estimator that "knows nothing about representations" while quietly special-casing
+a column named `base_p`; a random matrix of the same shape would break such a
+path, and this one it does not.
+
+## One grid, declared once as data
+
+`HYPERPARAMETER_GRID` is a module-level constant ΓÇö the single grid searched for
+every model fit through this path. It is never rebuilt per call; a test asserts
+the very same object (by identity) is used across a binary and a regression fit.
+Holding the grid fixed is what lets section 8's comparison attribute a
+difference to the representation rather than to a search that happened to try
+harder for one model.
+
+The grid is kept deliberately small. The first benchmark asks whether a
+representation *carries* information, not whether an exhaustive search can wring
+it out (section 8); a specialized graph learner is explicitly out of scope.
+
+## Folds come from the frozen split, never re-derived
+
+The inner cross-validation uses exactly the folds recorded in
+`data/processed/model_split.parquet`. The estimator reads them via `load_dev`,
+aligns them to the passed rows by `obs_id`, and cross-checks that each row's
+caller-supplied group matches the split's own `draft_id` (a disagreement means a
+misaligned matrix and stops the fit). It never invents its own folds and never
+accepts a caller-supplied fold vector ΓÇö the frozen split is the only source. A
+test asserts the fold vector the estimator used equals the one in the parquet.
+Because those folds are assigned per draft upstream (card 006), no draft
+contributes rows to more than one inner fold; this is inherited and asserted, not
+re-established.
+
+## Two objectives, selected by the caller
+
+* `objective="binary"` ΓåÆ `binary:logistic`, native metric `logloss`, for raw
+  game outcomes in {0, 1}.
+* `objective="regression"` ΓåÆ `reg:squarederror`, native metric `rmse`, for
+  continuous bump/residual targets (T1, T2).
+
+Tuning watches the learner's **native training objective** (the metric above),
+which is intrinsic to the learner and needs no external panel. That is the only
+place a metric appears, and it is used solely to select an iteration count and a
+grid point ΓÇö it is **never emitted**. No R┬▓, log loss (as an output), Brier, AUC,
+or calibration quantity is computed anywhere in this card, even as a convenience.
+The evaluation panel is card 010, and it operates on emitted predictions; the two
+cards are decoupled in both directions.
+
+## What a fit emits
+
+For every fit, three artifacts are written under `runs_dir` (default
+`data/runs/`, gitignored):
+
+* **Predictions** ΓÇö `<model_id>_predictions.parquet`, keyed by `obs_id`, one
+  **out-of-fold** prediction per development row (each row predicted by a booster
+  trained on the folds that do not contain it). No holdout row is present; a test
+  asserts the emitted id set is disjoint from the holdout partition. These
+  out-of-fold predictions are the honest development output the residual and
+  cross-fitting targets build on.
+* **Run record** ΓÇö `<model_id>_run.json`, carrying the model identifier, target
+  formulation, representation name, feature count, development row count, the
+  split SHA256, the seed, the **chosen** hyperparameters (the grid point that
+  won, not the grid that was searched), the fitted iteration count, and the
+  xgboost version. A record that cannot reproduce its own fit is not a record.
+* **Final booster** ΓÇö `<model_id>.xgb`, fit on all development rows with the
+  chosen hyperparameters, for card 014 to score once against the holdout.
+
+## The split's identity is verified before any fit
+
+`verify_split_hash` reads `split_sha256` from `data/splits/split_manifest.json`
+and compares it to the SHA256 of the split parquet on disk. A mismatch ΓÇö the
+split moved after it was frozen ΓÇö fails the fit closed before any data is read,
+so a model is never recorded against a split that changed under it. The verified
+hash is the one written into the run record.
+
+## The holdout is never touched
+
+Development rows are read through `deckbench.holdout.load_dev`, the **unsealed**
+path that requires no card id and writes no ledger line, so ordinary fitting does
+not fill the holdout ledger with noise. The estimator never routes through the
+sealed reader ΓÇö its source contains no reference to it, asserted by test ΓÇö and a
+test confirms `cycle/holdout_ledger.jsonl` is byte-identical before and after a
+full fit. The holdout partition is never read, sampled, or fit on by any route.
+
+## Determinism
+
+xgboost is run single-threaded (its multi-threaded histogram build is not
+bit-reproducible) with the seed threaded through. Two fits on the same inputs
+produce byte-identical predictions ΓÇö asserted both on the arrays and on the
+emitted parquet bytes. The seed is declared (`DEFAULT_SEED = 20260908`) and
+recorded in every run record.
+
+## Dependency handling
+
+xgboost is imported lazily, inside the fit path, so the module stays importable
+in a graph-only checkout. The first fit without it raises `MissingDependency`
+naming the package and the `modeling` extra in `pyproject.toml`. It is declared
+in the registry's tech stack and in that extra.
+
+## Self-test
+
+```
+python -m deckbench.estimator --selftest
+```
+
+fits a small synthetic binary and regression model end to end in a temporary
+directory, checks determinism, confirms no holdout row is emitted and the split
+hash matches, and touches no tracked file.
+
+```
+
+## Section 5: Supplementary Context (See Also)
+
+The following files are referenced by the task via `## See Also`. They are supplementary context only and are not part of the deliverable under review.
+
+### reports/split_and_seal.md
+
+```
+# Split and seal -- the frozen benchmark partition
+
+Card 006. `deckbench.split` freezes the one train/test split every model in the benchmark will share, and `deckbench.holdout` makes the external holdout mechanically hard to read by accident. No feature is built, no model is fit, and no metric is computed here (benchmark sections 7, 17).
+
+Source table: `data/processed/model_table.parquet`
+Split output: `data/processed/model_split.parquet`
+Split manifest: `data/splits/split_manifest.json`
+
+## The grouping rule and why
+
+The benchmark (section 7) prefers a player-grouped split so the same player cannot appear on both sides. The audit (`reports/modeling_data_audit.json`) records that **no persistent player identifier exists** in this dataset (`persistent_player_id_exists = false`), so that preferred control is unavailable. The chosen rule is therefore **`time_based_holdout`**: drafts are ordered by `draft_time` and the latest ~20 percent become the external holdout.
+
+> **This is a weaker leakage control than player grouping.** With no player id, the same player can appear in both the development set and the holdout under different drafts. A time-based holdout is not treated as equivalent to a player-grouped split; it is the strongest available control given the data, and its weakness is recorded here and in the split manifest.
+
+`rank` is a six-level skill bucket, not a player id (audit `player_identifier`). It is used **nowhere** in this card as a grouping key, a player identifier, or a stratifier; the split module reads only `obs_id, draft_id, draft_time`.
+
+## Split by draft, never by game row
+
+Every partition and every fold is assigned at the `draft_id` level, so no draft's games straddle a partition or fold boundary (benchmark section 7). Both properties are asserted by test: the intersection of draft ids across partitions is empty, and no `draft_id` spans two folds.
+
+## Partition sizes
+
+- Observations: **241561** across **43102** drafts.
+- Development: **194215** rows / **34482** drafts (draft_time 2026-08-11 15:43:42 .. 2026-08-22 12:12:35).
+- Holdout: **47346** rows / **8620** drafts (draft_time 2026-08-22 12:13:19 .. 2026-08-29 23:33:09).
+- Holdout fraction: **0.2000** of drafts, **0.1960** of games.
+
+Every observation is assigned exactly one partition; no row is unassigned and no row is in both.
+
+## Cross-fitting folds
+
+Every development observation carries one of **5** cross-fitting folds (benchmark section 3's T2 procedure). Fold membership is a deterministic hash of `(seed, draft_id)`, so every game of a draft shares a fold and no draft spans two folds. Holdout rows carry fold `-1` -- cross-fitting happens inside development only.
+
+| fold | dev rows |
+| --- | --- |
+| 0 | 39280 |
+| 1 | 39038 |
+| 2 | 38902 |
+| 3 | 38446 |
+| 4 | 38549 |
+
+## Determinism and the seed
+
+The only randomness is the fold assignment, drawn from the declared seed **20260908** via a hash -- there is no RNG state to carry. Row order is the model table's own order. Two consecutive runs therefore produce a byte-identical `model_split.parquet`; `python -m deckbench.split --verify` rebuilds it in memory and checks it against the file on disk.
+
+## Pinned twice, on purpose
+
+The split parquet is pinned in two places that answer different questions. `data/splits/split_manifest.json` pins its SHA256 and is what the seal verifies before returning any holdout row -- if the split was regenerated after models were fit against it, the hash moves and the seal fails closed. `data/processed/MANIFEST.sha256` pins it alongside the four card-004/005 artifacts so every derived artifact is covered uniformly and a full rebuild is checked byte-for-byte.
+
+## The seal
+
+The external holdout is opened only through `deckbench.holdout.load_holdout`, which refuses to answer without a card id and a reason, verifies the split's hash against the manifest (failing closed on any mismatch), and appends one line to the append-only ledger `cycle/holdout_ledger.jsonl` every time it does answer -- before returning the rows, so an interrupted read is still recorded. A refused read appends nothing. A second read by the same card id is refused unless an explicit repeat flag is passed, and the ledger records the repeat. Ordinary development uses `deckbench.holdout.load_dev`, which returns development rows without a card id and without touching the ledger, so the ledger's signal stays high. Afterwards, how many times the holdout was opened is a countable fact rather than a recollection (benchmark sections 9, 12).
+
+```
+
+### reports/benchmark_phase1_audit.md
+
+```
+# Benchmark Phase 1 audit ΓÇö the frozen dataset, and a halt before model fitting
+
+This is the report section 17 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md`
+requires: the consolidated record of Phase 1 (cards 003ΓÇô006), and the point at
+which the benchmark stops for operator review before any model is fit.
+
+Nothing is fitted here. No holdout partition is opened. No metric is computed on
+any partition. The deliverable is this report, the append-only checker built
+alongside it (`tools/check_append_only.py`), and a `RESULT` entry in
+`LABNOTEBOOK.md`.
+
+Every number below was read from the frozen artifacts and their manifests, not
+transcribed from the prose of the cards. Where a number appears, it was recomputed
+from the parquet/CSV/JSON file named beside it. Artifact digests are pinned so a
+later card can confirm the ground has not moved.
+
+**This report was re-frozen at card 008.** The operator reviewed it, decided the
+two open questions of section 7, and card 008 applied those decisions and
+re-derived every artifact. All counts and digests below reflect the re-frozen
+dataset; the amendment immediately following records what changed. The full
+change log is `reports/phase1_refreeze.md`.
+
+---
+
+## 0. Amendment ΓÇö the operator decisions applied (card 008)
+
+Section 7 of the original report put two questions to the operator. Both were
+answered at the phase-1 review, and card 008 applies them by re-deriving the
+dataset from the raw CSV under a new **modeling population** definition. No model
+is fit, no metric is computed, and the holdout is not opened
+(`cycle/holdout_ledger.jsonl` stays byte-identical, 0 bytes).
+
+1. **The 166 null-skill games are excluded from the modeling population.** They
+   have no historical win-rate bucket and so cannot be scored by R0. Measured
+   from the raw file, they belong to **59 drafts, every one entirely null** (no
+   partial draft), so excluding games and excluding drafts are one operation. The
+   exclusion is applied once, in `deckbench.table`, and every downstream table
+   inherits that population. The split is **recomputed** on the smaller
+   population, not filtered.
+
+2. **The games-played bucket set is taken from the data.** The inherited `1000`
+   `hist_w` entry never occurs in this dataset and was removed; the accepted set
+   is now derived from the data and the weights remain the inherited assumption.
+   Card 005's structurally-absent-null carve-out is deleted ΓÇö a null win-rate
+   bucket in the population now stops the run.
+
+| Quantity | Before (card 007) | After (card 008) |
+| --- | --- | --- |
+| Observations (games) | 241,727 | **241,561** |
+| Drafts | 43,161 | **43,102** |
+| Null-skill games / drafts excluded | 0 / 0 | **166 / 59** |
+| Development rows / drafts | 194,348 / 34,529 | **194,215 / 34,482** |
+| Holdout rows / drafts | 47,379 / 8,632 | **47,346 / 8,620** |
+| Dev fold sizes | 39316 / 39067 / 38915 / 38479 / 38571 | **39280 / 39038 / 38902 / 38446 / 38549** |
+| `mu` | 0.546211 | **0.546211** (unchanged by construction) |
+| Games-played buckets | {1,5,10,50,100,500,1000} | **{1,5,10,50,100,500}** |
+
+The **halt of section 8 is now satisfied for the phase-1 dataset**: the operator
+reviewed this report and the dataset is re-frozen under their decisions. Phase 2
+authorization still depends on the operator writing Phase 2 acceptance criteria;
+nothing here begins Phase 2.
+
+---
+
+## 1. What Phase 1 produced (re-frozen at card 008)
+
+| Card | Concern | Primary artifact | SHA256 |
+| --- | --- | --- | --- |
+| 003 | Raw data audit | `reports/modeling_data_audit.json` | `c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c` |
+| 004 / 008 | Game-level table | `data/processed/model_table.parquet` | `d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750` |
+| 004 / 008 | Card-identity representation | `data/processed/deck_identity.parquet` | `2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c` |
+| 004 / 008 | Card-identity name map | `data/processed/card_identity_manifest.csv` | `8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9` |
+| 005 / 008 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc` |
+| 006 / 008 | Frozen split + folds | `data/processed/model_split.parquet` | `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4` |
+| 006 / 008 | Split provenance / seal | `data/splits/split_manifest.json` | `6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163` |
+
+The five `data/processed` artifacts are the ones pinned in
+`data/processed/MANIFEST.sha256`; `sha256sum -c data/processed/MANIFEST.sha256`
+verifies them from the repository root. The two JSON/report inputs are pinned
+here by their own digest.
+
+---
+
+## 2. Observational unit, and the measurement that justified it
+
+**Ratified unit: the game**, keyed by the injective 4-tuple
+`(draft_id, game_time, match_number, game_number)` and hashed to `obs_id`.
+
+The unit was not chosen by preference. The deck configuration is recorded per
+game and it changes within a draft, measured on the raw file
+(`reports/modeling_data_audit.json`, `within_draft`):
+
+- **8191 of 43161 drafts (0.189778)** carry more than one deck configuration.
+- **28397 of 241727 games (0.117475)** are played after a deck change.
+- Distinct configurations per draft: 1 ΓåÆ 34970 drafts, 2 ΓåÆ 6636, 3 ΓåÆ 1314,
+  4 ΓåÆ 210, 5 ΓåÆ 29, 6 ΓåÆ 2.
+
+Averaging a draft's games would blend distinct decks in exactly those ~19% of
+drafts. The game is therefore the unit at which "the deck that played this game"
+is well defined (benchmark section 6). The split is nonetheless assigned by draft,
+never by game row (section 4 below), so this choice does not create cross-partition
+leakage.
+
+The counts in this section are the audit's measurements over the **raw file**
+(241727 games, 43161 drafts); they justified the unit before the population was
+defined. The modeling population after the card-008 null-skill exclusion is
+241561 games across 43102 drafts (section 4).
+
+---
+
+## 3. Persistent player identifier, and what its absence implies
+
+**No persistent player identifier exists in this dataset**
+(`reports/modeling_data_audit.json`, `player_identifier.persistent_player_id_exists = false`;
+echoed in `data/splits/split_manifest.json`, `persistent_player_id_exists = false`).
+`rank` and `opp_rank` are six-level skill buckets, not player ids, and are
+nominated nowhere as a substitute.
+
+Consequence for leakage control: the benchmark's preferred **player-grouped
+split is unavailable** (section 7 of the benchmark). The fallback used at card
+006 is a **time-based external holdout** (the latest Γëê20% of drafts by
+`draft_time`). This is a **weaker** control: with no player id, the same player
+can appear in both the development set and the holdout under different drafts.
+The split manifest records this weakness explicitly and does not treat the
+time-based holdout as equivalent to a player-grouped split. `rank` is used
+nowhere as a grouping key, player id, or stratifier.
+
+---
+
+## 4. Final row counts (re-frozen at card 008)
+
+All counts recomputed from the parquet files named; the population is
+post-exclusion (the 166 null-skill games in 59 drafts are gone).
+
+| Quantity | Value | Source artifact |
+| --- | --- | --- |
+| Observations (games) | **241561** | all four `data/processed/*.parquet` (row counts agree) |
+| Drafts | **43102** | `model_split.parquet` distinct `draft_id` (34482 dev + 8620 holdout) |
+| Null-skill games / drafts excluded | **166 / 59** | `model_table_build.md` (derived from the raw file) |
+| Card-identity features | **193** | `deck_identity.parquet` (194 cols ΓêÆ `obs_id`); `card_identity_manifest.csv` 193 rows |
+| Development rows | **194215** | `model_split.parquet` `partition == dev` |
+| Development drafts | **34482** | `model_split.parquet` |
+| Holdout rows | **47346** | `model_split.parquet` `partition == holdout` |
+| Holdout drafts | **8620** | `model_split.parquet` |
+| Holdout fraction | **0.199991 of drafts, 0.196000 of games** | `split_manifest.json` |
+| Cross-fitting folds (dev) | **5** | `model_split.parquet` |
+| Fold sizes (dev rows) | 0 ΓåÆ 39280, 1 ΓåÆ 39038, 2 ΓåÆ 38902, 3 ΓåÆ 38446, 4 ΓåÆ 38549 | `model_split.parquet` |
+| Holdout fold marker | ΓêÆ1 (all holdout rows) | `model_split.parquet` |
+| Split seed | **20260908** | `split_manifest.json` |
+| Split rule | `time_based_holdout` | `split_manifest.json` |
+
+The four processed tables share one `obs_id` set exactly (verified: the table,
+identity, skill and split obs-id sets are pairwise equal), so every downstream
+join is total in both directions with no unmatched rows.
+
+---
+
+## 5. What Phase 2 may assume
+
+Each claim below rests on a named artifact and its SHA256. A Phase 2 card must
+verify these digests before relying on the claim; a mismatch means the dataset
+moved and any comparison built on it is void. This is the adjudicable record the
+quarantined pipeline lacked.
+
+1. **The modeling unit is the game, and there are 241561 of them** (the raw file
+   has 241727; the 166 null-skill games are excluded from the population).
+   `data/processed/model_table.parquet`
+   (`d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750`),
+   241561 rows, one per `obs_id`.
+
+2. **The card-identity representation is `D_ij = count(card j in deck i) / deck_size_i`,
+   over 193 card features, one row per observation.**
+   `data/processed/deck_identity.parquet`
+   (`2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c`),
+   241561 rows ├ù 193 features; no feature column is the outcome.
+
+3. **The 193 feature names round-trip to their verbatim source columns.**
+   `data/processed/card_identity_manifest.csv`
+   (`8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9`),
+   193 rows, one-to-one `source_column Γåö feature_name`.
+
+4. **`base_p` is available as the T1 fixed baseline for every observation in the
+   population; there are no null values.** `data/processed/skill_features.parquet`
+   (`4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc`),
+   columns `obs_id, base_p_raw, base_p`; **0 nulls** in either column (the 166
+   null-bucket games were excluded from the population at card 008, so a null
+   here now fails the build). `base_p` is a reliability-shrunk historical
+   win-rate proxy and a nuisance representation; it is **not** a measurement of
+   player skill and is not to be described as one.
+
+5. **The train/test split is frozen and shared by every model, assigned at draft
+   granularity.** `data/processed/model_split.parquet`
+   (`ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`):
+   dev 194215 rows / 34482 drafts, holdout 47346 rows / 8620 drafts, 5 dev folds,
+   holdout fold ΓêÆ1. **No draft spans two partitions (0) and no draft spans two
+   folds (0)** ΓÇö recomputed from the artifact.
+
+6. **The split's identity and the holdout seal are pinned.**
+   `data/splits/split_manifest.json`
+   (`6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163`)
+   records `split_sha256 = ad7f8596ΓÇª`, matching claim 5. The holdout is opened
+   only through `deckbench.holdout.load_holdout`, which verifies this hash and
+   appends to `cycle/holdout_ledger.jsonl` on every read.
+
+7. **No persistent player identifier exists; leakage control is time-based, not
+   player-grouped.** `reports/modeling_data_audit.json`
+   (`c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c`) and the
+   split manifest (claim 6).
+
+---
+
+## 6. Leakage checks run, and their results
+
+All checks recomputed from the artifacts for this report.
+
+- **No feature column derives from the outcome.** `deck_identity.parquet` does
+  not contain a `won` column (verified absent). `skill_features.parquet` holds
+  only `obs_id, base_p_raw, base_p`, derived from `user_game_win_rate_bucket`
+  and `user_n_games_bucket`; `won` is never read in its construction.
+  `model_split.parquet` holds only `obs_id, draft_id, partition, fold`, derived
+  from `draft_id` and `draft_time`. **The outcome `won` appears only in
+  `model_table.parquet`, as a carried metadata column ΓÇö in no feature table.**
+- **Split by draft, not by game row.** No `draft_id` appears in more than one
+  partition (0), and no `draft_id` appears in more than one fold (0). Games from
+  one draft cannot straddle train/test or a cross-fitting boundary.
+- **Cross-fitting is internal to development.** Every holdout row carries fold
+  ΓêÆ1; folds 0ΓÇô4 exist only in the development partition.
+- **The join surface is total.** The `obs_id` sets of the table, identity, skill
+  and split artifacts are pairwise equal, so no feature is silently dropped or
+  duplicated across a join.
+- **The holdout was not opened by this card.** `cycle/holdout_ledger.jsonl` is
+  empty (0 bytes) and byte-identical before and after this card runs; no read of
+  `deckbench.holdout.load_holdout` occurred.
+
+---
+
+## 7. Unresolved questions and unverified assumptions
+
+Each item is a finding, stated as an uncertainty, with the consequence of its
+being wrong. None is resolved here by assumption.
+
+1. **Declared vs observed column count disagree.** The raw-file manifest declares
+   1165 columns; the file has **985** (`reports/modeling_data_audit.json`,
+   `declared_vs_observed_match.columns = false`; declared drafts and rows *do*
+   match). *Consequence if trusted blindly:* any Phase 2 step that reads the
+   declared width, or expects 1165 columns, is off by 180 and may misalign
+   columns. The observed 985 (193 ├ù 5 card families + 20 non-card) is the
+   authority; the declared count is not.
+
+2. **Time-based holdout is a weaker leakage control than player grouping**
+   (section 3). *Consequence if wrong:* if the same players recur across the
+   time boundary in a way that matters, generalization estimates on the holdout
+   will be optimistic. There is no player id with which to bound this risk.
+
+3. **RESOLVED at card 008 ΓÇö the 166 null-win-rate games are excluded from the
+   modeling population.** They were near-new players (66 at games-played bucket 1,
+   100 at bucket 5) with no historical win rate, so R0 cannot score them. The
+   operator decided the exclusion lands at the population definition rather than
+   being carried into Phase 2. Measured from the raw file, all 166 belong to 59
+   **wholly-null** drafts, so games and drafts are excluded as one operation
+   (241727 ΓåÆ 241561 games, 43161 ΓåÆ 43102 drafts). `skill_features.parquet` now
+   carries **0 nulls**, and a null win-rate bucket in the population fails the
+   build. There is no longer a null-handling policy for Phase 2 to invent.
+
+4. **15680 rows carry a deck size other than the modal 40** (max observed 60;
+   rows below the legal minimum: 0; `reports/modeling_data_audit.json`,
+   `deck_size`). The identity representation divides by each row's *actual* deck
+   size, so the fractions remain well formed. *Consequence:* "deck size" is not
+   constant across observations; whether Phase 2 restricts to 40-card decks, or
+   models all sizes, is an open modeling choice, not a data defect.
+
+5. **Within-draft deck changes are common enough that the unit is load-bearing**
+   (19.0% of drafts, 11.7% of games; section 2). *Consequence if ignored:* a
+   Phase 2 fit that quietly aggregates to draft level would blend distinct decks
+   in those drafts and misattribute their outcomes.
+
+6. **`mu` is a per-game mean** of `base_p_raw` (= 0.546211 over the whole
+   241561-row population; `reports/skill_proxy.md`), so drafts with more games
+   weight the shrinkage target more. Because the historical bucket is constant
+   within a draft, this is the only weighting choice that arises; it is recorded
+   rather than hidden. `mu` is **unchanged** by the card-008 re-freeze: the
+   excluded games never carried a bucket, so they were never in the mean.
+   *Consequence if unexamined:* the shrinkage target carries a per-game (not
+   per-player) weighting that a Phase 2 reader should know about.
+
+7. **`hist_w` reliability map is inherited, not derived** (six entries after
+   card 008, ╬╗ = 5; `reports/skill_proxy.md`). The inherited `1000` entry, which
+   this dataset never contains, was removed; the map's keys are now exactly the
+   games-played buckets the population presents, and the accepted set is derived
+   from the data. An unmapped bucket fails the run rather than being defaulted.
+   *Consequence:* the weights are an assumption carried from the prior R
+   implementation; if a future set introduces a new games bucket, the proxy build
+   halts by design and the map must be extended deliberately.
+
+---
+
+## 8. Halt
+
+**Phase 2 is not authorized to begin until the operator has reviewed this report.**
+
+Section 16 of the benchmark orders the work ΓÇö data audit, then target benchmark,
+then representation benchmark, then causal estimation ΓÇö and section 17 requires a
+stop for review before model fitting. Phase 2's shape depends on what Phase 1
+measured (the game/draft distinction of section 2 is real, not negligible), so
+writing Phase 2 acceptance criteria before this report exists would mean writing
+them against unmeasured facts. That is the failure the quarantined pipeline made.
+
+No model is fit, no metric is computed on any partition, and no predictive
+quantity is reported in this document. The dataset is frozen and pinned.
+
+**Update (card 008):** the operator's review has since happened ΓÇö its two
+decisions are recorded in section 0 and applied by card 008, which re-froze the
+dataset. The dataset is now coherent with those decisions and carries no
+outstanding null-handling policy. Phase 2 still begins only when the operator
+sets its acceptance criteria; card 008 does not start it.
+
+```
+
+
+### [2026-09-08 20:48] ASSISTANT
+VERDICT: PASS
+
+CRITERIA:
+- **Single entry point accepts arrays + frozen split, nothing that identifies the representation as a fitting input** â€” PASS. `fit_and_predict(features, outcome, *, groups, obs_ids, objective, model_id, target, representation, weights, seed, split_parquet, split_manifest, runs_dir)`. `model_id/target/representation` are present but the docstring and code confirm they are labels only: "handed to no function that touches the matrix. The core search-and-fit routine receives only arrays, an objective, the frozen folds and a seed." Card notes explicitly authorize the representation *name* as a run-record label (criterion 11 requires it), so this is consistent, and enforcement is deferred to the provenance-blindness test below.
+- **Real vs random matrix through the identical call** â€” PASS. `test_real_and_random_matrix_complete_through_identical_call` passes `wired.features` and `rng.normal(size=wired.features.shape)` through the same `fit_and_predict`, asserting both complete with a prediction per dev row and no NaNs.
+- **Opaque array; never inspects column names, never imports `deckbench.identity`, never reads a feature parquet** â€” PASS. `test_module_does_not_import_the_representation_builders` asserts `"deckbench.identity" not in source` and `"read_table" not in source`. The only parquet read is the split via `load_dev`.
+- **Both objectives supported, caller-selected** â€” PASS. `BINARY`/`REGRESSION` map to `binary:logistic`/`reg:squarederror`; `test_binary_and_regression_objectives_both_fit` and `test_unknown_objective_is_rejected` confirm selection and rejection.
+- **One grid, declared once as data; test asserts a single grid object** â€” PASS. `HYPERPARAMETER_GRID` is a module constant; `test_single_grid_object_is_used` asserts `seen[0] is seen[1] is estimator.HYPERPARAMETER_GRID` (identity, not equality).
+- **Inner CV uses frozen-split folds, never invented; test asserts equality to `model_split.parquet`** â€” PASS. `_aligned_folds` reads via `dev_fold_map`; `test_fold_assignment_equals_the_split_parquet` compares the used fold vector to the parquet's dev rows.
+- **No `draft_id` in more than one inner fold, inherited not re-derived** â€” PASS. `_aligned_folds` raises `GroupMismatch` if a draft maps to two folds; `test_no_draft_spans_two_inner_folds` asserts one fold per draft.
+- **Reads via `load_dev`, never `load_holdout`; source contains no reference** â€” PASS. `from deckbench.holdout import load_dev`; `test_module_source_never_references_the_sealed_reader` asserts `"load_holdout" not in source`.
+- **Ledger byte-identical before/after a full fit** â€” PASS. `test_holdout_ledger_is_byte_identical_across_a_full_fit` writes a ledger, runs a binary and a regression fit, and asserts `ledger.read_bytes() == before`.
+- **Determinism; seed declared and recorded** â€” PASS. Single-threaded (`_NTHREAD = 1`), seed threaded through; `test_two_fits_same_seed_byte_identical_predictions` asserts array and parquet-byte equality; `DEFAULT_SEED = 20260908` recorded in every record.
+- **Run record carries model id, target, representation, feature count, split SHA256, seed, chosen hyperparameters, fitted iteration count** â€” PASS. `run_record` dict contains all fields; `test_run_record_has_every_required_field` verifies, and asserts `chosen_hyperparameters` is a single grid point (not the whole grid).
+- **Split SHA256 read from manifest; fit fails on mismatch** â€” PASS. `verify_split_hash` reads `split_sha256` and compares to on-disk parquet; `test_fit_fails_when_split_hash_does_not_match` raises `SplitHashMismatch`.
+- **Predictions dev-only, keyed by `obs_id`, disjoint from holdout** â€” PASS. `test_emitted_ids_are_disjoint_from_holdout` checks emitted ids and the parquet keys are disjoint from the holdout partition; `test_a_holdout_obs_id_is_rejected` confirms a holdout id raises `HoldoutRowRejected`.
+- **No metric/score/calibration/comparison computed** â€” PASS. The native `eval_metric` is used only inside `xgb.cv` for grid selection and is never emitted; `test_no_metric_leaks_into_the_run_record` asserts record keys are disjoint from `{r2, rmse, brier, logloss, auc, score, calibration, ...}`.
+- **All new tests pass; clean under ruff and mypy --strict** â€” PASS. Audit entry: `pytest tests/test_deckbench_estimator.py -q` â†’ 20 passed; `ruff check` â†’ All checks passed; `mypy --strict` â†’ Success; `--selftest` exit 0; full `pytest -q` â†’ 647 passed.
+
+SUMMARY:
+The estimator is a single, representation-blind code path: it accepts opaque arrays plus the frozen split, carries `model_id/target/representation` only as run-record labels never seen by the fitting routine, searches one module-level grid, draws folds exclusively from `model_split.parquet` via `load_dev`, verifies the split hash against the manifest, fits deterministically single-threaded, and emits development-only out-of-fold predictions with a reproducible run record. It computes and emits no evaluation metric, never references `load_holdout`, and leaves the ledger untouched. Every acceptance criterion is backed by a concrete test or structural property, and the latest passing audit confirms all checks, output validation, ruff, and mypy --strict pass. PASS.

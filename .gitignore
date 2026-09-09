@@ -55,6 +55,16 @@ attic/haiku-2026-09-07/data_processed/*
 # Trained model binaries — regenerable from a frozen split, wherever they live
 *.xgb
 
+# Card 009's estimator writes, per model, a predictions parquet, a model
+# artifact, and a run-record json. The blobs are regenerable from the frozen
+# split plus a representation matrix and stay out of history; the run record is
+# NOT a blob -- it carries the split SHA256, the seed and the chosen
+# hyperparameters, and is the only thing that makes a reported fit auditable
+# after the fact. Track it, the same way MANIFEST.sha256 is tracked against the
+# parquets it pins.
+data/runs/*
+!data/runs/*.json
+
 # Runtime signal files written by tools/review_commit_watch.ps1 and consumed by
 # tools/wait_review_ready.ps1 -- IPC scratch, not part of the record
 docs/review_events/
