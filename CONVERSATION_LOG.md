@@ -105257,3 +105257,3678 @@ CRITERIA:
 
 SUMMARY:
 The estimator is a single, representation-blind code path: it accepts opaque arrays plus the frozen split, carries `model_id/target/representation` only as run-record labels never seen by the fitting routine, searches one module-level grid, draws folds exclusively from `model_split.parquet` via `load_dev`, verifies the split hash against the manifest, fits deterministically single-threaded, and emits development-only out-of-fold predictions with a reproducible run record. It computes and emits no evaluation metric, never references `load_holdout`, and leaves the ledger untouched. Every acceptance criterion is backed by a concrete test or structural property, and the latest passing audit confirms all checks, output validation, ruff, and mypy --strict pass. PASS.
+
+### [2026-09-08 22:08] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: ACTIVE
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-07
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+# MTG Deck-Strength Modeling Benchmark
+
+## 1. Objective
+
+Build a controlled benchmark for estimating the contribution of **deck construction to win probability after accounting for player skill**.
+
+The experiment has two independent dimensions:
+
+1. **Target formulation** ΓÇö what quantity the model is asked to predict.
+2. **Deck representation** ΓÇö how information about the deck is presented to the model.
+
+The central experimental design is therefore:
+
+$$
+\boxed{\text{Target formulation} \times \text{Deck representation}}
+$$
+
+All model variants must use identical train/validation/test partitions and be evaluated using the same metrics.
+
+The purpose is to distinguish:
+
+* whether skill adjustment exposes deck-level signal;
+* whether raw card identity contains recoverable deck-strength information;
+* whether structured representations such as the mechanistic knowledge graph or game-script features recover additional signal;
+* whether structured representations add information beyond raw card identity.
+
+This is initially a **predictive representation benchmark**. Causal intervention estimation will be layered on after the predictive architecture is characterized.
+
+---
+
+# 2. Fundamental decomposition
+
+Conceptually, assume win probability contains at least:
+
+$$
+P(Y=1) = F(S,D)
+$$
+
+where:
+
+* \(S\) = player skill/context;
+* \(D\) = deck;
+* \(Y\) = game win/loss or corresponding observed win-rate outcome.
+
+A useful conceptual approximation is:
+
+$$
+p_i \approx p_{\text{skill},i}+\Delta_{\text{deck},i}.
+$$
+
+Player skill may generate substantially more between-observation variation than deck quality. For example, player baselines may span approximately 45ΓÇô65% WR while deck effects may operate on the order of approximately \(\pm5\) percentage points.
+
+Consequently, direct prediction of \(Y\) may be dominated by skill even when deck quality has a real and practically important effect.
+
+The benchmark will explicitly test whether residualizing skill improves recovery of deck-level signal.
+
+---
+
+# 3. Experimental axis A: target formulation
+
+## T0 ΓÇö Raw outcome
+
+Predict the observed outcome directly:
+
+$$
+Y_i.
+$$
+
+For game-level modeling:
+
+$$
+Y_{ig}\in\{0,1\}.
+$$
+
+The model estimates:
+
+$$
+\hat p_{ig}=f(S_i,D_{ig}).
+$$
+
+This is the conventional prediction problem.
+
+### Purpose
+
+Establish how much deck information improves prediction of actual outcomes beyond skill.
+
+---
+
+## T1 ΓÇö Original bump
+
+Reproduce the original deck-bump formulation as closely as possible.
+
+Define:
+
+$$
+B_i^{original}
+=
+Y_i-p_{\text{base},i},
+$$
+
+where \(p_{\text{base}}\) is the existing constructed historical skill proxy.
+
+The deck model predicts:
+
+$$
+\widehat B_i^{original}
+=
+f(D_i,S_i).
+$$
+
+Reconstructed win probability is:
+
+$$
+\hat p_i
+=
+p_{\text{base},i}
++
+\widehat B_i^{original}.
+$$
+
+### Purpose
+
+Reproduce the original approach and determine whether directly subtracting the historical skill proxy exposes deck signal better than raw-outcome prediction.
+
+---
+
+## T2 ΓÇö Learned-skill bump
+
+Replace the fixed skill baseline with a learned expected-win model.
+
+First estimate:
+
+$$
+m(S)=E[Y\mid S].
+$$
+
+For every training observation, obtain a **cross-fitted** prediction:
+
+$$
+\hat m_{-i}(S_i).
+$$
+
+Define:
+
+$$
+B_i^{learned}
+=
+Y_i-\hat m_{-i}(S_i).
+$$
+
+Then model:
+
+$$
+\widehat B_i^{learned}
+=
+f(D_i,S_i).
+$$
+
+Final prediction is:
+
+$$
+\hat p_i
+=
+\hat m(S_i)
++
+\widehat B_i^{learned}.
+$$
+
+### Critical requirement
+
+Residuals used to train the deck model must be generated out-of-fold.
+
+An observation must never be used to train the skill model that generates its own baseline prediction.
+
+The external test set must remain completely untouched during this procedure.
+
+### Purpose
+
+Test whether a learned estimate of expected performance given skill provides a cleaner baseline than directly using the historical WR proxy.
+
+---
+
+# 4. Experimental axis B: deck representation
+
+The same deck representations should be tested across the target formulations wherever technically appropriate.
+
+## R0 ΓÇö Skill only
+
+$$
+S
+$$
+
+No deck information.
+
+This is the baseline model.
+
+For residual targets, the exact role of \(S\) should be documented carefully because skill has already been used in construction of the target.
+
+---
+
+## R1 ΓÇö Card identity
+
+$$
+D_{\text{identity}}
+$$
+
+Deck represented by individual card composition.
+
+Preferred representation:
+
+$$
+D_{ij}
+=
+\frac{\text{count of card }j}
+{\text{deck size}}.
+$$
+
+If modeling individual games, this representation must correspond to the deck actually recorded for that game.
+
+Do not aggregate multiple different deck configurations into a synthetic average deck without explicitly testing and documenting that choice.
+
+---
+
+## R2 ΓÇö Knowledge-graph representation
+
+$$
+Z_{\text{KG}}=\phi_{\text{KG}}(D,G).
+$$
+
+Project the deck into the existing mechanistic MTG knowledge graph.
+
+Features should describe functional/mechanistic structure rather than merely relabel card identities.
+
+Exact KG feature engineering will be specified separately.
+
+---
+
+## R3 ΓÇö Game-script representation
+
+$$
+Z_{\text{script}}=\phi_{\text{script}}(D,G).
+$$
+
+Represent the probability distribution over meaningful early/mid-game capabilities generated by the deck.
+
+Candidate features include:
+
+* probability of meaningful T1ΓÇôT10 plays;
+* probability of T2/T3 curve-out;
+* probability of using available mana;
+* expected wasted mana;
+* probability of color screw;
+* probability of developing a creature by a given turn;
+* probability of having interaction available;
+* castable spell count by turn;
+* probability of no meaningful action;
+* probability of reaching important KG-defined synergies or motifs by a useful turn.
+
+The important conceptual distinction is:
+
+$$
+\boxed{\text{Mechanism exists} \neq \text{mechanism is reliably reachable}}
+$$
+
+---
+
+## R4 ΓÇö Identity + KG
+
+$$
+D_{\text{identity}}+Z_{\text{KG}}.
+$$
+
+Tests whether the KG contributes information beyond raw card identity.
+
+---
+
+## R5 ΓÇö Identity + KG + game script
+
+$$
+D_{\text{identity}}
++
+Z_{\text{KG}}
++
+Z_{\text{script}}.
+$$
+
+This is the richest planned representation.
+
+Additional ablations such as KG + script without identity may be added later.
+
+---
+
+# 5. Core experimental matrix
+
+The intended benchmark is:
+
+| Target                | Skill only | Identity | KG | Script | Identity + KG | Identity + KG + Script |
+| --------------------- | ---------: | -------: | -: | -----: | ------------: | ---------------------: |
+| T0 Raw outcome        |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T1 Original bump      |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T2 Learned-skill bump |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+
+Not every cell must necessarily use an identical feature list. For example, skill may appear both in target construction and as a predictor in bump models.
+
+Any deviation must be documented rather than silently changed.
+
+---
+
+# 6. Data unit
+
+The primary new analysis should preferentially operate at the **game level** if the raw dataset provides the deck used for each individual game.
+
+Each observation should then correspond to:
+
+$$
+(S_i,D_{ig},Y_{ig}).
+$$
+
+This avoids averaging together decks when players modify their deck between games.
+
+Before modeling, audit:
+
+* number of games;
+* number of drafts;
+* number of unique deck configurations per draft;
+* fraction of drafts with more than one deck configuration;
+* fraction of games occurring after a deck change;
+* deck-size distribution;
+* card-count consistency;
+* skill-variable consistency within draft.
+
+The original draft/run-level formulation may be retained as a secondary benchmark and direct replication of previous work.
+
+---
+
+# 7. Data splitting
+
+All models must use the **same frozen splits**.
+
+At minimum:
+
+* training;
+* internal validation/cross-fitting;
+* external test set.
+
+Games from the same draft must never cross partitions.
+
+Therefore:
+
+$$
+\boxed{\text{split by draft ID, not game row}}
+$$
+
+If a genuine player identifier exists, prefer player-level separation where appropriate so the same player cannot appear across train and test.
+
+Do not treat rank as player identity.
+
+A time-based external holdout should be considered if genuine player IDs are unavailable.
+
+Save the split assignments to disk and reuse them for every subsequent model.
+
+---
+
+# 8. Common learner
+
+Initially hold the learner family constant so representation changes are not confounded with algorithm changes.
+
+Recommended initial learner:
+
+**XGBoost**
+
+Use appropriate objectives:
+
+* binary/logistic objective for raw game outcomes;
+* regression objective for continuous bump/residual targets.
+
+Hyperparameter tuning procedures should be identical across comparable models.
+
+Do not introduce GNNs or specialized graph learners in the first benchmark.
+
+The immediate question is whether the representation contains useful information, not whether a specialized architecture can exploit it.
+
+---
+
+# 9. Evaluation framework
+
+Every final model should produce predictions on the same untouched external test observations.
+
+Report a common evaluation panel.
+
+## Core metrics
+
+### R┬▓
+
+For continuous bump/residual targets:
+
+$$
+R^2
+=
+1-\frac{\sum_i(y_i-\hat y_i)^2}
+{\sum_i(y_i-\bar y)^2}.
+$$
+
+For Bernoulli/raw-outcome models, do not silently report ordinary regression \(R^2\). Use a clearly defined probability-prediction analogue such as Brier Skill Score or explicitly labeled pseudo-\(R^2\).
+
+---
+
+### RMSE
+
+$$
+RMSE
+=
+\sqrt{
+\frac{1}{N}
+\sum_i(y_i-\hat y_i)^2
+}.
+$$
+
+---
+
+### MAE
+
+$$
+MAE
+=
+\frac{1}{N}
+\sum_i|y_i-\hat y_i|.
+$$
+
+Provides an error measure less sensitive to large misses than RMSE.
+
+---
+
+### Brier score
+
+For final win probabilities:
+
+$$
+BS
+=
+\frac{1}{N}
+\sum_i(\hat p_i-y_i)^2.
+$$
+
+This should be a primary metric for game-level probability predictions.
+
+---
+
+### Log loss
+
+$$
+-\frac{1}{N}
+\sum_i
+[
+y_i\log(\hat p_i)
++
+(1-y_i)\log(1-\hat p_i)
+].
+$$
+
+Useful because it penalizes confident incorrect predictions strongly.
+
+---
+
+### AUC
+
+Report as a secondary discrimination metric.
+
+AUC is not sufficient by itself because the primary scientific interest concerns accurate win probabilities, not merely ranking winners above losers.
+
+---
+
+# 10. Calibration evaluation
+
+Every model producing final win probabilities should undergo identical calibration analysis.
+
+## Calibration intercept
+
+Ideal:
+
+$$
+0.
+$$
+
+Tests systematic overprediction/underprediction.
+
+---
+
+## Calibration slope
+
+Ideal:
+
+$$
+1.
+$$
+
+A slope below 1 generally indicates predictions are too extreme.
+
+A slope above 1 generally indicates predictions are too conservative.
+
+---
+
+## Binned calibration
+
+Create identical probability bins for all models.
+
+For each bin compare:
+
+$$
+\text{mean predicted probability}
+$$
+
+against
+
+$$
+\text{observed win frequency}.
+$$
+
+Use the same binning strategy across models.
+
+Produce a calibration plot with the 45-degree identity line.
+
+---
+
+## Smooth calibration
+
+In addition to bins, fit a smooth calibration function so results do not depend entirely on arbitrary bin boundaries.
+
+The exact implementation can be selected after inspecting the prediction distribution.
+
+GAMLSS should not currently be treated as a required evaluation metric. If a distributional/smooth calibration method based on GAMLSS is considered later, add it as a separate diagnostic rather than conflating it with the core metrics.
+
+---
+
+# 11. Incremental-value analysis
+
+Absolute model performance is not sufficient.
+
+The primary scientific question is:
+
+> How much additional information does a deck representation contribute beyond skill?
+
+Therefore calculate paired differences such as:
+
+$$
+\Delta R^2
+=
+R^2(M_k)-R^2(M_0),
+$$
+
+$$
+\Delta RMSE
+=
+RMSE(M_k)-RMSE(M_0),
+$$
+
+$$
+\Delta BS
+=
+BS(M_k)-BS(M_0),
+$$
+
+and
+
+$$
+\Delta LL
+=
+LL(M_k)-LL(M_0).
+$$
+
+The same principle should be used to compare representations directly, e.g.:
+
+$$
+M_{\text{KG}}-M_{\text{identity}}
+$$
+
+and
+
+$$
+M_{\text{script}}-M_{\text{identity}}.
+$$
+
+---
+
+# 12. Uncertainty
+
+Use a **paired cluster bootstrap** for model comparisons.
+
+Cluster at the draft level so games from a draft are resampled together.
+
+For each bootstrap replicate:
+
+1. sample draft IDs;
+2. include all corresponding games;
+3. evaluate every model on exactly that bootstrap sample;
+4. calculate metric differences.
+
+Report confidence intervals for:
+
+$$
+\Delta R^2,\quad
+\Delta RMSE,\quad
+\Delta Brier,\quad
+\Delta LogLoss
+$$
+
+and other important pairwise comparisons.
+
+The paired design is important because all models predict the same observations.
+
+---
+
+# 13. Interpretation rules
+
+Do not equate lack of incremental predictive performance with absence of a causal deck effect.
+
+For example:
+
+$$
+R^2(S+D)\approx R^2(S)
+$$
+
+supports:
+
+> Card identity provides little detectable incremental predictive information beyond skill under this representation, learner and dataset.
+
+It does **not** establish:
+
+> Deck composition does not affect win probability.
+
+Possible explanations include:
+
+* deck effects are small relative to skill;
+* deck effects are interaction-dependent;
+* card identity is an inefficient representation;
+* outcome noise overwhelms small effects;
+* skill partially proxies expected deck quality because stronger players draft better decks.
+
+This distinction should be maintained throughout the analysis.
+
+---
+
+# 14. Primary hypotheses
+
+### H1 ΓÇö Skill dominance
+
+Skill alone explains substantially more predictable variation in raw outcomes than deck identity.
+
+---
+
+### H2 ΓÇö Residualization
+
+Deck signal is easier to recover when the dominant skill component is removed.
+
+Expected ordering, if this hypothesis is correct:
+
+$$
+\text{deck signal under T2}
+>
+\text{deck signal under T1}
+>
+\text{deck signal under T0}.
+$$
+
+This is a hypothesis, not an assumed result.
+
+---
+
+### H3 ΓÇö Structured representation
+
+Functional deck representations outperform raw identity:
+
+$$
+Z_{\text{KG}}
+\text{ and/or }
+Z_{\text{script}}
+>
+D_{\text{identity}}.
+$$
+
+---
+
+### H4 ΓÇö Reachability
+
+Game-script features add information beyond static mechanistic structure:
+
+$$
+D+Z_{\text{KG}}+Z_{\text{script}}
+>
+D+Z_{\text{KG}}.
+$$
+
+This would support the idea that knowing a mechanism exists is insufficient; its probability of being realized during actual games matters.
+
+---
+
+# 15. Required outputs
+
+For every completed model, save:
+
+* model identifier;
+* target formulation;
+* representation;
+* feature list/version;
+* split version;
+* hyperparameters;
+* test predictions;
+* reconstructed final win probability where applicable;
+* all evaluation metrics;
+* calibration data;
+* bootstrap comparisons;
+* model artifact;
+* random seed;
+* code/git commit.
+
+Create a master results table with one row per model.
+
+At minimum include:
+
+| Model | Target | Representation | R┬▓ | RMSE | MAE | Brier | Log Loss | AUC | Cal. Intercept | Cal. Slope |
+| ----- | ------ | -------------- | -: | ---: | --: | ----: | -------: | --: | -------------: | ---------: |
+
+Also create pairwise/incremental tables relative to the appropriate skill-only and identity baselines.
+
+---
+
+# 16. Implementation order
+
+Do not attempt the full matrix immediately.
+
+### Phase 1 ΓÇö Data audit
+
+Establish the correct observational unit, audit deck changes within drafts, validate skill fields, freeze splits.
+
+### Phase 2 ΓÇö Target benchmark
+
+Using skill and card identity only, implement:
+
+$$
+T0=\text{raw outcome}
+$$
+
+$$
+T1=\text{original bump}
+$$
+
+$$
+T2=\text{learned-skill bump}.
+$$
+
+This determines whether target construction materially affects recovery of deck signal.
+
+### Phase 3 ΓÇö Representation benchmark
+
+Once the target architecture is understood, add:
+
+$$
+D_{\text{identity}}
+\rightarrow
+Z_{\text{KG}}
+\rightarrow
+Z_{\text{script}}
+\rightarrow
+\text{combined representations}.
+$$
+
+### Phase 4 ΓÇö Causal estimation
+
+Only after the predictive benchmark is characterized should the project move to explicit deck/card interventions, g-computation, orthogonalization/DML, substitution effects, or draft-pick policy estimation.
+
+---
+
+# 17. Immediate task
+
+Do **not** start training the complete model matrix yet.
+
+First:
+
+1. audit the raw HOB game-level dataset;
+2. determine whether deck configurations change within drafts and quantify how often;
+3. construct the correct game-level modeling table;
+4. verify the skill variables and reproduce the existing skill proxy;
+5. define and save frozen train/validation/test splits;
+6. produce an audit report;
+7. stop for review before model fitting.
+
+The benchmark architecture above should then be implemented against that frozen dataset.
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+(none)
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/benchmark_phase1_audit.md
+
+# Benchmark Phase 1 audit ΓÇö the frozen dataset, and a halt before model fitting
+
+This is the report section 17 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md`
+requires: the consolidated record of Phase 1 (cards 003ΓÇô006), and the point at
+which the benchmark stops for operator review before any model is fit.
+
+Nothing is fitted here. No holdout partition is opened. No metric is computed on
+any partition. The deliverable is this report, the append-only checker built
+alongside it (`tools/check_append_only.py`), and a `RESULT` entry in
+`LABNOTEBOOK.md`.
+
+Every number below was read from the frozen artifacts and their manifests, not
+transcribed from the prose of the cards. Where a number appears, it was recomputed
+from the parquet/CSV/JSON file named beside it. Artifact digests are pinned so a
+later card can confirm the ground has not moved.
+
+**This report was re-frozen at card 008.** The operator reviewed it, decided the
+two open questions of section 7, and card 008 applied those decisions and
+re-derived every artifact. All counts and digests below reflect the re-frozen
+dataset; the amendment immediately following records what changed. The full
+change log is `reports/phase1_refreeze.md`.
+
+---
+
+## 0. Amendment ΓÇö the operator decisions applied (card 008)
+
+Section 7 of the original report put two questions to the operator. Both were
+answered at the phase-1 review, and card 008 applies them by re-deriving the
+dataset from the raw CSV under a new **modeling population** definition. No model
+is fit, no metric is computed, and the holdout is not opened
+(`cycle/holdout_ledger.jsonl` stays byte-identical, 0 bytes).
+
+1. **The 166 null-skill games are excluded from the modeling population.** They
+   have no historical win-rate bucket and so cannot be scored by R0. Measured
+   from the raw file, they belong to **59 drafts, every one entirely null** (no
+   partial draft), so excluding games and excluding drafts are one operation. The
+   exclusion is applied once, in `deckbench.table`, and every downstream table
+   inherits that population. The split is **recomputed** on the smaller
+   population, not filtered.
+
+2. **The games-played bucket set is taken from the data.** The inherited `1000`
+   `hist_w` entry never occurs in this dataset and was removed; the accepted set
+   is now derived from the data and the weights remain the inherited assumption.
+   Card 005's structurally-absent-null carve-out is deleted ΓÇö a null win-rate
+   bucket in the population now stops the run.
+
+| Quantity | Before (card 007) | After (card 008) |
+| --- | --- | --- |
+| Observations (games) | 241,727 | **241,561** |
+| Drafts | 43,161 | **43,102** |
+| Null-skill games / drafts excluded | 0 / 0 | **166 / 59** |
+| Development rows / drafts | 194,348 / 34,529 | **194,215 / 34,482** |
+| Holdout rows / drafts | 47,379 / 8,632 | **47,346 / 8,620** |
+| Dev fold sizes | 39316 / 39067 / 38915 / 38479 / 38571 | **39280 / 39038 / 38902 / 38446 / 38549** |
+| `mu` | 0.546211 | **0.546211** (unchanged by construction) |
+| Games-played buckets | {1,5,10,50,100,500,1000} | **{1,5,10,50,100,500}** |
+
+The **halt of section 8 is now satisfied for the phase-1 dataset**: the operator
+reviewed this report and the dataset is re-frozen under their decisions. Phase 2
+authorization still depends on the operator writing Phase 2 acceptance criteria;
+nothing here begins Phase 2.
+
+---
+
+## 1. What Phase 1 produced (re-frozen at card 008)
+
+| Card | Concern | Primary artifact | SHA256 |
+| --- | --- | --- | --- |
+| 003 | Raw data audit | `reports/modeling_data_audit.json` | `c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c` |
+| 004 / 008 | Game-level table | `data/processed/model_table.parquet` | `d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750` |
+| 004 / 008 | Card-identity representation | `data/processed/deck_identity.parquet` | `2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c` |
+| 004 / 008 | Card-identity name map | `data/processed/card_identity_manifest.csv` | `8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9` |
+| 005 / 008 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc` |
+| 006 / 008 | Frozen split + folds | `data/processed/model_split.parquet` | `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4` |
+| 006 / 008 | Split provenance / seal | `data/splits/split_manifest.json` | `6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163` |
+
+The five `data/processed` artifacts are the ones pinned in
+`data/processed/MANIFEST.sha256`; `sha256sum -c data/processed/MANIFEST.sha256`
+verifies them from the repository root. The two JSON/report inputs are pinned
+here by their own digest.
+
+---
+
+## 2. Observational unit, and the measurement that justified it
+
+**Ratified unit: the game**, keyed by the injective 4-tuple
+`(draft_id, game_time, match_number, game_number)` and hashed to `obs_id`.
+
+The unit was not chosen by preference. The deck configuration is recorded per
+game and it changes within a draft, measured on the raw file
+(`reports/modeling_data_audit.json`, `within_draft`):
+
+- **8191 of 43161 drafts (0.189778)** carry more than one deck configuration.
+- **28397 of 241727 games (0.117475)** are played after a deck change.
+- Distinct configurations per draft: 1 ΓåÆ 34970 drafts, 2 ΓåÆ 6636, 3 ΓåÆ 1314,
+  4 ΓåÆ 210, 5 ΓåÆ 29, 6 ΓåÆ 2.
+
+Averaging a draft's games would blend distinct decks in exactly those ~19% of
+drafts. The game is therefore the unit at which "the deck that played this game"
+is well defined (benchmark section 6). The split is nonetheless assigned by draft,
+never by game row (section 4 below), so this choice does not create cross-partition
+leakage.
+
+The counts in this section are the audit's measurements over the **raw file**
+(241727 games, 43161 drafts); they justified the unit before the population was
+defined. The modeling population after the card-008 null-skill exclusion is
+241561 games across 43102 drafts (section 4).
+
+---
+
+## 3. Persistent player identifier, and what its absence implies
+
+**No persistent player identifier exists in this dataset**
+(`reports/modeling_data_audit.json`, `player_identifier.persistent_player_id_exists = false`;
+echoed in `data/splits/split_manifest.json`, `persistent_player_id_exists = false`).
+`rank` and `opp_rank` are six-level skill buckets, not player ids, and are
+nominated nowhere as a substitute.
+
+Consequence for leakage control: the benchmark's preferred **player-grouped
+split is unavailable** (section 7 of the benchmark). The fallback used at card
+006 is a **time-based external holdout** (the latest Γëê20% of drafts by
+`draft_time`). This is a **weaker** control: with no player id, the same player
+can appear in both the development set and the holdout under different drafts.
+The split manifest records this weakness explicitly and does not treat the
+time-based holdout as equivalent to a player-grouped split. `rank` is used
+nowhere as a grouping key, player id, or stratifier.
+
+---
+
+## 4. Final row counts (re-frozen at card 008)
+
+All counts recomputed from the parquet files named; the population is
+post-exclusion (the 166 null-skill games in 59 drafts are gone).
+
+| Quantity | Value | Source artifact |
+| --- | --- | --- |
+| Observations (games) | **241561** | all four `data/processed/*.parquet` (row counts agree) |
+| Drafts | **43102** | `model_split.parquet` distinct `draft_id` (34482 dev + 8620 holdout) |
+| Null-skill games / drafts excluded | **166 / 59** | `model_table_build.md` (derived from the raw file) |
+| Card-identity features | **193** | `deck_identity.parquet` (194 cols ΓêÆ `obs_id`); `card_identity_manifest.csv` 193 rows |
+| Development rows | **194215** | `model_split.parquet` `partition == dev` |
+| Development drafts | **34482** | `model_split.parquet` |
+| Holdout rows | **47346** | `model_split.parquet` `partition == holdout` |
+| Holdout drafts | **8620** | `model_split.parquet` |
+| Holdout fraction | **0.199991 of drafts, 0.196000 of games** | `split_manifest.json` |
+| Cross-fitting folds (dev) | **5** | `model_split.parquet` |
+| Fold sizes (dev rows) | 0 ΓåÆ 39280, 1 ΓåÆ 39038, 2 ΓåÆ 38902, 3 ΓåÆ 38446, 4 ΓåÆ 38549 | `model_split.parquet` |
+| Holdout fold marker | ΓêÆ1 (all holdout rows) | `model_split.parquet` |
+| Split seed | **20260908** | `split_manifest.json` |
+| Split rule | `time_based_holdout` | `split_manifest.json` |
+
+The four processed tables share one `obs_id` set exactly (verified: the table,
+identity, skill and split obs-id sets are pairwise equal), so every downstream
+join is total in both directions with no unmatched rows.
+
+---
+
+## 5. What Phase 2 may assume
+
+Each claim below rests on a named artifact and its SHA256. A Phase 2 card must
+verify these digests before relying on the claim; a mismatch means the dataset
+moved and any comparison built on it is void. This is the adjudicable record the
+quarantined pipeline lacked.
+
+1. **The modeling unit is the game, and there are 241561 of them** (the raw file
+   has 241727; the 166 null-skill games are excluded from the population).
+   `data/processed/model_table.parquet`
+   (`d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750`),
+   241561 rows, one per `obs_id`.
+
+2. **The card-identity representation is `D_ij = count(card j in deck i) / deck_size_i`,
+   over 193 card features, one row per observation.**
+   `data/processed/deck_identity.parquet`
+   (`2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c`),
+   241561 rows ├ù 193 features; no feature column is the outcome.
+
+3. **The 193 feature names round-trip to their verbatim source columns.**
+   `data/processed/card_identity_manifest.csv`
+   (`8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9`),
+   193 rows, one-to-one `source_column Γåö feature_name`.
+
+4. **`base_p` is available as the T1 fixed baseline for every observation in the
+   population; there are no null values.** `data/processed/skill_features.parquet`
+   (`4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc`),
+   columns `obs_id, base_p_raw, base_p`; **0 nulls** in either column (the 166
+   null-bucket games were excluded from the population at card 008, so a null
+   here now fails the build). `base_p` is a reliability-shrunk historical
+   win-rate proxy and a nuisance representation; it is **not** a measurement of
+   player skill and is not to be described as one.
+
+5. **The train/test split is frozen and shared by every model, assigned at draft
+   granularity.** `data/processed/model_split.parquet`
+   (`ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`):
+   dev 194215 rows / 34482 drafts, holdout 47346 rows / 8620 drafts, 5 dev folds,
+   holdout fold ΓêÆ1. **No draft spans two partitions (0) and no draft spans two
+   folds (0)** ΓÇö recomputed from the artifact.
+
+6. **The split's identity and the holdout seal are pinned.**
+   `data/splits/split_manifest.json`
+   (`6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163`)
+   records `split_sha256 = ad7f8596ΓÇª`, matching claim 5. The holdout is opened
+   only through `deckbench.holdout.load_holdout`, which verifies this hash and
+   appends to `cycle/holdout_ledger.jsonl` on every read.
+
+7. **No persistent player identifier exists; leakage control is time-based, not
+   player-grouped.** `reports/modeling_data_audit.json`
+   (`c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c`) and the
+   split manifest (claim 6).
+
+---
+
+## 6. Leakage checks run, and their results
+
+All checks recomputed from the artifacts for this report.
+
+- **No feature column derives from the outcome.** `deck_identity.parquet` does
+  not contain a `won` column (verified absent). `skill_features.parquet` holds
+  only `obs_id, base_p_raw, base_p`, derived from `user_game_win_rate_bucket`
+  and `user_n_games_bucket`; `won` is never read in its construction.
+  `model_split.parquet` holds only `obs_id, draft_id, partition, fold`, derived
+  from `draft_id` and `draft_time`. **The outcome `won` appears only in
+  `model_table.parquet`, as a carried metadata column ΓÇö in no feature table.**
+- **Split by draft, not by game row.** No `draft_id` appears in more than one
+  partition (0), and no `draft_id` appears in more than one fold (0). Games from
+  one draft cannot straddle train/test or a cross-fitting boundary.
+- **Cross-fitting is internal to development.** Every holdout row carries fold
+  ΓêÆ1; folds 0ΓÇô4 exist only in the development partition.
+- **The join surface is total.** The `obs_id` sets of the table, identity, skill
+  and split artifacts are pairwise equal, so no feature is silently dropped or
+  duplicated across a join.
+- **The holdout was not opened by this card.** `cycle/holdout_ledger.jsonl` is
+  empty (0 bytes) and byte-identical before and after this card runs; no read of
+  `deckbench.holdout.load_holdout` occurred.
+
+---
+
+## 7. Unresolved questions and unverified assumptions
+
+Each item is a finding, stated as an uncertainty, with the consequence of its
+being wrong. None is resolved here by assumption.
+
+1. **Declared vs observed column count disagree.** The raw-file manifest declares
+   1165 columns; the file has **985** (`reports/modeling_data_audit.json`,
+   `declared_vs_observed_match.columns = false`; declared drafts and rows *do*
+   match). *Consequence if trusted blindly:* any Phase 2 step that reads the
+   declared width, or expects 1165 columns, is off by 180 and may misalign
+   columns. The observed 985 (193 ├ù 5 card families + 20 non-card) is the
+   authority; the declared count is not.
+
+2. **Time-based holdout is a weaker leakage control than player grouping**
+   (section 3). *Consequence if wrong:* if the same players recur across the
+   time boundary in a way that matters, generalization estimates on the holdout
+   will be optimistic. There is no player id with which to bound this risk.
+
+3. **RESOLVED at card 008 ΓÇö the 166 null-win-rate games are excluded from the
+   modeling population.** They were near-new players (66 at games-played bucket 1,
+   100 at bucket 5) with no historical win rate, so R0 cannot score them. The
+   operator decided the exclusion lands at the population definition rather than
+   being carried into Phase 2. Measured from the raw file, all 166 belong to 59
+   **wholly-null** drafts, so games and drafts are excluded as one operation
+   (241727 ΓåÆ 241561 games, 43161 ΓåÆ 43102 drafts). `skill_features.parquet` now
+   carries **0 nulls**, and a null win-rate bucket in the population fails the
+   build. There is no longer a null-handling policy for Phase 2 to invent.
+
+4. **15680 rows carry a deck size other than the modal 40** (max observed 60;
+   rows below the legal minimum: 0; `reports/modeling_data_audit.json`,
+   `deck_size`). The identity representation divides by each row's *actual* deck
+   size, so the fractions remain well formed. *Consequence:* "deck size" is not
+   constant across observations; whether Phase 2 restricts to 40-card decks, or
+   models all sizes, is an open modeling choice, not a data defect.
+
+5. **Within-draft deck changes are common enough that the unit is load-bearing**
+   (19.0% of drafts, 11.7% of games; section 2). *Consequence if ignored:* a
+   Phase 2 fit that quietly aggregates to draft level would blend distinct decks
+   in those drafts and misattribute their outcomes.
+
+6. **`mu` is a per-game mean** of `base_p_raw` (= 0.546211 over the whole
+   241561-row population; `reports/skill_proxy.md`), so drafts with more games
+   weight the shrinkage target more. Because the historical bucket is constant
+   within a draft, this is the only weighting choice that arises; it is recorded
+   rather than hidden. `mu` is **unchanged** by the card-008 re-freeze: the
+   excluded games never carried a bucket, so they were never in the mean.
+   *Consequence if unexamined:* the shrinkage target carries a per-game (not
+   per-player) weighting that a Phase 2 reader should know about.
+
+7. **`hist_w` reliability map is inherited, not derived** (six entries after
+   card 008, ╬╗ = 5; `reports/skill_proxy.md`). The inherited `1000` entry, which
+   this dataset never contains, was removed; the map's keys are now exactly the
+   games-played buckets the population presents, and the accepted set is derived
+   from the data. An unmapped bucket fails the run rather than being defaulted.
+   *Consequence:* the weights are an assumption carried from the prior R
+   implementation; if a future set introduces a new games bucket, the proxy build
+   halts by design and the map must be extended deliberately.
+
+---
+
+## 8. Halt
+
+**Phase 2 is not authorized to begin until the operator has reviewed this report.**
+
+Section 16 of the benchmark orders the work ΓÇö data audit, then target benchmark,
+then representation benchmark, then causal estimation ΓÇö and section 17 requires a
+stop for review before model fitting. Phase 2's shape depends on what Phase 1
+measured (the game/draft distinction of section 2 is real, not negligible), so
+writing Phase 2 acceptance criteria before this report exists would mean writing
+them against unmeasured facts. That is the failure the quarantined pipeline made.
+
+No model is fit, no metric is computed on any partition, and no predictive
+quantity is reported in this document. The dataset is frozen and pinned.
+
+**Update (card 008):** the operator's review has since happened ΓÇö its two
+decisions are recorded in section 0 and applied by card 008, which re-froze the
+dataset. The dataset is now coherent with those decisions and carries no
+outstanding null-handling policy. Phase 2 still begins only when the operator
+sets its acceptance criteria; card 008 does not start it.
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] attic/haiku-2026-09-07/README.md
+
+# Quarantined: modeling pipeline written 2026-09-07
+
+**Nothing in this directory governs, runs, or may be cited.** It is kept because
+`INSTRUCTIONS.md` ┬º6 preserves dead ends rather than erasing them ΓÇö not because
+any of it is usable.
+
+## What this is
+
+The entire Python modeling pipeline as it stood on 2026-09-07, plus everything it
+produced. It was generated by Claude Haiku, which the project owner found did not
+follow the specification reliably. The code is untrusted; therefore so is every
+number downstream of it.
+
+The decision to quarantine is recorded in the `DECISION` entry of 2026-09-07 in
+`LABNOTEBOOK.md`. The files were tracked and pushed before that decision, in
+commit `529baf3`, so they remain in git history at that commit regardless of
+this move.
+
+## What is here, and where it came from
+
+| Now at | Was at |
+|---|---|
+| `build_identity_matrix.py` | repository root |
+| `scripts/build_model_table.py` | `scripts/` |
+| `scripts/00_outcome_and_split.py` | `scripts/` |
+| `scripts/01_fit_m0_m1.py` | `scripts/` |
+| `scripts/01_fit_m0_m1_old.py` | `scripts/` |
+| `scripts/02_comprehensive_metrics.py` | `scripts/` |
+| `scripts/03_model_comparison_and_plots.py` | `scripts/` |
+| `src_data/build_model_table.py` | `src/data/` |
+| `results/` | `results/` |
+| `figures/` | `figures/` |
+| `data_processed/` | `data/processed/` |
+
+The two `build_model_table.py` files are kept in separate subdirectories because
+they share a basename and had **diverged** ΓÇö the `scripts/` one was newer and added
+NaN defaults for missing skill buckets; the `src/data/` one sat at the path the
+(now also superseded) `docs/Model_Building.md` specified. Neither was ever
+reconciled. That duplication is itself a symptom.
+
+`data_processed/MANIFEST.sha256` is tracked so the discarded state stays
+identifiable; the parquet/npy blobs it names, and the `.xgb` model binaries, are
+gitignored and exist only on disk.
+
+## What was NOT quarantined, and why
+
+- **`data/raw/game_data_public.HOB.PremierDraft.csv.gz`** ΓÇö source data from
+  17Lands, not produced here. Provenance in `data/raw/source_manifest.json`.
+- **`scripts/R/`** ΓÇö written 2025-12 to 2026-02, a different author and the
+  earlier causal analysis.
+- **The whole knowledge-graph arm** ΓÇö `src/hobkg/`, `tests/`, and
+  `scripts/build_set_network_html.py` date from 2026-09-05 and earlier and are
+  unaffected.
+
+## Known defects, recorded so the rebuild does not repeat them
+
+1. **`identity_matrix_*` is not a deck representation.** `build_identity_matrix.py`
+   builds a 43,160 ├ù 6 **rank-bucket** indicator matrix and its "player index" is
+   keyed on `rank`. Rank is a six-level skill bucket, not a player identifier;
+   this dataset carries no persistent player ID. The true representation is
+   `D_ij = count(card j in deck i) / deck_size_i`, from the `deck_*` columns.
+
+2. **The reported results contradict each other.** `results/model_comparison_report.txt`
+   gives M0 R┬▓ = ΓêÆ0.0001 and M1 R┬▓ = 0.0471. An earlier README revision, describing
+   the same M0-vs-M1 holdout comparison, gave 0.1594 and 0.1785. Both cannot be
+   right. Where a confidence interval was computed at all, it crossed zero ΓÇö so
+   the headline "M1 improves on M0" was never supported by its own numbers.
+
+3. **A `KEY FINDINGS` section asserting three checkmarked improvements**, in the
+   same file whose companion analysis reports the effect as statistically
+   insignificant.
+
+4. **`draft_model_table.parquet` was regenerated after the rest**, so the hashes in
+   `data_processed/MANIFEST.sha256` do not describe a single coherent pipeline run.
+
+5. **Date range reported as 1988ΓÇô2025.** The actual `draft_time` span is
+   2026-08-11 to 2026-08-29 ΓÇö three weeks. The old figure looks like numeric game
+   fields parsed as years.
+
+## The replacement
+
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs the rebuild. Its ┬º17 fixes
+the first step and stops before any model is fit: audit the raw game-level data,
+quantify how often deck configuration changes within a draft, build the game-level
+table, verify the skill variables, freeze the splits, report, and hold for review.
+
+Start from that spec and the raw CSV. Do not start from this directory.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 010
+status: TODO
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 010: The evaluation panel, built before anything is scored
+
+## Objective
+
+Build the metric, calibration and uncertainty panel that every model in the
+benchmark is judged by ΓÇö and build it **now, before a single model has been
+fitted against it**.
+
+That ordering is the point of the card. Metrics chosen after seeing results are
+how a project ends up with a `KEY FINDINGS` section asserting three improvements
+next to a confidence interval that crosses zero. That file is in
+`attic/haiku-2026-09-07/` and it is the reason this benchmark exists in its
+current form.
+
+The panel is a pure function of `(y, p, weight, group)` arrays. It fits nothing,
+imports no learner, and knows nothing about representations.
+
+## Acceptance Criteria
+
+- [ ] The panel computes, over weighted observations: log loss, Brier score, RMSE, MAE, AUC, and a weighted R-squared using the formula in section 9 of the benchmark
+- [ ] Every metric is verified against a hand-computed value on a small fixture, so each is checked against arithmetic rather than against its own output
+- [ ] Degenerate cases are asserted: perfect predictions give log loss 0, Brier 0 and AUC 1; predicting the weighted base rate everywhere gives R-squared 0
+- [ ] For a Bernoulli outcome the panel refuses to report an unlabelled ordinary regression R-squared; it returns either a Brier Skill Score or a quantity whose name marks it as a pseudo-R-squared, per section 9
+- [ ] Calibration intercept and slope are computed, with a test on a deliberately over-confident prediction set asserting the slope moves below 1 in the known direction, and on an under-confident set asserting it moves above 1
+- [ ] Binned calibration uses one declared binning strategy applied identically to every model, and the bin edges are returned alongside the counts so a plot cannot silently rebin
+- [ ] A smooth calibration curve is provided in addition to bins, so a conclusion cannot rest on arbitrary bin boundaries
+- [ ] A **paired cluster bootstrap** resamples `draft_id`, not rows; a test asserts that every game of a sampled draft appears together in the resample
+- [ ] The bootstrap is paired: a test asserts that for a given replicate, every model is scored on the identical resample indices
+- [ ] The bootstrap returns confidence intervals for metric **differences** between two models, not only for each model's absolute value
+- [ ] The bootstrap is deterministic under a declared seed; two runs with the same seed produce identical intervals
+- [ ] The panel fits nothing: a test asserts the module imports no learner library and calls nothing from `deckbench.estimator`
+- [ ] The panel never reads a parquet file, the split, or the holdout; it operates only on arrays passed to it
+- [ ] `reports/evaluation_panel.md` states each metric's definition, the weighting convention, the binning strategy, the bootstrap seed and cluster level, and ΓÇö explicitly ΓÇö that GAMLSS is not part of the panel
+- [ ] All new tests pass and the module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+## See Also
+
+- reports/benchmark_phase1_audit.md
+- attic/haiku-2026-09-07/README.md
+
+## Outputs
+
+- src/deckbench/evaluation.py
+- tests/test_deckbench_evaluation.py
+- reports/evaluation_panel.md
+
+## Requirements
+
+- The panel is a pure function of arrays. It does not load data, does not know which model produced the predictions, and does not know what representation was used
+- Cluster the bootstrap at `draft_id`. Resampling rows would treat the several games of one draft as independent, understating the variance of exactly the comparisons this benchmark exists to make
+- The bootstrap must be paired across models, because every model predicts the same observations. Independent resamples per model inflate the interval on a difference and can hide a real effect as easily as manufacture one
+- Do not report an ordinary regression R-squared on a Bernoulli outcome without a name that marks what it is; section 9 forbids it and the quarantined pipeline did it
+- Do not describe any R-squared as approaching a theoretical ceiling. The 7-wins/3-losses stopping rule puts an irreducible binomial floor under the residual variance, and the ceiling is unknown without the latent per-observation probability
+- GAMLSS is not a required metric. If a distributional calibration diagnostic is wanted later it is added as a separate diagnostic, never folded into the core panel
+- Weight every metric by the observation weight passed in; an unweighted metric silently answers a different question
+- Clip probabilities away from 0 and 1 before any logarithm, declare the bound as a named constant, and record it in the report
+- Do not import `xgboost`, `sklearn.ensemble`, or `deckbench.estimator`
+- Do not compute a metric on the holdout partition, and do not accept a partition label as an argument; the panel scores whatever arrays it is handed and the caller is accountable for which rows those are
+
+## Checks
+
+- python -m deckbench.evaluation --selftest
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_evaluation.py -q
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/evaluation.py tests/test_deckbench_evaluation.py
+- mypy --strict src/deckbench/evaluation.py
+
+## Blocked By
+
+- 008
+
+## Notes
+
+**Why the panel is built before any model is scored.** This is a
+pre-registration device. Once results exist, every choice in this file ΓÇö which
+metric leads, how many bins, whether the interval is on the difference or the
+level ΓÇö becomes a choice that can be made to favour a conclusion. Fixing them
+first costs nothing and removes the degree of freedom entirely. The benchmark's
+section 11 asks for incremental value with uncertainty; section 12 specifies the
+paired cluster bootstrap. Both are decided here rather than at the moment of
+reporting.
+
+**The concrete failure this prevents, from this repository's own history.** The
+quarantined pipeline produced `model_comparison_report.txt` with a `KEY
+FINDINGS` block asserting three checkmarked improvements, alongside a companion
+analysis reporting the same effect as statistically insignificant with a
+confidence interval crossing zero. Two artifacts, one comparison, no way to
+adjudicate. The panel exists so the adjudication is fixed in advance.
+
+**Why the bootstrap clusters on drafts and not rows.** Card 003 measured that a
+draft contributes multiple games and that 19 percent of drafts change deck
+between them. Games within a draft share a player, a skill bucket, and usually a
+deck; treating them as independent draws would understate the variance on every
+difference the benchmark reports. Section 12 requires the cluster; card 006's
+split already partitions at the same level, so the two agree.
+
+**Why paired matters as much as clustered.** All models predict the same
+observations. If each model is bootstrapped on its own resample, the difference
+between two models inherits the variance of both resamples instead of the
+variance of the difference ΓÇö which widens intervals and makes a genuine
+incremental effect harder to detect, not easier. Pairing is the reason section
+12 says "evaluate every model on exactly that bootstrap sample".
+
+**The R-squared trap.** For a continuous bump target the section 9 formula is
+appropriate. For a raw Bernoulli outcome it is not, and reporting it unlabelled
+invites exactly the comparison across target formulations that the T0/T1/T2 axis
+is designed to make carefully. The panel should make the wrong thing hard to
+say by giving the right thing a name.
+
+**Timeout note.** The full test suite runs as the inherited registry default
+check under a 300s cap; Output Validation commands are capped at 60s each, so
+keep the new-tests-only invocation there and leave anything slower to Checks.
+
+### [2026-09-08 22:26] ASSISTANT
+I'll start by understanding the existing codebase structure, then implement the evaluation panel.
+
+Let me look at the estimator (card 009) to match conventions, and check the existing patterns for selftest CLI and module style.
+
+Now let me look at a test file for style conventions and the append-only logging requirements.
+
+Now let me check the project config and instructions for logging requirements.
+
+I have enough context. Let me write the evaluation module.
+
+Let me clean up a leftover awkward expression in the metric-availability check.
+
+Now the tests. Let me run the selftest first to catch obvious issues.
+
+Selftest passes. The `deckbench` import works with `src` on path (pytest is configured with `pythonpath=["src"]`). Now let me write the test file.
+
+The source-scan tests match words in my docstring prose. Let me make them precise using `ast` for imports and a NAME-token scan for identifiers, so prose can't trip them.
+
+All pass. Now ruff and mypy on the exact commands from the card.
+
+The card's mypy check targets only `src/deckbench/evaluation.py` (clean); the test-file error is just this venv lacking an editable install. Now the report, then the full suite. Let me write the report.
+
+Now the full suite and a clean-tree check.
+
+The full suite is running in the background. Let me wait for it to complete.
+
+Full suite: **680 passed in 245.94s** (under the 300s cap). The `data/review/*.jsonl` files were dirtied by pytest â€” a known pre-existing hazard unrelated to this card. Let me restore them to keep the tree clean.
+
+Tree is clean (CONVERSATION_LOG.md is maintained by the session hook; the audit file is the orchestrator's). Now let me record the card in the lab notebook per INSTRUCTIONS Â§5. Let me check the recent entry format.
+
+Card 009 left no notebook entry, but I'll follow INSTRUCTIONS Â§5 and record card 010. Let me append a RESULT entry at the end of the file.
+
+Append-only verified. Let me run the card's Output Validation commands one final time as the canonical check.
+
+All checks pass. Task complete.
+
+## Summary
+
+Card 010 builds the benchmark's evaluation panel â€” the metrics, calibration diagnostics, and uncertainty machinery every model will be judged by â€” **before any model is fitted against it**, as a pre-registration device against the `KEY FINDINGS`-vs-crossing-CI failure quarantined in `attic/haiku-2026-09-07/`.
+
+**Files created:**
+- `src/deckbench/evaluation.py` â€” a pure function of `(y, p, weight, group)` arrays. Loads no parquet, reads no split/holdout, accepts no partition label, imports no learner. Provides:
+  - Weighted metrics: log loss, Brier, RMSE, MAE, AUC (weighted Mannâ€“Whitney, ties at half credit), plus a section-9 weighted RÂ² for **continuous** targets and a named **Brier Skill Score** for **Bernoulli** outcomes â€” the RÂ² trap is closed by returning *no* bare `r2` key on a Bernoulli outcome.
+  - Probability clip `PROBABILITY_CLIP = 1e-12` before any logarithm.
+  - Calibration: Cox intercept/slope (weighted logistic regression solved by hand in numpy â€” the only "fit"), equal-width binned calibration (one strategy, identical edges for every model, edges returned), and a bin-boundary-free smooth Nadarayaâ€“Watson curve. GAMLSS explicitly excluded.
+  - A **paired cluster bootstrap** over `draft_id` (games of a draft resampled together), paired across models (one resample scores all), returning CIs for both absolute metrics and pairwise **differences**, deterministic under seed `20260908`.
+  - `--selftest` CLI.
+- `tests/test_deckbench_evaluation.py` â€” 33 tests: every metric checked against hand arithmetic, degenerate cases, the RÂ² trap, calibration direction (over-confident â†’ slope <1, under-confident â†’ >1), binning identity, cluster-togetherness, pairing (identical models â†’ zero difference), determinism, and structural guards via `ast`/`tokenize` (no learner import, no file reads, no partition arg).
+- `reports/evaluation_panel.md` â€” records each metric's definition, the weighting convention, the clip constant, the binning strategy, the bootstrap seed and cluster level, and that GAMLSS is not part of the panel.
+
+**Validation:** `pytest tests/test_deckbench_evaluation.py` â†’ 33 passed; full suite â†’ **680 passed in 246s** (under the 300s cap); `ruff --select E,F,I,B,UP` clean; `mypy --strict src/deckbench/evaluation.py` clean; `--selftest` returns 0.
+
+I restored the `data/review/*.jsonl` files pytest dirtied (a known pre-existing hazard) so the working tree is clean, and appended a RESULT entry to `LABNOTEBOOK.md` (append-only verified). No model is fit, no metric is computed on any partition, and the holdout ledger is untouched.
+
+### [2026-09-08 22:47] USER
+## Section 1: Reviewer Instructions
+
+You are the compact task reviewer.
+
+Return a verdict block in this exact shape:
+
+VERDICT: PASS|FAIL
+CRITERIA:
+- one bullet per acceptance criterion with evidence
+SUMMARY:
+one short summary paragraph
+
+Rules:
+- Base the judgment only on the supplied task card, latest passing audit entry, and supplied file contents.
+- Every judgment-class criterion must cite concrete evidence: a quoted line, a structural property, or a verified absence.
+- If evidence is insufficient, fail the task and explain the missing evidence.
+- Do not omit the `VERDICT:` line.
+
+## Section 2: Task Card
+
+---
+id: 010
+status: REVIEW
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 010: The evaluation panel, built before anything is scored
+
+## Objective
+
+Build the metric, calibration and uncertainty panel that every model in the
+benchmark is judged by ΓÇö and build it **now, before a single model has been
+fitted against it**.
+
+That ordering is the point of the card. Metrics chosen after seeing results are
+how a project ends up with a `KEY FINDINGS` section asserting three improvements
+next to a confidence interval that crosses zero. That file is in
+`attic/haiku-2026-09-07/` and it is the reason this benchmark exists in its
+current form.
+
+The panel is a pure function of `(y, p, weight, group)` arrays. It fits nothing,
+imports no learner, and knows nothing about representations.
+
+## Acceptance Criteria
+
+- [ ] The panel computes, over weighted observations: log loss, Brier score, RMSE, MAE, AUC, and a weighted R-squared using the formula in section 9 of the benchmark
+- [ ] Every metric is verified against a hand-computed value on a small fixture, so each is checked against arithmetic rather than against its own output
+- [ ] Degenerate cases are asserted: perfect predictions give log loss 0, Brier 0 and AUC 1; predicting the weighted base rate everywhere gives R-squared 0
+- [ ] For a Bernoulli outcome the panel refuses to report an unlabelled ordinary regression R-squared; it returns either a Brier Skill Score or a quantity whose name marks it as a pseudo-R-squared, per section 9
+- [ ] Calibration intercept and slope are computed, with a test on a deliberately over-confident prediction set asserting the slope moves below 1 in the known direction, and on an under-confident set asserting it moves above 1
+- [ ] Binned calibration uses one declared binning strategy applied identically to every model, and the bin edges are returned alongside the counts so a plot cannot silently rebin
+- [ ] A smooth calibration curve is provided in addition to bins, so a conclusion cannot rest on arbitrary bin boundaries
+- [ ] A **paired cluster bootstrap** resamples `draft_id`, not rows; a test asserts that every game of a sampled draft appears together in the resample
+- [ ] The bootstrap is paired: a test asserts that for a given replicate, every model is scored on the identical resample indices
+- [ ] The bootstrap returns confidence intervals for metric **differences** between two models, not only for each model's absolute value
+- [ ] The bootstrap is deterministic under a declared seed; two runs with the same seed produce identical intervals
+- [ ] The panel fits nothing: a test asserts the module imports no learner library and calls nothing from `deckbench.estimator`
+- [ ] The panel never reads a parquet file, the split, or the holdout; it operates only on arrays passed to it
+- [ ] `reports/evaluation_panel.md` states each metric's definition, the weighting convention, the binning strategy, the bootstrap seed and cluster level, and ΓÇö explicitly ΓÇö that GAMLSS is not part of the panel
+- [ ] All new tests pass and the module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+## See Also
+
+- reports/benchmark_phase1_audit.md
+- attic/haiku-2026-09-07/README.md
+
+## Outputs
+
+- src/deckbench/evaluation.py
+- tests/test_deckbench_evaluation.py
+- reports/evaluation_panel.md
+
+## Requirements
+
+- The panel is a pure function of arrays. It does not load data, does not know which model produced the predictions, and does not know what representation was used
+- Cluster the bootstrap at `draft_id`. Resampling rows would treat the several games of one draft as independent, understating the variance of exactly the comparisons this benchmark exists to make
+- The bootstrap must be paired across models, because every model predicts the same observations. Independent resamples per model inflate the interval on a difference and can hide a real effect as easily as manufacture one
+- Do not report an ordinary regression R-squared on a Bernoulli outcome without a name that marks what it is; section 9 forbids it and the quarantined pipeline did it
+- Do not describe any R-squared as approaching a theoretical ceiling. The 7-wins/3-losses stopping rule puts an irreducible binomial floor under the residual variance, and the ceiling is unknown without the latent per-observation probability
+- GAMLSS is not a required metric. If a distributional calibration diagnostic is wanted later it is added as a separate diagnostic, never folded into the core panel
+- Weight every metric by the observation weight passed in; an unweighted metric silently answers a different question
+- Clip probabilities away from 0 and 1 before any logarithm, declare the bound as a named constant, and record it in the report
+- Do not import `xgboost`, `sklearn.ensemble`, or `deckbench.estimator`
+- Do not compute a metric on the holdout partition, and do not accept a partition label as an argument; the panel scores whatever arrays it is handed and the caller is accountable for which rows those are
+
+## Checks
+
+- python -m deckbench.evaluation --selftest
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_evaluation.py -q
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/evaluation.py tests/test_deckbench_evaluation.py
+- mypy --strict src/deckbench/evaluation.py
+
+## Blocked By
+
+- 008
+
+## Notes
+
+**Why the panel is built before any model is scored.** This is a
+pre-registration device. Once results exist, every choice in this file ΓÇö which
+metric leads, how many bins, whether the interval is on the difference or the
+level ΓÇö becomes a choice that can be made to favour a conclusion. Fixing them
+first costs nothing and removes the degree of freedom entirely. The benchmark's
+section 11 asks for incremental value with uncertainty; section 12 specifies the
+paired cluster bootstrap. Both are decided here rather than at the moment of
+reporting.
+
+**The concrete failure this prevents, from this repository's own history.** The
+quarantined pipeline produced `model_comparison_report.txt` with a `KEY
+FINDINGS` block asserting three checkmarked improvements, alongside a companion
+analysis reporting the same effect as statistically insignificant with a
+confidence interval crossing zero. Two artifacts, one comparison, no way to
+adjudicate. The panel exists so the adjudication is fixed in advance.
+
+**Why the bootstrap clusters on drafts and not rows.** Card 003 measured that a
+draft contributes multiple games and that 19 percent of drafts change deck
+between them. Games within a draft share a player, a skill bucket, and usually a
+deck; treating them as independent draws would understate the variance on every
+difference the benchmark reports. Section 12 requires the cluster; card 006's
+split already partitions at the same level, so the two agree.
+
+**Why paired matters as much as clustered.** All models predict the same
+observations. If each model is bootstrapped on its own resample, the difference
+between two models inherits the variance of both resamples instead of the
+variance of the difference ΓÇö which widens intervals and makes a genuine
+incremental effect harder to detect, not easier. Pairing is the reason section
+12 says "evaluate every model on exactly that bootstrap sample".
+
+**The R-squared trap.** For a continuous bump target the section 9 formula is
+appropriate. For a raw Bernoulli outcome it is not, and reporting it unlabelled
+invites exactly the comparison across target formulations that the T0/T1/T2 axis
+is designed to make carefully. The panel should make the wrong thing hard to
+say by giving the right thing a name.
+
+**Timeout note.** The full test suite runs as the inherited registry default
+check under a 300s cap; Output Validation commands are capped at 60s each, so
+keep the new-tests-only invocation there and leave anything slower to Checks.
+
+## Section 3: Latest Passing Audit Entry
+
+---
+entry_id: 20260908_224630_hobkg_010
+timestamp: 2026-09-08T22:46:30.222230-04:00
+project: hobkg
+task_id: 010
+task_title: The evaluation panel, built before anything is scored
+mode: retry
+model: operator
+reviewer_model: opus
+status_before: BLOCKED
+status_after: REVIEW
+git_sha_project: 23b811ae8562963a23ea871ff9d19ae4d4bc0fbb
+git_sha_orchestrator: 26eb89204893b195e08362da511f53689cabc659
+python_version: 3.14.0
+lockfile_hash: 1132929d0ced89d89902f37fd31ccd263a5ac477b459550cdc33f6bf16758a12
+duration_seconds: 0.0
+---
+# Audit Entry: 20260908_224630_hobkg_010
+
+## Notes
+
+Retry completed successfully after manual operator fixes.
+
+## Check Results
+
+- [OK]   python -m pytest -q (243.2s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ........................................................................ [ 10%]
+  ........................................................................ [ 21%]
+  ........................................................................ [ 31%]
+  ........................................................................ [ 42%]
+  ........................................................................ [ 52%]
+  ........................................................................ [ 63%]
+  ........................................................................ [ 74%]
+  ........................................................................ [ 84%]
+  ........................................................................ [ 95%]
+  ................................                                         [100%]
+  680 passed in 240.32s (0:04:00)
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python -m deckbench.evaluation --selftest (2.2s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  evaluation selftest OK: weighted metrics, the degenerate cases, the R-squared trap, calibration direction, binned + smooth calibration, and a paired deterministic cluster bootstrap -- no file touched.
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Validation Results
+
+- [OK]   python -m pytest tests/test_deckbench_evaluation.py -q (4.3s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  .................................                                        [100%]
+  33 passed in 2.91s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/evaluation.py tests/test_deckbench_evaluation.py (0.0s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  All checks passed!
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   mypy --strict src/deckbench/evaluation.py (0.8s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Success: no issues found in 1 source file
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Section 4: Files Produced Or Modified By The Task
+
+### src/deckbench/evaluation.py
+
+```
+"""The evaluation panel every benchmark model is judged by (card 010).
+
+Governed by ``docs/MTG_Deck-Strength_Modeling_Benchmark.md``. Sections 9-12 fix
+the metrics, the calibration diagnostics, the incremental-value differences and
+the paired cluster bootstrap that carries their uncertainty. This module is that
+panel, and it is written **before a single model has been fitted against it** --
+which is the point of the card. A metric chosen after seeing results is a degree
+of freedom that can be steered toward a conclusion; fixing every choice here, in
+advance, removes it. The concrete failure this prevents is in
+``attic/haiku-2026-09-07/``: a ``KEY FINDINGS`` block asserting three checkmarked
+improvements next to a companion analysis whose confidence interval crossed
+zero, with no way to adjudicate between them.
+
+What this module is, precisely:
+
+* **A pure function of arrays.** Every entry point takes ``(y, p, weight,
+  group)`` arrays and nothing else. It loads no parquet, never reads the split or
+  the holdout, accepts no partition label, and does not know which model produced
+  the predictions or what representation was used. The caller is accountable for
+  which rows it is handed; the panel scores exactly those.
+* **It fits nothing.** No learner is imported -- not xgboost, not
+  ``sklearn.ensemble``, nothing from :mod:`deckbench.estimator`. The one place a
+  model is fit at all is the calibration intercept/slope, which is a two-parameter
+  weighted logistic regression solved by hand in :func:`_weighted_logistic_newton`
+  with numpy alone; there is no learner library behind it.
+
+The design decisions the benchmark pins, decided here rather than at reporting:
+
+* **Weighting is universal.** Every metric weights by the passed observation
+  weight; an unweighted metric silently answers a different question (section 9).
+* **Probabilities are clipped before any logarithm** to :data:`PROBABILITY_CLIP`,
+  a named constant recorded in ``reports/evaluation_panel.md``.
+* **The R-squared trap is closed.** For a continuous bump/residual target the
+  section-9 weighted R-squared is reported. For a Bernoulli outcome that formula
+  is *not* reported unlabelled; the panel returns a :data:`BRIER_SKILL_SCORE`
+  instead, whose name marks what it is. The wrong thing is made hard to say.
+* **The bootstrap clusters on ``draft_id`` and is paired across models**
+  (section 12). Resampling rows would treat a draft's several games as
+  independent and understate the variance of exactly the comparisons the
+  benchmark exists to make; an unpaired resample per model would inflate the
+  interval on a *difference*. Both are structural here.
+* **GAMLSS is not part of the panel.** A distributional/smooth calibration
+  diagnostic built on it, if ever wanted, is added separately -- never folded
+  into the core panel (section 10).
+
+Run it with::
+
+    python -m deckbench.evaluation --selftest
+
+which exercises every entry point on small synthetic arrays, checks the
+degenerate cases (perfect predictions score log loss 0 / Brier 0 / AUC 1;
+predicting the weighted base rate scores R-squared 0), and confirms the bootstrap
+is deterministic -- touching no file.
+"""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+import numpy as np
+from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+FloatArray = NDArray[np.float64]
+IntArray = NDArray[np.int64]
+
+# --------------------------------------------------------------------------
+# Declared constants. Every one of these is recorded in the report so a plot or
+# a comparison cannot silently choose a different value.
+# --------------------------------------------------------------------------
+
+# Probabilities are clipped to [PROBABILITY_CLIP, 1 - PROBABILITY_CLIP] before any
+# logarithm, so a confident-and-wrong prediction gets a large-but-finite penalty
+# rather than an infinity, and a perfect prediction scores ~0 rather than exactly
+# 0. Declared here, recorded in reports/evaluation_panel.md.
+PROBABILITY_CLIP: float = 1e-12
+
+# The two outcome families. A raw game outcome is Bernoulli; a bump/residual
+# target is continuous. The caller declares which; the panel never infers it.
+OUTCOME_BERNOULLI = "bernoulli"
+OUTCOME_CONTINUOUS = "continuous"
+OUTCOME_TYPES = (OUTCOME_BERNOULLI, OUTCOME_CONTINUOUS)
+
+# Metric key names. Kept as constants so callers and the bootstrap refer to one
+# spelling. Note there is deliberately no bare "r2" key for a Bernoulli outcome.
+LOG_LOSS = "log_loss"
+BRIER = "brier"
+RMSE = "rmse"
+MAE = "mae"
+AUC = "auc"
+R2 = "r2"
+BRIER_SKILL_SCORE = "brier_skill_score"
+
+# Binned calibration uses ONE declared strategy for every model: equal-width bins
+# over [0, 1]. Equal-width (not equal-count) is the choice that makes the bin
+# edges identical across models -- quantile bins would move with each model's
+# prediction distribution, which is exactly the silent rebinning this forbids.
+CALIBRATION_BINS: int = 10
+
+# The smooth calibration curve is a weighted Nadaraya-Watson kernel regression of
+# the outcome on the predicted probability, evaluated on this fixed grid with this
+# fixed Gaussian bandwidth. It exists so a conclusion cannot rest on arbitrary bin
+# boundaries.
+SMOOTH_CALIBRATION_POINTS: int = 101
+SMOOTH_CALIBRATION_BANDWIDTH: float = 0.05
+
+# The paired cluster bootstrap: its cluster level is the draft, its default
+# replicate count, seed and central interval are declared here and recorded in the
+# report. Two runs with the same seed produce identical intervals.
+DEFAULT_BOOTSTRAP_REPLICATES: int = 1000
+DEFAULT_BOOTSTRAP_SEED: int = 20260908
+DEFAULT_CI_LEVEL: float = 0.95
+
+
+class OutcomeTypeUnknown(ValueError):
+    """Raised when the caller names an outcome type that is not supported."""
+
+
+class RSquaredOnBernoulli(ValueError):
+    """Raised if an ordinary regression R-squared is requested on a Bernoulli outcome.
+
+    Section 9 forbids reporting an unlabelled regression R-squared on a raw
+    outcome; the quarantined pipeline did exactly that. The panel names the
+    right quantity (a Brier Skill Score) and refuses the wrong one.
+    """
+
+
+# --------------------------------------------------------------------------
+# Array hygiene.
+# --------------------------------------------------------------------------
+
+
+def _as_float(values: Sequence[float] | FloatArray) -> FloatArray:
+    return np.asarray(values, dtype=np.float64)
+
+
+def _weights(weight: Sequence[float] | FloatArray | None, n: int) -> FloatArray:
+    """Return a length-n weight vector, defaulting to ones, validated non-negative."""
+    if weight is None:
+        return np.ones(n, dtype=np.float64)
+    w = _as_float(weight)
+    if w.shape != (n,):
+        raise ValueError(f"weight must have shape ({n},); got {w.shape}.")
+    if np.any(w < 0.0):
+        raise ValueError("weights must be non-negative.")
+    return w
+
+
+def _check_lengths(y: FloatArray, p: FloatArray, w: FloatArray) -> None:
+    if not (y.shape == p.shape == w.shape) or y.ndim != 1:
+        raise ValueError(
+            f"y, p and weight must be 1-D and share a length; got {y.shape}, "
+            f"{p.shape}, {w.shape}."
+        )
+    if y.size == 0:
+        raise ValueError("cannot evaluate an empty array.")
+
+
+def _clip_prob(p: FloatArray) -> FloatArray:
+    """Clip probabilities away from 0 and 1 before any logarithm."""
+    return np.clip(p, PROBABILITY_CLIP, 1.0 - PROBABILITY_CLIP)
+
+
+def _weighted_mean(values: FloatArray, w: FloatArray) -> float:
+    total = float(np.sum(w))
+    if total <= 0.0:
+        raise ValueError("total weight must be positive.")
+    return float(np.sum(w * values) / total)
+
+
+# --------------------------------------------------------------------------
+# The scalar metrics. Each is weighted; each is checked against hand arithmetic
+# in the tests rather than against its own output.
+# --------------------------------------------------------------------------
+
+
+def log_loss(y: Sequence[float] | FloatArray, p: Sequence[float] | FloatArray,
+             weight: Sequence[float] | FloatArray | None = None) -> float:
+    """Weighted binary cross-entropy, with probabilities clipped first."""
+    y_, p_ = _as_float(y), _as_float(p)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, p_, w)
+    pc = _clip_prob(p_)
+    per_obs = -(y_ * np.log(pc) + (1.0 - y_) * np.log(1.0 - pc))
+    return _weighted_mean(per_obs, w)
+
+
+def brier_score(y: Sequence[float] | FloatArray, p: Sequence[float] | FloatArray,
+                weight: Sequence[float] | FloatArray | None = None) -> float:
+    """Weighted mean squared error between predicted probability and outcome."""
+    y_, p_ = _as_float(y), _as_float(p)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, p_, w)
+    return _weighted_mean((p_ - y_) ** 2, w)
+
+
+def rmse(y: Sequence[float] | FloatArray, yhat: Sequence[float] | FloatArray,
+         weight: Sequence[float] | FloatArray | None = None) -> float:
+    """Weighted root mean squared error."""
+    y_, yhat_ = _as_float(y), _as_float(yhat)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, yhat_, w)
+    return float(np.sqrt(_weighted_mean((y_ - yhat_) ** 2, w)))
+
+
+def mae(y: Sequence[float] | FloatArray, yhat: Sequence[float] | FloatArray,
+        weight: Sequence[float] | FloatArray | None = None) -> float:
+    """Weighted mean absolute error -- less sensitive to a few large misses."""
+    y_, yhat_ = _as_float(y), _as_float(yhat)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, yhat_, w)
+    return _weighted_mean(np.abs(y_ - yhat_), w)
+
+
+def auc(y: Sequence[float] | FloatArray, p: Sequence[float] | FloatArray,
+        weight: Sequence[float] | FloatArray | None = None) -> float:
+    """Weighted area under the ROC curve (weighted Mann-Whitney statistic).
+
+    Ties in ``p`` are given half credit. Returns NaN when the sample carries only
+    one outcome class, where AUC is undefined -- the bootstrap tolerates this with
+    a NaN-aware percentile rather than crashing on a rare degenerate resample.
+    """
+    y_, p_ = _as_float(y), _as_float(p)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, p_, w)
+    pos = y_ == 1.0
+    neg = y_ == 0.0
+    if not np.all(pos | neg):
+        raise ValueError("AUC requires a binary outcome in {0, 1}.")
+    wpos_total = float(np.sum(w[pos]))
+    wneg_total = float(np.sum(w[neg]))
+    if wpos_total <= 0.0 or wneg_total <= 0.0:
+        return float("nan")
+    order = np.argsort(p_, kind="mergesort")
+    ps, ys, ws = p_[order], y_[order], w[order]
+    auc_sum = 0.0
+    cum_neg = 0.0  # negative weight strictly below the current tie group
+    i = 0
+    n = ps.size
+    while i < n:
+        j = i
+        while j < n and ps[j] == ps[i]:
+            j += 1
+        group_pos_w = float(np.sum(ws[i:j] * (ys[i:j] == 1.0)))
+        group_neg_w = float(np.sum(ws[i:j] * (ys[i:j] == 0.0)))
+        # Positives in this group beat every negative strictly below, and tie with
+        # the negatives sharing their probability (half credit).
+        auc_sum += group_pos_w * (cum_neg + 0.5 * group_neg_w)
+        cum_neg += group_neg_w
+        i = j
+    return auc_sum / (wpos_total * wneg_total)
+
+
+def weighted_r2(y: Sequence[float] | FloatArray, yhat: Sequence[float] | FloatArray,
+                weight: Sequence[float] | FloatArray | None = None) -> float:
+    """Weighted R-squared, the section-9 formula for a continuous target.
+
+    ``1 - SS_res / SS_tot`` with the weighted mean of ``y`` as the baseline.
+    Predicting that weighted mean everywhere scores exactly 0. This is the right
+    quantity for a continuous bump/residual target; it is NOT reported unlabelled
+    on a Bernoulli outcome (see :func:`evaluate_metrics`).
+    """
+    y_, yhat_ = _as_float(y), _as_float(yhat)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, yhat_, w)
+    ybar = _weighted_mean(y_, w)
+    ss_res = float(np.sum(w * (y_ - yhat_) ** 2))
+    ss_tot = float(np.sum(w * (y_ - ybar) ** 2))
+    if ss_tot <= 0.0:
+        raise ValueError("R-squared is undefined when the weighted outcome variance is 0.")
+    return 1.0 - ss_res / ss_tot
+
+
+def brier_skill_score(y: Sequence[float] | FloatArray, p: Sequence[float] | FloatArray,
+                      weight: Sequence[float] | FloatArray | None = None) -> float:
+    """The Bernoulli-appropriate skill score: 1 - BS / BS(base rate).
+
+    The reference forecast predicts the weighted base rate everywhere. Predicting
+    that base rate scores exactly 0; a perfect forecast scores 1. This is the
+    named probability-prediction analogue section 9 asks for in place of an
+    ordinary regression R-squared on a raw outcome.
+    """
+    y_, p_ = _as_float(y), _as_float(p)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, p_, w)
+    base_rate = _weighted_mean(y_, w)
+    bs = _weighted_mean((p_ - y_) ** 2, w)
+    bs_ref = _weighted_mean((base_rate - y_) ** 2, w)
+    if bs_ref <= 0.0:
+        raise ValueError(
+            "Brier Skill Score is undefined when the base-rate reference Brier is 0."
+        )
+    return 1.0 - bs / bs_ref
+
+
+def evaluate_metrics(
+    y: Sequence[float] | FloatArray,
+    p: Sequence[float] | FloatArray,
+    weight: Sequence[float] | FloatArray | None = None,
+    *,
+    outcome_type: str,
+) -> dict[str, float]:
+    """The scalar metric panel for one set of predictions.
+
+    For :data:`OUTCOME_BERNOULLI` the panel reports log loss, Brier, RMSE, MAE,
+    AUC and a :data:`BRIER_SKILL_SCORE` -- and deliberately no ``r2`` key, because
+    an unlabelled regression R-squared on a raw outcome is forbidden by section 9.
+    For :data:`OUTCOME_CONTINUOUS` (a bump/residual target) it reports RMSE, MAE
+    and the section-9 weighted ``r2``; log loss, Brier and AUC do not apply to a
+    continuous target and are not reported.
+    """
+    if outcome_type not in OUTCOME_TYPES:
+        raise OutcomeTypeUnknown(
+            f"outcome_type {outcome_type!r} is not supported; choose one of "
+            f"{OUTCOME_TYPES}."
+        )
+    if outcome_type == OUTCOME_BERNOULLI:
+        return {
+            LOG_LOSS: log_loss(y, p, weight),
+            BRIER: brier_score(y, p, weight),
+            RMSE: rmse(y, p, weight),
+            MAE: mae(y, p, weight),
+            AUC: auc(y, p, weight),
+            BRIER_SKILL_SCORE: brier_skill_score(y, p, weight),
+        }
+    return {
+        RMSE: rmse(y, p, weight),
+        MAE: mae(y, p, weight),
+        R2: weighted_r2(y, p, weight),
+    }
+
+
+# --------------------------------------------------------------------------
+# Calibration.
+# --------------------------------------------------------------------------
+
+
+def _sigmoid(z: FloatArray) -> FloatArray:
+    return 1.0 / (1.0 + np.exp(-np.clip(z, -30.0, 30.0)))
+
+
+def _weighted_logistic_newton(
+    design: FloatArray, y: FloatArray, w: FloatArray, *, max_iter: int = 100,
+    tol: float = 1e-10,
+) -> FloatArray:
+    """Fit a weighted logistic regression by Newton-Raphson, numpy only.
+
+    Solves for the coefficients of ``design`` against binary ``y`` with
+    observation weights ``w``. This is the whole of the "fitting" the panel does;
+    it imports no learner. A tiny ridge keeps the Hessian invertible under
+    near-separation without materially moving a well-conditioned solution.
+    """
+    n_params = design.shape[1]
+    beta = np.zeros(n_params, dtype=np.float64)
+    ridge = 1e-10 * np.eye(n_params)
+    for _ in range(max_iter):
+        eta = design @ beta
+        mu = _sigmoid(eta)
+        variance = w * mu * (1.0 - mu)
+        gradient = design.T @ (w * (y - mu))
+        hessian = design.T @ (design * variance[:, None]) + ridge
+        step = np.linalg.solve(hessian, gradient)
+        beta = beta + step
+        if float(np.max(np.abs(step))) < tol:
+            break
+    return beta
+
+
+@dataclass(frozen=True)
+class CalibrationLine:
+    """The Cox calibration intercept and slope. Ideal: intercept 0, slope 1.
+
+    A slope below 1 indicates predictions that are too extreme (over-confident); a
+    slope above 1 indicates predictions that are too conservative (under-confident).
+    """
+
+    intercept: float
+    slope: float
+
+
+def calibration_intercept_slope(
+    y: Sequence[float] | FloatArray, p: Sequence[float] | FloatArray,
+    weight: Sequence[float] | FloatArray | None = None,
+) -> CalibrationLine:
+    """Weighted Cox calibration: regress the outcome on ``logit(p)``.
+
+    Fits ``logit(E[y]) = intercept + slope * logit(p)`` by weighted logistic
+    regression. The slope moves below 1 for over-confident predictions and above 1
+    for under-confident ones, in the known direction.
+    """
+    y_, p_ = _as_float(y), _as_float(p)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, p_, w)
+    pc = _clip_prob(p_)
+    logit = np.log(pc / (1.0 - pc))
+    design = np.column_stack([np.ones_like(logit), logit])
+    beta = _weighted_logistic_newton(design, y_, w)
+    return CalibrationLine(intercept=float(beta[0]), slope=float(beta[1]))
+
+
+@dataclass(frozen=True)
+class BinnedCalibration:
+    """Binned calibration under one declared strategy, with the edges returned.
+
+    The edges are returned so a plot cannot silently rebin. Bins with no weight
+    carry NaN for the two means and 0 for the counts.
+    """
+
+    edges: FloatArray
+    mean_predicted: FloatArray
+    observed_frequency: FloatArray
+    weight_sum: FloatArray
+    count: IntArray
+
+
+def binned_calibration(
+    y: Sequence[float] | FloatArray, p: Sequence[float] | FloatArray,
+    weight: Sequence[float] | FloatArray | None = None, *, n_bins: int = CALIBRATION_BINS,
+) -> BinnedCalibration:
+    """Equal-width binned calibration over [0, 1] -- one strategy, every model.
+
+    The bin edges are ``linspace(0, 1, n_bins + 1)`` regardless of the prediction
+    distribution, so every model is binned identically and the edges are returned
+    alongside the counts.
+    """
+    y_, p_ = _as_float(y), _as_float(p)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, p_, w)
+    edges = np.linspace(0.0, 1.0, n_bins + 1, dtype=np.float64)
+    # Assign each prediction to a bin in [0, n_bins-1]; the rightmost edge is
+    # inclusive so p == 1 lands in the last bin.
+    idx = np.clip(np.searchsorted(edges, p_, side="right") - 1, 0, n_bins - 1)
+    mean_predicted = np.full(n_bins, np.nan, dtype=np.float64)
+    observed = np.full(n_bins, np.nan, dtype=np.float64)
+    weight_sum = np.zeros(n_bins, dtype=np.float64)
+    count = np.zeros(n_bins, dtype=np.int64)
+    for b in range(n_bins):
+        mask = idx == b
+        count[b] = int(np.count_nonzero(mask))
+        wb = float(np.sum(w[mask]))
+        weight_sum[b] = wb
+        if wb > 0.0:
+            mean_predicted[b] = float(np.sum(w[mask] * p_[mask]) / wb)
+            observed[b] = float(np.sum(w[mask] * y_[mask]) / wb)
+    return BinnedCalibration(
+        edges=edges,
+        mean_predicted=mean_predicted,
+        observed_frequency=observed,
+        weight_sum=weight_sum,
+        count=count,
+    )
+
+
+@dataclass(frozen=True)
+class SmoothCalibration:
+    """A smooth calibration curve, free of bin boundaries.
+
+    ``grid`` is the set of predicted-probability values at which the smoothed
+    observed frequency is evaluated; ``observed`` is that frequency.
+    """
+
+    grid: FloatArray
+    observed: FloatArray
+    bandwidth: float
+
+
+def smooth_calibration(
+    y: Sequence[float] | FloatArray, p: Sequence[float] | FloatArray,
+    weight: Sequence[float] | FloatArray | None = None, *,
+    n_points: int = SMOOTH_CALIBRATION_POINTS, bandwidth: float = SMOOTH_CALIBRATION_BANDWIDTH,
+) -> SmoothCalibration:
+    """Weighted Gaussian-kernel (Nadaraya-Watson) calibration curve.
+
+    For each grid point ``g`` the observed frequency is the kernel- and
+    weight-weighted mean of ``y`` over all observations, with the Gaussian kernel
+    centred at ``g``. It depends on a bandwidth, not on bin boundaries, so a
+    conclusion cannot rest on where the bins happened to fall. Grid points with no
+    kernel support carry NaN.
+    """
+    y_, p_ = _as_float(y), _as_float(p)
+    w = _weights(weight, y_.size)
+    _check_lengths(y_, p_, w)
+    if bandwidth <= 0.0:
+        raise ValueError("bandwidth must be positive.")
+    grid = np.linspace(0.0, 1.0, n_points, dtype=np.float64)
+    observed = np.full(n_points, np.nan, dtype=np.float64)
+    for k, g in enumerate(grid):
+        kernel = np.exp(-0.5 * ((p_ - g) / bandwidth) ** 2)
+        denom = float(np.sum(w * kernel))
+        if denom > 0.0:
+            observed[k] = float(np.sum(w * kernel * y_) / denom)
+    return SmoothCalibration(grid=grid, observed=observed, bandwidth=bandwidth)
+
+
+# --------------------------------------------------------------------------
+# The paired cluster bootstrap.
+# --------------------------------------------------------------------------
+
+
+def bootstrap_replicate_indices(
+    groups: Sequence[object] | NDArray[np.object_],
+    n_replicates: int = DEFAULT_BOOTSTRAP_REPLICATES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+) -> list[IntArray]:
+    """Resample DRAFTS (clusters), not rows; return the row indices per replicate.
+
+    Each replicate samples ``n_drafts`` draft ids with replacement and includes
+    *every* row of each sampled draft, so games from one draft are never split
+    apart -- resampling rows would treat them as independent and understate the
+    variance of every comparison the benchmark reports (section 12). Deterministic
+    in ``seed``: two calls with the same seed return identical index arrays.
+    """
+    group_arr = np.asarray(groups, dtype=object)
+    unique = list(dict.fromkeys(group_arr.tolist()))  # first-seen order, stable
+    rows_of: dict[object, IntArray] = {
+        g: np.nonzero(group_arr == g)[0].astype(np.int64) for g in unique
+    }
+    n_drafts = len(unique)
+    if n_drafts == 0:
+        raise ValueError("cannot bootstrap an empty set of groups.")
+    rng = np.random.default_rng(seed)
+    replicates: list[IntArray] = []
+    for _ in range(n_replicates):
+        picks = rng.integers(0, n_drafts, size=n_drafts)
+        chunks = [rows_of[unique[int(pick)]] for pick in picks]
+        replicates.append(np.concatenate(chunks).astype(np.int64))
+    return replicates
+
+
+@dataclass(frozen=True)
+class ConfidenceInterval:
+    """A point estimate on the full sample and a percentile interval from replicates."""
+
+    point: float
+    lo: float
+    hi: float
+
+
+@dataclass(frozen=True)
+class BootstrapResult:
+    """Paired-cluster-bootstrap intervals for each model and each model difference."""
+
+    model_metrics: dict[str, dict[str, ConfidenceInterval]]
+    differences: dict[str, dict[str, ConfidenceInterval]]
+    n_replicates: int
+    seed: int
+    ci_level: float
+    cluster_level: str = "draft_id"
+    replicate_indices: list[IntArray] = field(default_factory=list, repr=False)
+
+
+def _percentile_ci(point: float, samples: list[float], ci_level: float) -> ConfidenceInterval:
+    arr = np.asarray(samples, dtype=np.float64)
+    alpha = (1.0 - ci_level) / 2.0
+    lo = float(np.nanpercentile(arr, 100.0 * alpha))
+    hi = float(np.nanpercentile(arr, 100.0 * (1.0 - alpha)))
+    return ConfidenceInterval(point=point, lo=lo, hi=hi)
+
+
+def paired_cluster_bootstrap(
+    models: dict[str, Sequence[float] | FloatArray],
+    y: Sequence[float] | FloatArray,
+    groups: Sequence[object] | NDArray[np.object_],
+    *,
+    metrics: Sequence[str],
+    comparisons: Sequence[tuple[str, str]],
+    outcome_type: str,
+    weight: Sequence[float] | FloatArray | None = None,
+    n_replicates: int = DEFAULT_BOOTSTRAP_REPLICATES,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+    ci_level: float = DEFAULT_CI_LEVEL,
+) -> BootstrapResult:
+    """Paired cluster bootstrap over drafts; intervals for each model and difference.
+
+    Every model predicts the same observations, so a single set of resample
+    indices is drawn per replicate and *every* model is scored on exactly those
+    indices (the pairing of section 12). The interval on a difference is therefore
+    the variance of the difference, not the summed variance of two independent
+    resamples. Clustering is at the draft (section 12); the same seed reproduces
+    the intervals byte for byte.
+
+    ``comparisons`` are ``(model_a, model_b)`` pairs; the reported difference is
+    ``metric(model_a) - metric(model_b)`` per requested metric. Confidence
+    intervals are returned both for each model's absolute metric and for each
+    difference -- an absolute level alone cannot answer the incremental-value
+    question of section 11.
+    """
+    if outcome_type not in OUTCOME_TYPES:
+        raise OutcomeTypeUnknown(
+            f"outcome_type {outcome_type!r} is not supported; choose one of "
+            f"{OUTCOME_TYPES}."
+        )
+    y_ = _as_float(y)
+    w = _weights(weight, y_.size)
+    preds = {name: _as_float(p) for name, p in models.items()}
+    for p in preds.values():
+        _check_lengths(y_, p, w)
+    for a, b in comparisons:
+        if a not in preds or b not in preds:
+            raise KeyError(f"comparison ({a!r}, {b!r}) names a model not in `models`.")
+    for metric in metrics:
+        # A metric requested on a target formulation that does not report it is a
+        # caller error, caught once here rather than per replicate.
+        available = evaluate_metrics(
+            y_, next(iter(preds.values())), w, outcome_type=outcome_type
+        )
+        if metric not in available:
+            raise KeyError(
+                f"metric {metric!r} is not reported for outcome_type "
+                f"{outcome_type!r}; available: {sorted(available)}."
+            )
+
+    def metrics_for(p: FloatArray, idx: IntArray | None) -> dict[str, float]:
+        if idx is None:
+            full = evaluate_metrics(y_, p, w, outcome_type=outcome_type)
+        else:
+            full = evaluate_metrics(y_[idx], p[idx], w[idx], outcome_type=outcome_type)
+        return {m: full[m] for m in metrics}
+
+    # Point estimates on the full (unresampled) sample.
+    point_model = {name: metrics_for(p, None) for name, p in preds.items()}
+
+    replicates = bootstrap_replicate_indices(groups, n_replicates, seed)
+
+    model_samples: dict[str, dict[str, list[float]]] = {
+        name: {m: [] for m in metrics} for name in preds
+    }
+    diff_samples: dict[str, dict[str, list[float]]] = {
+        _comparison_key(a, b): {m: [] for m in metrics} for a, b in comparisons
+    }
+    for idx in replicates:
+        # One resample, scored by every model -- this is the pairing.
+        per_model = {name: metrics_for(p, idx) for name, p in preds.items()}
+        for name, scored in per_model.items():
+            for m in metrics:
+                model_samples[name][m].append(scored[m])
+        for a, b in comparisons:
+            key = _comparison_key(a, b)
+            for m in metrics:
+                diff_samples[key][m].append(per_model[a][m] - per_model[b][m])
+
+    model_metrics = {
+        name: {
+            m: _percentile_ci(point_model[name][m], model_samples[name][m], ci_level)
+            for m in metrics
+        }
+        for name in preds
+    }
+    differences = {
+        _comparison_key(a, b): {
+            m: _percentile_ci(
+                point_model[a][m] - point_model[b][m],
+                diff_samples[_comparison_key(a, b)][m],
+                ci_level,
+            )
+            for m in metrics
+        }
+        for a, b in comparisons
+    }
+    return BootstrapResult(
+        model_metrics=model_metrics,
+        differences=differences,
+        n_replicates=n_replicates,
+        seed=seed,
+        ci_level=ci_level,
+        replicate_indices=replicates,
+    )
+
+
+def _comparison_key(a: str, b: str) -> str:
+    return f"{a}__minus__{b}"
+
+
+# --------------------------------------------------------------------------
+# Self-test: exercise every entry point on synthetic arrays, touching no file.
+# --------------------------------------------------------------------------
+
+
+def _selftest() -> int:
+    rng = np.random.default_rng(0)
+    n = 600
+    groups = np.array([f"draft{i // 3:03d}" for i in range(n)], dtype=object)
+    weight = rng.uniform(0.5, 1.5, size=n)
+    logit = rng.normal(size=n)
+    q = _sigmoid(logit)
+    y = (rng.uniform(size=n) < q).astype(np.float64)
+
+    # Degenerate cases: perfect predictions and the base-rate forecast.
+    perfect = evaluate_metrics(y, y, weight, outcome_type=OUTCOME_BERNOULLI)
+    assert perfect[LOG_LOSS] < 1e-9, perfect[LOG_LOSS]
+    assert perfect[BRIER] == 0.0
+    assert perfect[AUC] == 1.0
+    base_rate = _weighted_mean(y, _weights(weight, n))
+    bss0 = brier_skill_score(y, np.full(n, base_rate), weight)
+    assert abs(bss0) < 1e-12, bss0
+    r2_0 = weighted_r2(y, np.full(n, base_rate), weight)
+    assert abs(r2_0) < 1e-12, r2_0
+
+    # The R-squared trap: no bare r2 for a Bernoulli outcome; a BSS instead.
+    panel = evaluate_metrics(y, q, weight, outcome_type=OUTCOME_BERNOULLI)
+    assert R2 not in panel and BRIER_SKILL_SCORE in panel
+
+    # Calibration direction: over-confident -> slope < 1; under-confident -> > 1.
+    over = _sigmoid(2.0 * logit)
+    under = _sigmoid(0.5 * logit)
+    assert calibration_intercept_slope(y, over, weight).slope < 1.0
+    assert calibration_intercept_slope(y, under, weight).slope > 1.0
+
+    binned = binned_calibration(y, q, weight)
+    assert binned.edges.size == CALIBRATION_BINS + 1
+    smooth = smooth_calibration(y, q, weight)
+    assert smooth.grid.size == SMOOTH_CALIBRATION_POINTS
+
+    # The bootstrap is paired (identical models -> zero difference) and deterministic.
+    boot = paired_cluster_bootstrap(
+        {"a": q, "b": q},
+        y,
+        groups,
+        metrics=[BRIER, LOG_LOSS],
+        comparisons=[("a", "b")],
+        outcome_type=OUTCOME_BERNOULLI,
+        weight=weight,
+        n_replicates=50,
+    )
+    diff = boot.differences[_comparison_key("a", "b")][BRIER]
+    assert diff.lo == 0.0 and diff.hi == 0.0 and diff.point == 0.0
+    again = paired_cluster_bootstrap(
+        {"a": q, "b": q},
+        y,
+        groups,
+        metrics=[BRIER, LOG_LOSS],
+        comparisons=[("a", "b")],
+        outcome_type=OUTCOME_BERNOULLI,
+        weight=weight,
+        n_replicates=50,
+    )
+    assert boot.model_metrics["a"][BRIER].lo == again.model_metrics["a"][BRIER].lo
+
+    print(
+        "evaluation selftest OK: weighted metrics, the degenerate cases, the "
+        "R-squared trap, calibration direction, binned + smooth calibration, and "
+        "a paired deterministic cluster bootstrap -- no file touched."
+    )
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--selftest",
+        action="store_true",
+        help="exercise every entry point on synthetic arrays and check invariants.",
+    )
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    if args.selftest:
+        return _selftest()
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+```
+
+### tests/test_deckbench_evaluation.py
+
+```
+"""Tests for the evaluation panel (:mod:`deckbench.evaluation`).
+
+The panel is a pre-registration device: it is written before any model is scored,
+so the tests here pin the arithmetic and the guarantees that make a later
+comparison adjudicable. Each metric is checked against a hand-computed value, not
+against its own output; the degenerate cases are asserted; the R-squared trap is
+closed; calibration slope moves in the known direction; the bootstrap clusters on
+drafts, is paired across models, returns intervals on differences, and is
+deterministic. Two structural properties are also enforced by reading the module
+source: it imports no learner and nothing from :mod:`deckbench.estimator`, and it
+reads no parquet, split or holdout.
+"""
+
+from __future__ import annotations
+
+import ast
+import math
+import tokenize
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from deckbench import evaluation as ev
+
+# --------------------------------------------------------------------------
+# A single small fixture, with weights, whose every metric is hand-computable.
+#
+#   y = [1, 0, 1, 0]
+#   p = [0.8, 0.3, 0.6, 0.4]
+#   w = [1, 2, 1, 2]        (total weight 6)
+# --------------------------------------------------------------------------
+
+Y = [1.0, 0.0, 1.0, 0.0]
+P = [0.8, 0.3, 0.6, 0.4]
+W = [1.0, 2.0, 1.0, 2.0]
+_WSUM = 6.0
+
+
+def test_brier_matches_hand_arithmetic() -> None:
+    # sum w*(p-y)^2 / sum w
+    expected = (1 * 0.04 + 2 * 0.09 + 1 * 0.16 + 2 * 0.16) / _WSUM
+    assert ev.brier_score(Y, P, W) == pytest.approx(expected)
+
+
+def test_mae_matches_hand_arithmetic() -> None:
+    expected = (1 * 0.2 + 2 * 0.3 + 1 * 0.4 + 2 * 0.4) / _WSUM
+    assert ev.mae(Y, P, W) == pytest.approx(expected)
+
+
+def test_rmse_matches_hand_arithmetic() -> None:
+    expected = math.sqrt((1 * 0.04 + 2 * 0.09 + 1 * 0.16 + 2 * 0.16) / _WSUM)
+    assert ev.rmse(Y, P, W) == pytest.approx(expected)
+
+
+def test_log_loss_matches_hand_arithmetic() -> None:
+    # -sum w*(y log p + (1-y) log(1-p)) / sum w, with the same clip the module uses.
+    terms = (
+        1 * (-math.log(0.8))
+        + 2 * (-math.log(1 - 0.3))
+        + 1 * (-math.log(0.6))
+        + 2 * (-math.log(1 - 0.4))
+    )
+    assert ev.log_loss(Y, P, W) == pytest.approx(terms / _WSUM)
+
+
+def test_weighted_r2_matches_hand_arithmetic() -> None:
+    ybar = (1 * 1 + 2 * 0 + 1 * 1 + 2 * 0) / _WSUM  # 1/3
+    ss_res = 1 * 0.04 + 2 * 0.09 + 1 * 0.16 + 2 * 0.16  # 0.70
+    ss_tot = 1 * (1 - ybar) ** 2 + 2 * (0 - ybar) ** 2 + 1 * (1 - ybar) ** 2 + 2 * (0 - ybar) ** 2
+    assert ev.weighted_r2(Y, P, W) == pytest.approx(1 - ss_res / ss_tot)
+
+
+def test_brier_skill_score_matches_hand_arithmetic() -> None:
+    ybar = 1 / 3
+    bs = (1 * 0.04 + 2 * 0.09 + 1 * 0.16 + 2 * 0.16) / _WSUM
+    bs_ref = (1 * (1 - ybar) ** 2 + 2 * ybar**2 + 1 * (1 - ybar) ** 2 + 2 * ybar**2) / _WSUM
+    assert ev.brier_skill_score(Y, P, W) == pytest.approx(1 - bs / bs_ref)
+
+
+def test_auc_matches_hand_arithmetic_unweighted() -> None:
+    # positives p in {0.9, 0.3}, negatives p in {0.8, 0.4}. Concordant pairs:
+    # (0.9>0.8), (0.9>0.4) win; (0.3>0.8), (0.3>0.4) lose. 2 of 4 -> 0.5.
+    y = [1, 0, 1, 0]
+    p = [0.9, 0.8, 0.3, 0.4]
+    assert ev.auc(y, p) == pytest.approx(0.5)
+
+
+def test_auc_handles_ties_with_half_credit() -> None:
+    # One positive and one negative share p; that pair scores 0.5. The other
+    # positive (0.9) beats both negatives. Pairs: pos0.9 vs {neg0.5, neg0.2} -> 2
+    # wins; pos0.5 vs neg0.5 -> tie 0.5; pos0.5 vs neg0.2 -> win 1. Total 3.5/4.
+    y = [1, 0, 1, 0]
+    p = [0.9, 0.5, 0.5, 0.2]
+    assert ev.auc(y, p) == pytest.approx(3.5 / 4)
+
+
+def test_auc_is_weighted() -> None:
+    # Same predictions as the unweighted 0.5 case, but weight the concordant
+    # positive heavily so the weighted AUC exceeds 0.5.
+    y = [1, 0, 1, 0]
+    p = [0.9, 0.8, 0.3, 0.4]
+    w = [10.0, 1.0, 1.0, 1.0]
+    # pos weights: 0.9->10, 0.3->1 ; neg weights: 0.8->1, 0.4->1.
+    # concordant weight = 10*(1+1) [0.9 beats both] + 1*0 [0.3 beats none] = 20.
+    # total = (10+1)*(1+1) = 22. AUC = 20/22.
+    assert ev.auc(y, p, w) == pytest.approx(20 / 22)
+
+
+# --------------------------------------------------------------------------
+# Degenerate cases, asserted directly.
+# --------------------------------------------------------------------------
+
+
+def test_perfect_predictions_score_zero_loss_and_unit_auc() -> None:
+    y = [1.0, 0.0, 1.0, 0.0, 1.0]
+    w = [1.0, 2.0, 3.0, 1.0, 2.0]
+    assert ev.log_loss(y, y, w) < 1e-9
+    assert ev.brier_score(y, y, w) == 0.0
+    assert ev.auc(y, y, w) == 1.0
+
+
+def test_base_rate_forecast_scores_zero_r2_and_zero_bss() -> None:
+    y = [1.0, 0.0, 1.0, 0.0, 1.0]
+    w = [1.0, 2.0, 3.0, 1.0, 2.0]
+    base_rate = float(np.average(np.asarray(y), weights=np.asarray(w)))
+    const = [base_rate] * len(y)
+    assert ev.weighted_r2(y, const, w) == pytest.approx(0.0, abs=1e-12)
+    assert ev.brier_skill_score(y, const, w) == pytest.approx(0.0, abs=1e-12)
+
+
+def test_clip_constant_keeps_confident_wrong_finite() -> None:
+    # A confidently-wrong prediction is penalised heavily but finitely, thanks to
+    # the declared clip. Without clipping this would be +inf.
+    assert math.isfinite(ev.log_loss([1.0], [0.0]))
+    assert ev.log_loss([1.0], [0.0]) == pytest.approx(-math.log(ev.PROBABILITY_CLIP))
+
+
+# --------------------------------------------------------------------------
+# The R-squared trap: a Bernoulli outcome gets no unlabelled regression R^2.
+# --------------------------------------------------------------------------
+
+
+def test_bernoulli_panel_has_no_bare_r2_but_has_a_named_skill_score() -> None:
+    panel = ev.evaluate_metrics(Y, P, W, outcome_type=ev.OUTCOME_BERNOULLI)
+    assert ev.R2 not in panel
+    assert ev.BRIER_SKILL_SCORE in panel
+    assert set(panel) == {ev.LOG_LOSS, ev.BRIER, ev.RMSE, ev.MAE, ev.AUC,
+                          ev.BRIER_SKILL_SCORE}
+
+
+def test_continuous_panel_reports_the_section9_r2() -> None:
+    # For a continuous bump target the section-9 weighted R^2 is the right thing.
+    yhat = [0.9, 0.1, 0.7, 0.2]
+    panel = ev.evaluate_metrics(Y, yhat, W, outcome_type=ev.OUTCOME_CONTINUOUS)
+    assert set(panel) == {ev.RMSE, ev.MAE, ev.R2}
+    assert panel[ev.R2] == pytest.approx(ev.weighted_r2(Y, yhat, W))
+
+
+def test_unknown_outcome_type_is_rejected() -> None:
+    with pytest.raises(ev.OutcomeTypeUnknown):
+        ev.evaluate_metrics(Y, P, W, outcome_type="poisson")
+
+
+# --------------------------------------------------------------------------
+# Calibration intercept and slope move in the known direction.
+#
+# The fixture encodes an exact calibration relation with no sampling noise: for
+# each true probability q, two rows -- (y=1, weight=q) and (y=0, weight=1-q) --
+# make the weighted outcome exactly q. Predicted p is a monotone distortion of q.
+# --------------------------------------------------------------------------
+
+
+def _exact_calibration_fixture(distort: float) -> tuple[list[float], list[float], list[float]]:
+    """Return (y, p, weight) with E[y | logit p] exactly logit(q)/distort.
+
+    ``distort > 1`` makes the prediction more extreme than the truth
+    (over-confident); ``distort < 1`` makes it more moderate (under-confident).
+    """
+    logits = np.linspace(-3.0, 3.0, 25)
+    q = 1.0 / (1.0 + np.exp(-logits))
+    p = 1.0 / (1.0 + np.exp(-distort * logits))
+    y: list[float] = []
+    pp: list[float] = []
+    w: list[float] = []
+    for qi, pi in zip(q.tolist(), p.tolist(), strict=True):
+        y.extend([1.0, 0.0])
+        pp.extend([pi, pi])
+        w.extend([qi, 1.0 - qi])
+    return y, pp, w
+
+
+def test_overconfident_predictions_pull_slope_below_one() -> None:
+    y, p, w = _exact_calibration_fixture(distort=2.0)  # predictions too extreme
+    line = ev.calibration_intercept_slope(y, p, w)
+    assert line.slope < 1.0
+    # The exact construction recovers slope = 1/distort = 0.5.
+    assert line.slope == pytest.approx(0.5, abs=1e-3)
+
+
+def test_underconfident_predictions_pull_slope_above_one() -> None:
+    y, p, w = _exact_calibration_fixture(distort=0.5)  # predictions too moderate
+    line = ev.calibration_intercept_slope(y, p, w)
+    assert line.slope > 1.0
+    assert line.slope == pytest.approx(2.0, abs=1e-3)
+
+
+def test_wellcalibrated_predictions_give_intercept_zero_slope_one() -> None:
+    y, p, w = _exact_calibration_fixture(distort=1.0)
+    line = ev.calibration_intercept_slope(y, p, w)
+    assert line.intercept == pytest.approx(0.0, abs=1e-3)
+    assert line.slope == pytest.approx(1.0, abs=1e-3)
+
+
+# --------------------------------------------------------------------------
+# Binned calibration: one strategy, identical edges for every model, edges
+# returned so a plot cannot rebin.
+# --------------------------------------------------------------------------
+
+
+def test_binned_calibration_edges_are_identical_across_models() -> None:
+    a = ev.binned_calibration([1, 0, 1], [0.05, 0.55, 0.95])
+    b = ev.binned_calibration([0, 1], [0.5, 0.5])  # a very different distribution
+    assert np.array_equal(a.edges, b.edges)
+    assert a.edges.size == ev.CALIBRATION_BINS + 1
+    assert a.edges[0] == 0.0 and a.edges[-1] == 1.0
+
+
+def test_binned_calibration_counts_and_observed_are_correct() -> None:
+    # Two predictions in bin 0 ([0.0,0.1)) with outcomes 1 and 0 -> observed 0.5;
+    # one prediction in the last bin ([0.9,1.0]) with outcome 1 -> observed 1.0.
+    y = [1, 0, 1]
+    p = [0.05, 0.05, 0.95]
+    binned = ev.binned_calibration(y, p)
+    assert binned.count[0] == 2
+    assert binned.count[-1] == 1
+    assert binned.observed_frequency[0] == pytest.approx(0.5)
+    assert binned.observed_frequency[-1] == pytest.approx(1.0)
+    assert binned.mean_predicted[0] == pytest.approx(0.05)
+    # Untouched bins carry NaN and zero count.
+    assert binned.count[5] == 0
+    assert math.isnan(binned.mean_predicted[5])
+
+
+def test_binned_calibration_rightmost_edge_is_inclusive() -> None:
+    binned = ev.binned_calibration([1], [1.0])
+    assert binned.count[-1] == 1
+
+
+# --------------------------------------------------------------------------
+# Smooth calibration: a curve free of bin boundaries.
+# --------------------------------------------------------------------------
+
+
+def test_smooth_calibration_tracks_identity_on_calibrated_data() -> None:
+    y, p, w = _exact_calibration_fixture(distort=1.0)
+    smooth = ev.smooth_calibration(y, p, w)
+    assert smooth.grid.size == ev.SMOOTH_CALIBRATION_POINTS
+    interior = (smooth.grid >= 0.2) & (smooth.grid <= 0.8)
+    diff = np.abs(smooth.observed[interior] - smooth.grid[interior])
+    assert np.nanmax(diff) < 0.05
+
+
+# --------------------------------------------------------------------------
+# The paired cluster bootstrap.
+# --------------------------------------------------------------------------
+
+
+def _bootstrap_data(
+    n_drafts: int = 30, games: int = 3
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    rng = np.random.default_rng(3)
+    groups = np.array(
+        [f"draft{d:03d}" for d in range(n_drafts) for _ in range(games)], dtype=object
+    )
+    n = groups.size
+    weight = rng.uniform(0.5, 1.5, size=n)
+    logit = rng.normal(size=n)
+    q = 1.0 / (1.0 + np.exp(-logit))
+    y = (rng.uniform(size=n) < q).astype(np.float64)
+    p_good = q
+    p_bad = np.full(n, float(np.average(y, weights=weight)))  # base-rate forecast
+    return groups, y, weight, p_good, p_bad
+
+
+def test_resample_draws_whole_drafts_together() -> None:
+    groups, *_ = _bootstrap_data()
+    reps = ev.bootstrap_replicate_indices(groups, n_replicates=5, seed=42)
+    row_group = groups
+    for idx in reps:
+        sampled = row_group[idx]
+        # For every draft that appears, each of its member rows appears the same
+        # number of times -- i.e. drafts are resampled whole, never row by row.
+        for draft in set(sampled.tolist()):
+            member_rows = np.nonzero(row_group == draft)[0]
+            counts = np.array(
+                [int(np.count_nonzero(idx == r)) for r in member_rows]
+            )
+            assert counts.min() == counts.max() and counts.min() >= 1
+
+
+def test_replicate_indices_are_deterministic_under_seed() -> None:
+    groups, *_ = _bootstrap_data()
+    a = ev.bootstrap_replicate_indices(groups, n_replicates=7, seed=99)
+    b = ev.bootstrap_replicate_indices(groups, n_replicates=7, seed=99)
+    assert all(np.array_equal(x, y) for x, y in zip(a, b, strict=True))
+
+
+def test_bootstrap_is_paired_identical_models_give_zero_difference() -> None:
+    groups, y, weight, p_good, _ = _bootstrap_data()
+    result = ev.paired_cluster_bootstrap(
+        {"a": p_good, "b": p_good},
+        y,
+        groups,
+        metrics=[ev.BRIER, ev.LOG_LOSS],
+        comparisons=[("a", "b")],
+        outcome_type=ev.OUTCOME_BERNOULLI,
+        weight=weight,
+        n_replicates=100,
+    )
+    key = ev._comparison_key("a", "b")
+    for metric in (ev.BRIER, ev.LOG_LOSS):
+        ci = result.differences[key][metric]
+        assert ci.point == 0.0 and ci.lo == 0.0 and ci.hi == 0.0
+
+
+def test_bootstrap_scores_every_model_on_the_same_replicate_indices() -> None:
+    # The result exposes the per-replicate indices; independently regenerating them
+    # from the declared seed reproduces exactly what the bootstrap used -- the same
+    # indices fed every model.
+    groups, y, weight, p_good, p_bad = _bootstrap_data()
+    result = ev.paired_cluster_bootstrap(
+        {"a": p_good, "b": p_bad},
+        y,
+        groups,
+        metrics=[ev.BRIER],
+        comparisons=[("a", "b")],
+        outcome_type=ev.OUTCOME_BERNOULLI,
+        weight=weight,
+        n_replicates=20,
+        seed=1234,
+    )
+    regenerated = ev.bootstrap_replicate_indices(groups, n_replicates=20, seed=1234)
+    assert len(result.replicate_indices) == len(regenerated)
+    assert all(
+        np.array_equal(x, y) for x, y in zip(result.replicate_indices, regenerated, strict=True)
+    )
+
+
+def test_bootstrap_returns_intervals_for_models_and_for_differences() -> None:
+    groups, y, weight, p_good, p_bad = _bootstrap_data()
+    result = ev.paired_cluster_bootstrap(
+        {"good": p_good, "bad": p_bad},
+        y,
+        groups,
+        metrics=[ev.BRIER],
+        comparisons=[("good", "bad")],
+        outcome_type=ev.OUTCOME_BERNOULLI,
+        weight=weight,
+        n_replicates=200,
+    )
+    # Absolute intervals for each model.
+    assert result.model_metrics["good"][ev.BRIER].lo <= result.model_metrics["good"][ev.BRIER].hi
+    # And an interval on the difference, distinct from the two absolute ones.
+    diff = result.differences[ev._comparison_key("good", "bad")][ev.BRIER]
+    assert diff.lo <= diff.point <= diff.hi
+    assert result.cluster_level == "draft_id"
+
+
+def test_bootstrap_is_deterministic_under_seed() -> None:
+    groups, y, weight, p_good, p_bad = _bootstrap_data()
+    kwargs = dict(
+        metrics=[ev.BRIER, ev.LOG_LOSS],
+        comparisons=[("a", "b")],
+        outcome_type=ev.OUTCOME_BERNOULLI,
+        weight=weight,
+        n_replicates=100,
+        seed=2026,
+    )
+    first = ev.paired_cluster_bootstrap({"a": p_good, "b": p_bad}, y, groups, **kwargs)
+    second = ev.paired_cluster_bootstrap({"a": p_good, "b": p_bad}, y, groups, **kwargs)
+    key = ev._comparison_key("a", "b")
+    for metric in (ev.BRIER, ev.LOG_LOSS):
+        assert first.differences[key][metric].lo == second.differences[key][metric].lo
+        assert first.differences[key][metric].hi == second.differences[key][metric].hi
+
+
+def test_bootstrap_rejects_a_metric_not_reported_for_the_outcome() -> None:
+    groups, y, weight, p_good, p_bad = _bootstrap_data()
+    with pytest.raises(KeyError):
+        ev.paired_cluster_bootstrap(
+            {"a": p_good, "b": p_bad},
+            y,
+            groups,
+            metrics=[ev.R2],  # not reported for a Bernoulli outcome
+            comparisons=[("a", "b")],
+            outcome_type=ev.OUTCOME_BERNOULLI,
+            weight=weight,
+            n_replicates=5,
+        )
+
+
+# --------------------------------------------------------------------------
+# Structural guarantees. These read the module's *code*, not its prose: imports
+# are inspected with the ast, and identifiers with the tokenizer, so a docstring
+# that names xgboost to say it is absent cannot trip the check.
+# --------------------------------------------------------------------------
+
+
+def _imported_modules() -> set[str]:
+    tree = ast.parse(Path(ev.__file__).read_text(encoding="utf-8"))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module is not None:
+            names.add(node.module)
+    return names
+
+
+def _code_identifiers() -> set[str]:
+    """The set of NAME tokens in the source -- code identifiers, no strings/comments."""
+    with tokenize.open(ev.__file__) as handle:
+        return {
+            tok.string
+            for tok in tokenize.generate_tokens(handle.readline)
+            if tok.type == tokenize.NAME
+        }
+
+
+def test_module_imports_no_learner_and_nothing_from_the_estimator() -> None:
+    imported = _imported_modules()
+    forbidden_roots = ("xgboost", "sklearn", "torch", "lightgbm", "catboost")
+    for module in imported:
+        root = module.split(".")[0]
+        assert root not in forbidden_roots, f"the panel imports a learner: {module!r}"
+        assert module != "deckbench.estimator" and not module.startswith("deckbench.estimator"), (
+            f"the panel imports the estimator: {module!r}"
+        )
+    # Never imported means never called; there is nothing from the estimator to call.
+    assert "estimator" not in _code_identifiers()
+
+
+def test_module_reads_no_parquet_no_split_no_holdout() -> None:
+    # No file/parquet/holdout reader is referenced anywhere in the code.
+    identifiers = _code_identifiers()
+    for forbidden in ("read_table", "read_parquet", "ParquetFile", "load_holdout",
+                      "load_dev", "open", "Path", "read_text", "read_bytes"):
+        assert forbidden not in identifiers, f"the panel references {forbidden!r}"
+    assert not any(m.split(".")[0] in {"pyarrow", "pandas"} for m in _imported_modules())
+
+
+def test_module_takes_no_partition_argument() -> None:
+    # The panel scores whatever arrays it is handed; it must not accept a
+    # partition label and decide for itself which rows to score.
+    assert "partition" not in _code_identifiers()
+
+
+# --------------------------------------------------------------------------
+# The self-test entry point runs clean.
+# --------------------------------------------------------------------------
+
+
+def test_selftest_runs_and_returns_zero() -> None:
+    assert ev.main(["--selftest"]) == 0
+
+```
+
+### reports/evaluation_panel.md
+
+```
+# The evaluation panel ΓÇö fixed before any model is scored (card 010)
+
+This report states, in advance of a single model being fitted against it, every
+choice the benchmark's evaluation panel makes: each metric's definition, the
+weighting convention, the probability clip, the binning strategy, the smooth
+calibration method, and the paired cluster bootstrap's seed and cluster level. It
+is a pre-registration device. Once results exist, each of these choices becomes a
+degree of freedom that can be steered toward a conclusion; fixing them here
+removes that freedom. The panel is `src/deckbench/evaluation.py`; the tests that
+pin its arithmetic are `tests/test_deckbench_evaluation.py`.
+
+The concrete failure this prevents is in this repository's own history. The
+quarantined pipeline (`attic/haiku-2026-09-07/`) produced a `KEY FINDINGS` block
+asserting three checkmarked improvements next to a companion analysis whose
+confidence interval crossed zero ΓÇö two artifacts, one comparison, no way to
+adjudicate. The panel exists so the adjudication is fixed in advance.
+
+The panel governs `docs/MTG_Deck-Strength_Modeling_Benchmark.md` ┬º┬º9ΓÇô12.
+
+---
+
+## 0. What the panel is, and is not
+
+The panel is a **pure function of arrays** `(y, p, weight, group)`. It:
+
+- loads no parquet, reads no split, and never touches the holdout partition or
+  its ledger;
+- accepts **no partition label** ΓÇö it scores exactly the rows it is handed and
+  the caller is accountable for which rows those are;
+- does not know which model produced the predictions, nor what representation was
+  used;
+- **fits nothing** and imports no learner ΓÇö not `xgboost`, not `sklearn.ensemble`,
+  nothing from `deckbench.estimator`. The single place a model is fit at all is
+  the calibration intercept/slope, a two-parameter weighted logistic regression
+  solved by hand with numpy alone (`_weighted_logistic_newton`).
+
+Every metric weights by the observation weight passed in. An unweighted metric
+silently answers a different question, so weighting is universal, not optional.
+
+---
+
+## 1. The scalar metrics
+
+All are weighted by the passed observation weight `w`; write `W = ╬ú wß╡ó`.
+
+| Metric | Definition | Reported for |
+| --- | --- | --- |
+| **Log loss** | `ΓêÆ(1/W) ╬ú wß╡ó [ yß╡ó log p╠âß╡ó + (1ΓêÆyß╡ó) log(1ΓêÆp╠âß╡ó) ]` | Bernoulli |
+| **Brier score** | `(1/W) ╬ú wß╡ó (pß╡ó ΓêÆ yß╡ó)┬▓` | Bernoulli |
+| **RMSE** | `ΓêÜ[ (1/W) ╬ú wß╡ó (yß╡ó ΓêÆ ┼╖ß╡ó)┬▓ ]` | both |
+| **MAE** | `(1/W) ╬ú wß╡ó \|yß╡ó ΓêÆ ┼╖ß╡ó\|` | both |
+| **AUC** | weighted MannΓÇôWhitney statistic, ties at half credit | Bernoulli |
+| **Weighted R┬▓** | `1 ΓêÆ ╬ú wß╡ó(yß╡ó ΓêÆ ┼╖ß╡ó)┬▓ / ╬ú wß╡ó(yß╡ó ΓêÆ ╚│_w)┬▓`, `╚│_w` the weighted mean | **continuous only** |
+| **Brier Skill Score** | `1 ΓêÆ BS / BS_ref`, `BS_ref` = Brier of the weighted base rate | **Bernoulli only** |
+
+`p╠â` denotes the clipped probability (┬º2). `╚│_w` is the weighted mean of the
+outcome.
+
+Every metric is verified against a **hand-computed** value on a small fixture in
+the tests, so each is checked against arithmetic rather than against its own
+output. The degenerate cases are asserted directly: perfect predictions score log
+loss 0 (to within the clip), Brier 0, and AUC 1; predicting the weighted base
+rate everywhere scores weighted R┬▓ 0 and Brier Skill Score 0.
+
+### The R┬▓ trap
+
+Section 9 forbids reporting an ordinary regression R┬▓ on a raw Bernoulli outcome
+without a name that marks what it is; the quarantined pipeline did exactly that.
+The panel closes this: `evaluate_metrics(..., outcome_type="bernoulli")` returns
+**no `r2` key at all**, and instead returns a `brier_skill_score` whose name
+marks it as the probability-prediction analogue. The section-9 weighted R┬▓ is
+reported only for a continuous bump/residual target
+(`outcome_type="continuous"`), which is what that formula is for.
+
+No R┬▓ produced here is described as approaching a theoretical ceiling. The
+7-wins/3-losses draft stopping rule puts an irreducible binomial floor under the
+residual variance, and the ceiling is unknown without the latent per-observation
+win probability. AUC is reported only as a secondary discrimination metric; the
+scientific interest is accurate win probabilities, not merely ranking.
+
+---
+
+## 2. The probability clip
+
+Before any logarithm, probabilities are clipped to
+`[PROBABILITY_CLIP, 1 ΓêÆ PROBABILITY_CLIP]` with
+
+```
+PROBABILITY_CLIP = 1e-12
+```
+
+declared as a named constant in the module. This keeps a confident-and-wrong
+prediction finite (penalty `ΓêÆlog(1e-12) Γëê 27.6`) rather than infinite, and a
+perfect prediction near zero (`ΓêÆlog(1 ΓêÆ 1e-12) Γëê 1e-12`) rather than exactly
+zero. The clip is applied to log loss and to the logit used in calibration; it is
+not applied to Brier, RMSE, MAE or AUC, which take no logarithm.
+
+---
+
+## 3. Calibration
+
+### Intercept and slope (Cox calibration)
+
+`calibration_intercept_slope(y, p, w)` fits, by weighted logistic regression,
+
+```
+logit( E[y] ) = intercept + slope ┬╖ logit(p╠â)
+```
+
+Ideal intercept is 0 and ideal slope is 1. A slope **below 1** indicates
+predictions that are too extreme (over-confident); a slope **above 1** indicates
+predictions that are too conservative (under-confident). The tests assert both
+directions on constructed fixtures whose calibration relation is exact (each true
+probability `q` encoded as two weighted rows, `(y=1, w=q)` and `(y=0, w=1ΓêÆq)`, so
+the weighted outcome is exactly `q` with no sampling noise): an over-confident
+set recovers slope `0.5`, an under-confident set recovers slope `2.0`, and a
+well-calibrated set recovers intercept `0`, slope `1`.
+
+### Binned calibration ΓÇö one strategy, every model
+
+`binned_calibration(y, p, w)` uses **equal-width bins over [0, 1]**:
+
+```
+CALIBRATION_BINS = 10
+edges = linspace(0, 1, 11)
+```
+
+Equal-width ΓÇö not equal-count/quantile ΓÇö is deliberate: the bin edges are then
+**identical across every model**, regardless of each model's prediction
+distribution. Quantile bins would move with the model and amount to silent
+rebinning. The rightmost edge is inclusive so `p = 1` lands in the last bin. The
+**edges are returned alongside the per-bin counts, weighted counts, mean
+predicted probability, and observed frequency**, so a downstream plot cannot
+silently rebin. Bins with no weight carry `NaN` for the two means and 0 for the
+counts.
+
+### Smooth calibration ΓÇö free of bin boundaries
+
+`smooth_calibration(y, p, w)` provides a curve that does not depend on where the
+bins fall, so a conclusion cannot rest on arbitrary bin boundaries. It is a
+**weighted Gaussian-kernel (NadarayaΓÇôWatson) regression** of the outcome on the
+predicted probability:
+
+```
+SMOOTH_CALIBRATION_POINTS    = 101   (grid = linspace(0, 1, 101))
+SMOOTH_CALIBRATION_BANDWIDTH = 0.05  (Gaussian kernel, in probability units)
+```
+
+For each grid point `g`, the smoothed observed frequency is
+`╬ú wß╡ó K(pß╡ó; g) yß╡ó / ╬ú wß╡ó K(pß╡ó; g)` with `K` the Gaussian kernel centred at `g`.
+Grid points with no kernel support carry `NaN`.
+
+**GAMLSS is not part of this panel.** If a distributional/smooth calibration
+diagnostic built on GAMLSS is wanted later, it is added as a **separate**
+diagnostic and never folded into the core panel (┬º10).
+
+---
+
+## 4. The paired cluster bootstrap
+
+`paired_cluster_bootstrap(...)` carries the uncertainty for the incremental-value
+analysis of ┬º11 using the paired cluster bootstrap of ┬º12.
+
+```
+cluster level               = draft_id
+DEFAULT_BOOTSTRAP_SEED       = 20260908
+DEFAULT_BOOTSTRAP_REPLICATES = 1000
+DEFAULT_CI_LEVEL             = 0.95   (2.5thΓÇô97.5th percentile interval)
+```
+
+**Clustered on the draft, not the row.** Each replicate resamples `draft_id`s
+with replacement and includes **every game of each sampled draft together**.
+Card 003 measured that a draft contributes multiple games and that 19% of drafts
+change deck between them; games within a draft share a player, a skill bucket and
+usually a deck. Resampling rows would treat them as independent and understate
+the variance of exactly the comparisons this benchmark reports. Card 006's split
+already partitions at the draft level, so the two agree. A test asserts that
+every game of a sampled draft appears together in the resample.
+
+**Paired across models.** All models predict the same observations, so a **single
+set of resample indices is drawn per replicate and every model is scored on
+exactly those indices**. The interval on a difference is then the variance of the
+difference, not the summed variance of two independent resamples ΓÇö an unpaired
+resample per model would inflate the interval on a difference and could hide a
+real effect as easily as manufacture one. A test asserts pairing directly: two
+identical models produce an exactly-zero difference in every replicate.
+
+**Intervals on differences, not only levels.** The result carries a confidence
+interval for each model's absolute metric **and** for each requested pairwise
+**difference** `metric(model_a) ΓêÆ metric(model_b)` ΓÇö the incremental-value
+question of ┬º11 cannot be answered by an absolute level alone. The comparisons of
+interest include each representation against the skill-only and identity
+baselines, and `KG ΓêÆ identity` and `script ΓêÆ identity` directly.
+
+**Deterministic.** The bootstrap draws its resamples from
+`np.random.default_rng(seed)`; two runs with the same seed produce byte-identical
+intervals. A test asserts this.
+
+AUC is undefined on a single-class resample; the panel returns `NaN` there and
+the bootstrap uses a NaN-aware percentile, so a rare degenerate resample does not
+crash the run. On the frozen dataset (241,561 games) this does not arise in
+practice.
+
+---
+
+## 5. Interpretation guard
+
+Per ┬º13, a null incremental result is a limit of the representation, learner and
+dataset ΓÇö **never** evidence that deck composition does not affect win
+probability. The panel computes the differences and their intervals; it does not
+label a difference whose interval crosses zero as an effect, and it does not
+label the absence of a detectable difference as the absence of a deck effect.
+
+---
+
+## 6. Where each choice lives
+
+| Choice | Constant / function in `deckbench.evaluation` |
+| --- | --- |
+| Probability clip | `PROBABILITY_CLIP = 1e-12` |
+| Outcome families | `OUTCOME_BERNOULLI`, `OUTCOME_CONTINUOUS` |
+| Scalar panel | `evaluate_metrics` |
+| Calibration line | `calibration_intercept_slope` ΓåÆ `CalibrationLine` |
+| Binning | `CALIBRATION_BINS = 10`, `binned_calibration` ΓåÆ `BinnedCalibration` |
+| Smooth curve | `SMOOTH_CALIBRATION_POINTS`, `SMOOTH_CALIBRATION_BANDWIDTH`, `smooth_calibration` |
+| Bootstrap | `DEFAULT_BOOTSTRAP_SEED = 20260908`, cluster `draft_id`, `paired_cluster_bootstrap` |
+
+Self-test: `python -m deckbench.evaluation --selftest`.
+
+```
+
+## Section 5: Supplementary Context (See Also)
+
+The following files are referenced by the task via `## See Also`. They are supplementary context only and are not part of the deliverable under review.
+
+### reports/benchmark_phase1_audit.md
+
+```
+# Benchmark Phase 1 audit ΓÇö the frozen dataset, and a halt before model fitting
+
+This is the report section 17 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md`
+requires: the consolidated record of Phase 1 (cards 003ΓÇô006), and the point at
+which the benchmark stops for operator review before any model is fit.
+
+Nothing is fitted here. No holdout partition is opened. No metric is computed on
+any partition. The deliverable is this report, the append-only checker built
+alongside it (`tools/check_append_only.py`), and a `RESULT` entry in
+`LABNOTEBOOK.md`.
+
+Every number below was read from the frozen artifacts and their manifests, not
+transcribed from the prose of the cards. Where a number appears, it was recomputed
+from the parquet/CSV/JSON file named beside it. Artifact digests are pinned so a
+later card can confirm the ground has not moved.
+
+**This report was re-frozen at card 008.** The operator reviewed it, decided the
+two open questions of section 7, and card 008 applied those decisions and
+re-derived every artifact. All counts and digests below reflect the re-frozen
+dataset; the amendment immediately following records what changed. The full
+change log is `reports/phase1_refreeze.md`.
+
+---
+
+## 0. Amendment ΓÇö the operator decisions applied (card 008)
+
+Section 7 of the original report put two questions to the operator. Both were
+answered at the phase-1 review, and card 008 applies them by re-deriving the
+dataset from the raw CSV under a new **modeling population** definition. No model
+is fit, no metric is computed, and the holdout is not opened
+(`cycle/holdout_ledger.jsonl` stays byte-identical, 0 bytes).
+
+1. **The 166 null-skill games are excluded from the modeling population.** They
+   have no historical win-rate bucket and so cannot be scored by R0. Measured
+   from the raw file, they belong to **59 drafts, every one entirely null** (no
+   partial draft), so excluding games and excluding drafts are one operation. The
+   exclusion is applied once, in `deckbench.table`, and every downstream table
+   inherits that population. The split is **recomputed** on the smaller
+   population, not filtered.
+
+2. **The games-played bucket set is taken from the data.** The inherited `1000`
+   `hist_w` entry never occurs in this dataset and was removed; the accepted set
+   is now derived from the data and the weights remain the inherited assumption.
+   Card 005's structurally-absent-null carve-out is deleted ΓÇö a null win-rate
+   bucket in the population now stops the run.
+
+| Quantity | Before (card 007) | After (card 008) |
+| --- | --- | --- |
+| Observations (games) | 241,727 | **241,561** |
+| Drafts | 43,161 | **43,102** |
+| Null-skill games / drafts excluded | 0 / 0 | **166 / 59** |
+| Development rows / drafts | 194,348 / 34,529 | **194,215 / 34,482** |
+| Holdout rows / drafts | 47,379 / 8,632 | **47,346 / 8,620** |
+| Dev fold sizes | 39316 / 39067 / 38915 / 38479 / 38571 | **39280 / 39038 / 38902 / 38446 / 38549** |
+| `mu` | 0.546211 | **0.546211** (unchanged by construction) |
+| Games-played buckets | {1,5,10,50,100,500,1000} | **{1,5,10,50,100,500}** |
+
+The **halt of section 8 is now satisfied for the phase-1 dataset**: the operator
+reviewed this report and the dataset is re-frozen under their decisions. Phase 2
+authorization still depends on the operator writing Phase 2 acceptance criteria;
+nothing here begins Phase 2.
+
+---
+
+## 1. What Phase 1 produced (re-frozen at card 008)
+
+| Card | Concern | Primary artifact | SHA256 |
+| --- | --- | --- | --- |
+| 003 | Raw data audit | `reports/modeling_data_audit.json` | `c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c` |
+| 004 / 008 | Game-level table | `data/processed/model_table.parquet` | `d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750` |
+| 004 / 008 | Card-identity representation | `data/processed/deck_identity.parquet` | `2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c` |
+| 004 / 008 | Card-identity name map | `data/processed/card_identity_manifest.csv` | `8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9` |
+| 005 / 008 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc` |
+| 006 / 008 | Frozen split + folds | `data/processed/model_split.parquet` | `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4` |
+| 006 / 008 | Split provenance / seal | `data/splits/split_manifest.json` | `6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163` |
+
+The five `data/processed` artifacts are the ones pinned in
+`data/processed/MANIFEST.sha256`; `sha256sum -c data/processed/MANIFEST.sha256`
+verifies them from the repository root. The two JSON/report inputs are pinned
+here by their own digest.
+
+---
+
+## 2. Observational unit, and the measurement that justified it
+
+**Ratified unit: the game**, keyed by the injective 4-tuple
+`(draft_id, game_time, match_number, game_number)` and hashed to `obs_id`.
+
+The unit was not chosen by preference. The deck configuration is recorded per
+game and it changes within a draft, measured on the raw file
+(`reports/modeling_data_audit.json`, `within_draft`):
+
+- **8191 of 43161 drafts (0.189778)** carry more than one deck configuration.
+- **28397 of 241727 games (0.117475)** are played after a deck change.
+- Distinct configurations per draft: 1 ΓåÆ 34970 drafts, 2 ΓåÆ 6636, 3 ΓåÆ 1314,
+  4 ΓåÆ 210, 5 ΓåÆ 29, 6 ΓåÆ 2.
+
+Averaging a draft's games would blend distinct decks in exactly those ~19% of
+drafts. The game is therefore the unit at which "the deck that played this game"
+is well defined (benchmark section 6). The split is nonetheless assigned by draft,
+never by game row (section 4 below), so this choice does not create cross-partition
+leakage.
+
+The counts in this section are the audit's measurements over the **raw file**
+(241727 games, 43161 drafts); they justified the unit before the population was
+defined. The modeling population after the card-008 null-skill exclusion is
+241561 games across 43102 drafts (section 4).
+
+---
+
+## 3. Persistent player identifier, and what its absence implies
+
+**No persistent player identifier exists in this dataset**
+(`reports/modeling_data_audit.json`, `player_identifier.persistent_player_id_exists = false`;
+echoed in `data/splits/split_manifest.json`, `persistent_player_id_exists = false`).
+`rank` and `opp_rank` are six-level skill buckets, not player ids, and are
+nominated nowhere as a substitute.
+
+Consequence for leakage control: the benchmark's preferred **player-grouped
+split is unavailable** (section 7 of the benchmark). The fallback used at card
+006 is a **time-based external holdout** (the latest Γëê20% of drafts by
+`draft_time`). This is a **weaker** control: with no player id, the same player
+can appear in both the development set and the holdout under different drafts.
+The split manifest records this weakness explicitly and does not treat the
+time-based holdout as equivalent to a player-grouped split. `rank` is used
+nowhere as a grouping key, player id, or stratifier.
+
+---
+
+## 4. Final row counts (re-frozen at card 008)
+
+All counts recomputed from the parquet files named; the population is
+post-exclusion (the 166 null-skill games in 59 drafts are gone).
+
+| Quantity | Value | Source artifact |
+| --- | --- | --- |
+| Observations (games) | **241561** | all four `data/processed/*.parquet` (row counts agree) |
+| Drafts | **43102** | `model_split.parquet` distinct `draft_id` (34482 dev + 8620 holdout) |
+| Null-skill games / drafts excluded | **166 / 59** | `model_table_build.md` (derived from the raw file) |
+| Card-identity features | **193** | `deck_identity.parquet` (194 cols ΓêÆ `obs_id`); `card_identity_manifest.csv` 193 rows |
+| Development rows | **194215** | `model_split.parquet` `partition == dev` |
+| Development drafts | **34482** | `model_split.parquet` |
+| Holdout rows | **47346** | `model_split.parquet` `partition == holdout` |
+| Holdout drafts | **8620** | `model_split.parquet` |
+| Holdout fraction | **0.199991 of drafts, 0.196000 of games** | `split_manifest.json` |
+| Cross-fitting folds (dev) | **5** | `model_split.parquet` |
+| Fold sizes (dev rows) | 0 ΓåÆ 39280, 1 ΓåÆ 39038, 2 ΓåÆ 38902, 3 ΓåÆ 38446, 4 ΓåÆ 38549 | `model_split.parquet` |
+| Holdout fold marker | ΓêÆ1 (all holdout rows) | `model_split.parquet` |
+| Split seed | **20260908** | `split_manifest.json` |
+| Split rule | `time_based_holdout` | `split_manifest.json` |
+
+The four processed tables share one `obs_id` set exactly (verified: the table,
+identity, skill and split obs-id sets are pairwise equal), so every downstream
+join is total in both directions with no unmatched rows.
+
+---
+
+## 5. What Phase 2 may assume
+
+Each claim below rests on a named artifact and its SHA256. A Phase 2 card must
+verify these digests before relying on the claim; a mismatch means the dataset
+moved and any comparison built on it is void. This is the adjudicable record the
+quarantined pipeline lacked.
+
+1. **The modeling unit is the game, and there are 241561 of them** (the raw file
+   has 241727; the 166 null-skill games are excluded from the population).
+   `data/processed/model_table.parquet`
+   (`d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750`),
+   241561 rows, one per `obs_id`.
+
+2. **The card-identity representation is `D_ij = count(card j in deck i) / deck_size_i`,
+   over 193 card features, one row per observation.**
+   `data/processed/deck_identity.parquet`
+   (`2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c`),
+   241561 rows ├ù 193 features; no feature column is the outcome.
+
+3. **The 193 feature names round-trip to their verbatim source columns.**
+   `data/processed/card_identity_manifest.csv`
+   (`8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9`),
+   193 rows, one-to-one `source_column Γåö feature_name`.
+
+4. **`base_p` is available as the T1 fixed baseline for every observation in the
+   population; there are no null values.** `data/processed/skill_features.parquet`
+   (`4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc`),
+   columns `obs_id, base_p_raw, base_p`; **0 nulls** in either column (the 166
+   null-bucket games were excluded from the population at card 008, so a null
+   here now fails the build). `base_p` is a reliability-shrunk historical
+   win-rate proxy and a nuisance representation; it is **not** a measurement of
+   player skill and is not to be described as one.
+
+5. **The train/test split is frozen and shared by every model, assigned at draft
+   granularity.** `data/processed/model_split.parquet`
+   (`ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`):
+   dev 194215 rows / 34482 drafts, holdout 47346 rows / 8620 drafts, 5 dev folds,
+   holdout fold ΓêÆ1. **No draft spans two partitions (0) and no draft spans two
+   folds (0)** ΓÇö recomputed from the artifact.
+
+6. **The split's identity and the holdout seal are pinned.**
+   `data/splits/split_manifest.json`
+   (`6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163`)
+   records `split_sha256 = ad7f8596ΓÇª`, matching claim 5. The holdout is opened
+   only through `deckbench.holdout.load_holdout`, which verifies this hash and
+   appends to `cycle/holdout_ledger.jsonl` on every read.
+
+7. **No persistent player identifier exists; leakage control is time-based, not
+   player-grouped.** `reports/modeling_data_audit.json`
+   (`c1b90900048e0fa0fe91624376015c8db1060185ccb4ed71c6ef0fea6192ab5c`) and the
+   split manifest (claim 6).
+
+---
+
+## 6. Leakage checks run, and their results
+
+All checks recomputed from the artifacts for this report.
+
+- **No feature column derives from the outcome.** `deck_identity.parquet` does
+  not contain a `won` column (verified absent). `skill_features.parquet` holds
+  only `obs_id, base_p_raw, base_p`, derived from `user_game_win_rate_bucket`
+  and `user_n_games_bucket`; `won` is never read in its construction.
+  `model_split.parquet` holds only `obs_id, draft_id, partition, fold`, derived
+  from `draft_id` and `draft_time`. **The outcome `won` appears only in
+  `model_table.parquet`, as a carried metadata column ΓÇö in no feature table.**
+- **Split by draft, not by game row.** No `draft_id` appears in more than one
+  partition (0), and no `draft_id` appears in more than one fold (0). Games from
+  one draft cannot straddle train/test or a cross-fitting boundary.
+- **Cross-fitting is internal to development.** Every holdout row carries fold
+  ΓêÆ1; folds 0ΓÇô4 exist only in the development partition.
+- **The join surface is total.** The `obs_id` sets of the table, identity, skill
+  and split artifacts are pairwise equal, so no feature is silently dropped or
+  duplicated across a join.
+- **The holdout was not opened by this card.** `cycle/holdout_ledger.jsonl` is
+  empty (0 bytes) and byte-identical before and after this card runs; no read of
+  `deckbench.holdout.load_holdout` occurred.
+
+---
+
+## 7. Unresolved questions and unverified assumptions
+
+Each item is a finding, stated as an uncertainty, with the consequence of its
+being wrong. None is resolved here by assumption.
+
+1. **Declared vs observed column count disagree.** The raw-file manifest declares
+   1165 columns; the file has **985** (`reports/modeling_data_audit.json`,
+   `declared_vs_observed_match.columns = false`; declared drafts and rows *do*
+   match). *Consequence if trusted blindly:* any Phase 2 step that reads the
+   declared width, or expects 1165 columns, is off by 180 and may misalign
+   columns. The observed 985 (193 ├ù 5 card families + 20 non-card) is the
+   authority; the declared count is not.
+
+2. **Time-based holdout is a weaker leakage control than player grouping**
+   (section 3). *Consequence if wrong:* if the same players recur across the
+   time boundary in a way that matters, generalization estimates on the holdout
+   will be optimistic. There is no player id with which to bound this risk.
+
+3. **RESOLVED at card 008 ΓÇö the 166 null-win-rate games are excluded from the
+   modeling population.** They were near-new players (66 at games-played bucket 1,
+   100 at bucket 5) with no historical win rate, so R0 cannot score them. The
+   operator decided the exclusion lands at the population definition rather than
+   being carried into Phase 2. Measured from the raw file, all 166 belong to 59
+   **wholly-null** drafts, so games and drafts are excluded as one operation
+   (241727 ΓåÆ 241561 games, 43161 ΓåÆ 43102 drafts). `skill_features.parquet` now
+   carries **0 nulls**, and a null win-rate bucket in the population fails the
+   build. There is no longer a null-handling policy for Phase 2 to invent.
+
+4. **15680 rows carry a deck size other than the modal 40** (max observed 60;
+   rows below the legal minimum: 0; `reports/modeling_data_audit.json`,
+   `deck_size`). The identity representation divides by each row's *actual* deck
+   size, so the fractions remain well formed. *Consequence:* "deck size" is not
+   constant across observations; whether Phase 2 restricts to 40-card decks, or
+   models all sizes, is an open modeling choice, not a data defect.
+
+5. **Within-draft deck changes are common enough that the unit is load-bearing**
+   (19.0% of drafts, 11.7% of games; section 2). *Consequence if ignored:* a
+   Phase 2 fit that quietly aggregates to draft level would blend distinct decks
+   in those drafts and misattribute their outcomes.
+
+6. **`mu` is a per-game mean** of `base_p_raw` (= 0.546211 over the whole
+   241561-row population; `reports/skill_proxy.md`), so drafts with more games
+   weight the shrinkage target more. Because the historical bucket is constant
+   within a draft, this is the only weighting choice that arises; it is recorded
+   rather than hidden. `mu` is **unchanged** by the card-008 re-freeze: the
+   excluded games never carried a bucket, so they were never in the mean.
+   *Consequence if unexamined:* the shrinkage target carries a per-game (not
+   per-player) weighting that a Phase 2 reader should know about.
+
+7. **`hist_w` reliability map is inherited, not derived** (six entries after
+   card 008, ╬╗ = 5; `reports/skill_proxy.md`). The inherited `1000` entry, which
+   this dataset never contains, was removed; the map's keys are now exactly the
+   games-played buckets the population presents, and the accepted set is derived
+   from the data. An unmapped bucket fails the run rather than being defaulted.
+   *Consequence:* the weights are an assumption carried from the prior R
+   implementation; if a future set introduces a new games bucket, the proxy build
+   halts by design and the map must be extended deliberately.
+
+---
+
+## 8. Halt
+
+**Phase 2 is not authorized to begin until the operator has reviewed this report.**
+
+Section 16 of the benchmark orders the work ΓÇö data audit, then target benchmark,
+then representation benchmark, then causal estimation ΓÇö and section 17 requires a
+stop for review before model fitting. Phase 2's shape depends on what Phase 1
+measured (the game/draft distinction of section 2 is real, not negligible), so
+writing Phase 2 acceptance criteria before this report exists would mean writing
+them against unmeasured facts. That is the failure the quarantined pipeline made.
+
+No model is fit, no metric is computed on any partition, and no predictive
+quantity is reported in this document. The dataset is frozen and pinned.
+
+**Update (card 008):** the operator's review has since happened ΓÇö its two
+decisions are recorded in section 0 and applied by card 008, which re-froze the
+dataset. The dataset is now coherent with those decisions and carries no
+outstanding null-handling policy. Phase 2 still begins only when the operator
+sets its acceptance criteria; card 008 does not start it.
+
+```
+
+### attic/haiku-2026-09-07/README.md
+
+```
+# Quarantined: modeling pipeline written 2026-09-07
+
+**Nothing in this directory governs, runs, or may be cited.** It is kept because
+`INSTRUCTIONS.md` ┬º6 preserves dead ends rather than erasing them ΓÇö not because
+any of it is usable.
+
+## What this is
+
+The entire Python modeling pipeline as it stood on 2026-09-07, plus everything it
+produced. It was generated by Claude Haiku, which the project owner found did not
+follow the specification reliably. The code is untrusted; therefore so is every
+number downstream of it.
+
+The decision to quarantine is recorded in the `DECISION` entry of 2026-09-07 in
+`LABNOTEBOOK.md`. The files were tracked and pushed before that decision, in
+commit `529baf3`, so they remain in git history at that commit regardless of
+this move.
+
+## What is here, and where it came from
+
+| Now at | Was at |
+|---|---|
+| `build_identity_matrix.py` | repository root |
+| `scripts/build_model_table.py` | `scripts/` |
+| `scripts/00_outcome_and_split.py` | `scripts/` |
+| `scripts/01_fit_m0_m1.py` | `scripts/` |
+| `scripts/01_fit_m0_m1_old.py` | `scripts/` |
+| `scripts/02_comprehensive_metrics.py` | `scripts/` |
+| `scripts/03_model_comparison_and_plots.py` | `scripts/` |
+| `src_data/build_model_table.py` | `src/data/` |
+| `results/` | `results/` |
+| `figures/` | `figures/` |
+| `data_processed/` | `data/processed/` |
+
+The two `build_model_table.py` files are kept in separate subdirectories because
+they share a basename and had **diverged** ΓÇö the `scripts/` one was newer and added
+NaN defaults for missing skill buckets; the `src/data/` one sat at the path the
+(now also superseded) `docs/Model_Building.md` specified. Neither was ever
+reconciled. That duplication is itself a symptom.
+
+`data_processed/MANIFEST.sha256` is tracked so the discarded state stays
+identifiable; the parquet/npy blobs it names, and the `.xgb` model binaries, are
+gitignored and exist only on disk.
+
+## What was NOT quarantined, and why
+
+- **`data/raw/game_data_public.HOB.PremierDraft.csv.gz`** ΓÇö source data from
+  17Lands, not produced here. Provenance in `data/raw/source_manifest.json`.
+- **`scripts/R/`** ΓÇö written 2025-12 to 2026-02, a different author and the
+  earlier causal analysis.
+- **The whole knowledge-graph arm** ΓÇö `src/hobkg/`, `tests/`, and
+  `scripts/build_set_network_html.py` date from 2026-09-05 and earlier and are
+  unaffected.
+
+## Known defects, recorded so the rebuild does not repeat them
+
+1. **`identity_matrix_*` is not a deck representation.** `build_identity_matrix.py`
+   builds a 43,160 ├ù 6 **rank-bucket** indicator matrix and its "player index" is
+   keyed on `rank`. Rank is a six-level skill bucket, not a player identifier;
+   this dataset carries no persistent player ID. The true representation is
+   `D_ij = count(card j in deck i) / deck_size_i`, from the `deck_*` columns.
+
+2. **The reported results contradict each other.** `results/model_comparison_report.txt`
+   gives M0 R┬▓ = ΓêÆ0.0001 and M1 R┬▓ = 0.0471. An earlier README revision, describing
+   the same M0-vs-M1 holdout comparison, gave 0.1594 and 0.1785. Both cannot be
+   right. Where a confidence interval was computed at all, it crossed zero ΓÇö so
+   the headline "M1 improves on M0" was never supported by its own numbers.
+
+3. **A `KEY FINDINGS` section asserting three checkmarked improvements**, in the
+   same file whose companion analysis reports the effect as statistically
+   insignificant.
+
+4. **`draft_model_table.parquet` was regenerated after the rest**, so the hashes in
+   `data_processed/MANIFEST.sha256` do not describe a single coherent pipeline run.
+
+5. **Date range reported as 1988ΓÇô2025.** The actual `draft_time` span is
+   2026-08-11 to 2026-08-29 ΓÇö three weeks. The old figure looks like numeric game
+   fields parsed as years.
+
+## The replacement
+
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs the rebuild. Its ┬º17 fixes
+the first step and stops before any model is fit: audit the raw game-level data,
+quantify how often deck configuration changes within a draft, build the game-level
+table, verify the skill variables, freeze the splits, report, and hold for review.
+
+Start from that spec and the raw CSV. Do not start from this directory.
+
+```
+
+
+### [2026-09-08 22:47] ASSISTANT
+VERDICT: PASS
+CRITERIA:
+- Computes weighted log loss, Brier, RMSE, MAE, AUC, and a section-9 weighted RÂ²: all present as `log_loss`, `brier_score`, `rmse`, `mae`, `auc`, `weighted_r2`, each threading `weight` through `_weighted_mean`. Met.
+- Each metric checked against hand arithmetic: `test_brier_matches_hand_arithmetic`, `test_mae_...`, `test_rmse_...`, `test_log_loss_...`, `test_weighted_r2_...`, `test_brier_skill_score_...`, and the unweighted/tie/weighted AUC tests each assert against a literal computed constant, not against the function's own output. Met.
+- Degenerate cases asserted: `test_perfect_predictions_score_zero_loss_and_unit_auc` (`log_loss < 1e-9`, `brier_score == 0.0`, `auc == 1.0`) and `test_base_rate_forecast_scores_zero_r2_and_zero_bss` (`weighted_r2 â‰ˆ 0`, `brier_skill_score â‰ˆ 0`). Met.
+- Bernoulli refuses unlabelled RÂ²: `evaluate_metrics(..., outcome_type="bernoulli")` returns no `R2` key and instead `BRIER_SKILL_SCORE`; `test_bernoulli_panel_has_no_bare_r2_but_has_a_named_skill_score` asserts `ev.R2 not in panel` and the named skill score present. Met.
+- Calibration slope direction tested both ways: `test_overconfident_predictions_pull_slope_below_one` (`slope < 1`, recovers 0.5) and `test_underconfident_predictions_pull_slope_above_one` (`slope > 1`, recovers 2.0). Met.
+- One declared binning strategy with returned edges: `binned_calibration` uses fixed `linspace(0,1,11)`; `BinnedCalibration.edges` returned; `test_binned_calibration_edges_are_identical_across_models` asserts identical edges across differing distributions. Met.
+- Smooth curve in addition to bins: `smooth_calibration` (Nadarayaâ€“Watson) returns `SmoothCalibration.grid/observed`; `test_smooth_calibration_tracks_identity_on_calibrated_data`. Met.
+- Bootstrap resamples drafts whole: `bootstrap_replicate_indices` concatenates all rows of each sampled group; `test_resample_draws_whole_drafts_together` asserts each member row of a sampled draft appears equal counts (`counts.min() == counts.max()`). Met.
+- Paired across models: single `replicates` list scored by every model in one loop; `test_bootstrap_scores_every_model_on_the_same_replicate_indices` regenerates indices from seed and asserts equality with `result.replicate_indices`; identical-models-give-zero-difference test corroborates. Met.
+- CIs on differences: `BootstrapResult.differences` populated per comparison; `test_bootstrap_returns_intervals_for_models_and_for_differences` asserts a difference interval distinct from absolute levels. Met.
+- Deterministic under seed: `test_bootstrap_is_deterministic_under_seed` and `test_replicate_indices_are_deterministic_under_seed` assert byte-equal intervals/indices. Met.
+- Fits nothing / no estimator import: `test_module_imports_no_learner_and_nothing_from_the_estimator` walks the AST for forbidden roots and asserts `"estimator" not in _code_identifiers()`. Met.
+- Reads no parquet/split/holdout, no partition arg: `test_module_reads_no_parquet_no_split_no_holdout` and `test_module_takes_no_partition_argument` assert absence of `read_parquet`, `open`, `partition`, and pyarrow/pandas imports. Met.
+- Report states definitions, weighting, binning, seed, cluster level, GAMLSS exclusion: `reports/evaluation_panel.md` Â§Â§1â€“4 give each; `DEFAULT_BOOTSTRAP_SEED = 20260908`, cluster `draft_id`, and Â§3 states "GAMLSS is not part of this panel." Met.
+- Tests pass, clean under ruff and mypy --strict: audit `20260908_224630_hobkg_010` shows `33 passed`, ruff `All checks passed!`, mypy `Success: no issues found`, and selftest exit 0. Met.
+
+SUMMARY:
+All fifteen acceptance criteria are satisfied with concrete evidence in the module, the test file, and the latest passing audit. The panel is a pure array function that imports no learner and touches no data file, computes every required weighted metric with hand-checked arithmetic and degenerate-case assertions, closes the RÂ² trap by returning a named Brier Skill Score for Bernoulli outcomes, provides directional calibration plus fixed-edge binned and bin-free smooth curves, and implements a paired, draft-clustered, deterministic bootstrap that reports difference intervals. The report pre-registers every choice including the GAMLSS exclusion. Checks and validations pass cleanly.
