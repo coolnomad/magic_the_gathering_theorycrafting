@@ -3,12 +3,14 @@
 The proxy is a closed-form transform, so it is checked against **arithmetic**,
 not against its own output: the expected ``base_p`` is recomputed by hand in the
 test from the written formula. The load-bearing guards encode this card's
-centre after the card-008 re-freeze -- the modeling population has no null
-win-rate buckets, so a null in the population now *fails the run* (the card-005
-carve-out is gone); the games-played buckets accepted are derived from the data
-and the inherited ``1000`` weight is gone; an unmapped games bucket still fails;
-and the module never reads the outcome column, so the proxy cannot absorb
-current-event information.
+centre. Card 014: ``mu`` is averaged over **distinct drafts**, not games, so it
+is invariant to how many games a draft played and a draft with two win-rate
+buckets stops the run. From the card-008 re-freeze: the modeling population has
+no null win-rate buckets, so a null in the population *fails the run* (the
+card-005 carve-out is gone); the games-played buckets accepted are derived from
+the data and the inherited ``1000`` weight is gone; an unmapped games bucket
+still fails; and the module never reads the outcome column, so the proxy cannot
+absorb current-event information.
 """
 
 from __future__ import annotations
@@ -29,9 +31,12 @@ ROOT = Path(__file__).resolve().parent.parent
 # --- Synthetic model table --------------------------------------------------
 # The re-frozen population has NO null win-rate bucket, so the synthetic table
 # is three complete rows. Games-played buckets are drawn from the map that
-# remains after card 008 removed the never-used 1000 entry. base_p_raw is
-# {0.4, 0.6, 0.5}, whose mean mu is exactly 0.5.
+# remains after card 008 removed the never-used 1000 entry. Each row is its own
+# single-game draft, so base_p_raw is {0.4, 0.6, 0.5} whether averaged per game
+# or per draft, and mu is exactly 0.5 either way -- the formula fixture stays
+# unchanged by the card-014 per-draft correction.
 _OBS = ["a", "b", "c"]
+_DRAFT = ["da", "db", "dc"]  # three distinct drafts, one game each
 _WIN_RATE = ["0.4", "0.6", "0.5"]
 _N_GAMES = ["10", "500", "50"]  # hist_w 3, 12, 6
 _WON = ["True", "False", "True"]  # present so the disjointness test bites
@@ -41,6 +46,7 @@ def _write_model_table(path: Path) -> None:
     table = pa.table(
         {
             "obs_id": pa.array(_OBS, type=pa.string()),
+            "draft_id": pa.array(_DRAFT, type=pa.string()),
             "user_game_win_rate_bucket": pa.array(_WIN_RATE, type=pa.string()),
             "user_n_games_bucket": pa.array(_N_GAMES, type=pa.string()),
             "won": pa.array(_WON, type=pa.string()),
@@ -85,6 +91,10 @@ def wired(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(skill, "DECK_IDENTITY_PARQUET", processed / "deck_identity.parquet")
     monkeypatch.setattr(skill, "CARD_MANIFEST_CSV", processed / "card_identity_manifest.csv")
     monkeypatch.setattr(skill, "SKILL_FEATURES_PARQUET", processed / "skill_features.parquet")
+    # Point the split at a tmp path the fixture does NOT create, so by default the
+    # manifest carries four members (the fresh-build shape); a test that wants the
+    # five-member canonical manifest writes this file explicitly.
+    monkeypatch.setattr(skill, "MODEL_SPLIT_PARQUET", processed / "model_split.parquet")
     monkeypatch.setattr(skill, "SHA256_MANIFEST", processed / "MANIFEST.sha256")
     monkeypatch.setattr(skill, "REPORT_MD", report)
     return model_table
@@ -111,14 +121,85 @@ def _hand_base_p(base_p_raw: float, hist_w: float, mu: float) -> float:
 
 def test_base_p_matches_hand_computation(wired: Path) -> None:
     result = skill.build_proxy()
-    # mu is the mean of base_p_raw over the whole population {a, b, c} = 0.5.
+    # mu is the mean of base_p_raw over the distinct drafts {da, db, dc}; each is
+    # one game, so the per-draft and per-game means coincide at 0.5 here.
     expected_mu = (0.4 + 0.6 + 0.5) / 3
     assert result.mu == pytest.approx(expected_mu)
+    assert result.mu_per_game == pytest.approx(expected_mu)
+    assert result.n_drafts == 3
 
     by_id = dict(zip(result.obs_ids, result.base_p, strict=True))
     assert by_id["a"] == pytest.approx(_hand_base_p(0.4, 3.0, expected_mu))
     assert by_id["b"] == pytest.approx(_hand_base_p(0.6, 12.0, expected_mu))
     assert by_id["c"] == pytest.approx(_hand_base_p(0.5, 6.0, expected_mu))
+
+
+# --------------------------------------------------------------------------
+# The card-014 centre: mu is averaged per draft, invariant to games per draft.
+# --------------------------------------------------------------------------
+
+
+def test_mu_is_invariant_to_games_per_draft(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # One draft with many games (win rate 0.4), one draft with a single game
+    # (0.8). The per-draft mu is the unweighted mean of the two drafts' values,
+    # 0.6, no matter how lopsided the game counts are; the per-game mean would be
+    # 0.48. This is the fidelity correction: a draft does not weigh mu by how
+    # many games it played.
+    processed = tmp_path / "processed"
+    processed.mkdir()
+    mt = processed / "model_table.parquet"
+    pa_tbl = pa.table(
+        {
+            "obs_id": pa.array(["b1", "b2", "b3", "b4", "s1"], type=pa.string()),
+            "draft_id": pa.array(
+                ["big", "big", "big", "big", "small"], type=pa.string()
+            ),
+            "user_game_win_rate_bucket": pa.array(
+                ["0.4", "0.4", "0.4", "0.4", "0.8"], type=pa.string()
+            ),
+            "user_n_games_bucket": pa.array(["10"] * 5, type=pa.string()),
+        }
+    )
+    pq.write_table(pa_tbl, mt)
+    audit = tmp_path / "audit.json"
+    audit.write_text(json.dumps(_audit_payload()), encoding="utf-8")
+    monkeypatch.setattr(skill, "MODEL_TABLE_PARQUET", mt)
+    monkeypatch.setattr(skill, "AUDIT_JSON", audit)
+
+    result = skill.build_proxy()
+    assert result.n_drafts == 2
+    assert result.mu == pytest.approx((0.4 + 0.8) / 2)  # 0.6, per-draft unweighted
+    assert result.mu_per_game == pytest.approx((0.4 * 4 + 0.8) / 5)  # 0.48, per game
+    assert result.mu != pytest.approx(result.mu_per_game)
+
+
+def test_within_draft_inconsistent_win_rate_stops_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The per-draft mu is only well defined because the win-rate bucket is
+    # constant within a draft. A draft presenting two different buckets is a
+    # defect that stops the run rather than silently picking one.
+    processed = tmp_path / "processed"
+    processed.mkdir()
+    mt = processed / "model_table.parquet"
+    pa_tbl = pa.table(
+        {
+            "obs_id": pa.array(["g1", "g2"], type=pa.string()),
+            "draft_id": pa.array(["one", "one"], type=pa.string()),
+            "user_game_win_rate_bucket": pa.array(["0.4", "0.6"], type=pa.string()),
+            "user_n_games_bucket": pa.array(["10", "10"], type=pa.string()),
+        }
+    )
+    pq.write_table(pa_tbl, mt)
+    audit = tmp_path / "audit.json"
+    audit.write_text(json.dumps(_audit_payload()), encoding="utf-8")
+    monkeypatch.setattr(skill, "MODEL_TABLE_PARQUET", mt)
+    monkeypatch.setattr(skill, "AUDIT_JSON", audit)
+    with pytest.raises(skill.InconsistentWithinDraftWinRate) as exc:
+        skill.build_proxy()
+    assert "one" in str(exc.value)
 
 
 def test_base_p_literal_when_mu_is_one_half() -> None:
@@ -179,6 +260,7 @@ def test_unmapped_games_bucket_fails_naming_the_value(
     pa_tbl = pa.table(
         {
             "obs_id": pa.array(["x"], type=pa.string()),
+            "draft_id": pa.array(["dx"], type=pa.string()),
             "user_game_win_rate_bucket": pa.array(["0.5"], type=pa.string()),
             "user_n_games_bucket": pa.array(["7"], type=pa.string()),  # 7 not in map
         }
@@ -226,6 +308,7 @@ def test_null_win_rate_in_population_fails_the_build(
     pa_tbl = pa.table(
         {
             "obs_id": pa.array(["a", "z"], type=pa.string()),
+            "draft_id": pa.array(["da", "dz"], type=pa.string()),
             "user_game_win_rate_bucket": pa.array(["0.5", ""], type=pa.string()),
             "user_n_games_bucket": pa.array(["10", "10"], type=pa.string()),
         }
@@ -352,6 +435,33 @@ def test_manifest_is_root_relative_and_covers_four_members(wired: Path) -> None:
         assert actual == digest, f"manifest hash stale for {name}"
 
 
+def test_manifest_pins_the_split_as_a_fifth_member_when_present(wired: Path) -> None:
+    # Card 006's model_split.parquet is a later pipeline stage; when it already
+    # exists a proxy re-emission must keep it pinned (five members with the
+    # canonical card-006 header), not drop it to a four-member subset. Otherwise
+    # running the skill check un-pins the split and dirties the tree.
+    skill.MODEL_SPLIT_PARQUET.write_bytes(b"model-split-stub")
+    skill.build()
+    listed: list[str] = []
+    header: list[str] = []
+    for line in skill.SHA256_MANIFEST.read_text(encoding="utf-8").splitlines():
+        if line.startswith("#"):
+            header.append(line)
+        elif line:
+            listed.append(line.split(" *", 1)[1])
+    assert listed == [
+        "data/processed/model_table.parquet",
+        "data/processed/deck_identity.parquet",
+        "data/processed/card_identity_manifest.csv",
+        "data/processed/skill_features.parquet",
+        "data/processed/model_split.parquet",
+    ]
+    # The header names card 006 and the split build step, so the bytes match what
+    # deckbench.split would write.
+    assert any("card-006" in line for line in header)
+    assert any("deckbench.split" in line for line in header)
+
+
 def test_manifest_fails_when_a_member_is_absent(wired: Path) -> None:
     skill.DECK_IDENTITY_PARQUET.unlink()
     with pytest.raises(skill.ManifestMemberMissing):
@@ -383,11 +493,16 @@ def test_real_data_counts_and_no_writes() -> None:
     assert result.n_obs == 241561
     assert None not in result.base_p_raw
     assert None not in result.base_p
+    # The re-frozen population spans 43,102 distinct drafts (card 008).
+    assert result.n_drafts == 43102
     # The accepted (=observed) buckets are exactly the map keys; no 1000.
     assert skill.accepted_games_buckets(result) == [1, 5, 10, 50, 100, 500]
     assert set(skill.HIST_W_MAP) == set(result.observed_games_buckets)
     assert 1000 not in skill.HIST_W_MAP
-    # mu is unchanged from the pre-008 freeze -- the excluded games were never in
-    # the estimation population, so removing them cannot move the mean.
-    assert result.mu == pytest.approx(0.546211, abs=5e-7)
+    # Card 014: mu is now averaged per DRAFT = 0.533339, below the per-game mean
+    # of 0.546211 (which the report still records) because strong players play
+    # more games and a per-game average over-samples them.
+    assert result.mu == pytest.approx(0.533339, abs=5e-7)
+    assert result.mu_per_game == pytest.approx(0.546211, abs=5e-7)
+    assert result.mu < result.mu_per_game
     assert 0.0 < result.mu < 1.0

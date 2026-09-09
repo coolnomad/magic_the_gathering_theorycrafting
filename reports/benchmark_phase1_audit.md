@@ -62,6 +62,37 @@ nothing here begins Phase 2.
 
 ---
 
+## 0.1 Amendment — `mu` computed per draft (card 014)
+
+Card 014 changed the skill proxy's shrinkage target `mu` from a **per-game** mean
+of `base_p_raw` to a **per-draft** mean (one value per distinct draft), to match
+the R implementation being reproduced
+(`scripts/R/04_real_inference_refactored.R`: `x` is built at draft level, and
+`mu <- mean(x$base_p_raw)` at line 324 is a per-draft mean). This is a **fidelity
+correction, not an improvement** — a per-game mean over-samples strong players,
+who play more games under the 7-wins/3-losses run structure, and pulls the target
+upward. Full write-up: `reports/mu_fidelity_correction.md`.
+
+| Quantity | Before (card 008) | After (card 014) |
+| --- | --- | --- |
+| `mu` | 0.546211 (per game) | **0.533339** (per draft) |
+| `skill_features.parquet` SHA256 | `4ac7ee8e…` | **`8e86df3a…`** |
+| `base_p_raw` | — | **unchanged for every row** |
+| `base_p` | — | moves down by ≤ 0.011 (largest where `hist_w` is small) |
+| Modeling population | 241,561 games / 43,102 drafts | **unchanged** |
+| Frozen split (`model_split.parquet`) | `ad7f8596…` | **unchanged** (keyed on draft/time) |
+
+Only `skill_features.parquet` moved among the manifest members; the other three
+are byte-identical. Card 011's T0 fits (`data/runs/T0_R0*`, `data/runs/T0_R1*`)
+were **refitted** through `deckbench.estimator.fit_and_predict` unchanged (same
+seed 20260908, same frozen split, `split_sha256` still `ad7f8596…`), because R0
+is `[base_p]` and R1 contains it. No model was fit against any partition here and
+the holdout was not opened; `cycle/holdout_ledger.jsonl` stays byte-identical
+(0 bytes). Section 5's pinned skill-proxy SHA and section 7 items 4 and 6 below
+are updated accordingly.
+
+---
+
 ## 1. What Phase 1 produced (re-frozen at card 008)
 
 | Card | Concern | Primary artifact | SHA256 |
@@ -70,7 +101,7 @@ nothing here begins Phase 2.
 | 004 / 008 | Game-level table | `data/processed/model_table.parquet` | `d9b4f5c2dbec67d9feeaca900a958bfbf5560f8e43df5dab6be08c42d4998750` |
 | 004 / 008 | Card-identity representation | `data/processed/deck_identity.parquet` | `2cf659d1cb154c2482655a72ed6085f3554968276b8bb8f48996159f01885c7c` |
 | 004 / 008 | Card-identity name map | `data/processed/card_identity_manifest.csv` | `8967247542e54ac258b3f38c72887ae6425e5a870d13706a093262d966ba34b9` |
-| 005 / 008 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc` |
+| 005 / 008 / 014 | Historical-WR proxy `base_p` | `data/processed/skill_features.parquet` | `8e86df3a6212cef78bc506ddac2fcb243ce41cf715b045070f97ad8f32897470` |
 | 006 / 008 | Frozen split + folds | `data/processed/model_split.parquet` | `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4` |
 | 006 / 008 | Split provenance / seal | `data/splits/split_manifest.json` | `6e69f9aa00911e3dce1e7c879e39a9f4e51e1fbd338ab94d619b764f16254163` |
 
@@ -181,7 +212,8 @@ quarantined pipeline lacked.
 
 4. **`base_p` is available as the T1 fixed baseline for every observation in the
    population; there are no null values.** `data/processed/skill_features.parquet`
-   (`4ac7ee8e5fe4551dc5b70c46df623ea69c487ef96b8c9f5ddb730ee5626889bc`),
+   (`8e86df3a6212cef78bc506ddac2fcb243ce41cf715b045070f97ad8f32897470`,
+   re-emitted at card 014 with `mu` per draft; see § 0.1),
    columns `obs_id, base_p_raw, base_p`; **0 nulls** in either column (the 166
    null-bucket games were excluded from the population at card 008, so a null
    here now fails the build). `base_p` is a reliability-shrunk historical
@@ -262,26 +294,35 @@ being wrong. None is resolved here by assumption.
    carries **0 nulls**, and a null win-rate bucket in the population fails the
    build. There is no longer a null-handling policy for Phase 2 to invent.
 
-4. **15680 rows carry a deck size other than the modal 40** (max observed 60;
-   rows below the legal minimum: 0; `reports/modeling_data_audit.json`,
-   `deck_size`). The identity representation divides by each row's *actual* deck
-   size, so the fractions remain well formed. *Consequence:* "deck size" is not
-   constant across observations; whether Phase 2 restricts to 40-card decks, or
-   models all sizes, is an open modeling choice, not a data defect.
+4. **RESOLVED at card 014 — the 15680 non-modal deck sizes are ordinary
+   41-card decks, not a data anomaly.** Of the 15,680 rows with a deck size other
+   than the modal 40 (max observed 60; rows below the legal minimum: 0;
+   `reports/modeling_data_audit.json`, `deck_size`), **13,424 are 41-card decks —
+   5.55% of all rows** — which is an unremarkable Limited deckbuilding choice
+   (running one extra card). Everything from 42 upward totals **2,256 rows,
+   0.93%**, and 60-card decks number **five**. The identity representation divides
+   by each row's *actual* deck size, so the fractions remain well formed at every
+   size. This is a normal distribution of deck sizes, not a defect; the item is
+   **closed**. Whether a later phase restricts to 40-card decks or models all
+   sizes remains an ordinary modeling choice, but there is nothing here to
+   characterise further.
 
 5. **Within-draft deck changes are common enough that the unit is load-bearing**
    (19.0% of drafts, 11.7% of games; section 2). *Consequence if ignored:* a
    Phase 2 fit that quietly aggregates to draft level would blend distinct decks
    in those drafts and misattribute their outcomes.
 
-6. **`mu` is a per-game mean** of `base_p_raw` (= 0.546211 over the whole
-   241561-row population; `reports/skill_proxy.md`), so drafts with more games
-   weight the shrinkage target more. Because the historical bucket is constant
-   within a draft, this is the only weighting choice that arises; it is recorded
-   rather than hidden. `mu` is **unchanged** by the card-008 re-freeze: the
-   excluded games never carried a bucket, so they were never in the mean.
-   *Consequence if unexamined:* the shrinkage target carries a per-game (not
-   per-player) weighting that a Phase 2 reader should know about.
+6. **RESOLVED at card 014 — `mu` is now a per-draft mean.** `mu` was a per-game
+   mean of `base_p_raw` (= 0.546211), so drafts with more games weighted the
+   shrinkage target more. Card 014 changed it to a **per-draft** mean
+   (= **0.533339**; one value per draft) to match the R implementation being
+   reproduced (`scripts/R/04_real_inference_refactored.R` line 324; see § 0.1 and
+   `reports/mu_fidelity_correction.md`). Because the historical bucket is constant
+   within a draft, the per-draft value is well defined and the earlier per-game
+   weighting is gone. This is a fidelity correction, not a change to skill
+   estimation. (The per-game value was itself unchanged by the card-008 re-freeze,
+   since the excluded null games never carried a bucket and so were never in the
+   mean.)
 
 7. **`hist_w` reliability map is inherited, not derived** (six entries after
    card 008, λ = 5; `reports/skill_proxy.md`). The inherited `1000` entry, which

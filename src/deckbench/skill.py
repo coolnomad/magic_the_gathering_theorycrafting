@@ -15,24 +15,36 @@ game-win-rate bucket toward the population mean, in logit space::
 
 with ``base_p_raw`` the historical win-rate bucket, ``hist_w`` set by the
 games-played bucket through :data:`HIST_W_MAP`, ``mu`` the mean of
-``base_p_raw`` over the modeling population, and :data:`LAMBDA` fixed.
+``base_p_raw`` over the **distinct drafts** in the modeling population (one
+value per draft), and :data:`LAMBDA` fixed.
+
+``mu`` is averaged per draft, not per game, because that is what the R
+implementation this proxy reproduces does: ``scripts/R/04_real_inference_refactored.R``
+builds ``x`` at draft/event level (``x[, A := as.integer(event_match_wins)]``,
+line ~302) and takes ``mu <- mean(x$base_p_raw)`` at line 324, one row per
+draft. Averaging over games instead over-samples strong players -- they play
+more games under the 7-wins/3-losses run structure -- and pulls the shrinkage
+target upward, which is not the proxy the earlier work used. This is a fidelity
+correction (card 014), not an improvement to skill estimation; the estimator is
+reproduced, not tuned (benchmark section 3). See :func:`build_proxy`.
 
 ``base_p`` is **not a measurement of skill**. It is an interim nuisance
 representation and nothing here calls it skill, true skill, or player strength.
 
-This module reads the two skill-bucket columns and the observation id from the
-already-built ``model_table.parquet``; it never reads ``won``, wins, or losses,
-so the proxy cannot absorb current-event outcome information. It fits nothing
-and tunes nothing -- it is a closed-form transform of two input columns.
+This module reads the two skill-bucket columns, the draft id, and the
+observation id from the already-built ``model_table.parquet``; it never reads
+``won``, wins, or losses, so the proxy cannot absorb current-event outcome
+information. It fits nothing and tunes nothing -- it is a closed-form transform
+of two input columns (the draft id only groups the rows for ``mu``).
 
 The modeling population no longer carries a null win-rate bucket (card 008 moved
 that exclusion upstream to :mod:`deckbench.table`). So every row here has a
-bucket, ``mu`` is the mean over the whole population, and a null win-rate bucket
-in the population is now a defect that **stops the run** -- card 005's
-structurally-absent carve-out is gone rather than left dormant. The set of
-games-played buckets the run accepts is *derived from the data*; the weight
-attached to each is the inherited modeling assumption, declared as data in
-:data:`HIST_W_MAP`, and a bucket observed with no declared weight still fails.
+bucket, ``mu`` is the per-draft mean over the whole population, and a null
+win-rate bucket in the population is now a defect that **stops the run** --
+card 005's structurally-absent carve-out is gone rather than left dormant. The
+set of games-played buckets the run accepts is *derived from the data*; the
+weight attached to each is the inherited modeling assumption, declared as data
+in :data:`HIST_W_MAP`, and a bucket observed with no declared weight still fails.
 
 Run it with::
 
@@ -40,7 +52,9 @@ Run it with::
 
 which writes ``data/processed/skill_features.parquet`` and rewrites
 ``data/processed/MANIFEST.sha256`` (with repository-root-relative paths, so it
-verifies from the repo root) over card 004's three artifacts plus this one.
+verifies from the repo root) over card 004's three artifacts, this one, and --
+when card 006's ``model_split.parquet`` already exists -- that split as the
+fifth member, so re-emitting the proxy never silently un-pins it.
 """
 
 from __future__ import annotations
@@ -62,12 +76,23 @@ MODEL_TABLE_PARQUET = PROCESSED_DIR / "model_table.parquet"
 DECK_IDENTITY_PARQUET = PROCESSED_DIR / "deck_identity.parquet"
 CARD_MANIFEST_CSV = PROCESSED_DIR / "card_identity_manifest.csv"
 SKILL_FEATURES_PARQUET = PROCESSED_DIR / "skill_features.parquet"
+# The split parquet (card 006) is the fifth manifest member. It is written by a
+# LATER pipeline stage (:mod:`deckbench.split`), so on a fresh build it does not
+# yet exist when this module runs and the manifest legitimately carries four
+# members; once it exists, this module must keep it pinned rather than dropping
+# it, so a re-emission of the proxy (e.g. card 014) leaves the canonical
+# five-member manifest byte-identical to what ``deckbench.split`` writes.
+MODEL_SPLIT_PARQUET = PROCESSED_DIR / "model_split.parquet"
 SHA256_MANIFEST = PROCESSED_DIR / "MANIFEST.sha256"
 REPORT_MD = REPO_ROOT / "reports" / "skill_proxy.md"
 
 # The observation id and the outcome column, matched to the model table so the
-# disjointness guard can prove this module never reads the outcome.
+# disjointness guard can prove this module never reads the outcome. ``draft_id``
+# is the structural grouping key (like ``obs_id``, defined by the pipeline, not
+# a semantically-ambiguous skill column): it groups rows so ``mu`` is averaged
+# per draft. It carries no outcome information and is never a feature.
 OBS_ID_COL = "obs_id"
+DRAFT_ID_COL = "draft_id"
 OUTCOME_COL = "won"
 
 # Shrinkage strength toward the population mean, in logit space. Inherited from
@@ -133,6 +158,17 @@ class UnparseableSkillBucket(ValueError):
     """Raised when a non-empty skill bucket cannot be parsed as a number."""
 
 
+class InconsistentWithinDraftWinRate(ValueError):
+    """Raised when one draft carries two different historical win-rate buckets.
+
+    The per-draft ``mu`` is only well defined because the historical win-rate
+    bucket is constant within every draft (the audit records it non-constant in
+    0 drafts). If a draft ever presented two different buckets, "the draft's
+    value" would be ambiguous and the run stops rather than silently picking
+    one.
+    """
+
+
 class ManifestMemberMissing(FileNotFoundError):
     """Raised when a file the sha256 manifest must cover is absent."""
 
@@ -166,13 +202,14 @@ def skill_column_names() -> tuple[str, str]:
 
 
 def columns_read() -> tuple[str, ...]:
-    """Every model-table column this module reads: the id and the two buckets.
+    """Every model-table column this module reads: the ids and the two buckets.
 
-    The outcome column is provably not in this set; the disjointness test asserts
-    exactly that.
+    The observation id, the draft id (which groups rows for the per-draft
+    ``mu``), and the two skill buckets. The outcome column is provably not in
+    this set; the disjointness test asserts exactly that.
     """
     win_rate, games_played = skill_column_names()
-    return (OBS_ID_COL, win_rate, games_played)
+    return (OBS_ID_COL, DRAFT_ID_COL, win_rate, games_played)
 
 
 def clip_prob(p: float) -> float:
@@ -258,13 +295,20 @@ def _parse_win_rate(raw: str, obs_id: str) -> float:
 
 @dataclass
 class SkillProxyResult:
-    """The built proxy table plus the numbers the report needs."""
+    """The built proxy table plus the numbers the report needs.
+
+    ``mu`` is the shrinkage target actually used: the mean of ``base_p_raw`` over
+    the **distinct drafts**. ``mu_per_game`` is the per-game mean this replaced,
+    carried only so the report can record both values and the size of the change.
+    """
 
     obs_ids: list[str]
     base_p_raw: list[float]
     base_p: list[float]
     mu: float
+    mu_per_game: float
     n_obs: int
+    n_drafts: int
     observed_games_buckets: list[int] = field(default_factory=list)
 
 
@@ -272,13 +316,16 @@ def build_proxy() -> SkillProxyResult:
     """Read the two buckets from the model table and build the proxy.
 
     Every population row carries a historical win-rate bucket (the null ones
-    were excluded upstream at card 008), so ``mu`` is the mean of ``base_p_raw``
-    over the **whole population** and there is no undefined proxy to record. A
-    null win-rate bucket in the population fails the run. The set of games-played
-    buckets is *derived from the data* -- whatever the population contains -- and
-    each must have a declared weight in :data:`HIST_W_MAP` or the run stops
-    naming the value. No row is excluded on any outcome-dependent criterion and
-    ``won`` is never read.
+    were excluded upstream at card 008). ``mu`` is the mean of ``base_p_raw``
+    over the **distinct drafts** -- one value per draft, matching the R
+    implementation this proxy reproduces (card 014). Because the historical
+    win-rate bucket is constant within every draft, that per-draft value is
+    well defined; a draft presenting two different buckets stops the run. A
+    null win-rate bucket in the population also fails the run. The set of
+    games-played buckets is *derived from the data* -- whatever the population
+    contains -- and each must have a declared weight in :data:`HIST_W_MAP` or
+    the run stops naming the value. No row is excluded on any outcome-dependent
+    criterion and ``won`` is never read; ``draft_id`` only groups the rows.
     """
     if not MODEL_TABLE_PARQUET.exists():
         raise ModelTableMissing(
@@ -287,34 +334,53 @@ def build_proxy() -> SkillProxyResult:
         )
     win_rate_col, games_played_col = skill_column_names()
     table = pq.read_table(
-        MODEL_TABLE_PARQUET, columns=[OBS_ID_COL, win_rate_col, games_played_col]
+        MODEL_TABLE_PARQUET,
+        columns=[OBS_ID_COL, DRAFT_ID_COL, win_rate_col, games_played_col],
     )
     obs_ids: list[str] = table.column(OBS_ID_COL).to_pylist()
+    draft_ids: list[str] = table.column(DRAFT_ID_COL).to_pylist()
     win_rate_raw: list[str] = table.column(win_rate_col).to_pylist()
     games_raw: list[str] = table.column(games_played_col).to_pylist()
-
-    # First pass: parse both buckets (failing loudly on any null or unexpected
-    # value), gather the observed games-played buckets, and sum for mu.
-    base_p_raw: list[float] = []
-    hist_weights: list[float] = []
-    observed_buckets: set[int] = set()
-    population_sum = 0.0
-    for obs_id, wr_raw, g_raw in zip(obs_ids, win_rate_raw, games_raw, strict=True):
-        games_bucket = _parse_games_bucket(g_raw if g_raw is not None else "", obs_id)
-        observed_buckets.add(games_bucket)
-        hist_weights.append(hist_w_for(games_bucket))
-        raw_value = _parse_win_rate(wr_raw if wr_raw is not None else "", obs_id)
-        base_p_raw.append(raw_value)
-        population_sum += raw_value
 
     if not obs_ids:
         raise ValueError(
             "the modeling population is empty; mu is undefined and the proxy "
             "cannot be built."
         )
-    mu = population_sum / len(obs_ids)
 
-    # Second pass: the closed-form transform on every row.
+    # First pass: parse both buckets (failing loudly on any null or unexpected
+    # value), gather the observed games-played buckets, sum for the per-game mean
+    # (recorded for the report), and record each draft's constant win-rate value.
+    base_p_raw: list[float] = []
+    hist_weights: list[float] = []
+    observed_buckets: set[int] = set()
+    per_game_sum = 0.0
+    draft_raw: dict[str, float] = {}
+    for obs_id, draft_id, wr_raw, g_raw in zip(
+        obs_ids, draft_ids, win_rate_raw, games_raw, strict=True
+    ):
+        games_bucket = _parse_games_bucket(g_raw if g_raw is not None else "", obs_id)
+        observed_buckets.add(games_bucket)
+        hist_weights.append(hist_w_for(games_bucket))
+        raw_value = _parse_win_rate(wr_raw if wr_raw is not None else "", obs_id)
+        base_p_raw.append(raw_value)
+        per_game_sum += raw_value
+        prior = draft_raw.get(draft_id)
+        if prior is not None and prior != raw_value:
+            raise InconsistentWithinDraftWinRate(
+                f"draft {draft_id!r} carries two historical win-rate buckets "
+                f"({prior!r} and {raw_value!r}); the per-draft mu is undefined "
+                "and the run stops rather than picking one."
+            )
+        draft_raw[draft_id] = raw_value
+
+    # ``mu`` is the per-draft mean (the shrinkage target used); the per-game mean
+    # is kept only to report the size of the fidelity correction.
+    mu = sum(draft_raw.values()) / len(draft_raw)
+    mu_per_game = per_game_sum / len(obs_ids)
+
+    # Second pass: the closed-form transform on every row, shrinking toward the
+    # per-draft mu.
     base_p = [
         compute_base_p(raw_value, hist_w, mu)
         for raw_value, hist_w in zip(base_p_raw, hist_weights, strict=True)
@@ -325,7 +391,9 @@ def build_proxy() -> SkillProxyResult:
         base_p_raw=base_p_raw,
         base_p=base_p,
         mu=mu,
+        mu_per_game=mu_per_game,
         n_obs=len(obs_ids),
+        n_drafts=len(draft_raw),
         observed_games_buckets=sorted(observed_buckets),
     )
 
@@ -360,16 +428,23 @@ def write_proxy_parquet(result: SkillProxyResult) -> None:
 def manifest_members() -> tuple[Path, ...]:
     """Files covered by the sha256 manifest, in a fixed order.
 
-    Card 004's three artifacts are preserved and this card's is added. Resolved
-    lazily so a rebuild -- or a test redirecting the paths -- hashes the current
-    files.
+    Card 004's three artifacts, this card's proxy, and -- when it already exists
+    on disk -- card 006's ``model_split.parquet`` as the fifth member. Resolved
+    lazily so a rebuild, or a test redirecting the paths, hashes the current
+    files. Including the split when present is what keeps a proxy re-emission
+    (card 014) from silently un-pinning it: the canonical five-member manifest
+    stays byte-identical to the one :mod:`deckbench.split` writes, so whichever
+    stage runs last leaves the same bytes.
     """
-    return (
+    base = (
         MODEL_TABLE_PARQUET,
         DECK_IDENTITY_PARQUET,
         CARD_MANIFEST_CSV,
         SKILL_FEATURES_PARQUET,
     )
+    if MODEL_SPLIT_PARQUET.exists():
+        return (*base, MODEL_SPLIT_PARQUET)
+    return base
 
 
 def _sha256(path: Path) -> str:
@@ -388,8 +463,14 @@ def write_sha256_manifest() -> None:
     root, so the paths are written relative to the root
     (``data/processed/model_table.parquet``, not ``model_table.parquet``); then
     ``sha256sum -c data/processed/MANIFEST.sha256`` verifies from where the
-    tooling actually runs. All four members must exist, or the run fails naming
-    the missing one rather than pinning a partial set.
+    tooling actually runs. Every member returned by :func:`manifest_members`
+    must exist, or the run fails naming the missing one rather than pinning a
+    partial set.
+
+    When ``model_split.parquet`` is present the manifest covers all five
+    artifacts, and the header is written byte-identically to the one
+    :mod:`deckbench.split` emits, so re-emitting the proxy leaves the canonical
+    manifest unchanged rather than reverting it to a four-member subset.
     """
     members = manifest_members()
     missing = [m for m in members if not m.exists()]
@@ -398,17 +479,30 @@ def write_sha256_manifest() -> None:
             "cannot write the manifest; these members are absent: "
             + ", ".join(m.relative_to(REPO_ROOT).as_posix() for m in missing)
         )
-    header = [
-        "# Hash manifest for the card-004 and card-005 modeling artifacts.",
-        "#",
-        "# The parquet/csv blobs are gitignored and regenerable from data/raw via",
-        "#   python -m deckbench.table && python -m deckbench.identity && \\",
-        "#   python -m deckbench.skill",
-        "# This manifest is tracked so a rebuild is checked byte-for-byte. Paths",
-        "# are repository-root-relative; verify from the repository root with:",
-        "#   sha256sum -c data/processed/MANIFEST.sha256",
-        "#",
-    ]
+    if MODEL_SPLIT_PARQUET in members:
+        header = [
+            "# Hash manifest for the card-004, card-005 and card-006 modeling artifacts.",
+            "#",
+            "# The parquet/csv blobs are gitignored and regenerable from data/raw via",
+            "#   python -m deckbench.table && python -m deckbench.identity && \\",
+            "#   python -m deckbench.skill && python -m deckbench.split",
+            "# This manifest is tracked so a rebuild is checked byte-for-byte. Paths",
+            "# are repository-root-relative; verify from the repository root with:",
+            "#   sha256sum -c data/processed/MANIFEST.sha256",
+            "#",
+        ]
+    else:
+        header = [
+            "# Hash manifest for the card-004 and card-005 modeling artifacts.",
+            "#",
+            "# The parquet/csv blobs are gitignored and regenerable from data/raw via",
+            "#   python -m deckbench.table && python -m deckbench.identity && \\",
+            "#   python -m deckbench.skill",
+            "# This manifest is tracked so a rebuild is checked byte-for-byte. Paths",
+            "# are repository-root-relative; verify from the repository root with:",
+            "#   sha256sum -c data/processed/MANIFEST.sha256",
+            "#",
+        ]
     lines = [
         f"{_sha256(path)} *{path.relative_to(REPO_ROOT).as_posix()}" for path in members
     ]
@@ -437,8 +531,10 @@ def _within_draft_note() -> str:
         f"`{games_played_col}` in {gp_var}). The proxy is computed per observation "
         f"directly from that observation's own row, so no within-draft "
         f"reconciliation rule is needed: each game inherits its player's buckets "
-        f"unchanged. (`rank`, which this card does not use, varies within "
-        f"{rank_var} drafts.)"
+        f"unchanged. This is also what makes the per-draft `mu` well defined -- "
+        f"each draft has one historical win-rate value, so averaging per draft is "
+        f"unambiguous, and a draft presenting two would stop the run. (`rank`, "
+        f"which this card does not use, varies within {rank_var} drafts.)"
     )
 
 
@@ -478,8 +574,9 @@ def write_report(result: SkillProxyResult) -> None:
         f"`{win_rate_col}`.",
         f"- `hist_w` -- reliability weight set by the games-played bucket "
         f"(`{games_played_col}`) through the inherited map below.",
-        f"- `mu` -- the mean of `base_p_raw` over the modeling population "
-        f"(defined below); computed here as **{_round(result.mu)}**.",
+        f"- `mu` -- the mean of `base_p_raw` over the **distinct drafts** in the "
+        f"modeling population (defined below); computed here as "
+        f"**{_round(result.mu)}**.",
         f"- `LAMBDA` -- shrinkage strength toward `logit(mu)`, fixed at "
         f"**{LAMBDA:g}**.",
         "",
@@ -510,27 +607,40 @@ def write_report(result: SkillProxyResult) -> None:
         "symmetric on purpose: an asymmetric clip would bias the logit and the "
         "bias would survive the shrinkage.",
         "",
-        "## Modeling population and `mu`",
+        "## Modeling population and `mu` (per draft -- card 014)",
         "",
         f"Every one of the **{result.n_obs}** population rows carries a historical "
         "win-rate bucket -- the null-win-rate games were excluded upstream at "
-        "card 008, at the point the model table defines the population. So `mu` "
-        "is the per-observation (per-game) mean of `base_p_raw` over the **whole "
-        f"population** = **{_round(result.mu)}**. No row is excluded on any "
-        "outcome-dependent criterion, and `won` is never read to select the "
-        "population.",
+        "card 008, at the point the model table defines the population -- across "
+        f"**{result.n_drafts}** distinct drafts. `mu` is the mean of `base_p_raw` "
+        "over those **distinct drafts** (one value per draft) = "
+        f"**{_round(result.mu)}**. No row is excluded on any outcome-dependent "
+        "criterion, and `won` is never read to select the population; `draft_id` "
+        "only groups the rows.",
         "",
-        "This value is unchanged from the pre-008 freeze (`mu = 0.546211`). That "
-        "is expected, not a coincidence: card 005 already computed `mu` over the "
-        "rows that carried a bucket -- the same 241,561 rows that now constitute "
-        "the whole population -- so removing the 166 null-bucket games removed "
-        "exactly the rows that were never in the mean. The old and new `mu` "
-        "coincide by construction.",
+        "**Card 014 fidelity correction, not an improvement.** `mu` was previously "
+        "the per-game mean = "
+        f"**{_round(result.mu_per_game)}** (unchanged from the pre-008 freeze, "
+        "because card 005 already computed it over exactly the rows that carried a "
+        "bucket). The R implementation this proxy reproduces computes `mu` per "
+        "draft: `scripts/R/04_real_inference_refactored.R` builds `x` at "
+        "draft/event level (`x[, A := as.integer(event_match_wins)]`, line ~302) "
+        "and takes `mu <- mean(x$base_p_raw)` at line 324, one row per draft. A "
+        "per-game mean over-samples strong players -- they play more games under "
+        "the 7-wins/3-losses run structure -- and pulls the shrinkage target "
+        f"upward by **{_round(result.mu_per_game - result.mu)}** "
+        f"({_round(result.mu_per_game)} - {_round(result.mu)}). Averaging per "
+        "draft removes that weighting, so ours now matches the reproduced proxy. "
+        "This is a correction to *fidelity*, not to skill estimation; the "
+        "estimator is reproduced, not tuned (benchmark section 3). The effect on "
+        "any single `base_p` is at most about 0.011, and it lands where the proxy "
+        "does the most work -- players with little history, where `hist_w` is "
+        "small and `mu` dominates.",
         "",
-        "`mu` is a per-game mean, so a draft with more games weights `mu` more "
-        "heavily; because the historical bucket is constant within a draft (see "
-        "below), this is the only weighting choice that arises, and it is stated "
-        "rather than hidden.",
+        "Because the historical bucket is constant within every draft (see below), "
+        "the per-draft value is well defined -- a draft presenting two different "
+        "buckets stops the run -- and there is no within-draft weighting choice "
+        "left to make.",
         "",
         "## No null win-rate buckets (card 008 removed the carve-out)",
         "",
@@ -562,9 +672,10 @@ def write_report(result: SkillProxyResult) -> None:
         "`model_table.parquet`, so card 004's artifact stays byte-stable and the "
         "provenance stays legible.",
         "- `MANIFEST.sha256` is rewritten with repository-root-relative paths "
-        "over card 004's three artifacts and this card's, so "
+        "over card 004's three artifacts, this card's proxy, and (when it "
+        "exists) card 006's `model_split.parquet`, so "
         "`sha256sum -c data/processed/MANIFEST.sha256` verifies from the "
-        "repository root.",
+        "repository root and the split stays pinned across a proxy re-emission.",
         "",
         "## Determinism",
         "",
@@ -589,10 +700,11 @@ def build() -> SkillProxyResult:
 def main() -> None:
     result = build()
     print(
-        f"Skill proxy built: {result.n_obs} observations, mu = "
-        f"{_round(result.mu)}, over games-played buckets "
-        f"{result.observed_games_buckets} (no null win-rate buckets remain). "
-        f"Wrote {SKILL_FEATURES_PARQUET.relative_to(REPO_ROOT).as_posix()} and "
+        f"Skill proxy built: {result.n_obs} observations over {result.n_drafts} "
+        f"drafts, mu (per draft) = {_round(result.mu)} (was {_round(result.mu_per_game)} "
+        f"per game), over games-played buckets {result.observed_games_buckets} "
+        "(no null win-rate buckets remain). Wrote "
+        f"{SKILL_FEATURES_PARQUET.relative_to(REPO_ROOT).as_posix()} and "
         f"{SHA256_MANIFEST.relative_to(REPO_ROOT).as_posix()}."
     )
 

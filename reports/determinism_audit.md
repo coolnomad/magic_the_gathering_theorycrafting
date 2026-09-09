@@ -45,7 +45,7 @@ wrong from something other than a byte comparison; `audit_repair.py` needed no c
 
 The table below is regenerated on every `--report` run.
 
-Seeds this run: [0, 1, 2]. Regenerated artifacts: 69; frozen verified: 8; deckbench verified: 5; not regenerable: 39.
+Seeds this run: [0, 1, 2]. Regenerated artifacts: 69; frozen verified: 8; deckbench verified: 5; not regenerable: 40.
 
 ### Regenerated derived artifacts
 
@@ -176,6 +176,7 @@ Seeds this run: [0, 1, 2]. Regenerated artifacts: 69; frozen verified: 8; deckbe
 | `reports/model_table_build.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/modeling_data_audit.json` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/modeling_data_audit.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/mu_fidelity_correction.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/phase1_refreeze.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/phase3_coverage.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/sac_extract_portability.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |

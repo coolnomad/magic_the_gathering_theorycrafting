@@ -10,7 +10,7 @@
   "model_path": "data/runs/T0_R0.xgb",
   "n_dev_rows": 194215,
   "n_features": 1,
-  "num_boost_round": 325,
+  "num_boost_round": 367,
   "objective": "binary",
   "predictions_path": "data/runs/T0_R0_predictions.parquet",
   "representation": "R0",
