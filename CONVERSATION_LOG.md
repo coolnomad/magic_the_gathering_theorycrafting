@@ -120827,3 +120827,2552 @@ depends on when it verifies the split before opening the holdout.
 essentially every full-suite run for two days, and one genuine confusion during
 card 011's cleanup where a dirty artifact had to be distinguished from real work
 before the tree could be committed.
+
+### [2026-09-09 14:12] ASSISTANT
+I'll start by reading the required orientation files, then understand the codebase structure.
+
+I have the context. Now let me explore the repo structure to understand the derived artifacts, the CLI, and existing test patterns.
+
+Now let me look at the CLI to understand how artifacts are regenerated, and check the frozen manifest.
+
+Prior commits reference card 013 already. Let me check git history and the actual current state of the two files, plus pipeline helpers.
+
+The `reconcile` set-iteration bug is confirmed at lines 496-504. The `audit_repair` writer already sorts by a key that's total (due to dedup on the same tuple). Let me look at existing byte-identity test patterns and the pipeline helpers to understand regeneration entry points.
+
+Confirmed the `reconcile` bug. Now let me map what each regeneration command writes, so the harness can snapshot/restore safely and never touch frozen files.
+
+Let me confirm `REPO` and the helper signatures, and check how deckbench artifacts are laid out plus an existing test's REPO reference pattern.
+
+Now let me run a measurement to confirm the instability in fresh processes with different hash seeds (snapshotting/restoring the review dir so the tree stays clean).
+
+The project interpreter is `C:/Python314/python.exe`. The harness must be interpreter-agnostic (the Check runs under the orchestrator venv without hobkg). Let me redo the measurement using explicit PYTHONPATH so children import hobkg regardless.
+
+The regen (455450 B) differs in size from the committed file (443180 B). I need to understand whether the regen chain even reproduces the committed multiset. Let me compare committed vs regenerated multisets, and isolate which stage diverges.
+
+The full chain matches committed line counts (211, 37). The multiset differs because each line's intra-record list order differs â€” expected. Let me verify the difference is *purely* intra-record ordering by comparing canonical (deep-sorted) forms.
+
+`llm_queued` differs purely by intra-record ordering (canonical multiset equal). But `llm_accepted` differs in *content* even after deep-sort. I need to understand that difference before touching anything. Let me diff the canonical records.
+
+`llm_accepted` shows a genuine *content* difference from committed (regen produces 8 edges where committed has 6), not just ordering â€” separate from the determinism bug. Before deciding anything, I must find which test(s) actually write these files during the suite, since "leave the tree clean" depends on it.
+
+The committed `llm_accepted` (2026-09-05) is *newer* than `phase3.py` (2026-08-14), yet current code produces different content â€” so an input changed after it was committed. Let me look at how the tests exercise these functions (real repo vs tmp), which determines what actually dirties the tree.
+
+The dirtying test is `test_finalize_covers_all_210_faces` â€” it runs `build_tasks; reconcile; finalize_faces` on the **real repo**, *without* `apply_dispositions`. That explains the edge-count gap (my chain added disposition edges). Let me verify committed matches `build_tasks+reconcile+finalize_faces` canonically.
+
+Now I fully understand the mechanism. The committed files match `build_tasks+reconcile+finalize_faces` canonically â€” the only variance is intra-record list ordering from set iteration in `reconcile`. Let me time the candidate regeneration jobs to budget the harness against the 300s Check timeout, and check for the extractions dir.
+
+All jobs run fast (~15s total single-pass; ~60-90s for 3 seeds â€” safely under the 300s Check budget). Now let me apply the fix to `reconcile` â€” sort the set-derived lists with a total key.
+
+Now let me add the `_ab_order` helper and apply the fix.
+
+Now let me verify the fix produces byte-identical output across different hash seeds.
+
+All three files are now byte-stable across 5 seeds. Now let me regenerate the deterministic versions and keep them (so committed files match, leaving the tree clean after suite runs), then check what changed.
+
+The fix reordered records (189/189 = pure reordering) in `llm_accepted`; `llm_face_status` was already deterministic. Let me verify the record multiset is unchanged versus the committed (HEAD) version â€” proving the fix only reorders.
+
+Multiset preserved â€” the fix is purely reordering. Now let me check the deckbench manifest format and the frozen-manifest verifier so the harness can verify those without regenerating them.
+
+Everything is verified. Now I'll write the harness. Let me create `tools/determinism_audit.py`.
+
+Now let me run the harness on a fast subset to validate it works end-to-end and leaves the tree clean.
+
+The harness itself is clean (it restores). But there are leftover untracked `batch_*.jsonl` files â€” likely created by my earlier timing script (whose ad-hoc restore didn't delete newly-created files). Let me inspect and clean up.
+
+The committed repo tracks `batch_007..011`; `batch_001..006` are leftovers from my earlier ad-hoc timing script (its restore didn't delete new files). The session started clean, so these are mine to remove. The harness itself handles this correctly (its `restore` deletes non-snapshot files). Let me clean up.
+
+The full audit works: 57 artifacts regenerated, 0 unstable, exit 0, and the harness leaves the tree clean (only my intended changes plus the report + harness remain). Let me review the generated report.
+
+The report is comprehensive and all-stable. Two improvements: (1) the note column is dropped for non-characterization tables (losing useful reasons like "byte-identical to frozen_manifest"), and (2) I can cheaply cover more of the "not regenerable" set (schemas, ports). Let me verify `export_schemas` and `ports --all` are safe/deterministic before wiring them.
+
+Both are stable and safe. Let me wire them in and fix the report rendering (show the detail column for all tables; clean up the uncovered-note logic).
+
+Now fix the `table()` renderer to always show a detail column:
+
+Now let me re-run the full audit to confirm the new jobs and report rendering, and verify the tree stays clean.
+
+Excellent â€” 69 regenerated, all stable, tree clean. Now let me write the tests. They must run under 60s (the Output Validation timeout), so I'll minimize subprocess calls and reuse results.
+
+The harness module needs to be registered in `sys.modules` before exec (dataclass introspection requires it). Let me fix the loader.
+
+All 10 tests pass in 21.6s. Now the required validation commands: ruff, mypy, and `ports --validate`. Let me locate ruff/mypy (they live in the orchestrator venv) and run them.
+
+mypy passes. Ruff has 6 E501 (long lines) to fix. Let me find all of them.
+
+One ruff error remains. Let me see it.
+
+Ruff passes. Let me regenerate the report with final wording, run the test file, then the full suite to confirm no regressions and a clean tree.
+
+While the full suite runs, let me verify the report now shows the detail column and correct notes.
+
+The report renders well. Let me wait for the full suite to finish.
+
+The suite runs in the background; I'll be notified when it finishes. Meanwhile, let me record the science in `LABNOTEBOOK.md` (append-only). Let me check its tail for format.
+
+Let me append a lab-notebook entry (append-only) documenting the finding and fix.
+
+Let me check the full-suite progress via its output file.
+
+Let me check whether the background suite has produced results yet.
+
+Full suite: **715 passed** (705 + my 10 new tests). Let me verify the tree is clean after the full run â€” the key regression check for this card.
+
+**715 passed**, and the only content changes are my intended two review files (189/189 reordering = the fix). The `card_pair_projection_completeness.jsonl` entry is the documented CR/LF phantom (not in the content diff). Let me restore that phantom and confirm it's byte-identical, then inspect how prior card commits are structured to match convention.
+
+Confirmed: the completeness entry is the documented CR/LF phantom (restored). Card commits go on `main`, worker-authored, with a handshake trailer. Let me verify a clean status, then stage exactly my changes and commit with a proper trailer block.
+
+Commit made; git's parser reads `Role=worker` and all Validation trailers (Â§8 satisfied). Let me confirm my new commit passes the trailer-enforcement test.
+
+The trailer test passes. Let me do a final state check.
+
+The card is complete. The working tree is clean and the commit is on `main` with a git-readable handshake trailer that passes `test_commit_trailers.py`.
+
+## Summary
+
+Built the determinism-audit harness card 013 called for, then applied the one fix it justified â€” measuring first, per the card's explicit warning against guessing.
+
+**New files**
+- `tools/determinism_audit.py` â€” regenerates every derived artifact several times, **each in a fresh process with a distinct `PYTHONHASHSEED`**, and compares the bytes the code writes (never git's blob â€” under `* text=auto` a CRLF working copy differs from an LF blob by one byte per line). Discovers each job's outputs by mtime, snapshots/restores the tree so a run leaves it byte-identical, verifies the frozen base against `frozen_manifest.json` and `data/processed` against `MANIFEST.sha256`, and exits non-zero if any covered artifact is unstable. `--report` writes the report. It discovers a hobkg-capable interpreter so it runs under both the project and orchestrator Pythons.
+- `tests/test_determinism_audit.py` â€” 10 tests (~21s): review files now stable, byte-identical across seeds, record multiset unchanged from committed, audit_repair projection covered/stable, characterization logic, non-zero exit contract, frozen-base verification, tree-clean.
+- `reports/determinism_audit.md` â€” the measured before/after narrative plus a live table: **69 artifacts regenerated (all stable), 8 frozen verified, 5 deckbench verified, 39 documented not-regenerable with reasons**.
+
+**The fix (`src/hobkg/phase3.py`)** â€” `reconcile` built its agreed/disputed edge and ability lists from Python `set` differences/intersections, whose iteration order is per-process random, so element order *inside* each record varied run to run (the confirmed intra-record instability). Sorted those set-derived keys with a total key. Regenerated `data/review/llm_accepted.jsonl` / `llm_queued.jsonl` once to the now-deterministic ordering (record multiset provably unchanged) so the suite leaves the tree clean.
+
+**Corrected a fourth wrong guess:** the card recorded `card_pair_projection_audit_repair.jsonl` as unsorted / "stable only by luck". Measured, its writer already sorts by a *total* key (`add_pair` de-dupes on the same triple), so it is byte-stable and `audit_repair.py` needed no change.
+
+**Validation:** harness `--report` exit 0; `pytest tests/test_determinism_audit.py` 10 passed; full suite **715 passed**; `ports --validate` rc 0; ruff clean and `mypy --strict` clean on the new files; trailer test passes. Also logged the finding in `LABNOTEBOOK.md` (append-only).
+
+### [2026-09-09 14:17] USER
+## Section 1: Reviewer Instructions
+
+You are the compact task reviewer.
+
+Return a verdict block in this exact shape:
+
+VERDICT: PASS|FAIL
+CRITERIA:
+- one bullet per acceptance criterion with evidence
+SUMMARY:
+one short summary paragraph
+
+Rules:
+- Base the judgment only on the supplied task card, latest passing audit entry, and supplied file contents.
+- Every judgment-class criterion must cite concrete evidence: a quoted line, a structural property, or a verified absence.
+- If evidence is insufficient, fail the task and explain the missing evidence.
+- Do not omit the `VERDICT:` line.
+
+## Section 2: Task Card
+
+---
+id: 013
+status: REVIEW
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 013: Establish which derived artifacts are actually deterministic
+
+## Objective
+
+`registry.md` carries the success criterion *"Frozen artifacts stay
+byte-identical, and two serial builds agree."* Nothing in this repository
+currently checks that across the board, and at least one artifact demonstrably
+violates it.
+
+Build the harness that decides the question for every derived artifact, then fix
+what it finds. The harness is the deliverable and comes first; the fixes are
+whatever it justifies.
+
+**Do not guess at causes.** A previous attempt at exactly this reasoning ΓÇö that
+incomplete sort keys were letting ties fall back to insertion order ΓÇö was
+checked and found false for two of the three files examined. Measure, then fix
+what the measurement shows.
+
+## Acceptance Criteria
+
+- [ ] A harness regenerates every derived artifact twice in a fresh process each time and compares the two results byte-for-byte, reporting per artifact: stable, unstable, or not regenerable
+- [ ] The comparison is done on bytes as written by the code, not on git's view; `* text=auto` rewrites line endings on checkout, so a CRLF working copy against an LF blob differs by exactly one byte per line and says nothing about determinism
+- [ ] For every artifact reported unstable, the harness reports **how** it differs: record count, whether the multiset of records is identical (pure reordering), whether any record differs internally, and the first differing byte offset
+- [ ] `reports/determinism_audit.md` lists every derived artifact with its verdict and, for unstable ones, the characterisation above
+- [ ] `data/review/llm_accepted.jsonl` and `data/review/llm_queued.jsonl` are covered and the harness reproduces their instability, which is the one confirmed case; the fix makes two serial regenerations byte-identical
+- [ ] The `data/review` fix addresses **intra-record** ordering, not line ordering: measured 2026-09-09, the two files differ from their committed blobs at identical total length with a **different line multiset**, so the variation is in the order of elements inside a JSON record, not in the order of records
+- [ ] `card_pair_projection_audit_repair.jsonl` is covered; its writer performs no sort, so its 2359 records are emitted in insertion order and the file is stable only by luck
+- [ ] Every artifact the harness finds unstable is either fixed so that two serial regenerations agree byte-for-byte, or documented in the report with the reason it cannot be
+- [ ] A fix changes only ordering or serialization, never which records exist; for each fixed artifact a test asserts the multiset of records is unchanged from the committed version
+- [ ] `data/graph_global/frozen_manifest.json` still verifies after any fix, and the frozen base (`nodes.jsonl`, `edges.jsonl`, `conditions.jsonl`) is byte-identical to its committed form
+- [ ] The harness is runnable as a single command and exits non-zero if any artifact it covers is unstable, so the criterion in `registry.md` becomes checkable rather than aspirational
+- [ ] All tests pass, and the card introduces no new ruff violation in any file it touches ΓÇö `src/hobkg` carries heavy pre-existing lint and type debt (`equip.py` alone: 108 ruff violations and 347 `mypy --strict` errors) and cleaning it is not this card's job
+
+## Inputs
+
+- registry.md
+
+## Modifies
+
+- src/hobkg/phase3.py
+- src/hobkg/audit_repair.py
+
+## See Also
+
+- reports/suite_stability.md
+
+## Outputs
+
+- tools/determinism_audit.py
+- tests/test_determinism_audit.py
+- reports/determinism_audit.md
+
+## Requirements
+
+- Measure before fixing. The report must state what was observed for each artifact before any change, so a later reader can tell which fixes were justified by evidence
+- Compare bytes produced by the code in two separate processes. Comparing within one process can hide a difference that depends on per-process hash randomization, and comparing against git can invent one that is only line endings
+- Do not change which records an artifact contains. Sorting, key ordering and serialization are in scope; adding, dropping or merging a record is not, and a test must prove the multiset is preserved
+- Where a sort is added or extended, make the key total ΓÇö if two records can still tie, the order is decided by insertion and the artifact stays unstable
+- Do not touch `nodes.jsonl`, `edges.jsonl`, `conditions.jsonl` or `frozen_manifest.json`. Those are the frozen base and a criterion above asserts they are unchanged
+- Do not modify `src/deckbench/*`; the modeling arm's artifacts already assert byte-identical rebuilds in their own cards and are covered by the harness only as verification
+- If an artifact is unstable because of upstream set iteration, fix it at the point the order is decided rather than by sorting at the end, where a partial key would leave the instability in place and hide it
+- Do not mark an artifact stable because it happened to match once. Two regenerations is the minimum the criterion asks for; if an artifact is suspected of intermittent instability, run it more and say how many times
+
+## Checks
+
+- python tools/determinism_audit.py --report
+
+## Output Validation
+
+- python -m pytest tests/test_determinism_audit.py -q
+- python -m hobkg.cli ports --validate
+- ruff check --select E,F,I,B,UP --line-length 100 tools/determinism_audit.py tests/test_determinism_audit.py
+- mypy --strict tools/determinism_audit.py
+
+## Blocked By
+
+- 012
+
+## Notes
+
+**What is already known, and how firmly.**
+
+*Established, and the only confirmed case:* `data/review/llm_accepted.jsonl` and
+`llm_queued.jsonl` are rewritten with different bytes by consecutive full-suite
+runs. Verified 2026-09-09 by comparing each working copy against its committed
+blob with line endings normalized: not identical, **identical total length**, and
+the **line multiset differs**. A differing line multiset at equal total length
+rules out record reordering and points at elements reordered *inside* a record.
+That matches the original diff, in which two entries within one record's
+`disputed_edges` array had swapped places. So the fix belongs wherever those
+lists are built, not in a file-level sort.
+
+*Established statically, never observed to vary:* the writer of
+`card_pair_projection_audit_repair.jsonl` performs no sort. Its 2359 records are
+emitted in insertion order, so the file is stable only if every upstream
+iteration happens to be. The harness should settle whether it actually varies.
+
+*Ruled out ΓÇö and this is a correction to an earlier claim in this card.*
+`card_pair_projection_completeness.jsonl` is **not** unstable. An earlier
+revision of this card recorded it as "observed once, cause unknown", inferred
+from a persistent `git status` entry at an identical byte count. Checked
+properly on 2026-09-09, the working copy and the committed blob are **raw
+byte-identical with the same SHA256**. The `git status` entry is a line-ending
+and stat artifact under `* text=auto`, not a content change. The claim was
+wrong.
+
+*Also ruled out:* incomplete sort keys, for both the completeness and equip
+projections. Checked against their writers' actual sort keys ΓÇö 1041 records with
+1041 distinct keys, and 3250 with 3250 ΓÇö so no ties exist for insertion order to
+break and the between-record order is fully determined.
+
+**Where the `data/review` fix has to go.** `src/hobkg/phase3.py` writes both
+files, at lines 512-513, 550 and 607, through a `_write_dicts` sink. Since the
+instability is intra-record rather than between records, sorting at that sink
+would not touch it ΓÇö the ordering to fix is inside whatever builds each record's
+`disputed_edges` list, upstream of the write. `phase3.py` is declared under
+Modifies for that reason; `audit_repair.py` is declared for its unsorted writer.
+No other module is expected to need changing, and one that does is a finding
+worth reporting.
+
+**Three mechanisms have now been guessed wrong in this area, all in the same
+way.** Each time the inference came from `git status` or a raw byte count rather
+than from comparing normalized content, and each time the wrong answer was
+plausible enough to have justified a fix that fixed nothing. That is the reason
+this card is a measurement harness rather than a list of repairs, and the reason
+the criteria above forbid comparing against git's view.
+
+**Why this matters beyond tidiness.** The repository's own success criterion says
+two serial builds agree. Card 006 sealed the holdout and pinned the split by
+hash; card 008 re-froze five artifacts under `MANIFEST.sha256`; card 011's run
+records pin a `split_sha256` so a reported fit can be audited. Every one of those
+guarantees assumes regeneration is reproducible. An artifact that reorders on
+each build makes its own hash meaningless, and a hash that changes for no reason
+trains people to ignore hash mismatches ΓÇö which is precisely the signal card 014
+depends on when it verifies the split before opening the holdout.
+
+**The cost this has already imposed.** Hand-reverting `data/review/*.jsonl` after
+essentially every full-suite run for two days, and one genuine confusion during
+card 011's cleanup where a dirty artifact had to be distinguished from real work
+before the tree could be committed.
+
+## Section 3: Latest Passing Audit Entry
+
+---
+entry_id: 20260909_141750_hobkg_013
+timestamp: 2026-09-09T14:17:50.239594-04:00
+project: hobkg
+task_id: 013
+task_title: Establish which derived artifacts are actually deterministic
+mode: managed
+model: claude
+reviewer_model: opus
+status_before: TODO
+status_after: REVIEW
+git_sha_project: 9da55418f2dbcbc48c249e09933b3283074de0ca
+git_sha_orchestrator: 26eb89204893b195e08362da511f53689cabc659
+python_version: 3.14.0
+lockfile_hash: 1132929d0ced89d89902f37fd31ccd263a5ac477b459550cdc33f6bf16758a12
+duration_seconds: 2372.18349200004
+output_file: audit/executor_output/013.output.txt
+---
+# Audit Entry: 20260909_141750_hobkg_013
+
+## Notes
+
+Execution, checks, and output validation completed successfully.
+
+## Check Results
+
+- [OK]   python -m pytest -q (200.4s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ........................................................................ [ 10%]
+  ........................................................................ [ 20%]
+  ........................................................................ [ 30%]
+  ........................................................................ [ 40%]
+  ........................................................................ [ 50%]
+  ........................................................................ [ 60%]
+  ........................................................................ [ 70%]
+  ........................................................................ [ 80%]
+  ........................................................................ [ 90%]
+  ...................................................................      [100%]
+  715 passed in 198.48s (0:03:18)
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python tools/determinism_audit.py --report (81.5s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  determinism audit: 69 regenerated, 0 unstable, seeds=[0, 1, 2]
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Validation Results
+
+- [OK]   python -m pytest tests/test_determinism_audit.py -q (18.6s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ..........                                                               [100%]
+  10 passed in 17.64s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python -m hobkg.cli ports --validate (0.4s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  {
+    "total_ports": 210,
+    "total_edges": 2242,
+    "undeclared_concepts": [],
+    "unresolved_abilities": 0,
+    "selector_in_name": []
+  }
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   ruff check --select E,F,I,B,UP --line-length 100 tools/determinism_audit.py tests/test_determinism_audit.py (0.0s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  All checks passed!
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   mypy --strict tools/determinism_audit.py (0.7s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Success: no issues found in 1 source file
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Section 4: Files Produced Or Modified By The Task
+
+### tools/determinism_audit.py
+
+```
+#!/usr/bin/env python3
+"""Determinism audit harness (card 013).
+
+`registry.md` carries the success criterion *"Frozen artifacts stay byte-identical,
+and two serial builds agree."* This harness makes that criterion checkable rather
+than aspirational: it regenerates every derived artifact several times, EACH in a
+fresh Python process, and compares the bytes the code actually writes.
+
+Why a fresh process per run: the one confirmed instability in this repository is
+per-record element order that falls out of Python `set` iteration, whose order is
+randomized per process via ``PYTHONHASHSEED``. Comparing two regenerations inside a
+single process would fix the seed and hide it; comparing against git's stored blob
+would invent a phantom difference, because ``* text=auto`` stores LF while the
+working copy is CRLF, so a CRLF working copy differs from an LF blob by exactly one
+byte per line and says nothing about determinism. This harness therefore
+
+  * spawns N fresh subprocesses per regeneration job, one per distinct hash seed;
+  * reads each artifact back in **binary**, i.e. exactly the bytes the code wrote;
+  * compares those byte strings to each other, never to git.
+
+For every artifact reported unstable it records how it differs: the record count in
+each run, whether the multiset of records is identical (pure reordering) or a record
+differs internally, and the offset of the first differing byte.
+
+The frozen base (``nodes.jsonl``, ``edges.jsonl``, ``conditions.jsonl`` and
+``frozen_manifest.json``) is never regenerated; the harness only verifies it stays
+byte-identical to the hashes pinned in ``frozen_manifest.json``. The modeling arm's
+``data/processed`` artifacts are likewise not rebuilt here (their own cards assert a
+byte-identical rebuild); the harness verifies them against ``MANIFEST.sha256``.
+
+The working tree is snapshotted before any regeneration and restored afterwards, so a
+run leaves it byte-identical to how it started.
+
+Usage::
+
+    python tools/determinism_audit.py            # audit, exit non-zero if unstable
+    python tools/determinism_audit.py --report    # also (re)write reports/determinism_audit.md
+    python tools/determinism_audit.py --runs 5     # regenerate 5x instead of the default 3
+    python tools/determinism_audit.py --jobs phase3_review,audit_repair   # subset (used by tests)
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+SRC = REPO / "src"
+
+# Directories holding derived artifacts we snapshot, restore and enumerate.
+DERIVED_DIRS = ("data/review", "data/llm", "data/graph_global", "schema", "reports")
+
+# The report this harness writes ΓÇö excluded from snapshot/restore (it must persist) and
+# from enumeration (it is not a build artifact, it is the audit's own output).
+REPORT_PATH = "reports/determinism_audit.md"
+
+# The frozen base: never regenerated, only verified byte-identical against the manifest.
+FROZEN_MANIFEST = "data/graph_global/frozen_manifest.json"
+FROZEN_FILES = (
+    "data/graph_global/nodes.jsonl",
+    "data/graph_global/edges.jsonl",
+    "data/graph_global/conditions.jsonl",
+    "data/graph/nodes.jsonl",
+    "data/graph/edges.jsonl",
+    "data/graph/conditions.jsonl",
+    "data/graph/gates.jsonl",
+    FROZEN_MANIFEST,
+)
+
+# Modeling-arm artifacts: not rebuilt here, verified against their own hash manifest.
+DECKBENCH_MANIFEST = "data/processed/MANIFEST.sha256"
+
+# Per-face directories collapse to a single grouped artifact so the report stays legible.
+GROUP_DIRS = (
+    "data/llm/tasks",
+    "data/llm/critiques",
+    "data/llm/batches",
+    "data/llm/rebatches",
+    "data/llm/audit",
+    "data/llm/extractions",
+)
+
+# Regeneration jobs: a name and the Python executed in a fresh subprocess. Each job reads
+# the committed inputs (the harness restores them before every run) and writes only
+# additive/derived outputs ΓÇö NONE of them touch the frozen base. Jobs earlier in the list
+# own any artifact they share with a later job (e.g. phase3_review owns llm_accepted.jsonl,
+# not phase3_apply_dispositions, which rewrites it with disposition edges).
+JOBS: tuple[tuple[str, str], ...] = (
+    ("phase3_build_tasks", "from hobkg import phase3; phase3.build_tasks()"),
+    ("phase3_review", "from hobkg import phase3; phase3.reconcile(); phase3.finalize_faces()"),
+    ("phase3_ingest", "from hobkg import phase3; phase3.ingest()"),
+    ("phase3_apply_dispositions", "from hobkg import phase3; phase3.apply_dispositions()"),
+    ("project", "from hobkg import project; project.project()"),
+    ("graph_repair", "from hobkg import graph_repair as g; g.repair(); g.reproject()"),
+    ("complete_mechanisms",
+     "from hobkg import complete_mechanisms as m; m.materialize(); m.reproject()"),
+    ("equip", "from hobkg import equip as e; e.materialize(); e.reproject()"),
+    ("completeness", "from hobkg import completeness as c; c.materialize(); c.reproject()"),
+    ("lifecycle", "from hobkg import lifecycle as x; x.materialize(); x.reproject()"),
+    ("audit", "from hobkg import audit as a; a.build_candidates(); a.build_batches(); a.ingest()"),
+    ("modules", "from hobkg import modules; modules.build_modules()"),
+    ("coverage",
+     "from hobkg import coverage as c; "
+     "c.coverage(); c.structural_validation_set(); c.pair_index()"),
+    ("audit_repair", "from hobkg import audit_repair; audit_repair.materialize()"),
+    ("schemas", "from hobkg import pipeline; pipeline.export_schemas()"),
+    # `ports --all` regenerates the 210-face artifact; the bare `ports` derives the 11-face
+    # pilot and DESTROYS card_ports.jsonl (HANDOFF hazard), so the flag is mandatory here.
+    ("ports", "from hobkg import ports; ports.main(['--all'])"),
+)
+
+PROBE = "import hobkg, jsonschema, pydantic; from hobkg import phase3, audit_repair"
+
+
+# --------------------------------------------------------------------------- #
+#  Data model                                                                   #
+# --------------------------------------------------------------------------- #
+
+@dataclass
+class ArtifactResult:
+    artifact: str                       # repo-relative path (or "dir/ (N files)")
+    job: str
+    verdict: str                        # stable | unstable | not_regenerable | verified_manifest
+    runs: int
+    note: str = ""
+    characterization: dict[str, object] | None = None
+
+
+@dataclass
+class AuditReport:
+    artifacts: list[ArtifactResult] = field(default_factory=list)
+    frozen: list[ArtifactResult] = field(default_factory=list)
+    deckbench: list[ArtifactResult] = field(default_factory=list)
+    job_errors: dict[str, str] = field(default_factory=dict)
+    seeds: list[int] = field(default_factory=list)
+
+    def any_unstable(self) -> bool:
+        pools = (self.artifacts, self.frozen, self.deckbench)
+        return any(r.verdict == "unstable" for pool in pools for r in pool)
+
+
+# --------------------------------------------------------------------------- #
+#  Interpreter discovery & child execution                                      #
+# --------------------------------------------------------------------------- #
+
+def find_interpreter() -> str:
+    """Return a Python that can import hobkg and its deps.
+
+    The default check runs under the orchestrator venv, which lacks hobkg and its
+    dependencies; so we probe candidates rather than assume ``sys.executable``.
+    """
+    candidates: list[str] = []
+    override = os.environ.get("HOBKG_PYTHON")
+    if override:
+        candidates.append(override)
+    candidates.append(sys.executable)
+    for name in ("python", "python3"):
+        found = shutil.which(name)
+        if found:
+            candidates.append(found)
+    candidates.append(r"C:\Python314\python.exe")
+
+    env = _child_env(seed=0)
+    seen: set[str] = set()
+    for cand in candidates:
+        if not cand or cand in seen:
+            continue
+        seen.add(cand)
+        try:
+            proc = subprocess.run([cand, "-c", PROBE], env=env,
+                                  capture_output=True, text=True, timeout=90)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if proc.returncode == 0:
+            return cand
+    raise SystemExit(
+        "determinism_audit: no Python interpreter found that can import hobkg + deps "
+        "(pydantic, jsonschema). Set HOBKG_PYTHON to the project interpreter.")
+
+
+def _child_env(seed: int) -> dict[str, str]:
+    env = os.environ.copy()
+    env["PYTHONHASHSEED"] = str(seed)
+    env["PYTHONPATH"] = str(SRC) + os.pathsep + env.get("PYTHONPATH", "")
+    return env
+
+
+def run_child(interp: str, code: str, seed: int) -> tuple[bool, str]:
+    try:
+        proc = subprocess.run([interp, "-c", code], env=_child_env(seed),
+                              capture_output=True, text=True, timeout=300)
+    except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover - environment
+        return False, f"{type(exc).__name__}: {exc}"
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout).strip().splitlines()
+        return False, tail[-1] if tail else f"exit {proc.returncode}"
+    return True, ""
+
+
+# --------------------------------------------------------------------------- #
+#  Snapshot / restore of the working tree                                       #
+# --------------------------------------------------------------------------- #
+
+def _derived_files() -> list[Path]:
+    out: list[Path] = []
+    excluded = (REPO / REPORT_PATH).resolve()
+    for rel in DERIVED_DIRS:
+        base = REPO / rel
+        if not base.exists():
+            continue
+        for path in base.rglob("*"):
+            if path.is_file() and path.resolve() != excluded:
+                out.append(path)
+    return out
+
+
+def snapshot() -> dict[Path, bytes]:
+    return {path: path.read_bytes() for path in _derived_files()}
+
+
+def restore(snap: dict[Path, bytes]) -> None:
+    """Restore every snapshotted file and delete anything created since. Rewrites only
+    files whose bytes drifted, so untouched files keep their original mtime."""
+    for path in _derived_files():
+        if path not in snap:
+            path.unlink()
+    for path, data in snap.items():
+        if not path.exists() or path.read_bytes() != data:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+
+
+def _mtimes(paths: list[Path]) -> dict[Path, float]:
+    out: dict[Path, float] = {}
+    for path in paths:
+        if path.exists():
+            out[path] = path.stat().st_mtime_ns
+    return out
+
+
+def _written_since(before: dict[Path, float]) -> list[Path]:
+    """Files whose mtime changed (or that appeared) since ``before`` ΓÇö i.e. the outputs a
+    job wrote. mtime updates on every write even when the bytes are identical, so a stable
+    output is still detected."""
+    return [p for p in _derived_files() if before.get(p) != p.stat().st_mtime_ns]
+
+
+# --------------------------------------------------------------------------- #
+#  Grouping & comparison                                                        #
+# --------------------------------------------------------------------------- #
+
+def _rel(path: Path) -> str:
+    return path.relative_to(REPO).as_posix()
+
+
+def _artifact_id(path: Path) -> str:
+    rel = _rel(path)
+    for group in GROUP_DIRS:
+        if rel.startswith(group + "/"):
+            return group
+    return rel
+
+
+def _combine(members: dict[str, bytes]) -> bytes:
+    """Deterministic byte view of a grouped directory: each member as
+    ``<rel>\\n<bytes>\\n`` in sorted-path order. Any per-file difference surfaces."""
+    parts: list[bytes] = []
+    for rel in sorted(members):
+        parts.append(rel.encode("utf-8") + b"\n" + members[rel] + b"\n")
+    return b"".join(parts)
+
+
+def _first_diff(a: bytes, b: bytes) -> int:
+    limit = min(len(a), len(b))
+    for i in range(limit):
+        if a[i] != b[i]:
+            return i
+    return limit if len(a) != len(b) else -1
+
+
+def characterize(runs: list[bytes], jsonl: bool) -> dict[str, object]:
+    """Compare run 0 against the first run that differs from it and describe the diff."""
+    base = runs[0]
+    other = next((r for r in runs[1:] if r != base), base)
+
+    def records(data: bytes) -> list[bytes]:
+        if jsonl:
+            return [line for line in data.split(b"\n") if line]
+        return [data]
+
+    ra, rb = records(base), records(other)
+    multiset_identical = sorted(ra) == sorted(rb)
+    return {
+        "record_count": [len(ra), len(rb)],
+        "byte_length": [len(base), len(other)],
+        "multiset_of_records_identical": multiset_identical,
+        "pure_reordering": multiset_identical and base != other,
+        "a_record_differs_internally": not multiset_identical,
+        "first_differing_byte_offset": _first_diff(base, other),
+    }
+
+
+# --------------------------------------------------------------------------- #
+#  The audit                                                                    #
+# --------------------------------------------------------------------------- #
+
+def _sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _verify_frozen(seeds: list[int]) -> list[ArtifactResult]:
+    manifest_path = REPO / FROZEN_MANIFEST
+    pinned: dict[str, str] = {}
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        pinned = {rel: entry["sha256"] for rel, entry in manifest.items()}
+    out: list[ArtifactResult] = []
+    for rel in FROZEN_FILES:
+        path = REPO / rel
+        if not path.exists():
+            out.append(ArtifactResult(rel, "(frozen)", "not_regenerable", 0,
+                                      "frozen base file absent"))
+            continue
+        actual = _sha256(path.read_bytes())
+        if rel == FROZEN_MANIFEST:
+            out.append(ArtifactResult(rel, "(frozen)", "stable", 0,
+                                      "frozen manifest; not regenerated"))
+        elif rel in pinned and pinned[rel] == actual:
+            out.append(ArtifactResult(rel, "(frozen)", "stable", 0,
+                                      "byte-identical to frozen_manifest.json"))
+        elif rel in pinned:
+            out.append(ArtifactResult(rel, "(frozen)", "unstable", 0,
+                                      f"sha256 {actual[:12]} != pinned {pinned[rel][:12]}"))
+        else:
+            out.append(ArtifactResult(rel, "(frozen)", "stable", 0,
+                                      "frozen base; not pinned in this manifest, not regenerated"))
+    return out
+
+
+def _verify_deckbench() -> list[ArtifactResult]:
+    manifest_path = REPO / DECKBENCH_MANIFEST
+    out: list[ArtifactResult] = []
+    if not manifest_path.exists():
+        return out
+    for line in manifest_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        digest, _, name = line.partition(" ")
+        rel = name.lstrip("*").strip()
+        path = REPO / rel
+        if not path.exists():
+            out.append(ArtifactResult(rel, "(deckbench)", "not_regenerable", 0,
+                                      "gitignored blob absent; rebuild via deckbench cards"))
+            continue
+        actual = _sha256(path.read_bytes())
+        verdict = "verified_manifest" if actual == digest else "unstable"
+        note = ("matches MANIFEST.sha256 (verified, not regenerated here)"
+                if verdict == "verified_manifest"
+                else f"sha256 {actual[:12]} != manifest {digest[:12]}")
+        out.append(ArtifactResult(rel, "(deckbench)", verdict, 0, note))
+    return out
+
+
+def run_audit(jobs: list[str] | None = None, runs: int = 3,
+              interp: str | None = None) -> AuditReport:
+    seeds = list(range(runs))
+    interp = interp or find_interpreter()
+    selected = [(n, c) for n, c in JOBS if jobs is None or n in jobs]
+
+    report = AuditReport(seeds=seeds)
+    assigned: set[str] = set()
+    snap = snapshot()
+    try:
+        for job_name, code in selected:
+            # captures[artifact_id] -> list (per seed) of bytes; grouped dirs accumulate members
+            captures: dict[str, list[bytes]] = {}
+            group_members: dict[str, list[dict[str, bytes]]] = {}
+            frozen_before = {REPO / f: (REPO / f).stat().st_mtime_ns
+                             for f in FROZEN_FILES if (REPO / f).exists()}
+            failed = False
+            frozen_touched = False
+            for seed in seeds:
+                restore(snap)
+                before = _mtimes(_derived_files())
+                ok, err = run_child(interp, code, seed)
+                if not ok:
+                    report.job_errors[job_name] = err
+                    failed = True
+                    break
+                for fpath, mtime in frozen_before.items():
+                    if fpath.exists() and fpath.stat().st_mtime_ns != mtime:
+                        frozen_touched = True
+                for path in _written_since(before):
+                    aid = _artifact_id(path)
+                    if aid in GROUP_DIRS:
+                        group_members.setdefault(aid, [{} for _ in seeds])
+                        group_members[aid][seeds.index(seed)][_rel(path)] = path.read_bytes()
+                    else:
+                        captures.setdefault(aid, [])
+                        captures[aid].append(path.read_bytes())
+            restore(snap)
+            if failed:
+                continue
+            for aid, members_per_seed in group_members.items():
+                captures[aid] = [_combine(m) for m in members_per_seed]
+            if frozen_touched:
+                report.job_errors[job_name] = (report.job_errors.get(job_name, "")
+                                               + " [job wrote a frozen-base file]").strip()
+            _record_job(report, job_name, captures, assigned, seeds)
+    finally:
+        restore(snap)
+
+    report.frozen = _verify_frozen(seeds)
+    report.deckbench = _verify_deckbench()
+    return report
+
+
+def _record_job(report: AuditReport, job_name: str, captures: dict[str, list[bytes]],
+                assigned: set[str], seeds: list[int]) -> None:
+    for aid in sorted(captures):
+        if aid in assigned:
+            continue                      # owned by an earlier job
+        assigned.add(aid)
+        runs_bytes = captures[aid]
+        jsonl = aid.endswith(".jsonl") or aid in GROUP_DIRS
+        if len(runs_bytes) < len(seeds) or any(b != runs_bytes[0] for b in runs_bytes):
+            report.artifacts.append(ArtifactResult(
+                aid, job_name, "unstable", len(runs_bytes),
+                characterization=characterize(runs_bytes, jsonl)))
+        else:
+            report.artifacts.append(ArtifactResult(aid, job_name, "stable", len(runs_bytes)))
+
+
+def _uncovered_note(rel: str) -> str:
+    if rel.endswith("assembly_review.jsonl"):
+        return ("written by `assemble` with the frozen base; not regenerated here "
+                "(would touch the frozen base)")
+    if "effect" in rel:
+        return ("effect-semantics overlay (Phase 4f); regenerable via the effect-* "
+                "commands, not wired into this harness")
+    if rel.endswith(("card_communities.jsonl", "set_network.html", "card_002_dashboard.html")):
+        return ("network/community projection; regenerable via the network layer, "
+                "not wired into this harness")
+    if rel.endswith(("human_audit_items.jsonl", "human_audit_verdicts.jsonl",
+                     "llm_dispositions.jsonl", "unresolved.jsonl")):
+        return "hand-authored or agent-produced input; no deterministic producer"
+    if rel.startswith("schema/"):
+        return "JSON Schema exported by an unrecipe'd pipeline stage; not wired into this harness"
+    if rel.startswith("reports/"):
+        return "narrative / one-off report, not a rebuildable data artifact"
+    return "no regeneration recipe registered in this harness"
+
+
+def _enumerate_uncovered(report: AuditReport) -> list[ArtifactResult]:
+    """Every derived file with no producing recipe in this harness ΓÇö reported honestly as
+    'not regenerable' with the reason, so 'covered' means every artifact is accounted for."""
+    covered = {r.artifact for r in report.artifacts}
+    covered |= set(GROUP_DIRS)
+    frozen = set(FROZEN_FILES)
+    out: list[ArtifactResult] = []
+    seen_groups: set[str] = set()
+    for path in _derived_files():
+        rel = _rel(path)
+        if rel in frozen:
+            continue
+        aid = _artifact_id(path)
+        if aid in covered or aid in seen_groups:
+            if aid in GROUP_DIRS:
+                seen_groups.add(aid)
+            continue
+        if aid in GROUP_DIRS:
+            seen_groups.add(aid)
+        out.append(ArtifactResult(aid, "(none)", "not_regenerable", 0, _uncovered_note(aid)))
+    return out
+
+
+# --------------------------------------------------------------------------- #
+#  Report                                                                       #
+# --------------------------------------------------------------------------- #
+
+NARRATIVE = """# Determinism audit
+
+*Card 013 ΓÇö establish which derived artifacts are actually deterministic.*
+
+`registry.md` requires that *frozen artifacts stay byte-identical and two serial builds
+agree*. This report is produced by `tools/determinism_audit.py`, which regenerates every
+derived artifact several times ΓÇö each in a **fresh process** with a distinct
+`PYTHONHASHSEED` ΓÇö and compares the bytes the code writes, never git's stored blob (under
+`* text=auto` a CRLF working copy differs from an LF blob by one byte per line, which is
+not a determinism signal). Run it with `python tools/determinism_audit.py --report`; it
+exits non-zero if any regenerated artifact is unstable.
+
+## What was measured before any fix (2026-09-09)
+
+**Confirmed unstable ΓÇö the only genuine case: `data/review/llm_accepted.jsonl` and
+`data/review/llm_queued.jsonl`.** Two fresh regenerations (`phase3.reconcile();
+phase3.finalize_faces()`, the path the test suite exercises) under different hash seeds
+produced files of *identical length* but *different bytes*: for `llm_queued.jsonl`,
+37 records both runs, first differing byte at offset 178; for `llm_accepted.jsonl`,
+211 records both runs, first differing byte at offset 1247. In both files the multiset of
+records (lines) differed, which ΓÇö at equal total length ΓÇö is a record differing
+internally, not records reordered. The cause is in `phase3.reconcile`: `agreed_edges`,
+`disputed_edges`, `agreed_abilities` and `disputed_abilities` were built by iterating
+Python `set` differences/intersections, whose order is randomized per process. The order
+of elements *inside* each record's list therefore varied run to run.
+
+**The fix** sorts those set-derived keys with a total key before building the lists
+(edge keys are `(source, predicate, target)` string triples; ability keys use a None-safe
+total order). Records are unchanged ΓÇö only their internal element order is now fixed.
+Verified: two serial regenerations are byte-identical across five hash seeds, and the
+canonical (order-insensitive) multiset of records is identical to the committed version
+(no record added, dropped or altered). The committed `llm_accepted.jsonl` /
+`llm_queued.jsonl` were rewritten once to the now-deterministic ordering so the suite
+leaves the tree clean.
+
+**Corrected premise ΓÇö `card_pair_projection_audit_repair.jsonl` is stable, and not by
+luck.** The card recorded this file as sorted by nothing / "stable only by luck". Measured
+here, its writer sorts every record by `(source_card, target_card, relation)`, and
+`add_pair` de-duplicates on exactly that triple, so the key is *total* ΓÇö no ties fall back
+to insertion order ΓÇö and its upstream iterations are `sorted(...)`. Three fresh
+regenerations are byte-identical. This is the fourth mechanism in this area to be inferred
+wrong from something other than a byte comparison; `audit_repair.py` needed no change.
+
+## Live verdicts
+
+The table below is regenerated on every `--report` run.
+"""
+
+
+def _fmt_char(char: dict[str, object] | None) -> str:
+    if not char:
+        return ""
+    rc = char["record_count"]
+    return (f"records={rc}; multiset_identical={char['multiset_of_records_identical']}; "
+            f"pure_reordering={char['pure_reordering']}; "
+            f"record_differs_internally={char['a_record_differs_internally']}; "
+            f"first_diff_byte={char['first_differing_byte_offset']}")
+
+
+def render_report(report: AuditReport) -> str:
+    uncovered = _enumerate_uncovered(report)
+    lines = [NARRATIVE.rstrip(), ""]
+    lines.append(f"Seeds this run: {report.seeds}. "
+                 f"Regenerated artifacts: {len(report.artifacts)}; "
+                 f"frozen verified: {len(report.frozen)}; "
+                 f"deckbench verified: {len(report.deckbench)}; "
+                 f"not regenerable: {len(uncovered)}.")
+    lines.append("")
+
+    def table(title: str, rows: list[ArtifactResult]) -> None:
+        lines.append(f"### {title}")
+        lines.append("")
+        lines.append("| artifact | job | runs | verdict | detail |")
+        lines.append("|---|---|---|---|---|")
+        for r in sorted(rows, key=lambda x: (x.verdict != "unstable", x.artifact)):
+            detail = r.note or _fmt_char(r.characterization)
+            lines.append(f"| `{r.artifact}` | {r.job} | {r.runs} | **{r.verdict}** | {detail} |")
+        lines.append("")
+
+    table("Regenerated derived artifacts", report.artifacts)
+    table("Frozen base (verified byte-identical, not regenerated)", report.frozen)
+    table("Modeling arm ΓÇö data/processed (verified against MANIFEST.sha256)", report.deckbench)
+    if uncovered:
+        table("Derived files with no regeneration recipe here", uncovered)
+
+    unstable = [r for r in report.artifacts + report.frozen + report.deckbench
+                if r.verdict == "unstable"]
+    lines.append("### Summary")
+    lines.append("")
+    if unstable:
+        lines.append(f"**{len(unstable)} artifact(s) UNSTABLE** ΓÇö harness exits non-zero.")
+        for r in unstable:
+            lines.append(f"- `{r.artifact}` ({r.job}): {r.note or _fmt_char(r.characterization)}")
+    else:
+        lines.append("All regenerated artifacts are byte-stable across the seeds tried; the "
+                     "frozen base and modeling-arm artifacts match their pinned hashes.")
+    lines.append("")
+    return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+#  CLI                                                                          #
+# --------------------------------------------------------------------------- #
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Determinism audit for derived artifacts.")
+    parser.add_argument("--report", action="store_true",
+                        help=f"(re)write {REPORT_PATH}")
+    parser.add_argument("--runs", type=int, default=3,
+                        help="regenerations per artifact (fresh process each; default 3)")
+    parser.add_argument("--jobs", type=str, default=None,
+                        help="comma-separated subset of job names to run")
+    args = parser.parse_args(argv)
+
+    jobs = args.jobs.split(",") if args.jobs else None
+    report = run_audit(jobs=jobs, runs=max(2, args.runs))
+    text = render_report(report)
+
+    if args.report:
+        (REPO / REPORT_PATH).write_text(text, encoding="utf-8", newline="\n")
+
+    unstable = [r for r in report.artifacts + report.frozen + report.deckbench
+                if r.verdict == "unstable"]
+    for name, err in report.job_errors.items():
+        print(f"job error: {name}: {err}", file=sys.stderr)
+    print(f"determinism audit: {len(report.artifacts)} regenerated, "
+          f"{len(unstable)} unstable, seeds={report.seeds}")
+    for r in unstable:
+        print(f"  UNSTABLE {r.artifact} ({r.job}): "
+              f"{r.note or _fmt_char(r.characterization)}")
+    return 1 if unstable else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+```
+
+### tests/test_determinism_audit.py
+
+```
+"""Tests for the card-013 determinism audit harness (`tools/determinism_audit.py`).
+
+These exercise the harness against the real repository but keep the subprocess count
+low so the file runs well under the orchestrator's 60 s Output-Validation budget:
+
+  * the confirmed-unstable review files are now byte-stable across fresh processes;
+  * the fix changed only ordering ΓÇö the multiset of records equals the committed version;
+  * `card_pair_projection_audit_repair.jsonl` is covered and stable;
+  * the characterization logic distinguishes pure reordering from an internal record diff;
+  * the harness exits non-zero exactly when a covered artifact is unstable;
+  * a run leaves the working tree byte-identical.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+from pathlib import Path
+from types import ModuleType
+
+import pytest
+
+REPO = Path(__file__).resolve().parents[1]
+REVIEW_FILES = ("llm_accepted.jsonl", "llm_queued.jsonl")
+
+
+def _load_harness() -> ModuleType:
+    path = REPO / "tools" / "determinism_audit.py"
+    spec = importlib.util.spec_from_file_location("determinism_audit", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module          # dataclass introspection needs it registered
+    spec.loader.exec_module(module)
+    return module
+
+
+da = _load_harness()
+
+
+@pytest.fixture(scope="module")
+def interp() -> str:
+    return da.find_interpreter()
+
+
+@pytest.fixture(scope="module")
+def review_and_audit_report(interp: str):
+    # One shared run of the two card-critical jobs, two fresh processes each.
+    return da.run_audit(jobs=["phase3_review", "audit_repair"], runs=2, interp=interp)
+
+
+def _find(report, artifact: str):
+    return next((r for r in report.artifacts if r.artifact == artifact), None)
+
+
+def _canon(obj):
+    if isinstance(obj, dict):
+        return {k: _canon(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        items = [_canon(x) for x in obj]
+        return sorted(items, key=lambda x: json.dumps(x, sort_keys=True, ensure_ascii=False))
+    return obj
+
+
+def _canonical_multiset(text: str) -> list[str]:
+    out = []
+    for line in text.splitlines():
+        line = line.strip()
+        if line:
+            out.append(json.dumps(_canon(json.loads(line)), sort_keys=True, ensure_ascii=False))
+    return sorted(out)
+
+
+# --------------------------------------------------------------------------- #
+#  The confirmed case: review files are now deterministic                       #
+# --------------------------------------------------------------------------- #
+
+def test_review_files_reported_stable(review_and_audit_report) -> None:
+    report = review_and_audit_report
+    for name in ("llm_accepted.jsonl", "llm_queued.jsonl", "llm_face_status.jsonl"):
+        res = _find(report, f"data/review/{name}")
+        assert res is not None, f"{name} not covered by the harness"
+        assert res.verdict == "stable", (name, res.characterization)
+
+
+def test_reconcile_output_is_byte_identical_across_hash_seeds(interp: str) -> None:
+    # Directly exercise the fix through the harness primitives, in two fresh processes
+    # under different hash seeds. Pre-fix this differed; it must now agree byte-for-byte.
+    code = "from hobkg import phase3; phase3.reconcile(); phase3.finalize_faces()"
+    snap = da.snapshot()
+    captured: list[dict[str, bytes]] = []
+    try:
+        for seed in (0, 91237):
+            da.restore(snap)
+            ok, err = da.run_child(interp, code, seed)
+            assert ok, err
+            captured.append({n: (REPO / "data/review" / n).read_bytes() for n in REVIEW_FILES})
+    finally:
+        da.restore(snap)
+    for name in REVIEW_FILES:
+        assert captured[0][name] == captured[1][name], f"{name} differs between hash seeds"
+
+
+def test_fix_preserves_record_multiset_of_committed_review_files(interp: str) -> None:
+    # The committed files are the working copy (clean tree); a fresh regeneration must
+    # contain the same records ΓÇö only their intra-record ordering may change.
+    code = "from hobkg import phase3; phase3.reconcile(); phase3.finalize_faces()"
+    committed = {n: _canonical_multiset((REPO / "data/review" / n).read_text(encoding="utf-8"))
+                 for n in REVIEW_FILES}
+    snap = da.snapshot()
+    try:
+        da.restore(snap)
+        ok, err = da.run_child(interp, code, 4242)
+        assert ok, err
+        regen = {n: _canonical_multiset((REPO / "data/review" / n).read_text(encoding="utf-8"))
+                 for n in REVIEW_FILES}
+    finally:
+        da.restore(snap)
+    for name in REVIEW_FILES:
+        assert regen[name] == committed[name], f"{name} record multiset changed"
+
+
+# --------------------------------------------------------------------------- #
+#  audit_repair projection is covered and stable                                #
+# --------------------------------------------------------------------------- #
+
+def test_audit_repair_projection_covered_and_stable(review_and_audit_report) -> None:
+    res = _find(review_and_audit_report,
+                "data/graph_global/card_pair_projection_audit_repair.jsonl")
+    assert res is not None, "audit_repair projection not covered"
+    assert res.verdict == "stable"
+
+
+# --------------------------------------------------------------------------- #
+#  Characterization: pure reordering vs an internal record diff                 #
+# --------------------------------------------------------------------------- #
+
+def test_characterize_pure_reordering() -> None:
+    a = b'{"id":1}\n{"id":2}\n'
+    b = b'{"id":2}\n{"id":1}\n'
+    char = da.characterize([a, b], jsonl=True)
+    assert char["multiset_of_records_identical"] is True
+    assert char["pure_reordering"] is True
+    assert char["a_record_differs_internally"] is False
+    assert char["record_count"] == [2, 2]
+    assert char["first_differing_byte_offset"] >= 0
+
+
+def test_characterize_internal_record_diff() -> None:
+    # An element reordered *inside* a record ΓÇö the confirmed llm_queued.jsonl signature.
+    a = b'{"e":["x","y"]}\n'
+    b = b'{"e":["y","x"]}\n'
+    char = da.characterize([a, b], jsonl=True)
+    assert char["multiset_of_records_identical"] is False
+    assert char["pure_reordering"] is False
+    assert char["a_record_differs_internally"] is True
+    assert char["record_count"] == [1, 1]
+    assert char["byte_length"] == [len(a), len(b)]
+
+
+# --------------------------------------------------------------------------- #
+#  Exit-code contract and tree hygiene                                          #
+# --------------------------------------------------------------------------- #
+
+def test_main_exit_nonzero_when_an_artifact_is_unstable(monkeypatch) -> None:
+    unstable = da.AuditReport(seeds=[0, 1])
+    unstable.artifacts.append(da.ArtifactResult(
+        "x.jsonl", "job", "unstable", 2,
+        characterization=da.characterize([b"a\n", b"b\n"], jsonl=True)))
+    monkeypatch.setattr(da, "run_audit", lambda **kwargs: unstable)
+    monkeypatch.setattr(da, "render_report", lambda report: "")
+    assert da.main([]) == 1
+
+    stable = da.AuditReport(seeds=[0, 1])
+    stable.artifacts.append(da.ArtifactResult("y.jsonl", "job", "stable", 2))
+    monkeypatch.setattr(da, "run_audit", lambda **kwargs: stable)
+    assert da.main([]) == 0
+
+
+def test_report_flags_unstable_artifacts_as_failure() -> None:
+    report = da.AuditReport(seeds=[0, 1])
+    report.artifacts.append(da.ArtifactResult(
+        "data/review/x.jsonl", "phase3_review", "unstable", 2,
+        characterization=da.characterize([b'{"e":["x","y"]}\n', b'{"e":["y","x"]}\n'], jsonl=True)))
+    text = da.render_report(report)
+    assert "UNSTABLE" in text
+    assert "first_diff_byte" in text
+
+
+def test_frozen_base_verified_byte_identical(review_and_audit_report) -> None:
+    frozen = {r.artifact: r for r in review_and_audit_report.frozen}
+    for name in ("nodes.jsonl", "edges.jsonl", "conditions.jsonl"):
+        res = frozen.get(f"data/graph_global/{name}")
+        assert res is not None and res.verdict == "stable", name
+
+
+def test_audit_run_leaves_tree_byte_identical(interp: str) -> None:
+    sample = [REPO / "data/review/llm_accepted.jsonl",
+              REPO / "data/graph_global/card_pair_projection_audit_repair.jsonl",
+              REPO / "data/graph_global/edges.jsonl"]
+    before = {p: p.read_bytes() for p in sample}
+    da.run_audit(jobs=["phase3_review", "audit_repair"], runs=2, interp=interp)
+    for path, data in before.items():
+        assert path.read_bytes() == data, f"{path} not restored to its original bytes"
+
+```
+
+### reports/determinism_audit.md
+
+```
+# Determinism audit
+
+*Card 013 ΓÇö establish which derived artifacts are actually deterministic.*
+
+`registry.md` requires that *frozen artifacts stay byte-identical and two serial builds
+agree*. This report is produced by `tools/determinism_audit.py`, which regenerates every
+derived artifact several times ΓÇö each in a **fresh process** with a distinct
+`PYTHONHASHSEED` ΓÇö and compares the bytes the code writes, never git's stored blob (under
+`* text=auto` a CRLF working copy differs from an LF blob by one byte per line, which is
+not a determinism signal). Run it with `python tools/determinism_audit.py --report`; it
+exits non-zero if any regenerated artifact is unstable.
+
+## What was measured before any fix (2026-09-09)
+
+**Confirmed unstable ΓÇö the only genuine case: `data/review/llm_accepted.jsonl` and
+`data/review/llm_queued.jsonl`.** Two fresh regenerations (`phase3.reconcile();
+phase3.finalize_faces()`, the path the test suite exercises) under different hash seeds
+produced files of *identical length* but *different bytes*: for `llm_queued.jsonl`,
+37 records both runs, first differing byte at offset 178; for `llm_accepted.jsonl`,
+211 records both runs, first differing byte at offset 1247. In both files the multiset of
+records (lines) differed, which ΓÇö at equal total length ΓÇö is a record differing
+internally, not records reordered. The cause is in `phase3.reconcile`: `agreed_edges`,
+`disputed_edges`, `agreed_abilities` and `disputed_abilities` were built by iterating
+Python `set` differences/intersections, whose order is randomized per process. The order
+of elements *inside* each record's list therefore varied run to run.
+
+**The fix** sorts those set-derived keys with a total key before building the lists
+(edge keys are `(source, predicate, target)` string triples; ability keys use a None-safe
+total order). Records are unchanged ΓÇö only their internal element order is now fixed.
+Verified: two serial regenerations are byte-identical across five hash seeds, and the
+canonical (order-insensitive) multiset of records is identical to the committed version
+(no record added, dropped or altered). The committed `llm_accepted.jsonl` /
+`llm_queued.jsonl` were rewritten once to the now-deterministic ordering so the suite
+leaves the tree clean.
+
+**Corrected premise ΓÇö `card_pair_projection_audit_repair.jsonl` is stable, and not by
+luck.** The card recorded this file as sorted by nothing / "stable only by luck". Measured
+here, its writer sorts every record by `(source_card, target_card, relation)`, and
+`add_pair` de-duplicates on exactly that triple, so the key is *total* ΓÇö no ties fall back
+to insertion order ΓÇö and its upstream iterations are `sorted(...)`. Three fresh
+regenerations are byte-identical. This is the fourth mechanism in this area to be inferred
+wrong from something other than a byte comparison; `audit_repair.py` needed no change.
+
+## Live verdicts
+
+The table below is regenerated on every `--report` run.
+
+Seeds this run: [0, 1, 2]. Regenerated artifacts: 69; frozen verified: 8; deckbench verified: 5; not regenerable: 39.
+
+### Regenerated derived artifacts
+
+| artifact | job | runs | verdict | detail |
+|---|---|---|---|---|
+| `data/graph_global/audit_adjudication_queue.jsonl` | audit | 3 | **stable** |  |
+| `data/graph_global/audit_candidates.jsonl` | audit | 3 | **stable** |  |
+| `data/graph_global/audit_repair_edges.jsonl` | audit_repair | 3 | **stable** |  |
+| `data/graph_global/audit_repair_nodes.jsonl` | audit_repair | 3 | **stable** |  |
+| `data/graph_global/audit_repair_queue.jsonl` | audit | 3 | **stable** |  |
+| `data/graph_global/audit_repair_suppressions.jsonl` | audit_repair | 3 | **stable** |  |
+| `data/graph_global/audit_results.jsonl` | audit | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection.jsonl` | project | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection_audit.jsonl` | audit | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection_audit_repair.jsonl` | audit_repair | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection_completeness.jsonl` | completeness | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection_equip.jsonl` | equip | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection_lifecycle.jsonl` | lifecycle | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection_mechanism.jsonl` | complete_mechanisms | 3 | **stable** |  |
+| `data/graph_global/card_pair_projection_repaired.jsonl` | graph_repair | 3 | **stable** |  |
+| `data/graph_global/card_ports.jsonl` | ports | 3 | **stable** |  |
+| `data/graph_global/completeness_conditions.jsonl` | completeness | 3 | **stable** |  |
+| `data/graph_global/completeness_edges.jsonl` | completeness | 3 | **stable** |  |
+| `data/graph_global/completeness_nodes.jsonl` | completeness | 3 | **stable** |  |
+| `data/graph_global/coverage.json` | coverage | 3 | **stable** |  |
+| `data/graph_global/equip_conditions.jsonl` | equip | 3 | **stable** |  |
+| `data/graph_global/equip_dispositions.jsonl` | equip | 3 | **stable** |  |
+| `data/graph_global/equip_edges.jsonl` | equip | 3 | **stable** |  |
+| `data/graph_global/equip_nodes.jsonl` | equip | 3 | **stable** |  |
+| `data/graph_global/legend_edges.jsonl` | modules | 3 | **stable** |  |
+| `data/graph_global/legend_nodes.jsonl` | modules | 3 | **stable** |  |
+| `data/graph_global/lifecycle_edges.jsonl` | lifecycle | 3 | **stable** |  |
+| `data/graph_global/lifecycle_nodes.jsonl` | lifecycle | 3 | **stable** |  |
+| `data/graph_global/mechanism_conditions.jsonl` | complete_mechanisms | 3 | **stable** |  |
+| `data/graph_global/mechanism_edges.jsonl` | complete_mechanisms | 3 | **stable** |  |
+| `data/graph_global/mechanism_modules.jsonl` | modules | 3 | **stable** |  |
+| `data/graph_global/mechanism_nodes.jsonl` | complete_mechanisms | 3 | **stable** |  |
+| `data/graph_global/pair_index.jsonl` | coverage | 3 | **stable** |  |
+| `data/graph_global/repair_edges.jsonl` | graph_repair | 3 | **stable** |  |
+| `data/graph_global/repair_nodes.jsonl` | graph_repair | 3 | **stable** |  |
+| `data/graph_global/structural_validation_set.jsonl` | coverage | 3 | **stable** |  |
+| `data/llm/audit` | audit | 3 | **stable** |  |
+| `data/llm/shared_context.json` | phase3_build_tasks | 3 | **stable** |  |
+| `data/llm/tasks` | phase3_build_tasks | 3 | **stable** |  |
+| `data/llm/tasks_index.jsonl` | phase3_build_tasks | 3 | **stable** |  |
+| `data/review/llm_accepted.jsonl` | phase3_review | 3 | **stable** |  |
+| `data/review/llm_candidates.jsonl` | phase3_ingest | 3 | **stable** |  |
+| `data/review/llm_face_status.jsonl` | phase3_review | 3 | **stable** |  |
+| `data/review/llm_queued.jsonl` | phase3_review | 3 | **stable** |  |
+| `data/review/llm_rejections.jsonl` | phase3_ingest | 3 | **stable** |  |
+| `data/review/llm_span_warnings.jsonl` | phase3_ingest | 3 | **stable** |  |
+| `data/review/llm_unresolved.jsonl` | phase3_apply_dispositions | 3 | **stable** |  |
+| `reports/completeness.md` | completeness | 3 | **stable** |  |
+| `reports/coverage.md` | coverage | 3 | **stable** |  |
+| `reports/equip.md` | equip | 3 | **stable** |  |
+| `reports/graph_repair.md` | graph_repair | 3 | **stable** |  |
+| `reports/lifecycle.md` | lifecycle | 3 | **stable** |  |
+| `reports/mechanism_modules.md` | modules | 3 | **stable** |  |
+| `reports/mechanism_repair.md` | complete_mechanisms | 3 | **stable** |  |
+| `reports/pair_audit.md` | audit | 3 | **stable** |  |
+| `reports/pair_projection.md` | project | 3 | **stable** |  |
+| `reports/structural_validation.md` | coverage | 3 | **stable** |  |
+| `schema/card.schema.json` | schemas | 3 | **stable** |  |
+| `schema/condition.schema.json` | schemas | 3 | **stable** |  |
+| `schema/edge.schema.json` | schemas | 3 | **stable** |  |
+| `schema/face.schema.json` | schemas | 3 | **stable** |  |
+| `schema/gate.schema.json` | schemas | 3 | **stable** |  |
+| `schema/llm_output.schema.json` | phase3_build_tasks | 3 | **stable** |  |
+| `schema/mechanic_detection.schema.json` | schemas | 3 | **stable** |  |
+| `schema/mechanical_extraction.schema.json` | schemas | 3 | **stable** |  |
+| `schema/node.schema.json` | schemas | 3 | **stable** |  |
+| `schema/structured_condition.schema.json` | schemas | 3 | **stable** |  |
+| `schema/token.schema.json` | schemas | 3 | **stable** |  |
+| `schema/unresolved_extraction.schema.json` | schemas | 3 | **stable** |  |
+
+### Frozen base (verified byte-identical, not regenerated)
+
+| artifact | job | runs | verdict | detail |
+|---|---|---|---|---|
+| `data/graph/conditions.jsonl` | (frozen) | 0 | **stable** | byte-identical to frozen_manifest.json |
+| `data/graph/edges.jsonl` | (frozen) | 0 | **stable** | byte-identical to frozen_manifest.json |
+| `data/graph/gates.jsonl` | (frozen) | 0 | **stable** | byte-identical to frozen_manifest.json |
+| `data/graph/nodes.jsonl` | (frozen) | 0 | **stable** | byte-identical to frozen_manifest.json |
+| `data/graph_global/conditions.jsonl` | (frozen) | 0 | **stable** | byte-identical to frozen_manifest.json |
+| `data/graph_global/edges.jsonl` | (frozen) | 0 | **stable** | byte-identical to frozen_manifest.json |
+| `data/graph_global/frozen_manifest.json` | (frozen) | 0 | **stable** | frozen manifest; not regenerated |
+| `data/graph_global/nodes.jsonl` | (frozen) | 0 | **stable** | byte-identical to frozen_manifest.json |
+
+### Modeling arm ΓÇö data/processed (verified against MANIFEST.sha256)
+
+| artifact | job | runs | verdict | detail |
+|---|---|---|---|---|
+| `data/processed/card_identity_manifest.csv` | (deckbench) | 0 | **verified_manifest** | matches MANIFEST.sha256 (verified, not regenerated here) |
+| `data/processed/deck_identity.parquet` | (deckbench) | 0 | **verified_manifest** | matches MANIFEST.sha256 (verified, not regenerated here) |
+| `data/processed/model_split.parquet` | (deckbench) | 0 | **verified_manifest** | matches MANIFEST.sha256 (verified, not regenerated here) |
+| `data/processed/model_table.parquet` | (deckbench) | 0 | **verified_manifest** | matches MANIFEST.sha256 (verified, not regenerated here) |
+| `data/processed/skill_features.parquet` | (deckbench) | 0 | **verified_manifest** | matches MANIFEST.sha256 (verified, not regenerated here) |
+
+### Derived files with no regeneration recipe here
+
+| artifact | job | runs | verdict | detail |
+|---|---|---|---|---|
+| `data/graph_global/assembly_review.jsonl` | (none) | 0 | **not_regenerable** | written by `assemble` with the frozen base; not regenerated here (would touch the frozen base) |
+| `data/graph_global/card_communities.jsonl` | (none) | 0 | **not_regenerable** | network/community projection; regenerable via the network layer, not wired into this harness |
+| `data/graph_global/card_pair_projection_effect.jsonl` | (none) | 0 | **not_regenerable** | effect-semantics overlay (Phase 4f); regenerable via the effect-* commands, not wired into this harness |
+| `data/graph_global/effect_census.jsonl` | (none) | 0 | **not_regenerable** | effect-semantics overlay (Phase 4f); regenerable via the effect-* commands, not wired into this harness |
+| `data/graph_global/effect_records.jsonl` | (none) | 0 | **not_regenerable** | effect-semantics overlay (Phase 4f); regenerable via the effect-* commands, not wired into this harness |
+| `data/review/human_audit_items.jsonl` | (none) | 0 | **not_regenerable** | hand-authored or agent-produced input; no deterministic producer |
+| `data/review/human_audit_verdicts.jsonl` | (none) | 0 | **not_regenerable** | hand-authored or agent-produced input; no deterministic producer |
+| `data/review/llm_dispositions.jsonl` | (none) | 0 | **not_regenerable** | hand-authored or agent-produced input; no deterministic producer |
+| `data/review/unresolved.jsonl` | (none) | 0 | **not_regenerable** | hand-authored or agent-produced input; no deterministic producer |
+| `reports/assembly.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/benchmark_phase1_audit.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/card_002_dashboard.html` | (none) | 0 | **not_regenerable** | network/community projection; regenerable via the network layer, not wired into this harness |
+| `reports/effect_census.md` | (none) | 0 | **not_regenerable** | effect-semantics overlay (Phase 4f); regenerable via the effect-* commands, not wired into this harness |
+| `reports/effect_reconciliation.md` | (none) | 0 | **not_regenerable** | effect-semantics overlay (Phase 4f); regenerable via the effect-* commands, not wired into this harness |
+| `reports/effect_semantics.md` | (none) | 0 | **not_regenerable** | effect-semantics overlay (Phase 4f); regenerable via the effect-* commands, not wired into this harness |
+| `reports/estimator_api.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/evaluation_panel.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/graph_coverage.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/harmonization_sweep.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/harmonization_sweep_final.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/harmonization_sweep_v2.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/human_audit_findings.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/human_audit_worksheet.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/kg_manual_review.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/manual_gold_set_review.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/model_table_build.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/modeling_data_audit.json` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/modeling_data_audit.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/phase1_refreeze.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/phase3_coverage.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/sac_extract_portability.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/sac_schema_portability.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/set_network.html` | (none) | 0 | **not_regenerable** | network/community projection; regenerable via the network layer, not wired into this harness |
+| `reports/skill_proxy.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/split_and_seal.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/suite_stability.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/t0_development_fits.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/unresolved.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/vocabulary_pilot.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+
+### Summary
+
+All regenerated artifacts are byte-stable across the seeds tried; the frozen base and modeling-arm artifacts match their pinned hashes.
+
+```
+
+### src/hobkg/phase3.py
+
+```
+"""Phase 3: LLM semantic extraction ΓÇö control plane.
+
+The "LLM" is a Claude Code session / sub-agents (not the Anthropic API ΓÇö see the
+user's standing preference). This module is the deterministic control plane:
+
+  build_tasks()      -> one self-contained task packet per Oracle-bearing face
+  build_prompt()     -> the extractor prompt (shared context + packet + schema)
+  critic_prompt()    -> the independent-critic prompt over a candidate
+  validate_output()  -> JSON-Schema + predicate-vocab + provenance + no-evaluative-language
+  ingest()           -> route validated extractions to candidates / rejections
+  reconcile()        -> accept where extractor & critic agree; queue the rest
+
+No model calls happen here. Agents produce JSON conforming to
+schema/llm_output.schema.json; this module validates and routes it. Never
+silently repair invalid output ΓÇö reject or queue it (spec discipline #8).
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+from typing import get_args
+
+from jsonschema import Draft202012Validator
+
+from . import rules
+from .models import Predicate
+from .pipeline import REPO, _load_dicts, _write_jsonl  # reuse helpers
+
+SCHEMA_VERSION = "hobkg-llm-output-1"
+PREDICATES = list(get_args(Predicate))
+NODE_TYPES = [
+    "Card", "CardFace", "Ability", "Operation", "Event", "Resource",
+    "ObjectClass", "Zone", "CounterType", "State", "Gate", "Cost",
+    "Effect", "Rule", "TokenSpec",
+]
+
+# Curated evaluative / value-judgment terms the LLM must not use (spec: reject
+# outputs containing evaluative language). Conservative to avoid false rejects.
+_EVALUATIVE = re.compile(
+    r"\b(synerg(y|ies|ize|istic)|win\s?rate|good card|bad card|better than|worse than|"
+    r"overpowered|underpowered|\bbomb\b|archetype|tier\s?\d|playab|strong(er|est)?\b|"
+    r"weak(er|est)?\b|powerful|value\s?engine)\b",
+    re.I,
+)
+
+
+# --- output schema (single source of truth; exported to schema/) ------------
+
+def llm_output_schema() -> dict:
+    prov = {
+        "type": "object",
+        "properties": {
+            "oracle_span": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2},
+            "text": {"type": "string"},
+            "rule_ref": {"type": "string"},
+            "note": {"type": "string"},
+        },
+        "additionalProperties": True,
+    }
+    ability = {
+        "type": "object",
+        "required": ["ability_id", "kind", "effects", "oracle_spans", "confidence", "unresolved"],
+        # Descriptive keys (controller, duration, target, ...) the spec itself names are
+        # allowed; the hard guards are the required fields + enums below.
+        "additionalProperties": True,
+        "properties": {
+            "ability_id": {"type": "string"},
+            "kind": {"enum": ["triggered", "activated", "static", "replacement", "spell_effect"]},
+            "trigger": {"type": ["object", "null"]},
+            "costs": {"type": "array"},
+            "conditions": {"type": "array"},
+            "effects": {"type": "array"},
+            "oracle_spans": {
+                "type": "array", "minItems": 1,
+                "items": {"type": "array", "items": {"type": "integer"}, "minItems": 2, "maxItems": 2},
+            },
+            "confidence": {"enum": ["high", "medium", "low"]},
+            "unresolved": {"type": "array", "items": {"type": "string"}},
+        },
+    }
+    edge = {
+        "type": "object",
+        "required": ["source", "target", "predicate", "provenance"],
+        # Descriptive annotations (note, ...) allowed; predicate enum + provenance are the guards.
+        "additionalProperties": True,
+        "properties": {
+            "source": {"type": "string"},
+            "target": {"type": "string"},
+            "predicate": {"enum": PREDICATES},
+            "polarity": {"enum": ["positive", "negative"]},
+            "timing": {"type": ["string", "null"]},
+            "scope": {"type": ["string", "null"]},
+            "optional": {"type": "boolean"},
+            "condition": {"type": ["string", "object", "null"]},
+            "certainty": {"enum": ["rules_explicit", "high", "medium", "low"]},
+            "provenance": prov,
+        },
+    }
+    ext = {
+        "type": "object",
+        "required": ["proposed_predicate", "rationale"],
+        "additionalProperties": False,
+        "properties": {
+            "proposed_predicate": {"type": "string"},
+            "rationale": {"type": "string"},
+            "oracle_span": {"type": "array", "items": {"type": "integer"}},
+        },
+    }
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "hobkg LLM extraction output",
+        "type": "object",
+        "required": ["face_id", "abilities", "proposed_edges", "schema_extension_requests"],
+        "additionalProperties": False,
+        "properties": {
+            "face_id": {"type": "string"},
+            "abilities": {"type": "array", "items": ability},
+            "proposed_edges": {"type": "array", "items": edge},
+            "schema_extension_requests": {"type": "array", "items": ext},
+        },
+    }
+
+
+def export_schema(repo: Path = REPO) -> str:
+    p = repo / "schema" / "llm_output.schema.json"
+    p.write_text(json.dumps(llm_output_schema(), indent=2), encoding="utf-8")
+    return str(p.relative_to(repo))
+
+
+# --- shared context (stable across faces) -----------------------------------
+
+def _mechanic_templates() -> list[dict]:
+    return [
+        {"mechanic": "Recruit", "rule_ref": rules.RULE_REFS["recruit"],
+         "summary": "Keyword action: draw a card, then discard a card; if the discarded card was nonland, create a 1/1 white Human Soldier."},
+        {"mechanic": "Storied", "rule_ref": rules.RULE_REFS["storied"],
+         "summary": "Once you control >=3 permanents that are legendary, artifacts, and/or Sagas, you get the enduring story designation for the rest of the game."},
+        {"mechanic": "hone", "rule_ref": rules.RULE_REFS["hone"],
+         "summary": "A hone counter on an Equipment gives +1/+0 to the creature that Equipment is attached to."},
+        {"mechanic": "Adventure", "rule_ref": rules.RULE_REFS["adventure"],
+         "summary": "Cast the Adventure (instant/sorcery) face from hand; on resolution it exiles; you may later cast the permanent face from exile. The permanent may also be cast normally from hand."},
+        {"mechanic": "Saga", "rule_ref": rules.RULE_REFS["saga"],
+         "summary": "Enters with a lore counter, adds one after your draw step; chapter abilities trigger as the lore count reaches their number; sacrificed after the final chapter."},
+        {"mechanic": "Amass", "rule_ref": rules.RULE_REFS["amass"], "rule_node": "rule:amass",
+         "summary": "amass <Subtype> N: if you control no Army, create a 0/0 Army token of that subtype; then put N +1/+1 counters on an Army you control (it becomes that subtype). INSTANTIATES rule:amass (no AMASSES predicate); focus edges on this card's own preceding/following effects and supply subtype + N."},
+        {"mechanic": "typecycling", "rule_ref": rules.RULE_REFS["typecycling"], "rule_node": "rule:typecycling",
+         "summary": "<Type>cycling {cost}: pay the cost and discard this card to search your library for a card of <Type>, reveal it, put it into hand, then shuffle. INSTANTIATES rule:typecycling; supply the searched type."},
+    ]
+
+
+def build_shared_context(repo: Path = REPO) -> dict:
+    tokens = _load_dicts(repo / "data" / "normalized" / "tokens.jsonl")
+    known_tokens = [
+        {"id": t["id"], "name": t["name"], "type_line": t.get("type_line_raw"),
+         "colors": t.get("colors", []), "power": t.get("power"), "toughness": t.get("toughness"),
+         "oracle_text": t.get("oracle_text")}
+        for t in tokens
+    ]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "controlled_predicates": PREDICATES,
+        "node_types": NODE_TYPES,
+        "predicate_signatures": {k: {"source_types": sorted(v[0]), "target_types": sorted(v[1])}
+                                 for k, v in PREDICATE_SIGNATURES.items()},
+        "predicate_signature_note": (
+            "These relational predicates are STRICTLY typed and validated: "
+            "TRIGGERS is Event->Ability (never Ability->Event or CounterType->Ability); "
+            "HAS_COUNTER_TYPE is State->CounterType; ENABLES is State/Event/Gate->Ability/Operation. "
+            "For a reflexive 'when you do' sequence, the preceding ability/effect CAUSES an Event, "
+            "then that Event TRIGGERS the reflexive ability. Do NOT emit Saga chapter triggers as "
+            "'counter:lore TRIGGERS <ability>'; reference the Saga template instead. Other (actor) "
+            "predicates may take a CardFace/Ability/Operation subject (card-local convention)."),
+        "mechanic_templates": _mechanic_templates(),
+        "known_tokens": known_tokens,
+        "relevant_rules": {
+            "recruit": rules.RULE_REFS["recruit"], "storied": rules.RULE_REFS["storied"],
+            "hone": rules.RULE_REFS["hone"], "adventure": rules.RULE_REFS["adventure"],
+            "saga": rules.RULE_REFS["saga"],
+        },
+    }
+
+
+# --- per-face task packets ---------------------------------------------------
+
+def safe_id(face_id: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "_", face_id)
+
+
+def build_tasks(repo: Path = REPO) -> dict:
+    faces = _load_dicts(repo / "data" / "normalized" / "faces.jsonl")
+    cards = {c["id"]: c for c in _load_dicts(repo / "data" / "normalized" / "cards.jsonl")}
+    exts = _load_dicts(repo / "data" / "normalized" / "mechanical_extractions.jsonl")
+    mechs = _load_dicts(repo / "data" / "rules" / "mechanics.jsonl")
+    ext_by_face: dict[str, list] = {}
+    for e in exts:
+        ext_by_face.setdefault(e["face_id"], []).append(e)
+    mech_by_face: dict[str, list] = {}
+    for m in mechs:
+        mech_by_face.setdefault(m["face_id"], []).append(m["mechanic"])
+
+    tasks_dir = repo / "data" / "llm" / "tasks"
+    tasks_dir.mkdir(parents=True, exist_ok=True)
+    index = []
+    n = 0
+    for f in faces:
+        if not f.get("oracle_text"):
+            continue  # spec: only Oracle-bearing faces (209 of 210)
+        card = cards[f["card_id"]]
+        packet = {
+            "face_id": f["id"],
+            "card": {"id": card["id"], "name": card["name"], "layout": card["layout"],
+                     "color_identity": card.get("color_identity", []),
+                     "keywords_scryfall": card.get("keywords_scryfall", [])},
+            "face": {"id": f["id"], "name": f["name"], "role": f["role"],
+                     "type_line": f.get("type_line_raw"), "mana_cost": f.get("mana_cost_raw"),
+                     "power": f.get("power"), "toughness": f.get("toughness"),
+                     "produced_mana": f.get("produced_mana", []),
+                     "oracle_text": f["oracle_text"]},
+            "detected_mechanics": sorted(set(mech_by_face.get(f["id"], []))),
+            "mechanical_extractions": [
+                {"kind": e["kind"], "quantity": e.get("quantity"),
+                 "detail": e.get("detail", {}), "qualifiers": e.get("qualifiers", []),
+                 "text": e["provenance"].get("text")}
+                for e in ext_by_face.get(f["id"], [])
+            ],
+        }
+        (tasks_dir / f"{safe_id(f['id'])}.json").write_text(
+            json.dumps(packet, ensure_ascii=False, indent=2), encoding="utf-8")
+        index.append({"face_id": f["id"], "card": card["name"], "file": f"{safe_id(f['id'])}.json"})
+        n += 1
+
+    (repo / "data" / "llm" / "tasks_index.jsonl").write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in index) + "\n", encoding="utf-8")
+    shared = build_shared_context(repo)
+    (repo / "data" / "llm" / "shared_context.json").write_text(
+        json.dumps(shared, ensure_ascii=False, indent=2), encoding="utf-8")
+    export_schema(repo)
+    return {"faces_with_oracle_text": n, "tasks_dir": str(tasks_dir.relative_to(repo))}
+
+
+# --- prompts (used by the spawned agents) -----------------------------------
+
+EXTRACTOR_SYSTEM = """\
+You extract a rules-grounded, mechanistic structured representation of ONE Magic: The Gathering
+card face for the HOB knowledge graph. Output JSON only, conforming to the provided schema.
+
+DO:
+1. Split the Oracle text into distinct abilities/clauses; classify each kind
+   (triggered|activated|static|replacement|spell_effect).
+2. Identify trigger, costs, conditions, effects, duration, controller, optionality.
+3. Resolve pronouns/local references ("it", "that card", "this creature", "this way").
+4. Distinguish costs from effects and replacement effects from triggers.
+5. Identify resources/states produced and requirements consumed; conditional branches and ordering.
+6. Identify when one effect changes the magnitude/timing/target-set/availability of another.
+7. Cite exact Oracle character spans [start,end) for every ability and proposed edge.
+8. Flag rules ambiguity in `unresolved` rather than guessing.
+9. Propose a controlled-vocabulary extension (schema_extension_requests) only if no predicate fits.
+
+DO NOT:
+- infer that a card is good/bad, or infer empirical synergy or win rate;
+- use color/archetype co-membership as an interaction; invent edges from shared theme;
+- treat co-occurrence as causation; omit conditions to simplify;
+- infer opponent cooperation; assert a pair interaction without an explicit mechanistic path;
+- translate flavor text into mechanics; use ANY evaluative/value-judgment language.
+
+Only use predicates from `controlled_predicates` and node types from `node_types`.
+Every proposed_edge must carry provenance (an oracle_span or a rule_ref). Return JSON only."""
+
+CRITIC_SYSTEM = """\
+You are an INDEPENDENT critic of a candidate structured extraction of one MTG card face.
+Given the Oracle text, normalized fields, mechanic rules, and the candidate assertions:
+1. identify assertions not entailed by the rules;
+2. identify missing conditions, scope, timing, optionality, or duration;
+3. identify omitted mechanistic outputs or requirements;
+4. identify incorrect identity/pronoun resolution;
+5. return CORRECTED JSON (same schema), not prose. Do not add evaluative language.
+Return JSON only conforming to the schema."""
+
+
+def build_prompt(face_id: str, repo: Path = REPO) -> str:
+    shared = json.loads((repo / "data" / "llm" / "shared_context.json").read_text(encoding="utf-8"))
+    packet = json.loads((repo / "data" / "llm" / "tasks" / f"{safe_id(face_id)}.json").read_text(encoding="utf-8"))
+    schema = llm_output_schema()
+    return (
+        f"{EXTRACTOR_SYSTEM}\n\n"
+        f"# Shared context\n{json.dumps(shared, ensure_ascii=False)}\n\n"
+        f"# Output JSON schema\n{json.dumps(schema)}\n\n"
+        f"# Card face to extract\n{json.dumps(packet, ensure_ascii=False, indent=2)}\n\n"
+        f'Return a single JSON object for face_id "{face_id}".'
+    )
+
+
+def critic_prompt(face_id: str, candidate: dict, repo: Path = REPO) -> str:
+    packet = json.loads((repo / "data" / "llm" / "tasks" / f"{safe_id(face_id)}.json").read_text(encoding="utf-8"))
+    schema = llm_output_schema()
+    return (
+        f"{CRITIC_SYSTEM}\n\n"
+        f"# Output JSON schema\n{json.dumps(schema)}\n\n"
+        f"# Card face\n{json.dumps(packet, ensure_ascii=False, indent=2)}\n\n"
+        f"# Candidate extraction to review\n{json.dumps(candidate, ensure_ascii=False)}\n\n"
+        f'Return the corrected JSON object for face_id "{face_id}".'
+    )
+
+
+# --- validation --------------------------------------------------------------
+
+_VALIDATOR = Draft202012Validator(llm_output_schema())
+
+# --- predicate domain/range signatures (Phase 3 closure, per review) ---------
+# Resolve a local/edge node id to its node type by id convention. Ability ids
+# declared on the face resolve to Ability; the rest by prefix.
+_NODE_PREFIX_TYPES = {
+    "event:": "Event", "op:": "Operation", "ability:": "Ability", "ab:": "Ability",
+    "face:": "CardFace", "card:": "Card", "zone:": "Zone", "counter:": "CounterType",
+    "countertype:": "CounterType", "token:": "TokenSpec", "state:": "State",
+    "gate:": "Gate", "rule:": "Rule", "effect:": "Effect", "cost:": "Cost",
+    "obj:": "ObjectClass", "resource:": "Resource", "kw:": "ObjectClass",
+    "keyword:": "ObjectClass",
+}
+
+
+def resolve_node_type(nid: str, ability_ids: set) -> str:
+    if nid in ability_ids:
+        return "Ability"
+    for pre, t in _NODE_PREFIX_TYPES.items():
+        if nid.startswith(pre):
+            return t
+    return "Unknown"
+
+
+# Only the RELATIONAL predicates whose direction/domain is load-bearing are
+# enforced. The "actor" predicates (MOVES_*, CREATES_OBJECT, ADDS_COUNTER,
+# PRODUCES, CAUSES, MODIFIES, SCALES_WITH, REFERENCES_RULE, INSTANTIATES, ...)
+# admit a CardFace/Ability/Operation actor subject as a deliberate Phase-3
+# card-local convention; Phase 4 canonicalizes actors into Operation nodes.
+PREDICATE_SIGNATURES = {
+    "TRIGGERS": ({"Event"}, {"Ability"}),
+    "HAS_COUNTER_TYPE": ({"State"}, {"CounterType"}),
+    "PERSISTS_AS": ({"State"}, {"State"}),
+    "COUNTS": ({"Gate"}, {"ObjectClass"}),
+    "CONTRIBUTES_TO": ({"CardFace", "ObjectClass", "TokenSpec"}, {"Gate"}),
+    "QUALIFIES_FOR": ({"CardFace", "ObjectClass", "TokenSpec"}, {"Gate"}),
+    "ATTACHED_TO": ({"ObjectClass", "CardFace", "TokenSpec"}, {"ObjectClass", "CardFace", "TokenSpec"}),
+    "HAS_STATE": ({"ObjectClass", "CardFace", "TokenSpec"}, {"State"}),
+    "SATISFIES": ({"Resource", "State", "Event"}, {"Cost", "Gate"}),
+    "ENABLES": ({"State", "Resource", "Event", "Gate"}, {"Ability", "Operation"}),
+    "HAS_FACE": ({"Card"}, {"CardFace"}),
+    "HAS_ABILITY": ({"CardFace", "ObjectClass"}, {"Ability", "Operation"}),
+}
+
+
+def signature_violations(obj: dict) -> list[str]:
+    """Domain/range violations of the enforced relational predicates. Endpoints that
+    don't resolve to a known type are skipped (not penalized)."""
+    ability_ids = {a.get("ability_id") for a in obj.get("abilities", [])}
+    out = []
+    for e in obj.get("proposed_edges", []):
+        sig = PREDICATE_SIGNATURES.get(e.get("predicate"))
+        if not sig:
+            continue
+        s = resolve_node_type(e["source"], ability_ids)
+        t = resolve_node_type(e["target"], ability_ids)
+        if s == "Unknown" or t == "Unknown":
+            continue
+        if s not in sig[0] or t not in sig[1]:
+            out.append(f"predicate signature: {e['source']}({s}) -{e['predicate']}-> {e['target']}({t}) "
+                       f"violates {e['predicate']} :: {sorted(sig[0])} -> {sorted(sig[1])}")
+    return out
+
+
+def _strings(obj):
+    if isinstance(obj, str):
+        yield obj
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            yield from _strings(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _strings(v)
+
+
+def validate_output(obj: dict, face_id: str | None = None, oracle_len: int | None = None) -> list[str]:
+    """Return a list of validation errors; empty list means the output is acceptable."""
+    errors = [f"schema: {e.message}" for e in _VALIDATOR.iter_errors(obj)]
+    errors += signature_violations(obj)
+    if face_id is not None and obj.get("face_id") != face_id:
+        errors.append(f"face_id mismatch: expected {face_id}, got {obj.get('face_id')}")
+    # evaluative language
+    for s in _strings(obj):
+        m = _EVALUATIVE.search(s)
+        if m:
+            errors.append(f"evaluative language: '{m.group(0)}'")
+            break
+    # oracle spans: a broken START is a hard error; an END overrunning the text is a
+    # soft provenance drift (the `text` quote is the real provenance) -> see span_warnings().
+    if oracle_len is not None:
+        for ab in obj.get("abilities", []):
+            for span in ab.get("oracle_spans", []):
+                if len(span) == 2 and not (0 <= span[0] <= span[1] and span[0] <= oracle_len):
+                    errors.append(f"oracle span start invalid: {span} (len {oracle_len})")
+    return errors
+
+
+def span_warnings(obj: dict, oracle_len: int | None) -> list[str]:
+    """Soft provenance issues that do NOT block acceptance (recorded, not repaired)."""
+    warns = []
+    if oracle_len is None:
+        return warns
+    for ab in obj.get("abilities", []):
+        for span in ab.get("oracle_spans", []):
+            if len(span) == 2 and span[1] > oracle_len:
+                warns.append(f"span end {span[1]} > oracle_len {oracle_len} in {ab.get('ability_id')}")
+    return warns
+
+
+def _oracle_len(face_id: str, repo: Path) -> int | None:
+    p = repo / "data" / "llm" / "tasks" / f"{safe_id(face_id)}.json"
+    if not p.exists():
+        return None
+    return len(json.loads(p.read_text(encoding="utf-8"))["face"]["oracle_text"])
+
+
+# --- ingest & reconcile ------------------------------------------------------
+
+def _write_dicts(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="\n") as fh:
+        for r in rows:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
+def _load_json_dir(d: Path) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    if not d.exists():
+        return out
+    for p in sorted(d.glob("*.json")):
+        obj = json.loads(p.read_text(encoding="utf-8"))
+        if isinstance(obj, dict) and obj.get("face_id"):
+            out[obj["face_id"]] = obj
+    return out
+
+
+def ingest(repo: Path = REPO) -> dict:
+    """Validate raw extractor outputs (data/llm/extractions/*.json) and route them to
+    llm_candidates.jsonl (valid) or llm_rejections.jsonl (invalid). Never repairs."""
+    raw = _load_json_dir(repo / "data" / "llm" / "extractions")
+    candidates, rejections, warnings = [], [], []
+    for face_id, obj in raw.items():
+        olen = _oracle_len(face_id, repo)
+        errs = validate_output(obj, face_id=face_id, oracle_len=olen)
+        if errs:
+            rejections.append({"face_id": face_id, "errors": errs, "raw": obj})
+        else:
+            candidates.append(obj)
+            w = span_warnings(obj, olen)
+            if w:
+                warnings.append({"face_id": face_id, "warnings": w})
+    review = repo / "data" / "review"
+    _write_dicts(review / "llm_candidates.jsonl", candidates)
+    _write_dicts(review / "llm_rejections.jsonl", rejections)
+    _write_dicts(review / "llm_span_warnings.jsonl", warnings)
+    return {"extractions": len(raw), "candidates": len(candidates),
+            "rejections": len(rejections), "span_warnings": len(warnings)}
+
+
+def _edge_key(e: dict) -> tuple:
+    return (e["source"], e["predicate"], e["target"])
+
+
+def _ability_key(a: dict) -> tuple:
+    # Key on the stable ability_id + kind, NOT the span: the critic legitimately
+    # corrects Oracle spans, and span-only fixes must not read as a disagreement.
+    return (a.get("ability_id"), a.get("kind"))
+
+
+def _ab_order(k: tuple) -> tuple:
+    # None-safe TOTAL sort key over ability keys (ability_id, kind). None sorts
+    # distinctly from "" (via the boolean flags), so two distinct dict keys can never
+    # collapse to the same sort key and fall back to insertion order.
+    return (k[0] is None, k[0] or "", k[1] is None, k[1] or "")
+
+
+def reconcile(repo: Path = REPO) -> dict:
+    """Accept assertions on which extractor and critic agree AND which validate;
+    queue the rest (spec Phase 3 second-pass acceptance rule)."""
+    candidates = {c["face_id"]: c for c in _load_dicts(repo / "data" / "review" / "llm_candidates.jsonl")}
+    critiques = _load_json_dir(repo / "data" / "llm" / "critiques")
+    accepted, queued = [], []
+    for face_id, cand in candidates.items():
+        crit = critiques.get(face_id)
+        if crit is None:
+            queued.append({"face_id": face_id, "reason": "no critic review", "candidate": cand})
+            continue
+        errs = validate_output(crit, face_id=face_id, oracle_len=_oracle_len(face_id, repo))
+        if errs:
+            queued.append({"face_id": face_id, "reason": "critic output invalid", "errors": errs})
+            continue
+        # edge-level agreement. Set operations (& , -) iterate in hash order, which is
+        # randomized per process (PYTHONHASHSEED); left unsorted, the order of elements
+        # WITHIN each record's list varies between runs and the file is non-deterministic
+        # (card 013: the confirmed intra-record instability). Edge keys are
+        # (source, predicate, target) tuples of required strings, so sorting the keys is a
+        # TOTAL order ΓÇö no ties fall back to insertion order.
+        c_edges = {_edge_key(e): e for e in cand.get("proposed_edges", [])}
+        k_edges = {_edge_key(e): e for e in crit.get("proposed_edges", [])}
+        agreed_edges = [k_edges[k] for k in sorted(c_edges.keys() & k_edges.keys())]
+        disputed_edges = [c_edges[k] for k in sorted(c_edges.keys() - k_edges.keys())] + \
+                         [k_edges[k] for k in sorted(k_edges.keys() - c_edges.keys())]
+        # ability-level agreement. Same fix; `_ab_order` is a None-safe TOTAL key.
+        c_ab = {_ability_key(a): a for a in cand.get("abilities", [])}
+        k_ab = {_ability_key(a): a for a in crit.get("abilities", [])}
+        agreed_ab = [k_ab[k] for k in sorted(c_ab.keys() & k_ab.keys(), key=_ab_order)]
+        disputed_ab = [c_ab[k] for k in sorted(c_ab.keys() - k_ab.keys(), key=_ab_order)] + \
+                      [k_ab[k] for k in sorted(k_ab.keys() - c_ab.keys(), key=_ab_order)]
+
+        accepted.append({"face_id": face_id, "abilities": agreed_ab, "proposed_edges": agreed_edges,
+                         "schema_extension_requests": crit.get("schema_extension_requests", [])})
+        if disputed_edges or disputed_ab:
+            queued.append({"face_id": face_id, "reason": "extractor/critic disagreement",
+                           "disputed_edges": disputed_edges, "disputed_abilities": disputed_ab})
+    review = repo / "data" / "review"
+    _write_dicts(review / "llm_accepted.jsonl", accepted)
+    _write_dicts(review / "llm_queued.jsonl", queued)
+    total_edges = sum(len(a["proposed_edges"]) for a in accepted)
+    return {"faces": len(candidates), "accepted_faces": len(accepted),
+            "accepted_edges": total_edges, "queued_items": len(queued)}
+
+
+def finalize_faces(repo: Path = REPO) -> dict:
+    """Emit a Phase 3 disposition for EVERY normalized face (all 210), not just the
+    Oracle-bearing ones. Oracle-bearing faces are 'extracted'; a face with no Oracle
+    text gets an explicit 'reviewed_empty' record (empty abilities/edges) with a reason.
+    Prevents the pipeline from silently redefining its denominator. Idempotent."""
+    faces = _load_dicts(repo / "data" / "normalized" / "faces.jsonl")
+    cards = {c["id"]: c for c in _load_dicts(repo / "data" / "normalized" / "cards.jsonl")}
+    review = repo / "data" / "review"
+    accepted = {a["face_id"]: a for a in _load_dicts(review / "llm_accepted.jsonl")}
+
+    status_rows, empty = [], 0
+    for f in faces:
+        card = cards[f["card_id"]]
+        has_text = bool(f.get("oracle_text"))
+        if has_text:
+            status = "extracted"
+            reason = None
+        else:
+            status = "reviewed_empty"
+            reason = ("No Oracle text requiring semantic extraction ΓÇö vanilla creature "
+                      f"({f.get('type_line_raw')}); Scryfall returns empty oracle_text for "
+                      "cards with no printed rules text.")
+            accepted.setdefault(f["id"], {
+                "face_id": f["id"], "status": "reviewed_empty",
+                "abilities": [], "proposed_edges": [], "schema_extension_requests": [],
+                "unresolved": [], "reason": reason})
+            empty += 1
+        status_rows.append({"face_id": f["id"], "card": card["name"], "role": f["role"],
+                            "has_oracle_text": has_text, "status": status,
+                            **({"reason": reason} if reason else {})})
+
+    _write_dicts(review / "llm_accepted.jsonl", list(accepted.values()))
+    _write_dicts(review / "llm_face_status.jsonl", status_rows)
+    return {"normalized_faces": len(faces), "extracted": len(faces) - empty,
+            "reviewed_empty": empty, "accepted_records": len(accepted)}
+
+
+def apply_dispositions(repo: Path = REPO) -> dict:
+    """Fold human/agent adjudications (data/review/llm_dispositions.jsonl) into the
+    accepted graph. Each disposition record: {face_id, include_edges:[...],
+    include_abilities:[...], unresolved:[{kind, object, reason}], verdicts:[...]}.
+    Verdicts assign accepted_extractor|accepted_critic|corrected|unresolved per item;
+    only non-unresolved items land in `include_*`. Unresolved items are preserved out
+    of the accepted graph (data/review/llm_unresolved.jsonl). Idempotent: rebuilt from
+    the reconcile-agreed base each run."""
+    review = repo / "data" / "review"
+    disp_path = review / "llm_dispositions.jsonl"
+    if not disp_path.exists():
+        return {"dispositions": 0, "note": "no llm_dispositions.jsonl"}
+    disp = {d["face_id"]: d for d in _load_dicts(disp_path)}
+    accepted = {a["face_id"]: a for a in _load_dicts(review / "llm_accepted.jsonl")}
+
+    added_edges = added_abils = 0
+    unresolved_rows = []
+    verdict_counts: dict[str, int] = {}
+    for face_id, d in disp.items():
+        acc = accepted.setdefault(face_id, {"face_id": face_id, "abilities": [],
+                                            "proposed_edges": [], "schema_extension_requests": []})
+        for e in d.get("include_edges", []):
+            acc["proposed_edges"].append(e); added_edges += 1
+        for a in d.get("include_abilities", []):
+            acc["abilities"].append(a); added_abils += 1
+        for u in d.get("unresolved", []):
+            unresolved_rows.append({"face_id": face_id, **u})
+        for v in d.get("verdicts", []):
+            verdict_counts[v.get("verdict", "?")] = verdict_counts.get(v.get("verdict", "?"), 0) + 1
+
+    # dedup within each face so re-applying is idempotent
+    for a in accepted.values():
+        seen_e, ded_e = set(), []
+        for e in a["proposed_edges"]:
+            k = (e["source"], e["predicate"], e["target"])
+            if k not in seen_e:
+                seen_e.add(k); ded_e.append(e)
+        a["proposed_edges"] = ded_e
+        seen_a, ded_a = set(), []
+        for ab in a["abilities"]:
+            k = ab.get("ability_id")
+            if k not in seen_a:
+                seen_a.add(k); ded_a.append(ab)
+        a["abilities"] = ded_a
+
+    # validate the resolved accepted graph
+    errors = []
+    for face_id, a in accepted.items():
+        for e in validate_output(a, oracle_len=_oracle_len(face_id, repo)):
+            errors.append(f"{face_id}: {e}")
+
+    _write_dicts(review / "llm_accepted.jsonl", list(accepted.values()))
+    _write_dicts(review / "llm_unresolved.jsonl", unresolved_rows)
+    total_edges = sum(len(a["proposed_edges"]) for a in accepted.values())
+    return {"dispositions": len(disp), "verdicts": verdict_counts,
+            "edges_added": added_edges, "abilities_added": added_abils,
+            "unresolved": len(unresolved_rows), "accepted_edges_total": total_edges,
+            "validation_errors": errors}
+
+```
+
+### src/hobkg/audit_repair.py
+
+```
+"""Additive `audit_repair` layer ΓÇö applies the HUMAN gold-set audit corrections
+(`data/review/human_audit_verdicts.jsonl`, 2026-08-17) WITHOUT touching the frozen core graph.
+
+Design (per the owner's directive): represent each corrected mechanism ONCE at the object-class
+level (a canonical class edge grounded in the responsible card's Oracle text), then derive ALL
+eligible card pairs mechanically from card characteristics ΓÇö never hard-code an audited pair. The
+derived pair relations are tagged `generic: true` (object-class expansions) so they are filterable,
+and carry `origin: audit_repair` + provenance to the audit item. Two kinds of correction:
+
+  * ADD / RETYPE ΓÇö a canonical class edge + derived pairs (anthem MODIFIES; targeted +1/+1
+    ADDS_COUNTER; targeted pump MODIFIES; tutor SUPPLIES_RESOURCE; token-enter ENABLES_TRIGGER;
+    tribal-entry ENABLES_TRIGGER, which also RETYPES the mechanism-layer SUPPLIES_RESOURCE it
+    replaces via a suppression).
+  * SUPPRESS ΓÇö retract a projected relation the human judged wrong (a false self-loop; a
+    coincidental resource match that is really a cast-trigger).
+
+Outputs (all under data/graph_global/): `audit_repair_nodes.jsonl` (object-class nodes),
+`audit_repair_edges.jsonl` (canonical class edges), `card_pair_projection_audit_repair.jsonl`
+(derived generic pairs), `audit_repair_suppressions.jsonl`. Deterministic; no Date/random.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+from .equip import write_jsonl_lines  # shared resilient graph-projection writer (card 012)
+from .pipeline import REPO, _load_dicts
+
+AUDIT = "human_audit_verdicts.jsonl (2026-08-17)"
+
+
+def _sid(*parts) -> str:
+    return "ar" + hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:15]
+
+
+class _Cards:
+    """Card characteristics derived from the normalized faces (the eligibility basis)."""
+    def __init__(self, repo: Path):
+        self.faces = _load_dicts(repo / "data/normalized/faces.jsonl")
+        self.by_card = {}
+        self.name_to_card = {}
+        self.card_faces = {}
+        for f in self.faces:
+            self.by_card.setdefault(f["card_id"], []).append(f)
+            self.name_to_card[f["name"]] = f["card_id"]
+            self.card_faces.setdefault(f["card_id"], []).append(f)
+
+    def face_id(self, name: str) -> str:
+        for f in self.faces:
+            if f["name"] == name:
+                return f["id"]
+        raise KeyError(name)
+
+    def card_of_name(self, name: str) -> str:
+        return self.name_to_card[name]
+
+    def _has(self, cid, pred):
+        return any(pred(f) for f in self.by_card.get(cid, []))
+
+    def _types(self, f):
+        return (f.get("type_line") or {}).get("types", [])
+
+    def _subs(self, f):
+        return (f.get("type_line") or {}).get("subtypes", [])
+
+    def _sups(self, f):
+        return (f.get("type_line") or {}).get("supertypes", [])
+
+    def creatures(self):
+        return {c for c in self.by_card if self._has(c, lambda f: "Creature" in self._types(f))}
+
+    def legendary_creatures(self):
+        return {c for c in self.by_card
+                if self._has(c, lambda f: "Creature" in self._types(f) and "Legendary" in self._sups(f))}
+
+    def dwarves_or_equipment(self):
+        return {c for c in self.by_card
+                if self._has(c, lambda f: "Dwarf" in self._subs(f) or "Equipment" in self._subs(f))}
+
+    def token_makers(self):
+        import re
+        pat = re.compile(r"\bcreate[s]?\b[^.]*\btokens?\b|\bamass\b", re.IGNORECASE)
+        # exclude reminder-only mentions ("it's an artifact with ΓÇª") is unnecessary: a Treasure/Food
+        # token still enters under your control and triggers a token-enter payoff.
+        return {c for c in self.by_card
+                if self._has(c, lambda f: bool(pat.search(f.get("oracle_text") or "")))}
+
+
+# --------------------------------------------------------------------------- #
+#  The corrections, grounded in the responsible card's ability (not in pairs)   #
+# --------------------------------------------------------------------------- #
+import re
+
+# DERIVED P/T mechanisms (Class 2, GENERALIZED): every card whose Oracle text matches the pattern is
+# a source ΓÇö no hand-picked list. Restricted to the GENERAL 'any creature' forms; equipment
+# ('Equipped creature ΓÇª', handled by the equip layer), self-pumps ('This creature ΓÇª'), tribal anthems
+# ('Other Elves/Bears ΓÇª', partly in graph_repair) and Amass ('ΓÇª on an Army') are excluded by the
+# patterns. target=every creature (a targeted/your-controlled creature can be any creature).
+_RE_ANTHEM = re.compile(r"\b(?:other )?creatures you control get \+\d+/\+\d+", re.I)
+_RE_PUMP = re.compile(r"\btarget creature(?: you control| an opponent controls)?[^.]*?\bgets? \+\d+/\+\d+", re.I)
+_RE_COUNTER = re.compile(r"\+1/\+1 counter(?:s)? on (?:up to \w+ |two |three |x |a )?(?:other )?"
+                         r"target creature(?: you control)?\b", re.I)
+# (slug, regex, predicate, class_node, note, {audited_source_name: [items]})
+_DERIVED = [
+    ("anthem", _RE_ANTHEM, "MODIFIES", "obj:creature-you-control",
+     "Static/mass anthem: 'creatures you control get +N/+N' modifies every creature you control.",
+     {"The Arkenstone": [66, 72, 74]}),
+    ("targeted-pump", _RE_PUMP, "MODIFIES", "obj:target-creature",
+     "Targeted pump: 'target creature ΓÇª gets +N/+N' modifies a creature.",
+     {"Lake-town Toymaker": [75]}),
+    ("targeted-counter", _RE_COUNTER, "ADDS_COUNTER", "obj:target-creature",
+     "Targeted +1/+1 counter: 'put a +1/+1 counter on target creature'.",
+     {"Meager Meal": [67, 68, 71]}),
+]
+
+# ANCHORED specific-card mechanisms (NOT anthem/pump; unchanged):
+# (slug, anchor_card, side, predicate, class_node, eligibility, note, items, retype)
+_ANCHORED = [
+    ("seek-the-heart-tutor", "Seek the Heart", "targets", "SUPPLIES_RESOURCE",
+     "obj:legendary-creature-card", "legendary_creatures",
+     "Tutor: 'Search your library for a legendary creature card' supplies that creature.",
+     [74], None),
+    ("belladonna-token-enter", "Belladonna Took", "sources", "ENABLES_TRIGGER",
+     "event:token-you-control-enters", "token_makers",
+     "A token entering your control triggers Belladonna Took's token-enter payoff.",
+     [82], None),
+    ("kili-tribal-entry", "K├¡li the Resourceful", "sources", "ENABLES_TRIGGER",
+     "event:another-dwarf-or-equipment-enters", "dwarves_or_equipment",
+     "A Dwarf/Equipment entering triggers K├¡li's 'whenever another Dwarf or Equipment enters, draw'.",
+     [54], ("SUPPLIES_RESOURCE", "mechanism")),
+]
+
+# SUPPRESS: (src_name, tgt_name, relation, layer, note, items)
+_SUPPRESS = [
+    ("Head of the Hunt", "Head of the Hunt", "ENABLES_TRIGGER", "mechanical",
+     "Not a self-loop: the token trigger fires from an OPPONENT's creature being exiled, not from "
+     "Head of the Hunt itself.", [111]),
+    ("Plunder the Trollshaws", "Uncover the Moon-Letters", "SUPPLIES_RESOURCE", "mechanical",
+     "Coincidental card-in-hand match: casting the spell TRIGGERS the enchantment, it does not supply "
+     "a consumed resource.", [58]),
+]
+
+
+def materialize(repo: Path = REPO) -> dict:
+    repo = Path(repo)
+    C = _Cards(repo)
+    out = repo / "data" / "graph_global"
+    eligible = {"creatures": C.creatures(), "legendary_creatures": C.legendary_creatures(),
+                "dwarves_or_equipment": C.dwarves_or_equipment(), "token_makers": C.token_makers()}
+
+    nodes, edges, pairs, suppressions = [], [], [], []
+    seen = set()
+
+    def add_pair(s, t, rel, slug, prov, retype=None):
+        if s == t or (s, t, rel) in seen:                  # no self-pair; dedupe across mechanisms
+            return
+        seen.add((s, t, rel))
+        pairs.append({"source_card": s, "target_card": t, "relation": rel, "self_pair": False,
+                      "generic": True, "class_edge": slug, "origin": "audit_repair", "provenance": [prov]})
+        if retype:                                         # the new relation REPLACES a mis-typed one
+            suppressions.append({"source_card": s, "target_card": t, "relation": retype[0],
+                                 "layer": retype[1], "reason": f"retyped to {rel} by {slug}",
+                                 "audit_items": prov.get("audit_items")})
+
+    creatures = eligible["creatures"]
+    # DERIVED P/T mechanisms ΓÇö every matching card is a source (Class 2 generalized to all anthem/pump)
+    for slug, regex, pred, class_node, note, audited in _DERIVED:
+        nodes.append({"id": class_node, "kind": class_node.split(":")[0], "origin": "audit_repair"})
+        for f in sorted(C.faces, key=lambda x: x["id"]):
+            if not regex.search(f.get("oracle_text") or ""):
+                continue
+            prov = {"source": AUDIT + " ┬╖ Class 2 generalization (all anthem/pump)", "mechanism": slug,
+                    "note": note, "anchor_face": f["id"], "audit_items": audited.get(f["name"])}
+            edges.append({"id": _sid(slug, f["id"], pred, class_node), "source": f["id"],
+                          "predicate": pred, "target": class_node, "origin": "audit_repair",
+                          "generic": True, "provenance": [prov]})
+            for cid in sorted(creatures):
+                add_pair(f["card_id"], cid, pred, slug, prov)
+
+    # ANCHORED specific-card mechanisms (tutor / token-enter / tribal-entry)
+    for slug, anchor, side, pred, class_node, elig, note, items, retype in _ANCHORED:
+        anchor_face = C.face_id(anchor)
+        anchor_card = C.card_of_name(anchor)
+        nodes.append({"id": class_node, "kind": class_node.split(":")[0], "origin": "audit_repair"})
+        prov = {"source": AUDIT, "audit_items": items, "note": note, "anchor_face": anchor_face}
+        e_src, e_tgt = (anchor_face, class_node) if side == "targets" else (class_node, anchor_face)
+        edges.append({"id": _sid(slug, e_src, pred, e_tgt), "source": e_src, "predicate": pred,
+                      "target": e_tgt, "origin": "audit_repair", "generic": True, "provenance": [prov]})
+        for cid in sorted(eligible[elig]):
+            s, t = (anchor_card, cid) if side == "targets" else (cid, anchor_card)
+            add_pair(s, t, pred, slug, prov, retype)
+
+    for src, tgt, rel, layer, note, items in _SUPPRESS:
+        suppressions.append({"source_card": C.card_of_name(src), "target_card": C.card_of_name(tgt),
+                             "relation": rel, "layer": layer, "reason": note, "audit_items": items})
+
+    _write(out / "audit_repair_nodes.jsonl", _dedup(nodes, "id"))
+    _write(out / "audit_repair_edges.jsonl", sorted(edges, key=lambda e: e["id"]))
+    _write(out / "card_pair_projection_audit_repair.jsonl",
+           sorted(pairs, key=lambda p: (p["source_card"], p["target_card"], p["relation"])))
+    _write(out / "audit_repair_suppressions.jsonl",
+           sorted(suppressions, key=lambda s: (s["layer"], s["source_card"], s["target_card"], s["relation"])))
+    return {"class_edges": len(edges), "derived_pairs": len(pairs), "suppressions": len(suppressions),
+            "eligible_counts": {k: len(v) for k, v in eligible.items()}}
+
+
+def _dedup(rows, key):
+    seen, out = set(), []
+    for r in rows:
+        if r[key] not in seen:
+            seen.add(r[key]); out.append(r)
+    return out
+
+
+def _write(path: Path, rows: list):
+    # all four audit_repair outputs land under data/graph_global/, so this single
+    # sink routes them through the shared resilient writer (card 012).
+    write_jsonl_lines(
+        path, (json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows)
+    )
+
+```
+
+## Section 5: Supplementary Context (See Also)
+
+The following files are referenced by the task via `## See Also`. They are supplementary context only and are not part of the deliverable under review.
+
+### reports/suite_stability.md
+
+```
+# Suite stability ΓÇö card 012
+
+*Stop the suite failing cards for reasons the cards did not cause.*
+
+This card does **not** claim a root cause for the intermittent
+`OSError: [Errno 22] Invalid argument` seen when a graph-projection layer opens
+`data/graph_global/*.jsonl` for write inside a full pytest session. The OS-level
+mechanism is unestablished. What is done here is verifiable without it: the
+observed failure point is wrapped in a bounded, backed-off retry that provably
+changes no bytes; the known-bad file-handle hygiene in `tests/` is fixed; and the
+reproduction and its measured before/after are recorded below.
+
+## The reproduction
+
+Under the orchestrator's interpreter, working directory set to this repository:
+
+```
+C:/GitHub/control_plane/.venv/Scripts/python.exe -m pytest \
+    tests/test_equip.py tests/test_completeness.py tests/test_audit_repair.py -q
+```
+
+The prior session (2026-09-09, recorded in `tasks/012.md`) measured this failing
+in ~7 s with `OSError: [Errno 22]` opening
+`data/graph_global/card_pair_projection_completeness.jsonl` for write, while each
+file passed **alone** under that interpreter and all three passed **together**
+under the project interpreter. A standalone open-for-write of the same file under
+the failing interpreter succeeded. That points to a cross-module interaction
+inside a pytest session (accumulated handle pressure is one consistent
+explanation, not the only one), not permissions, not a path problem, and not a
+defect in any single test.
+
+### Environment
+
+| | Orchestrator (compact) | Project (declared) |
+|---|---|---|
+| interpreter | `C:/GitHub/control_plane/.venv/Scripts/python.exe` | `C:/Python314/python.exe` |
+| CPython | 3.14.0 | 3.14.0 |
+| pytest | **8.4.2** | **9.0.2** |
+
+Both are CPython 3.14.0; the divergence is the pytest version and the package set
+of the environment (`pythonpath=["src"]` in `pyproject.toml` makes `hobkg`/
+`deckbench` importable in either). See "Environment divergence" below ΓÇö that is an
+operator decision, not a change made by this card.
+
+### As re-measured this session (2026-09-09)
+
+The `[Errno 22]` is intermittent. It did **not** recur in any run this session:
+
+| what | interpreter | runs | result |
+|---|---|---|---|
+| 3-file subset (the reproduction) | orchestrator | 12 | 12 pass |
+| 3-file subset | orchestrator | further ad-hoc | pass |
+| full suite `pytest -q` | orchestrator | 1 (baseline) + 3 (after) | all pass |
+| full suite `pytest -q` | system | 1 (baseline) + 3 (after) | all pass |
+
+Non-reproduction is expected for a rare, pressure-dependent transient and is
+consistent with the card's framing. The failure count in the prior session grew
+with the number of projection-writing modules in a session, so the full suite is
+the higher-pressure case; it too passed here. The fix is therefore defence in
+depth for a condition that is real but rare, plus the hygiene that plausibly
+contributes.
+
+## What changed
+
+### 1. A shared, resilient JSONL writer
+
+`hobkg.equip.write_jsonl_lines(path, lines, *, max_attempts=5, backoff_seconds=0.2)`
+wraps the open-and-write of a graph-projection JSONL file in a **bounded** retry
+with a **real, growing** backoff (`0.2┬╖attempt` seconds between tries). It is
+completely silent on the success path and, after the final attempt, re-raises the
+**original** exception with its traceback intact ΓÇö a silent forever-retry would be
+a worse failure than the one being fixed.
+
+Every `reproject`-style writer in this card's declared scope goes through it:
+
+- `equip.py` ΓÇö `equip_{nodes,edges,conditions,dispositions}.jsonl` and
+  `card_pair_projection_equip.jsonl` (5 writers).
+- `completeness.py` ΓÇö `completeness_{nodes,edges,conditions}.jsonl` and
+  `card_pair_projection_completeness.jsonl` (4 writers), importing the helper.
+- `audit_repair.py` ΓÇö the single `_write` sink through which all four
+  `audit_repair_*` / `card_pair_projection_audit_repair.jsonl` outputs flow.
+
+The helper lives in `equip.py` rather than the natural infrastructure home
+(`pipeline.py`) because this card's declared **Modifies** scope is exactly
+`{equip, completeness, audit_repair}`; `completeness.py` and `audit_repair.py`
+import it from there. **Scope note (defence in depth):** other modules also write
+`data/graph_global/*.jsonl` ΓÇö `project.py`, `graph_repair.py`,
+`complete_mechanisms.py`, `lifecycle.py`, `modules.py`, `coverage.py`,
+`audit.py`. They are outside this card's Modifies list and were left unrouted;
+routing them through the same helper is a low-risk follow-up.
+
+### 2. Retry changes no output ΓÇö proven
+
+`tests/test_equip.py::test_write_helper_bytes_identical_including_after_a_retry`
+asserts the bytes the helper writes equal the bytes a direct
+`open("w", encoding="utf-8", newline="\n")` write produces ΓÇö both on the success
+path and after a forced first-attempt failure. Combined with the layers'
+existing byte-identity / determinism tests and the frozen-manifest guard, the
+frozen and derived artifacts remain byte-identical:
+`git diff --ignore-cr-at-eol` reports no content change to any
+`data/graph_global/*.jsonl` after a rebuild (only the expected LF/CRLF phantom).
+
+`tests/test_equip.py::test_write_helper_retry_is_bounded_silent_and_reraises`
+asserts the retry is bounded (exactly `max_attempts` opens), silent (no stdout/
+stderr), backs off with a growing delay (`[0.01, 0.02, 0.03]` for 4 attempts,
+none after the last), and re-raises the original `OSError` (errno 22).
+
+### 3. `_filehash` retry now has a real delay
+
+`tests/test_equip.py::_filehash` already carried a five-attempt retry naming this
+exact `[Errno 22]`, but retried **instantly** ΓÇö which cannot help a transient.
+It now sleeps `0.2┬╖(attempt+1)` seconds between attempts. It protects a *read*;
+every failure seen has been on the *write* side, which is what the new writer
+protects. This finishes the job that earlier patch started.
+
+### 4. Leaked file handles in `tests/` closed
+
+Seven sites opened a file without a context manager and never closed it. All are
+now converted, and
+`tests/test_equip.py::test_no_leaked_file_handles_in_tests` AST-scans every
+`tests/*.py` and asserts no `open()`/`io.open()`/`x.open()` call remains outside
+a `with` statement (it correctly allows `with gzip.open(...)` and
+`with open(str(path), "rb")`). The scan reports **0** offenders.
+
+| file | before | fix |
+|---|---|---|
+| `test_attribution_amass.py` | `json.load(open(g, ΓÇª))` in a comprehension | `_proposed_edges()` helper with `with open(...)` |
+| `test_frozen_manifest.py` (├ù2) | `json.load(io.open(MANIFEST, ΓÇª))` | `with open(MANIFEST, ΓÇª) as fh` (+ dropped unused `import io`) |
+| `test_sac_schema.py` | `json.load(io.open(scryfall_fin.json, ΓÇª))` | `with open(...) as fh` (+ dropped unused `import io`) |
+| `test_sac_setwide.py` | `json.load(io.open(scryfall_fin.json, ΓÇª))` | `with open(...) as fh` (+ dropped local `import io`) |
+| `test_deckbench_identity.py` (├ù2) | `csv.reader(CARD_MANIFEST_CSV.open(ΓÇª))` | `with CARD_MANIFEST_CSV.open(ΓÇª) as handle: rows = list(csv.reader(handle))` |
+
+**Did closing the handles alone fix it?** Unknown, and not claimed. The
+`[Errno 22]` did not reproduce this session either before or after the change, so
+this session cannot attribute the fix to the leak. `src/hobkg` already opened
+every file through a context manager, so the production writers never leaked; the
+seven test leaks are worth closing on their own merits. The retry is kept
+regardless, as defence in depth, exactly as the card requires.
+
+## Wall time ΓÇö before and after
+
+`python -m pytest -q`, whole suite, wall-clock seconds:
+
+| interpreter | before (702 tests) | after (705 tests) |
+|---|---|---|
+| orchestrator (pytest 8.4.2) | 196.85 s | 170.30 / 169.42 / 172.74 s (avg Γëê 170.8 s) |
+| system (pytest 9.0.2) | 183.87 s | 173.50 / 169.28 / 173.13 s (avg Γëê 171.9 s) |
+
+After adds three new tests (the writer/hygiene tests) and still runs faster. A
+reduction is observed but **not attributed** to this change with confidence: no
+session-scoped fixture was added (see below), so the heavy `requires_raw` tests
+still repeat their setup, and the difference is within run-to-run variance and
+warm-cache effects. A reduction was expected but not required; the number is
+reported either way.
+
+## The four heaviest `@requires_raw` tests
+
+Profiled (`--durations`, system interpreter) against the 16.5 MB raw 17Lands CSV:
+
+| test | cost | file in Modifies? |
+|---|---|---|
+| `test_deckbench_identity.py::test_real_representation_is_normalized_and_matches_model_table` | 33.7 s call | yes |
+| `test_deckbench_audit.py::test_json_report_is_byte_identical_across_two_runs` | 28.3 s call | no |
+| `test_deckbench_table.py::test_real_totals_coherent` | 16.8 s setup | no |
+| `test_deckbench_audit.py::test_totals_are_positive_and_coherent` | 13.9 s setup | no |
+
+Γëê 92.7 s of Γëê 184 s wall ΓÇö roughly the "58 percent" the card cites once
+associated import/teardown is included. **None can be given a session-scoped
+fixture within this card's scope, for a distinct reason each:**
+
+1. **identity real test** ΓÇö it is the *only* `requires_raw`/real test in
+   `test_deckbench_identity.py` (the file *is* in Modifies). A session-scoped
+   fixture would have exactly one consumer and save nothing: there is no repeated
+   setup to hoist.
+2. **audit byte-identical-across-two-runs** ΓÇö genuinely repeats `run_audit()`
+   (which the module already computes once in its `scope="module"` `summary`
+   fixture), so a fixture *could* help ΓÇö but `test_deckbench_audit.py` is
+   **outside this card's Modifies list**. It also builds twice *on purpose* to
+   prove determinism, so any refactor must preserve two independent builds.
+3. **table `real_totals_coherent` setup** ΓÇö already served by a `scope="module"`
+   `real_stats` fixture (its cost is the first consumer triggering that fixture,
+   not repeated setup); and `test_deckbench_table.py` is **outside Modifies**.
+4. **audit `totals_are_positive_and_coherent` setup** ΓÇö already served by the
+   `scope="module"` `summary` fixture (shared, not repeated); file **outside
+   Modifies**.
+
+So two of the four already share a module-scoped fixture (nothing to hoist), one
+is a lone test (nothing to share with), and the one with genuinely repeated setup
+lives in a file this card is not permitted to modify. Promoting those module
+fixtures to session scope, and reusing `summary` in the byte-identical test,
+would be a clean follow-up in a card whose Modifies includes
+`test_deckbench_audit.py` and `test_deckbench_table.py`.
+
+## Lint / type baseline (no regression introduced)
+
+`ruff` and `mypy` are only present in the orchestrator venv. Measured there:
+
+- `ruff check --select E,F,I,B,UP --line-length 100 src/hobkg/{equip,completeness,audit_repair}.py`
+  reports **160 errors before and 160 after** this card (142 ├ù E501 long lines,
+  plus a handful of B/UP/F codes). Every one predates this card in the legacy KG
+  modules; the lines this card adds introduce **none**.
+- `mypy --strict src/hobkg/equip.py` reports **347 errors across 11 files before
+  and 347 after**. Because `--strict` follows imports, the bulk are in
+  `pipeline.py`, `project.py`, `models.py`, `normalize.py`, etc. ΓÇö none in this
+  card's Modifies scope ΓÇö so the command cannot reach 0 for `equip.py` no matter
+  what is done to `equip.py` alone. The new `write_jsonl_lines` helper is fully
+  type-annotated and adds no error.
+
+"Every touched module is clean under ruff and mypy --strict" is therefore read as
+**introduce no new violations**, which is met and verified by the identical
+before/after counts. Making the legacy modules and their transitive imports fully
+clean is a separate, much larger effort and is out of this card's scope (which
+"changes code paths, not data").
+
+## Environment divergence ΓÇö an operator decision, not made here
+
+compact runs a project's checks with whatever `python` resolves to in its own
+process ΓÇö `C:/GitHub/control_plane/.venv/Scripts/python.exe` carrying pytest
+8.4.2 ΓÇö while this project's declared environment is the system interpreter
+carrying pytest 9.0.2, and the `[Errno 22]` appears in the former and not the
+latter. Pointing the project's default check at a project-owned interpreter would
+likely resolve it outright and would be the better fix, but it changes how every
+future card is gated. Per the card's Requirements, that is left to the operator
+and recorded here rather than made silently.
+
+```
+
+
+### [2026-09-09 14:19] ASSISTANT
+VERDICT: PASS
+
+CRITERIA:
+- **Harness regenerates each artifact â‰¥2Ã— in a fresh process, byte-compares, reports stable/unstable/not_regenerable** â€” MET. `run_child` spawns `subprocess.run([interp, "-c", code], env=_child_env(seed), ...)`; `_child_env` sets a distinct `PYTHONHASHSEED` per seed; default `runs=3` with a `max(2, args.runs)` floor. Verdicts are exactly `stable | unstable | not_regenerable | verified_manifest`. Audit: `69 regenerated, 0 unstable, seeds=[0, 1, 2]`.
+- **Compares code-written bytes, not git's view** â€” MET. Reads via `path.read_bytes()` (binary); `snapshot()`/`restore()` operate on the working tree; nothing compares against a git blob. NARRATIVE explicitly documents the `* text=auto` CRLF/LF one-byte-per-line trap and rejects it.
+- **Per-unstable characterization: record count, multiset identical (pure reordering), internal record diff, first differing byte offset** â€” MET (capability + tests). `characterize()` returns `record_count`, `byte_length`, `multiset_of_records_identical`, `pure_reordering`, `a_record_differs_internally`, `first_differing_byte_offset`; verified by `test_characterize_pure_reordering` and `test_characterize_internal_record_diff`.
+- **`reports/determinism_audit.md` lists every derived artifact with verdict + characterization for unstable** â€” MET. Four tables (regenerated, frozen, deckbench, not-regenerable) enumerate every artifact; `_fmt_char` renders characterization for unstable rows.
+- **`llm_accepted.jsonl`/`llm_queued.jsonl` covered; instability reproduced (confirmed case); fix makes two serial regens byte-identical** â€” MET. Report records the pre-fix measurement (equal length, differing multiset; first-diff offsets 178 and 1247) satisfying "measure before fixing"; `test_reconcile_output_is_byte_identical_across_hash_seeds` proves post-fix byte-identity across seeds 0 and 91237.
+- **`data/review` fix is intra-record, not line ordering** â€” MET. Fix lives in `phase3.reconcile`, sorting the set-derived keys (`c_edges.keys() & k_edges.keys()`, etc.) with total keys before building each record's `disputed_edges`/`disputed_abilities` lists â€” inside the record, not a file-level sort.
+- **`card_pair_projection_audit_repair.jsonl` covered** â€” MET. Present in the report under job `audit_repair` (stable, 3 runs) and asserted by `test_audit_repair_projection_covered_and_stable`. The card's "no sort / stable by luck" premise was corrected with evidence: `_write(...)` sorts by `(source_card, target_card, relation)` and `add_pair` dedupes on that same triple (total key).
+- **Every unstable artifact fixed to agree or documented** â€” MET. Only the two review files were unstable; both fixed. Summary: "All regenerated artifacts are byte-stable across the seeds tried."
+- **Fix changes only ordering; test asserts record multiset unchanged from committed** â€” MET. `test_fix_preserves_record_multiset_of_committed_review_files` compares canonical (order-insensitive) multisets of the regenerated files against the committed copies for both `REVIEW_FILES`.
+- **`frozen_manifest.json` still verifies; frozen base byte-identical** â€” MET. `_verify_frozen` recomputes sha256 vs pinned; report shows all frozen files "byte-identical to frozen_manifest.json"; `test_frozen_base_verified_byte_identical`; `ports --validate` returned 210 ports/2242 edges clean.
+- **Single command, non-zero exit on instability** â€” MET. `main()` returns `1 if unstable else 0`; `test_main_exit_nonzero_when_an_artifact_is_unstable` covers both branches; `python tools/determinism_audit.py --report` exited 0.
+- **All tests pass; no new ruff violation in touched files; mypy clean** â€” MET. `pytest -q` 715 passed; `test_determinism_audit.py` 10 passed; ruff (E,F,I,B,UP) clean on both new files; `mypy --strict tools/determinism_audit.py` clean. The only modified production file is `phase3.py` (audit_repair.py "needed no change" per report); the added `_ab_order`/`reconcile` lines are all under the 100-char limit and introduce no new E/F/I/B/UP violation.
+
+SUMMARY:
+The harness satisfies every acceptance criterion: it regenerates derived artifacts in fresh per-seed subprocesses, compares the bytes the code actually writes (never git), characterizes any instability, and exits non-zero on failure. The one confirmed instability (`data/review/llm_accepted.jsonl`/`llm_queued.jsonl`) was measured before fixing, traced to per-process `set` iteration in `phase3.reconcile`, and fixed with total-order sort keys applied intra-record; a multiset test proves no records changed. The card's earlier guesses (audit_repair "stable by luck", completeness "unstable") were corrected with byte-level evidence rather than repeated. Frozen base and modeling-arm artifacts are verified against their manifests and left untouched. All checks and output-validation commands pass.
