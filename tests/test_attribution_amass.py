@@ -65,9 +65,14 @@ def test_phase2_amass_instantiations_and_spans():
     assert ops and all(nodes[n].get("provenance") and nodes[n]["provenance"][0].get("span") for n in ops)
 
 
+def _proposed_edges(path):
+    with open(path, encoding="utf-8") as fh:            # closed handle (card 012)
+        return json.load(fh)["proposed_edges"]
+
+
 def test_no_inline_amass_expansion_in_llm_layer():
     # count_inline_amass_expansions() == 0
     bad = [g for g in glob.glob(str(REPO / "data/llm/extractions/*.json"))
            if any(e["predicate"] == "CREATES_OBJECT" and e["target"] == "token:goblin-army"
-                  for e in json.load(open(g, encoding="utf-8"))["proposed_edges"])]
+                  for e in _proposed_edges(g))]
     assert bad == []

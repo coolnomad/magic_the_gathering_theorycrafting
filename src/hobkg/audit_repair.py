@@ -25,6 +25,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from .equip import write_jsonl_lines  # shared resilient graph-projection writer (card 012)
 from .pipeline import REPO, _load_dicts
 
 AUDIT = "human_audit_verdicts.jsonl (2026-08-17)"
@@ -214,6 +215,8 @@ def _dedup(rows, key):
 
 
 def _write(path: Path, rows: list):
-    with path.open("w", encoding="utf-8", newline="\n") as fh:
-        for r in rows:
-            fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+    # all four audit_repair outputs land under data/graph_global/, so this single
+    # sink routes them through the shared resilient writer (card 012).
+    write_jsonl_lines(
+        path, (json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows)
+    )

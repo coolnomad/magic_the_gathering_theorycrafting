@@ -17,9 +17,9 @@ FIX = "tests/fixtures/fin_sacrifice_setwide.jsonl"
 
 
 def test_setwide_fixture_is_provenanced_and_complete():
-    import io
     import json
-    src = {c["id"]: c for c in json.load(io.open(REPO / "data/raw/fin/scryfall_fin.json", encoding="utf-8"))}
+    with open(REPO / "data/raw/fin/scryfall_fin.json", encoding="utf-8") as fh:
+        src = {c["id"]: c for c in json.load(fh)}
     cases = _load_dicts(REPO / FIX)
     assert len(cases) == 50                                  # every FIN face containing 'sacrif'
     for rec in cases:

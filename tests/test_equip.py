@@ -7,8 +7,11 @@ every equipped-creature effect is attachment-conditioned and shares the binding;
 Staff's two modes; no reverse relation; conditions resolve; determinism; signatures valid.
 """
 
+import ast
 import hashlib
 import json
+import time
+from pathlib import Path
 
 import pytest
 
@@ -16,6 +19,7 @@ from hobkg import equip as eq
 from hobkg.pipeline import REPO, _load_dicts
 
 G = REPO / "data" / "graph_global"
+TESTS_DIR = Path(__file__).resolve().parent
 
 
 @pytest.fixture(scope="module")
@@ -262,6 +266,8 @@ def _filehash(path):
     # chunked read with a retry — opening the ~11MB projection intermittently raises OSError
     # [Errno 22] on Windows under full-suite file-handle pressure (environmental, not a
     # determinism defect: this test passes in isolation and the layer rebuilds byte-identically).
+    # A retry with NO delay cannot help a transient OS condition — it just re-tries
+    # instantly under the same pressure. Card 012 gives it a real, growing backoff.
     for attempt in range(5):
         try:
             h = hashlib.sha256()
@@ -272,6 +278,7 @@ def _filehash(path):
         except OSError:
             if attempt == 4:
                 raise
+            time.sleep(0.2 * (attempt + 1))
     return None
 
 
@@ -393,3 +400,93 @@ def test_pt5_every_equipped_clause_dispositioned():
     orcrist = [d for d in disp if d["equipment"] == "Orcrist, Goblin-cleaver"
                and d["disposition"] == "schema_extension_required"]
     assert orcrist and any("combat damage" in d["clause"].lower() for d in orcrist)
+
+
+# ======================================================================================
+#  Card 012 — the shared resilient JSONL writer + test-suite file-handle hygiene
+# ======================================================================================
+def test_write_helper_bytes_identical_including_after_a_retry(tmp_path, monkeypatch):
+    # Criterion: retrying changes NO output. The bytes the helper writes must equal the
+    # bytes a direct open-and-write produces — on the success path AND after a retry.
+    records = [{"b": 2, "a": 1}, {"z": ["x", "y"], "n": None}, {"u": "Éowyn — Sting {G}"}]
+    lines = [json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in records]
+    direct = tmp_path / "direct.jsonl"
+    with direct.open("w", encoding="utf-8", newline="\n") as fh:
+        for line in lines:
+            fh.write(line)
+    expected = direct.read_bytes()
+
+    happy = tmp_path / "happy.jsonl"                     # success path
+    eq.write_jsonl_lines(happy, lines)
+    assert happy.read_bytes() == expected
+
+    real_open = Path.open                                # retry path: first WRITE open fails
+    state = {"n": 0}
+
+    def flaky_open(self, mode="r", *args, **kwargs):
+        if "w" in mode and state["n"] == 0:
+            state["n"] += 1
+            raise OSError(22, "Invalid argument")
+        return real_open(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(eq.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(Path, "open", flaky_open)
+    retried = tmp_path / "retried.jsonl"
+    eq.write_jsonl_lines(retried, lines)
+    assert state["n"] == 1                               # it really did fail once and retry
+    assert retried.read_bytes() == expected              # identical bytes despite the retry
+
+
+def test_write_helper_retry_is_bounded_silent_and_reraises(monkeypatch, capsys):
+    # Criterion: the retry is bounded, silent on the (here, failing) path, and re-raises the
+    # ORIGINAL exception with its context after the final attempt — never a silent forever-loop.
+    class _FailPath:
+        def __init__(self):
+            self.attempts = 0
+
+        def open(self, *args, **kwargs):
+            self.attempts += 1
+            raise OSError(22, "Invalid argument")
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(eq.time, "sleep", lambda s: sleeps.append(s))
+    fp = _FailPath()
+    with pytest.raises(OSError) as excinfo:
+        eq.write_jsonl_lines(fp, ["one\n", "two\n"], max_attempts=4, backoff_seconds=0.01)
+    assert excinfo.value.errno == 22                     # the original error, re-raised
+    assert fp.attempts == 4                              # bounded: exactly max_attempts opens
+    assert sleeps == [0.01, 0.02, 0.03]                  # real, growing backoff; none after the last
+    captured = capsys.readouterr()
+    assert captured.out == "" and captured.err == ""     # nothing logged on any path
+
+
+def _leaky_open_sites(source: str):
+    """Line numbers of open()/io.open()/x.open() CALLS that are not the context expression
+    of a `with` statement — i.e. handles that are opened and never closed."""
+    tree = ast.parse(source)
+    allowed = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.With):
+            for item in node.items:
+                allowed.add(id(item.context_expr))
+    sites = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            func = node.func
+            is_open = (isinstance(func, ast.Name) and func.id == "open") or (
+                isinstance(func, ast.Attribute) and func.attr == "open")
+            if is_open and id(node) not in allowed:
+                sites.append(node.lineno)
+    return sites
+
+
+def test_no_leaked_file_handles_in_tests():
+    # Criterion: every file opened in tests/ is closed. An open()/io.open()/p.open() call
+    # that is not the context expression of a `with` (json.load(open(...)),
+    # csv.reader(p.open(...)), ...) leaks its handle; assert none remain across tests/.
+    offenders = {}
+    for path in sorted(TESTS_DIR.glob("*.py")):
+        leaks = _leaky_open_sites(path.read_text(encoding="utf-8"))
+        if leaks:
+            offenders[path.name] = leaks
+    assert offenders == {}, f"leaked (non-`with`) file opens remain: {offenders}"

@@ -9,7 +9,6 @@ The set-wide precision/recall + clause-exact-match evaluation is exercised in te
 tolerates the fixture being absent, so this parser can be committed and frozen BEFORE it is added).
 """
 
-import io
 import json
 
 from hobkg import sac_schema as sx
@@ -89,7 +88,8 @@ def test_scorer_is_not_tautological():
 
 
 def test_fixture_oracle_text_is_byte_identical_to_source():
-    src = {c["id"]: c for c in json.load(io.open(REPO / "data/raw/fin/scryfall_fin.json", encoding="utf-8"))}
+    with open(REPO / "data/raw/fin/scryfall_fin.json", encoding="utf-8") as fh:
+        src = {c["id"]: c for c in json.load(fh)}
     for fx in (DEV, HELD):
         for rec in _load_dicts(REPO / fx):
             assert rec["id"] in src, rec["id"]

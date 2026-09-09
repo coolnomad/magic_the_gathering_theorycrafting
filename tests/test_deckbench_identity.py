@@ -184,7 +184,8 @@ def test_join_to_model_table_has_no_unmatched_rows(wired: Path) -> None:
 def test_manifest_records_verbatim_source_and_reverses(wired: Path) -> None:
     table.build_model_table()
     identity.build()
-    rows = list(csv.reader(identity.CARD_MANIFEST_CSV.open(encoding="utf-8")))
+    with identity.CARD_MANIFEST_CSV.open(encoding="utf-8") as handle:
+        rows = list(csv.reader(handle))
     assert rows[0] == ["source_column", "feature_name", "total_count", "fraction_present"]
     body = rows[1:]
     assert len(body) == 3  # one row per deck column, header order
@@ -204,7 +205,8 @@ def test_manifest_records_verbatim_source_and_reverses(wired: Path) -> None:
 def test_unmaindecked_card_kept_at_count_zero(wired: Path) -> None:
     table.build_model_table()
     identity.build()
-    rows = list(csv.reader(identity.CARD_MANIFEST_CSV.open(encoding="utf-8")))[1:]
+    with identity.CARD_MANIFEST_CSV.open(encoding="utf-8") as handle:
+        rows = list(csv.reader(handle))[1:]
     ceceli = next(r for r in rows if r[0] == "deck_Ceceli")
     assert ceceli[2] == "0"  # total_count
     assert ceceli[3] == "0.000000"  # fraction_present

@@ -12,7 +12,6 @@ sanctioned re-freeze and must be a deliberate, logged decision (INSTRUCTIONS §3
 
 import hashlib
 import json
-import io
 
 from hobkg.pipeline import REPO
 
@@ -30,7 +29,8 @@ def test_manifest_itself_is_pinned():
 
 
 def test_frozen_artifacts_match_manifest():
-    man = json.load(io.open(MANIFEST, encoding="utf-8"))
+    with open(MANIFEST, encoding="utf-8") as fh:
+        man = json.load(fh)
     assert man, "frozen manifest is empty"
     for rel, rec in sorted(man.items()):
         b = (REPO / rel).read_bytes()
@@ -39,7 +39,8 @@ def test_frozen_artifacts_match_manifest():
 
 
 def test_manifest_covers_the_core_graph():
-    man = json.load(io.open(MANIFEST, encoding="utf-8"))
+    with open(MANIFEST, encoding="utf-8") as fh:
+        man = json.load(fh)
     for rel in ("data/graph/nodes.jsonl", "data/graph/edges.jsonl", "data/graph/conditions.jsonl",
                 "data/graph/gates.jsonl", "data/graph_global/nodes.jsonl",
                 "data/graph_global/edges.jsonl", "data/graph_global/conditions.jsonl"):

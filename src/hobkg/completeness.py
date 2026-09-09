@@ -51,6 +51,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import project
+from .equip import write_jsonl_lines  # shared resilient graph-projection writer (card 012)
 from .pipeline import REPO, _load_dicts
 
 _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
@@ -352,15 +353,14 @@ def materialize(repo: Path = REPO) -> dict:
     for e in edges:
         uniq.setdefault(e["edge_id"], {k: v for k, v in e.items() if v is not None})
     edges = sorted(uniq.values(), key=lambda e: (e["source"], e["predicate"], e["target"]))
-    with (outdir / "completeness_nodes.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for n in sorted(nodes.values(), key=lambda n: n["id"]):
-            fh.write(json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n")
-    with (outdir / "completeness_edges.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for e in edges:
-            fh.write(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n")
-    with (outdir / "completeness_conditions.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for c in sorted(conditions.values(), key=lambda c: c["condition_id"]):
-            fh.write(json.dumps(c, ensure_ascii=False, sort_keys=True) + "\n")
+    write_jsonl_lines(outdir / "completeness_nodes.jsonl",
+                      (json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n"
+                       for n in sorted(nodes.values(), key=lambda n: n["id"])))
+    write_jsonl_lines(outdir / "completeness_edges.jsonl",
+                      (json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n" for e in edges))
+    write_jsonl_lines(outdir / "completeness_conditions.jsonl",
+                      (json.dumps(c, ensure_ascii=False, sort_keys=True) + "\n"
+                       for c in sorted(conditions.values(), key=lambda c: c["condition_id"])))
 
     from .graph_repair import _validate_repair_layer
     violations = _validate_repair_layer(repo, g.nodes, nodes, edges)
@@ -552,10 +552,8 @@ def reproject(repo: Path = REPO) -> dict:
 
     metaedges.sort(key=lambda m: (m["source_card"], m["target_card"], m["relation"],
                                   m.get("sacrificed_type") or "", m["connecting_node"]))
-    with (repo / "data/graph_global/card_pair_projection_completeness.jsonl").open(
-            "w", encoding="utf-8", newline="\n") as fh:
-        for m in metaedges:
-            fh.write(json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n")
+    write_jsonl_lines(repo / "data/graph_global/card_pair_projection_completeness.jsonl",
+                      (json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n" for m in metaedges))
 
     # SELF-CHECK gates: continuity, card-grounded endpoints, edge resolution
     paths_continuous = all(x["target"] == y["source"]

@@ -32,11 +32,63 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
 
 from . import project
 from .pipeline import REPO, _load_dicts
+
+# --------------------------------------------------------------------------- #
+#  Shared resilient JSONL writer for the graph-projection layers (card 012)     #
+# --------------------------------------------------------------------------- #
+# A rare, environment-specific OSError ([Errno 22] Invalid argument) has been
+# observed opening data/graph_global/*.jsonl for WRITE inside a full pytest
+# session under the orchestrator interpreter. The OS-level mechanism is
+# unestablished; this wraps the open-for-write in a BOUNDED retry with a real,
+# growing backoff as defence in depth. It changes NO output: on the success path
+# it writes exactly the bytes the previous direct write produced, in the same
+# order, and it is completely silent. After the final attempt it re-raises the
+# ORIGINAL exception with its traceback intact — a silent forever-retry would be
+# a worse failure than the one it guards against.
+#
+# It lives in this module rather than the natural infrastructure home
+# (pipeline.py) because card 012's declared Modifies scope is exactly
+# {equip, completeness, audit_repair}; completeness.py and audit_repair.py
+# import it from here so all three graph-projection writers share one path.
+WRITE_MAX_ATTEMPTS = 5
+WRITE_BACKOFF_SECONDS = 0.2
+
+
+def write_jsonl_lines(
+    path: Path,
+    lines: Iterable[str],
+    *,
+    max_attempts: int = WRITE_MAX_ATTEMPTS,
+    backoff_seconds: float = WRITE_BACKOFF_SECONDS,
+) -> None:
+    """Write pre-serialized JSONL ``lines`` (each already LF-terminated) to
+    ``path``, retrying only the open-and-write on a transient ``OSError``.
+
+    The bytes are byte-for-byte identical to a direct
+    ``with path.open("w", encoding="utf-8", newline="\\n") as fh: ...`` writing
+    the same strings in the same order. ``lines`` is materialized once so every
+    retry re-writes identical bytes. Silent on success; re-raises the original
+    error (traceback intact) after ``max_attempts`` attempts.
+    """
+    materialized = list(lines)
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with path.open("w", encoding="utf-8", newline="\n") as fh:
+                for line in materialized:
+                    fh.write(line)
+            return
+        except OSError:
+            if attempt >= max_attempts:
+                raise
+            time.sleep(backoff_seconds * attempt)
+
 
 _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
@@ -416,18 +468,17 @@ def materialize(repo: Path = REPO) -> dict:
     for e in edges:
         uniq.setdefault(e["edge_id"], {k: v for k, v in e.items() if v is not None})
     edges = sorted(uniq.values(), key=lambda e: (e["source"], e["predicate"], e["target"]))
-    with (outdir / "equip_nodes.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for n in sorted(nodes.values(), key=lambda n: n["id"]):
-            fh.write(json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n")
-    with (outdir / "equip_edges.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for e in edges:
-            fh.write(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n")
-    with (outdir / "equip_conditions.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for c in sorted(conditions.values(), key=lambda c: c["condition_id"]):
-            fh.write(json.dumps(c, ensure_ascii=False, sort_keys=True) + "\n")
-    with (outdir / "equip_dispositions.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for d in sorted(dispositions, key=lambda d: (d["face"], d["clause"])):
-            fh.write(json.dumps(d, ensure_ascii=False, sort_keys=True) + "\n")
+    write_jsonl_lines(outdir / "equip_nodes.jsonl",
+                      (json.dumps(n, ensure_ascii=False, sort_keys=True) + "\n"
+                       for n in sorted(nodes.values(), key=lambda n: n["id"])))
+    write_jsonl_lines(outdir / "equip_edges.jsonl",
+                      (json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n" for e in edges))
+    write_jsonl_lines(outdir / "equip_conditions.jsonl",
+                      (json.dumps(c, ensure_ascii=False, sort_keys=True) + "\n"
+                       for c in sorted(conditions.values(), key=lambda c: c["condition_id"])))
+    write_jsonl_lines(outdir / "equip_dispositions.jsonl",
+                      (json.dumps(d, ensure_ascii=False, sort_keys=True) + "\n"
+                       for d in sorted(dispositions, key=lambda d: (d["face"], d["clause"]))))
 
     from .graph_repair import _validate_repair_layer
     violations = _validate_repair_layer(repo, g.nodes, nodes, edges)
@@ -618,9 +669,8 @@ def reproject(repo: Path = REPO) -> dict:
 
     metaedges.sort(key=lambda m: (m["source_card"], m["target_card"], m["relation"],
                                   m.get("granted_ability") or "", m.get("equip_mode") or "", m["connecting_node"]))
-    with (repo / "data/graph_global/card_pair_projection_equip.jsonl").open("w", encoding="utf-8", newline="\n") as fh:
-        for m in metaedges:
-            fh.write(json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n")
+    write_jsonl_lines(repo / "data/graph_global/card_pair_projection_equip.jsonl",
+                      (json.dumps(m, ensure_ascii=False, sort_keys=True) + "\n" for m in metaedges))
 
     # SELF-CHECK gates (pt5): continuity, card-grounded endpoints, edge resolution
     continuous = all(x["target"] == y["source"] for m in metaedges for x, y in zip(m["steps"], m["steps"][1:]))
