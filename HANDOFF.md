@@ -1,13 +1,13 @@
 # HANDOFF — read this first
 
-**Last updated 2026-09-08.** Everything below the "KNOWLEDGE-GRAPH ARM" heading
+**Last updated 2026-09-09.** Everything below the "KNOWLEDGE-GRAPH ARM" heading
 dates from 2026-08-17 and describes the KG arm only; it is still accurate for
 that arm. Read this top section first — the project has a second arm and the
 active work is there.
 
 ---
 
-# CURRENT STATE (2026-09-08)
+# CURRENT STATE (2026-09-09)
 
 ## Two arms
 
@@ -19,13 +19,14 @@ needs attention unless you are asked for it.
 `docs/MTG_Deck-Strength_Modeling_Benchmark.md`, which **supersedes**
 `docs/Model_Building.md` in full (that file carries a superseded banner).
 
-## Where the modeling arm stands
+## Where the modeling arm stands (2026-09-09)
 
-**Phase 1 is complete.** Cards 003–008 are DONE; milestone `benchmark-p1` is
-detected but **not yet confirmed** (`compact milestone ... benchmark-p1`).
+**Cards 001-014 are all DONE.** Phase 1 is complete and phase 2's infrastructure
+plus its first target row are built. Milestone `benchmark-p1` is detected but
+**not yet confirmed** (`compact milestone <repo> benchmark-p1`).
 
-The frozen dataset, all pinned by `data/processed/MANIFEST.sha256` (tracked;
-the parquet blobs are gitignored):
+The frozen dataset, all pinned by `data/processed/MANIFEST.sha256` (tracked; the
+parquet blobs are gitignored):
 
 | | |
 |---|---|
@@ -33,45 +34,66 @@ the parquet blobs are gitignored):
 | population | **241,561 games across 43,102 drafts** |
 | card features | 193, as normalized deck fractions |
 | split | time-based, dev 194,215 / holdout 47,346, 5 folds, seed 20260908 |
-| skill proxy | `base_p`, reliability-shrunk, λ=5 — **never call it skill** |
+| skill proxy | `base_p`, shrunk toward a **per-draft** `mu` = 0.533339, lambda=5 |
 | player id | **none exists**; `rank` is a skill bucket, never a player id |
 
-**The holdout is sealed.** `deckbench.holdout.load_holdout(card_id, reason)`
-verifies a hash, refuses without a card id and reason, and appends to
-`cycle/holdout_ledger.jsonl`. That file is **0 bytes** — zero reads so far. It is
-the record that makes "untouched holdout" checkable rather than asserted. Do not
-bypass it.
+`base_p` is a nuisance proxy. **Never call it skill**, in code, columns or prose.
 
-## The gate — read this before proposing Phase 2
+**The holdout is sealed and has never been read.** `cycle/holdout_ledger.jsonl`
+is **0 bytes**. Access goes through `deckbench.holdout.load_holdout(card_id,
+reason)`, which verifies a hash and appends a ledger line; `load_dev` is the
+unsealed path for ordinary fitting. Do not bypass either.
 
-`reports/benchmark_phase1_audit.md` §8 says **Phase 2 is not authorized until
-the operator has reviewed that report**. As of 2026-09-08 the operator was
-reading it. Do not start Phase 2 cards without confirmation.
+## What phase 2 has built, and what remains
 
-Its §7 leaves three items genuinely open: 15,680 rows carry a non-modal deck
-size (40–60, all legal, nobody has looked at what they are); `mu = 0.546211` is
-a per-game mean so heavy players weigh more in the shrinkage target; and the
-`hist_w` weights are inherited from the R implementation, not derived.
+  009  representation-blind estimator (one grid, frozen folds)      DONE
+  010  evaluation panel, built before anything was scored          DONE
+  011  T0 raw outcome x R0/R1, development fits                    DONE
+  012  suite stability -- the flaky graph writes                   DONE
+  013  determinism harness + the PYTHONHASHSEED fix                DONE
+  014  mu per draft (fidelity correction) + T0 refits              DONE
 
-## Phase 2 when authorized — six cards, 009–014
+  015  T1  -- bump against the fixed skill proxy                   NOT WRITTEN
+  016  T2  -- bump against a CROSS-FITTED learned baseline         NOT WRITTEN
+  017  the single holdout read, all models, paired bootstrap       NOT WRITTEN
 
-009 estimator API · 010 metric + calibration panel · 011 T0 · 012 T1 · 013 T2
-(cross-fitted, the hard one) · 014 the single holdout read with the paired
-cluster bootstrap.
+**016 carries the real risk.** Cross-fitting must nest inside the frozen 5-fold
+split so that no observation ever helps train the model producing its own
+baseline. Card 009's estimator was not designed for that and may need an
+out-of-fold path it does not have. Check before writing the card, not during.
 
-Two orderings are load-bearing: **010 before any fitting**, so metrics cannot be
-chosen after seeing results; and **014 opens the seal exactly once** for all six
-models rather than each card evaluating separately.
+**017 is the one that answers the question** -- six models, one holdout read,
+one ledger line, paired cluster bootstrap on the differences.
+
+## Two things that keep going wrong -- read before authoring a card
+
+**Dry-run every gate first.** `echo "n" | ... compact run <repo> <id>` costs
+nothing, changes no state, and has caught five card-authoring defects: a check
+placed under the 60s validation cap, a manifest path that only resolved from a
+subdirectory, a missing manifest-coverage criterion, an undeclared file the card
+had to modify, and lint/type gates aimed at legacy code that was never clean.
+
+**Verify absence, not presence.** Three review FAILs on card 014 came from
+checking that a corrected value was *present* rather than that the stale one was
+*absent*. A stale value sitting beside a correct one passes the first test and
+fails the second. When correcting a hash or an identifier, grep the whole repo
+for the old value -- including `LABNOTEBOOK.md` -- and require zero hits.
+
+Related: a card must not both regenerate an artifact under `## Checks` and
+require a hash of that artifact to be written during execution. Checks run
+*after* the executor writes its reports, so the hash is stale by construction.
 
 ## Hazards that cost real time — read these
 
 - `python -m hobkg.cli ports` **with no arguments derives the 11-face pilot and
   overwrites the 210-face `card_ports.jsonl`.** Unrecognized flags are silently
   ignored, so `ports --help` destroys the artifact. Always pass `--all`.
-- `python -m pytest -q` **rewrites `data/review/llm_accepted.jsonl` and
-  `llm_queued.jsonl` non-deterministically** — different bytes on consecutive
-  runs. Restore them after any full run. This is a real open defect, registered
-  in `registry.md` Success Criteria, and it falsifies "two serial builds agree".
+- ~~`pytest` rewrites `data/review/*.jsonl` non-deterministically~~ **FIXED at
+  card 013.** The cause was `PYTHONHASHSEED`: `phase3.py` built each record's
+  lists from set operations, which iterate in hash order, randomized per process.
+  `tools/determinism_audit.py --report` now checks all 69 derived artifacts
+  across three seeds and exits non-zero if any is unstable. Run it after touching
+  a writer.
 - Compact applies **two different timeouts**: 300s for `## Checks`, **60s for
   `## Output Validation`**, neither documented in its GUIDE. Put slow commands
   in Checks. A validation timeout is serialized into the audit entry as
@@ -85,9 +107,13 @@ models rather than each card evaluating separately.
 
 ## Loose ends
 
-- **Card 001 is still `REVIEW`** — the only card not in a terminal state.
-- `control_plane` has two unpushed local commits (`9a4b829` reviewer binary-file
-  fix, `26eb892` a defects log entry).
+- `control_plane` has local commits the operator assigned to another agent to
+  investigate (`9a4b829` reviewer binary-file fix, `26eb892` a defects log entry).
+  Its open defects are recorded in that repo's `SESSION_LOG.md`.
+- One `git status` entry survives a full suite run:
+  `data/graph_global/card_pair_projection_completeness.jsonl`. It is **raw
+  byte-identical** to its blob — a `text=auto` line-ending artifact, not a
+  content change. Verified twice. Do not chase it.
 - The quarantined 2026-09-07 modeling pipeline is in `attic/haiku-2026-09-07/`.
   Its numbers are untrusted and must not be cited; its README explains why.
 
@@ -101,8 +127,10 @@ echo "y" | uv --directory C:/GitHub/control_plane run compact run <this repo> <i
 uv --directory C:/GitHub/control_plane run compact review <this repo> <id>           # reviewer only
 ```
 
-Dry-running the gate with `n` is free and has caught two blockers that would
-otherwise have wasted a paid run. Do it every time.
+Dry-running the gate with `n` is free, changes no state, and has caught five
+card-authoring defects. Do it every time. Note the executor may commit its own
+work with trailers (card 013 did), so an empty `git diff` does not mean the card
+produced nothing — check `git log` before concluding anything.
 
 Commit trailers must be readable by git's own parser — see `INSTRUCTIONS.md` §8.
 
@@ -111,7 +139,7 @@ Commit trailers must be readable by git's own parser — see `INSTRUCTIONS.md` �
 # KNOWLEDGE-GRAPH ARM (as of 2026-08-17)
 
 The remainder of this file describes the KG build. Test counts here are stale
-(the suite is now 627 tests, covering both arms); the KG facts are current.
+(the suite is now 718 tests, covering both arms); the KG facts are current.
 
 ## 1. Mandated project rules (always first)
 - `CLAUDE.md` → it points to `INSTRUCTIONS.md`. **Read both fully.** They set the mission
