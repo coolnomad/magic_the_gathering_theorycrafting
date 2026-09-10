@@ -409,6 +409,33 @@ def test_selftest_runs_and_returns_zero() -> None:
 # --------------------------------------------------------------------------
 
 
+
+def _booster_file_version(path: Path) -> str:
+    """Return the xgboost version stored *in the file*, as the writer stamped it.
+
+    `Booster.save_raw()` re-serializes from memory and stamps whichever library
+    is currently loaded, so it reports the **reader's** version, not the
+    writer's. Reading it was the mistake that produced a wrong diagnosis on
+    2026-09-10: boosters written by 3.4.1 read back as 3.1.2 simply because the
+    reading session was 3.1.2. The bytes on disk are the actual record, so parse
+    them. The model is UBJSON: the key `version` is followed by an array marker,
+    a count, then one int8 per component.
+    """
+    raw = path.read_bytes()
+    key = b"version[#L"
+    at = raw.find(key)
+    assert at >= 0, f"no version field stored in {path}"
+    count_at = at + len(key)
+    count = int.from_bytes(raw[count_at : count_at + 8], "big")
+    parts = []
+    cursor = count_at + 8
+    for _ in range(count):
+        assert raw[cursor : cursor + 1] == b"i", "unexpected UBJSON marker"
+        parts.append(raw[cursor + 1])
+        cursor += 2
+    return ".".join(str(n) for n in parts[:3])
+
+
 def test_recorded_xgboost_version_is_the_compiled_library_not_the_wrapper(
     wired: _Wired, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -436,16 +463,11 @@ def test_library_version_matches_the_version_embedded_in_a_saved_booster(
     This is the check that would have caught the original defect: it compares
     the run record against the artifact rather than against another self-report.
     """
-    xgb = estimator._import_xgboost()
     result = estimator.fit_and_predict(
         wired.features, wired.y_binary, **wired.kwargs(model_id="prov_booster")
     )
 
-    booster = xgb.Booster()
-    booster.load_model(str(result.model_path))
-    embedded = json.loads(bytes(booster.save_raw(raw_format="json")).decode())["version"]
-
-    assert result.run_record["xgboost_version"] == ".".join(str(n) for n in embedded[:3])
+    assert result.run_record["xgboost_version"] == _booster_file_version(result.model_path)
 
 
 def test_committed_run_records_agree_with_their_boosters_where_present() -> None:
@@ -456,19 +478,16 @@ def test_committed_run_records_agree_with_their_boosters_where_present() -> None
     """
     import glob
 
-    xgb = estimator._import_xgboost()
     checked = 0
     for record_path in sorted(glob.glob("data/runs/*_run.json")):
         record = json.loads(Path(record_path).read_text(encoding="utf-8"))
         model_path = Path(record["model_path"])
         if not model_path.exists():
             continue
-        booster = xgb.Booster()
-        booster.load_model(str(model_path))
-        embedded = json.loads(bytes(booster.save_raw(raw_format="json")).decode())["version"]
-        assert record["xgboost_version"] == ".".join(str(n) for n in embedded[:3]), (
+        on_disk = _booster_file_version(model_path)
+        assert record["xgboost_version"] == on_disk, (
             f"{record_path} records {record['xgboost_version']!r} but its booster "
-            f"was written by {embedded}"
+            f"file was written by {on_disk}"
         )
         checked += 1
     if checked == 0:

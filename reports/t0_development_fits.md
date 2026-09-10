@@ -10,25 +10,25 @@ These fits have been regenerated twice since card 011 first produced them. Neith
 
 1. **Card 014 -- skill-proxy fidelity correction.** The proxy's shrinkage target `mu` changed from a per-game mean to a per-draft mean, to match the R implementation being reproduced (`scripts/R/04_real_inference_refactored.R` line 324; `mu` 0.546211 -> 0.533339). R0 is `[base_p]` and R1 contains it, so both consumed the changed column and were refitted. See `reports/mu_fidelity_correction.md`.
 
-2. **xgboost provenance correction.** Cards 011 and 014 recorded `xgboost_version` from the Python package's `__version__`, which read `3.4.1` while the compiled library that actually trained the boosters was `3.1.2` -- a false provenance string that survived two reviewer passes. The run record now takes the version from the library's own `XGBoostVersion()` and records the Python wrapper's version separately. Refitting under a matched 3.1.2 wrapper did **not** reproduce the earlier T0 boosters: R0 selected a different grid point (`max_depth` 3 -> 4, `subsample` and `colsample_bytree` 1.0 -> 0.8) and 367 -> 136 rounds, and the panel metrics moved in the fifth decimal. The T1 fits of card 015, which were produced under a matched wrapper, reproduced byte-identically in the same exercise. The artifacts described below are the reproducible ones; the card-011 and card-014 T0 artifacts were not reproducible in this environment and have been replaced.
+2. **xgboost version change (two environments, not a bad record).** Cards 011 and 014 were executed by the compact orchestrator, which runs in its own virtualenv carrying xgboost **3.4.1**; an interactive session in this repo runs a different interpreter carrying **3.1.2**. Their T0 fits therefore ran under 3.4.1 and recorded it correctly. Refitting under 3.1.2 did **not** reproduce them: R0 selected a different grid point (`max_depth` 3 -> 4, `subsample` and `colsample_bytree` 1.0 -> 0.8) and 367 -> 136 rounds, and the panel metrics moved in the fifth decimal. The artifacts described below are the 3.1.2 ones, matching the `xgboost==3.1.2` pin and the T1 and T2 rows, so every model card 017 compares was built by one version. An earlier revision of this section called the 3.4.1 record false provenance; that was a misreading -- `Booster.save_raw()` reports the *reading* library's version, not the writer's. See the LABNOTEBOOK entry [2026-09-10 18:40].
 
 ## Fit order and elapsed time
 
 R0 was fitted **first and completely**, and its run record written to disk, **before any R1 assembly or fitting began**. R0 is one feature and finishes in seconds; fitting it first proves the real path -- split-hash verification, fold alignment, out-of-fold prediction, run record -- at a point where failure costs nothing. R0 is also M0, the benchmark's own skill-only baseline, so it is not a throwaway warm-up.
 
-- **R0 fit** (T0_R0): **79.9 s**, 194215 development rows x 1 feature.
-- **R1 fit** (T0_R1): **387.2 s**, 194215 development rows x 194 features.
+- **R0 fit** (T0_R0): **82.7 s**, 194215 development rows x 1 feature.
+- **R1 fit** (T0_R1): **391.1 s**, 194215 development rows x 194 features.
 
 ## Timing probe and the budget decision
 
 Before the full R1 grid search, a probe fits a **single grid point on a single fold** at the capped iteration count (no early stopping). The full search performs `len(grid) * k` cross-validation fits, `k` out-of-fold fits, and one final refit.
 
-- Probe (one grid point, one fold): **14.5 s**
+- Probe (one grid point, one fold): **14.7 s**
 - Single-booster fits in the full search: **21** (3 grid x 5 folds + 5 out-of-fold + 1 refit)
-- Projected full-search total: **304.6 s** (5.1 min)
+- Projected full-search total: **307.8 s** (5.1 min)
 - Executor budget for R1: **5400 s** (90.0 min)
 
-The projection was within budget, so the full R1 grid search was run. The measured R1 fit came in at 387.2 s, over the 304.6 s projection. The probe is only a rough guide, not a precise predictor: it times one grid point on one fold at the capped iteration count with no early stopping, whereas the real search runs all grid points (each early-stopped on the native metric, some to more rounds or a deeper tree than the probe's) plus a final refit on all development rows. The two need not agree closely; both are far inside the budget, which is the only decision the probe exists to make.
+The projection was within budget, so the full R1 grid search was run. The measured R1 fit came in at 391.1 s, over the 307.8 s projection. The probe is only a rough guide, not a precise predictor: it times one grid point on one fold at the capped iteration count with no early stopping, whereas the real search runs all grid points (each early-stopped on the native metric, some to more rounds or a deeper tree than the probe's) plus a final refit on all development rows. The two need not agree closely; both are far inside the budget, which is the only decision the probe exists to make.
 
 ## Development metrics (diagnostic only -- no comparison concluded)
 

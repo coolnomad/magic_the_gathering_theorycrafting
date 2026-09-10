@@ -2288,3 +2288,68 @@ Closes the QUESTION of [2026-09-10 12:10]. **T1 is not changed.** The target rem
 **Related, and settled by the same reasoning.** Substituting an `base_margin` log-odds offset for the additive reconstruction — which would keep T0's logistic loss and link and make the T0/T1 contrast isolate the subtraction — is **rejected for T1**. The original uses squared error on the residual, so that substitution is an improvement on the original rather than a reproduction of it. The methodological point it was raised to address stands and is recorded here: because T1 changes loss, link and target together, an H2 T0-vs-T1 difference is a difference between **formulations as packages**, not evidence about residualization in isolation. Card 017's write-up must not attribute such a difference to the subtraction alone.
 
 Refs: LABNOTEBOOK entries [2026-09-10 12:10] (the QUESTION this closes) and [2026-09-10 12:05] (card 015 results); `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ 3, § T1, § 14 H2); `scripts/R/04_real_inference_refactored.R` (lines 311, 329, 502); `reports/t1_development_fits.md`; [[modeling-benchmark-phase1-frozen]]
+
+## [2026-09-10 18:40] CORRECTION — The xgboost provenance entry of [2026-09-10 11:20] diagnosed the wrong mechanism
+
+That entry claimed the T0 run records of cards 011 and 014 carried a **false** `xgboost_version` of 3.4.1, on the evidence that the boosters they describe "embed 3.1.2". **The evidence was invalid and the conclusion was wrong. The run records were correct.**
+
+**The measurement error.** `Booster.save_raw(raw_format="json")["version"]` does not report the version that *wrote* the file. `save_raw` re-serializes the in-memory booster using whatever library is currently loaded, so it stamps the **reader's** version. Demonstrated directly: the same file, `data/runs/T1_R0.xgb`, reads as `[3, 1, 2]` under a 3.1.2 interpreter and `[3, 4, 1]` under a 3.4.1 one. Every booster I inspected read back as 3.1.2 for the single reason that I was reading them with 3.1.2.
+
+**The actual mechanism: two environments, not a mismatched install.** compact's executor runs in `C:/GitHub/control_plane/.venv`, which carries xgboost **3.4.1** — wrapper *and* compiled library, consistently (verified via `XGBoostVersion()`). An interactive session in this repo runs `C:\Python314` with the user site-packages, which carries **3.1.2**. Cards 011 and 014 were executed by compact, so their T0 fits genuinely ran under 3.4.1 and recorded 3.4.1 faithfully. There was never a wrapper-over-library mismatch. The earlier entry's "1 ms apart in the same call and they disagree" reasoning was built on the bad reading and is withdrawn.
+
+**How to actually read a booster's writer.** Parse the file bytes. The UBJSON model stores `version` as an array of int8 near the end of the file, and that value *is* the writer's. Confirmed by writing a booster from the 3.4.1 venv and finding `[3, 4, 1]` on disk while a 3.1.2 reader's `save_raw` called it 3.1.2. `tests/test_deckbench_estimator.py::_booster_file_version` now does this, and the two tests that had used `save_raw` are corrected — as written they would have **failed a correct record** whenever reader and writer differed, which is precisely the case they exist to detect.
+
+**What survives from the earlier entry, and what does not.**
+
+*Survives.* The T0 artifacts of cards 011/014 really were not reproducible in an interactive session, and refitting really did select a different grid point (`max_depth` 3→4, `subsample`/`colsample_bytree` 1.0→0.8, 367→136 rounds). That difference is now explained honestly: **xgboost 3.4.1 versus 3.1.2, two genuinely different versions**, not a corrupted install. Catching it before card 017 still mattered, and for the same reason — one arm of the comparison would have been fitted by a different learner version than the other.
+
+*Withdrawn.* "A false provenance string that survived two reviewer passes." It was true provenance. The reviewers were not wrong, the code was not wrong, and `str(xgb.__version__)` recorded exactly what it should have. The phrase appears in commit `e664d93`, in `reports/t0_development_fits.md`'s regeneration history, and in `HANDOFF.md`; all are corrected by this entry, and the report text is corrected at source in `deckbench.targets`.
+
+**The real defect, which is worse than the one I reported.** Nothing made the executor's environment and the project's environment agree. `pyproject.toml` now pins `xgboost==3.1.2`, but that pin binds only an installation of *this* project; `control_plane`'s venv is separate and still has 3.4.1. Card 016's executor hit this directly: its first T2 fit ran under 3.4.1, it noticed the mismatch against the frozen `T0_R0` baseline on its own, and re-fitted using `py -3.14` to match. That self-rescue is not a mechanism to rely on. All six models (T0/T1/T2 × R0/R1) now record **3.1.2** and their on-disk boosters agree, so the state is consistent — but the consistency is currently maintained by vigilance rather than by construction.
+
+**What is kept anyway.** `xgboost_version` still comes from the library's `XGBoostVersion()` and `xgboost_python_version` records the wrapper. The two have always agreed here, so this is cheap insurance rather than a fix for an observed fault, and the docstring now says so instead of citing a mismatch that never happened. The access is via `importlib` + `getattr` because `xgboost.core._LIB` is private and a direct import fails `mypy --strict` — which is what blocked card 016's validation.
+
+**The transferable lesson, restated correctly.** The old one — "verify a generated artifact against the artifact, not against another self-report" — was right in principle and I violated it while thinking I was following it: `save_raw()` is not the artifact, it is a fresh self-report from the current process. Reading a file's *bytes* is checking the artifact; round-tripping it through a library is asking that library what it thinks. When the question is "which version wrote this", any method that loads the object first has already lost the evidence.
+
+Refs: LABNOTEBOOK entry [2026-09-10 11:20] (corrected here); `tests/test_deckbench_estimator.py` (`_booster_file_version`); `src/deckbench/estimator.py` (`_xgboost_library_version`); `C:/GitHub/control_plane/.venv` (xgboost 3.4.1); `pyproject.toml` (`xgboost==3.1.2`); `tasks/016.md`; [[modeling-benchmark-phase1-frozen]] [[compact-orchestrator-gotchas]]
+
+## [2026-09-10 19:05] RESULT — T2, the bump against a cross-fitted learned baseline (card 016)
+
+The benchmark's third and final target row, and the last one before the holdout is opened. Reviewer PASS. Where T1 subtracted a fixed hand-built proxy, T2 subtracts a **learned** baseline that was never allowed to see the observation it is baselining:
+
+    m_hat_-i(S_i)                cross-fitted E[Y|S], out of fold
+    B_i = Y_i - m_hat_-i(S_i)    the target actually fitted
+    p_i = m_hat_-i(S_i) + B_hat_i  the development reconstruction
+
+fitted with the **regression** objective through the same `estimator.fit_and_predict`, same grid, same frozen folds, same seed 20260908, same split hash `ad7f8596…`.
+
+**The baseline was reused, not refitted.** `m(S) = E[Y|S]` on R0 under the binary objective, predicted out of fold, *is* `T0_R0`. Card 009's `_out_of_fold_predictions` already builds each fold's predictions from a booster trained on the other four, and its docstring names T1/T2 as the reason it exists — so the HANDOFF's standing warning that card 009 "may need an out-of-fold path it does not have" was wrong, and is corrected. `load_baseline` validates `T0_R0`'s run record (target, representation, objective, feature count, seed, split hash) and raises `BaselineRecordInvalid` rather than residualizing against the wrong baseline. Reuse also keeps T2's baseline from drifting away from the `T0_R0` that card 017 separately scores.
+
+**The cross-fitting diagnostic is the most informative number in the card.** Under T2 the R0 features are the same `S` the baseline was fitted on, so `E[B|S] = E[Y|S] - m_hat(S)` is approximately zero by construction and `T2_R0` should find nothing:
+
+- `T2_R0` out-of-fold `B_hat`: mean **+0.000018**, std **0.000682**, range [-0.006288, +0.008895]; continuous **r2 = -0.000037**.
+
+A negative r2 means the fit is marginally worse than predicting the mean — the signature of a conditional mean that is genuinely flat at zero, not merely centred there. **Compare `T1_R0`'s r2 of 0.0108** on the same question asked of the fixed proxy. The hand-built proxy leaves measurable exploitable miscalibration; the cross-fitted learned baseline leaves essentially none. That is a finding about **baseline quality**, which is exactly what section T2's purpose asks, and it is *not* a finding about deck signal — R0 carries no deck information at all.
+
+**A prediction of mine that the data refuted.** Before the fit I argued that early-stopped boosting shrinks toward the marginal rate, so `T2_R0` would likely recover a systematic rising function of `base_p` — regularization bias rather than leakage. It did not: the baseline is well calibrated out of fold and the residual structure is flat. Recorded because the reasoning was checkable and came out wrong.
+
+**Clipping.** `p_hat = m_hat_-i + B_hat` escaped [0,1] for **0 of 194,215** rows under R0 and **241 (0.1241%)** under R1 — 234 below, **7 above**, raw range [-0.133856, **1.068684**]. T2 is the first formulation to exceed 1 at all; T0 cannot by construction and T1 never did. Section 2's additive decomposition continues to hold well.
+
+**Development metrics, diagnostic only.** Reconstructed-probability view (the only one comparable across target rows):
+
+| Model | log_loss | brier | brier_skill | rmse | mae | auc | cal_int | cal_slope |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T2 / R0 | 0.666463 | 0.237165 | 0.037547 | 0.486996 | 0.474243 | 0.605329 | 0.001631 | 0.993468 |
+| T2 / R1 | 0.664317 | 0.236018 | 0.042204 | 0.485816 | 0.471922 | 0.613462 | 0.010093 | 0.978445 |
+
+Bump view (diagnostic for the T2 fit alone): R0 r2 **-0.000037**; R1 rmse 0.485820, mae 0.471966, r2 **0.004789**. Fits 7.6 s and 233.5 s. Hyperparameters: R0 `max_depth 4, eta 0.1, subsample 0.8, colsample_bytree 0.8, min_child_weight 1.0`; R1 `max_depth 5, eta 0.05, subsample 0.8, colsample_bytree 0.8, min_child_weight 2.0`.
+
+**A bounded leak, recorded not hidden.** The out-of-fold *training* is honest, but `chosen` was selected by cross-validation over all development folds, so fold k's baseline comes from a booster trained without fold k under hyperparameters informed by it. Section T2's critical requirement governs training; this residual leak is accepted deliberately, is bounded (a choice among the grid's three points), and the alternative — strict nested cross-validation — would have meant modifying the shared estimator immediately before the irreversible holdout read.
+
+**Two baselines, two places.** Development reconstruction uses the **out-of-fold** `m_hat_-i`, so the development report is honest about its own baseline. The full-data `m_hat` (`T0_R0.xgb`) is card 017's, where holdout rows never trained it. Using the full-data model on development rows would have flattered T2 against T0 and T1 by pure leakage; a test pins the distinction by asserting the baseline vector equals `T0_R0`'s stored out-of-fold predictions **and** differs from the full-data booster's in-sample predictions.
+
+**Observation held for card 017, not acted on.** Taking the R1-minus-R0 gap in Brier skill score as the rough development-side reading of "deck signal": **T2 0.004657 > T0 0.004138 > T1 0.003804**. T2 on top is the direction H2 predicts; T1 sitting *below* T0 is not. So the development preview orders **T2 > T0 > T1** against H2's **T2 > T1 > T0**. This settles nothing: every number here is computed on the rows whose folds selected each model's hyperparameters, and section 13 forbids reading a null incremental result as absence of a deck effect. The ordering is card 017's to measure, once, on the sealed partition.
+
+**Not opened.** `cycle/holdout_ledger.jsonl` is 0 bytes before and after. `data/processed/MANIFEST.sha256` unchanged. All six models (T0/T1/T2 x R0/R1) now record xgboost 3.1.2 and their on-disk boosters agree.
+
+Refs: `reports/t2_development_fits.md`; `src/deckbench/targets.py` (`load_baseline`, `build_t2`); `tests/test_deckbench_targets.py`; `data/runs/T2_R0_run.json`, `T2_R1_run.json`; `tasks/016.md`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ T2, § 13, § 14 H2); LABNOTEBOOK entries [2026-09-10 12:05] (T1) and [2026-09-10 18:40] (the environment correction); [[modeling-benchmark-phase1-frozen]]

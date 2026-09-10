@@ -45,7 +45,7 @@ wrong from something other than a byte comparison; `audit_repair.py` needed no c
 
 The table below is regenerated on every `--report` run.
 
-Seeds this run: [0, 1, 2]. Regenerated artifacts: 69; frozen verified: 8; deckbench verified: 5; not regenerable: 41.
+Seeds this run: [0, 1, 2]. Regenerated artifacts: 69; frozen verified: 8; deckbench verified: 5; not regenerable: 42.
 
 ### Regenerated derived artifacts
 
@@ -187,6 +187,7 @@ Seeds this run: [0, 1, 2]. Regenerated artifacts: 69; frozen verified: 8; deckbe
 | `reports/suite_stability.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/t0_development_fits.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/t1_development_fits.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
+| `reports/t2_development_fits.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/unresolved.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 | `reports/vocabulary_pilot.md` | (none) | 0 | **not_regenerable** | narrative / one-off report, not a rebuildable data artifact |
 

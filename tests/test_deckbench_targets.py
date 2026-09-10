@@ -1,4 +1,4 @@
-"""Tests for the T0 (card 011) and T1 (card 015) R0/R1 fitting (:mod:`deckbench.targets`).
+"""Tests for T0 (011), T1 (015) and T2 (016) R0/R1 fitting (:mod:`deckbench.targets`).
 
 The real fits run on 194,215 development rows and take minutes, far beyond the
 validation budget, so these tests never fit the real dataset. Two fixtures cover
@@ -6,15 +6,16 @@ the two things that need checking:
 
 * a **synthetic** wiring (a small split + skill + identity + model table in a
   temp dir) drives assembly, the fit-through-the-estimator path, the timing
-  probe, the panel, the budget decision, determinism, the T1 residual target and
-  its reconstruction, and ``verify`` end to end, fast; and
+  probe, the panel, the budget decision, determinism, the T1 and T2 residual
+  targets and their reconstruction, and ``verify`` end to end, fast; and
 * a **real-artifact** group, run only when the frozen phase-1 parquets are on
   disk, pins the two facts about the real data the card asserts -- R0 has exactly
   one feature ``base_p`` and R1 has exactly 194 -- and checks the tracked run
-  records the actual fits produced for both targets.
+  records the actual fits produced for all three targets.
 
 The load-bearing guards are that every fit goes through the estimator (no learner
-is built here), that T1 fits the residual under the regression objective, that no
+is built here), that T1 and T2 fit the residual under the regression objective,
+that T2's baseline is the out-of-fold vector and not the full-data refit, that no
 assembled or emitted row is a holdout row, and that the holdout ledger is
 byte-identical across a build.
 """
@@ -157,6 +158,7 @@ class _Wired:
         self.runs_dir = tmp_path / "runs"
         self.report_path = tmp_path / "report.md"
         self.report_t1_path = tmp_path / "report_t1.md"
+        self.report_t2_path = tmp_path / "report_t2.md"
         self.ledger_path = tmp_path / "cycle" / "holdout_ledger.jsonl"
 
     @property
@@ -585,12 +587,16 @@ def test_build_t1_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> Non
 
 
 # --------------------------------------------------------------------------
-# verify(): passes on a good build of both targets, fails on a tampered one.
+# verify(): passes on a good build of all three targets, fails on a tampered one.
 # --------------------------------------------------------------------------
 
 
 def _build_both(wired: _Wired) -> None:
-    """Fit T0 and T1 R0/R1 on the synthetic wiring, ledger frozen empty."""
+    """Fit T0, T1 and T2 R0/R1 on the synthetic wiring, ledger frozen empty.
+
+    T0 is fitted first because its ``T0_R0`` out-of-fold predictions are the
+    cross-fitted baseline T2 residualizes against.
+    """
     wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
     wired.ledger_path.write_bytes(b"")
     targets.build(
@@ -605,6 +611,12 @@ def _build_both(wired: _Wired) -> None:
         budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
         report_path=wired.report_t1_path,
     )
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
 
 
 def _verify(wired: _Wired) -> int:
@@ -614,6 +626,7 @@ def _verify(wired: _Wired) -> int:
         wired.report_path,
         wired.ledger_path,
         wired.report_t1_path,
+        wired.report_t2_path,
     )
 
 
@@ -650,6 +663,309 @@ def test_verify_fails_when_a_t1_reconstruction_is_removed(wired: _Wired) -> None
     # still present -- must still fail: the check is not vacuous.
     (wired.runs_dir / "T1_R1_reconstruction.parquet").unlink()
     assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t2_run_record_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0  # the build is good to begin with
+    (wired.runs_dir / "T2_R0_run.json").unlink()
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t2_reconstruction_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
+    # Removing only the T2 reconstruction -- run record and predictions still
+    # present -- must still fail: verify covers T2 artifacts, not only T0/T1.
+    (wired.runs_dir / "T2_R1_reconstruction.parquet").unlink()
+    assert _verify(wired) == 1
+
+
+# --------------------------------------------------------------------------
+# T2: the cross-fitted learned baseline, the residual, and the reconstruction.
+# --------------------------------------------------------------------------
+
+
+def _split_sha(wired: _Wired) -> str:
+    return estimator.verify_split_hash(wired.sources.split_parquet, wired.sources.split_manifest)
+
+
+def _fit_baseline(wired: _Wired) -> targets.Assembled:
+    """Fit T0_R0 on the synthetic wiring; its OOF predictions are T2's baseline."""
+    a0 = targets.assemble(targets.R0, wired.sources)
+    targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T0)
+    return a0
+
+
+def test_t2_target_objective_is_regression() -> None:
+    assert targets.TARGET_T2 in targets.TARGETS
+    assert targets.TARGET_OBJECTIVE[targets.TARGET_T2] == estimator.REGRESSION
+
+
+def test_load_baseline_fails_when_t0_r0_is_missing(wired: _Wired) -> None:
+    with pytest.raises(targets.BaselineRecordInvalid):
+        targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+
+
+def test_load_baseline_rejects_a_mismatched_record(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    sha = _split_sha(wired)
+    # A good baseline loads without complaint.
+    targets.load_baseline(wired.runs_dir, sha, estimator.DEFAULT_SEED)
+    # Corrupt the T0_R0 record's objective: it is no longer the binary baseline
+    # T2 requires, so residualizing against it must be refused.
+    rec_path = wired.runs_dir / "T0_R0_run.json"
+    rec = json.loads(rec_path.read_text(encoding="utf-8"))
+    rec["objective"] = "regression"
+    rec_path.write_text(json.dumps(rec), encoding="utf-8", newline="\n")
+    with pytest.raises(targets.BaselineRecordInvalid):
+        targets.load_baseline(wired.runs_dir, sha, estimator.DEFAULT_SEED)
+
+
+def test_load_baseline_rejects_a_split_hash_mismatch(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    with pytest.raises(targets.BaselineRecordInvalid):
+        targets.load_baseline(wired.runs_dir, "not-the-frozen-hash", estimator.DEFAULT_SEED)
+
+
+def test_t2_baseline_is_out_of_fold_not_full_data_refit(wired: _Wired) -> None:
+    # The load-bearing guard: the baseline is T0_R0's stored out-of-fold vector,
+    # AND that vector differs from the full-data booster's in-sample predictions --
+    # otherwise "is the OOF vector" would be satisfied by a model that leaked.
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    oof = baseline.aligned(a0.obs_ids)
+
+    stored = pq.read_table(wired.runs_dir / "T0_R0_predictions.parquet")
+    by_obs = dict(
+        zip(
+            stored.column("obs_id").to_pylist(),
+            stored.column("prediction").to_pylist(),
+            strict=True,
+        )
+    )
+    assert np.array_equal(oof, np.asarray([by_obs[o] for o in a0.obs_ids], dtype=np.float64))
+
+    xgb = estimator._import_xgboost()
+    booster = xgb.Booster()
+    booster.load_model(str(baseline.model_path))
+    insample = np.asarray(booster.predict(xgb.DMatrix(a0.features)), dtype=np.float64)
+    assert oof.shape == insample.shape
+    # The full-data refit saw every row it now predicts; the OOF vector did not.
+    assert not np.allclose(oof, insample)
+
+
+def test_t2_fits_the_learned_residual_under_regression(
+    wired: _Wired, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    bvec = baseline.aligned(a0.obs_ids)
+
+    captured: dict[str, object] = {}
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        captured["values"] = args[1]
+        captured["kw"] = kw
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    run = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T2, baseline=bvec
+    )
+    kw = captured["kw"]
+    assert isinstance(kw, dict)
+    assert kw["objective"] == estimator.REGRESSION
+    assert kw["target"] == targets.TARGET_T2
+    # The target actually handed to the estimator is won - m_hat_-i, not the raw
+    # outcome and not won - base_p.
+    assert np.allclose(np.asarray(captured["values"]), a0.outcome - bvec)
+    assert not np.allclose(np.asarray(captured["values"]), a0.outcome - a0.base_p)
+    assert run.run_record["model_id"] == "T2_R0"
+    assert run.run_record["objective"] == "regression"
+    assert run.run_record["n_features"] == 1
+    # The regression prediction is a bump, not a probability: it takes both signs.
+    assert bool((run.predictions < 0.0).any())
+
+
+def test_t2_requires_a_baseline() -> None:
+    # Without a baseline vector, T2 cannot form its residual and must refuse.
+    dummy = targets.Assembled(
+        representation=targets.R0,
+        obs_ids=["a"],
+        groups=["g"],
+        outcome=np.zeros(1),
+        base_p=np.zeros(1),
+        features=np.zeros((1, 1)),
+        feature_names=[targets.BASE_P_COL],
+    )
+    with pytest.raises(targets.TargetUnknown):
+        targets._target_and_objective(targets.TARGET_T2, dummy, None)
+
+
+def test_build_t2_records_feature_counts_and_regression(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    result = targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    assert result.r0.record["n_features"] == 1
+    assert result.r0.record["objective"] == "regression"
+    assert result.r0.record["target"] == "T2"
+    assert result.r1 is not None
+    assert result.r1.record["n_features"] == 1 + _N_CARDS
+    assert result.r1.record["objective"] == "regression"
+
+
+def test_t2_reconstruction_uses_the_baseline_not_base_p(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    recon_path = wired.runs_dir / "T2_R0_reconstruction.parquet"
+    assert recon_path.exists()
+    tbl = pq.read_table(recon_path)
+    # The base column is the learned baseline, explicitly not mislabelled base_p.
+    assert targets.BASELINE_COL in tbl.column_names
+    assert targets.BASE_P_COL not in tbl.column_names
+    base = np.asarray(tbl.column(targets.BASELINE_COL).to_numpy(zero_copy_only=False))
+    oof = baseline.aligned(a0.obs_ids)
+    assert np.allclose(base, oof)
+    # m_hat_-i is a learned function of base_p, not base_p itself.
+    assert not np.allclose(base, a0.base_p)
+    bump = np.asarray(tbl.column(targets.BUMP_COL).to_numpy(zero_copy_only=False))
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    prob = np.asarray(tbl.column(targets.RECON_PROB_COL).to_numpy(zero_copy_only=False))
+    assert np.allclose(raw, base + bump)
+    clip = evaluation.PROBABILITY_CLIP
+    assert np.allclose(prob, np.clip(raw, clip, 1.0 - clip))
+    ids = set(tbl.column("obs_id").to_pylist())
+    assert ids == wired.dev_obs_ids
+    assert ids.isdisjoint(wired.holdout_ids)
+
+
+def test_t2_clip_counts_match_the_raw_reconstruction(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    result = targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    tbl = pq.read_table(wired.runs_dir / "T2_R0_reconstruction.parquet")
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    clip = evaluation.PROBABILITY_CLIP
+    stats = result.recon_stats
+    assert stats.n_clipped_low == int(np.count_nonzero(raw < clip))
+    assert stats.n_clipped_high == int(np.count_nonzero(raw > 1.0 - clip))
+    assert stats.n_clipped == stats.n_clipped_low + stats.n_clipped_high
+    assert stats.n_rows == len(a0.obs_ids)
+
+
+def test_t2_scores_both_the_continuous_and_the_bernoulli_views(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    result = targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    assert "r2" in result.continuous_metrics
+    assert "log_loss" not in result.continuous_metrics
+    assert "r2" not in result.reconstructed_metrics
+    assert "brier_skill_score" in result.reconstructed_metrics
+    for key in ("log_loss", "brier", "rmse", "mae", "auc", "cal_intercept", "cal_slope"):
+        assert key in result.reconstructed_metrics
+
+
+def test_t2_r0_bump_stats_are_recorded(wired: _Wired) -> None:
+    # The cross-fitting diagnostic: T2_R0's B_hat should sit near zero. The stats
+    # the report reads are captured from the actual predictions.
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    result = targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    tbl = pq.read_table(wired.runs_dir / "T2_R0_reconstruction.parquet")
+    stored_bump = np.asarray(tbl.column(targets.BUMP_COL).to_numpy(zero_copy_only=False))
+    assert result.bump_mean == pytest.approx(float(np.mean(stored_bump)))
+    assert result.bump_min <= result.bump_mean <= result.bump_max
+    assert result.bump_std >= 0.0
+
+
+def test_refitting_t2_r0_is_byte_identical(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    bvec = baseline.aligned(a0.obs_ids)
+    first = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T2, baseline=bvec
+    )
+    before = first.predictions_path.read_bytes()
+    second = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T2, baseline=bvec
+    )
+    assert np.array_equal(first.predictions, second.predictions)
+    assert second.predictions_path.read_bytes() == before
+
+
+def test_build_t2_fits_r0_before_r1(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    _fit_baseline(wired)
+    order: list[str] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        order.append(str(kw["representation"]))
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    assert order == [targets.R0, targets.R1]
+
+
+def test_t2_over_budget_stops_after_r0(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    result = targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=0.0,
+        report_path=wired.report_t2_path,
+    )
+    assert result.r1_attempted is False
+    assert result.r1 is None
+    assert result.r1_skip_reason is not None
+    assert (wired.runs_dir / "T2_R0_run.json").exists()
+    assert not (wired.runs_dir / "T2_R1_run.json").exists()
+    text = wired.report_t2_path.read_text(encoding="utf-8")
+    assert "not attempted" in text
+    assert f"{result.probe.projected_seconds:.0f}s" in text
+
+
+def test_build_t2_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")  # the frozen state: zero reads
+    before = wired.ledger_path.read_bytes()
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    assert wired.ledger_path.read_bytes() == before
+
+
+def test_build_t2_report_records_the_consumed_baseline(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    text = wired.report_t2_path.read_text(encoding="utf-8")
+    # The report names the baseline artifact by path and by T0_R0's hyperparameters.
+    assert "T0_R0_predictions.parquet" in text
+    assert "chosen hyperparameters" in text
+    # And states development uses the out-of-fold baseline, holdout the full-data one.
+    assert "out-of-fold" in text
+    assert "card 017" in text
 
 
 # --------------------------------------------------------------------------

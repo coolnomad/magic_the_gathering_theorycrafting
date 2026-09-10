@@ -65,6 +65,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import hashlib
+import importlib
 import json
 import tempfile
 import warnings
@@ -214,31 +215,40 @@ def _import_xgboost() -> Any:
 def _xgboost_library_version(xgb: Any) -> str:
     """Return the version of the compiled ``libxgboost`` that will train.
 
-    ``xgb.__version__`` is the **Python package's** self-reported string, and it
-    is not necessarily the version of the native library that actually builds
-    the model. The two disagreed in this project already: the T0 run records
-    written by cards 011 and 014 recorded ``3.4.1`` while the boosters they
-    describe embed ``3.1.2``, because a 3.4.1 wrapper sat over a 3.1.2 library.
-    That false provenance survived two reviewer passes.
+    ``xgb.__version__`` is the **Python package's** self-reported string, which
+    need not equal the version of the native library that actually builds the
+    model. The library is what trains, so the library version is what
+    ``xgboost_version`` means in a run record, and the wrapper version is
+    recorded beside it as ``xgboost_python_version`` rather than discarded --
+    the Python side builds the DMatrix and drives the boosting loop, so it can
+    move results too, and a disagreement between the two fields is worth seeing.
 
-    The library is what trains, so the library version is what
-    ``xgboost_version`` means in a run record. The wrapper version is recorded
-    beside it as ``xgboost_python_version`` rather than discarded: the Python
-    side builds the DMatrix and drives the boosting loop, so it can move results
-    too, and a disagreement between the two fields is itself the signal that
-    caught this.
+    On this project the two have always agreed; recording both is cheap
+    insurance, not a fix for an observed mismatch. What actually bit here was
+    two *environments*: compact's executor runs in ``control_plane``'s venv
+    (xgboost 3.4.1) while an interactive session runs the user-site interpreter
+    (3.1.2), and fits made in one do not reproduce in the other. See the
+    LABNOTEBOOK entry [2026-09-10 18:40].
     """
+    # `xgboost.core._LIB` is private and not re-exported, so a direct import is
+    # an attr-defined error under mypy --strict. Reach it dynamically instead.
     try:
-        from xgboost.core import _LIB
+        core = importlib.import_module("xgboost.core")
     except ImportError as exc:  # pragma: no cover - environment-dependent
         raise ProvenanceUnavailable(
             "xgboost imported but its native library handle is unavailable, so "
             "the version that would train the model cannot be recorded."
         ) from exc
+    lib = getattr(core, "_LIB", None)
+    if lib is None:  # pragma: no cover - environment-dependent
+        raise ProvenanceUnavailable(
+            "xgboost.core exposes no native library handle, so the version that "
+            "would train the model cannot be recorded."
+        )
 
     major, minor, patch = ctypes.c_int(), ctypes.c_int(), ctypes.c_int()
     try:
-        _LIB.XGBoostVersion(
+        lib.XGBoostVersion(
             ctypes.byref(major), ctypes.byref(minor), ctypes.byref(patch)
         )
     except AttributeError as exc:  # pragma: no cover - environment-dependent

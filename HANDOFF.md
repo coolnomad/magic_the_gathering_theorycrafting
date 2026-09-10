@@ -57,34 +57,24 @@ unsealed path for ordinary fitting. Do not bypass either.
   014  mu per draft (fidelity correction) + T0 refits              DONE
 
   015  T1  -- bump against the fixed skill proxy                   DONE
+  016  T2  -- bump against a CROSS-FITTED learned baseline         DONE
 
-  016  T2  -- bump against a CROSS-FITTED learned baseline         NOT WRITTEN
   017  the single holdout read, all models, paired bootstrap       NOT WRITTEN
 
-**016 is SMALLER than this file used to claim.** The old warning said card 009's
-estimator "may need an out-of-fold path it does not have". **It has one.**
-`estimator._out_of_fold_predictions` predicts every development row from a
-booster trained without that row's fold, using the frozen folds, and card 009's
-docstring names T1/T2 as the reason it exists. More: T2's baseline is **already
-fitted**. `m_hat_-i(S_i) = E[Y|S]` out-of-fold *is* `T0_R0`'s prediction vector
-(`data/runs/T0_R0_predictions.parquet`, 194,215 rows, binary objective, S =
-`[base_p]`, no NaN), and the full-data `m_hat(S)` for the final reconstruction
-is `data/runs/T0_R0.xgb`. Verified 2026-09-10.
+**All three target rows are fitted.** Card 016 is DONE (reviewer PASS). The old
+warning that card 009's estimator "may need an out-of-fold path it does not
+have" was **wrong** -- `_out_of_fold_predictions` has always existed and card
+009's docstring names T1/T2 as why. T2 reuses `T0_R0` as its cross-fitted
+baseline rather than refitting: `m_hat_-i(S_i) = E[Y|S]` out of fold *is*
+`T0_R0_predictions.parquet`, and `T0_R0.xgb` is the full-data `m_hat` that card
+017 will use on holdout rows.
 
-Three things card 016 must still decide, none of them blocking:
-1. **Hyperparameter selection is not fold-honest.** The out-of-fold *training*
-   is, but `chosen` was selected by CV over all dev folds, so fold k's baseline
-   comes from a booster trained without fold k under hyperparameters informed by
-   it. Section T2's requirement is about training; this is a mild standard leak.
-   Decide strict nested CV vs accept-and-document, in the card.
-2. **Two different `m_hat` are needed.** Out-of-fold for constructing the
-   training residuals, full-data refit for the final `p_hat = m_hat(S) + B_hat`.
-   Both exist; the card must not use one where the other belongs.
-3. **Reuse T0_R0's artifacts or refit?** Reuse is cheaper and identical by
-   construction, but couples 016 to card 011's outputs.
-
-**017 is the one that answers the question** -- six models, one holdout read,
-one ledger line, paired cluster bootstrap on the differences.
+**017 is now the only thing left, and it is the irreversible one** -- six models,
+one holdout read, one ledger line, paired cluster bootstrap on the differences.
+Development-side observations recorded so far (contaminated, settling nothing):
+T2_R0's cross-fitting diagnostic is flat at zero (r2 -0.000037) against T1_R0's
+0.0108, so the learned baseline is better calibrated than the fixed proxy; and
+the R1-minus-R0 Brier-skill gap orders T2 > T0 > T1, against H2's T2 > T1 > T0.
 
 ## Two things that keep going wrong -- read before authoring a card
 
@@ -101,16 +91,27 @@ the executor returned, the pipeline went straight to checks and the orphaned fit
 died with the process. Never defer a card's real work to a wakeup that will
 never fire.
 
+**compact's executor and an interactive session are DIFFERENT PYTHON
+ENVIRONMENTS.** compact runs in `C:/GitHub/control_plane/.venv` (xgboost
+**3.4.1**); a session here runs `C:\Python314` + user site (**3.1.2**). Fits made
+in one do not reproduce in the other -- the T0 grid search picks a different
+point. `pyproject.toml` pins `xgboost==3.1.2` but that binds only this project's
+install, **not** control_plane's venv, so the pin does not actually protect you.
+All six models (T0/T1/T2 x R0/R1) are currently 3.1.2 and agree with their
+on-disk boosters. **A card that fits a model must use `py -3.14`**, or check the
+version before trusting the artifact. Card 016's executor caught this itself and
+re-fitted; do not rely on that happening again.
+
 **Verify a generated artifact against the artifact, not against another
-self-report.** Cards 011 and 014 recorded `xgboost_version` from the Python
-package's `__version__` while the compiled library that actually trained was a
-different version; the record and the wrapper agreed with each other because
-both came from the same wrong source, and a past session cross-checked exactly
-that way and was reassured. The booster on disk embeds the truth. Two related
-traps in the same family: information hand-added to a *generated* file (card
-014's banner in the T0 report) survives only until the next regeneration, and
-`ruff`/`mypy` are **not installed** in this environment despite earlier cards
-recording those gates as clean.
+self-report -- and know which is which.** `Booster.save_raw()` re-serializes from
+memory and stamps the *reading* library's version, so it is a fresh self-report,
+not the artifact. Reading it produced a wrong diagnosis on 2026-09-10 (see
+LABNOTEBOOK [2026-09-10 18:40]): boosters written by 3.4.1 read back as 3.1.2
+purely because the reader was 3.1.2. The file's own bytes carry the writer's
+version; `tests/test_deckbench_estimator.py::_booster_file_version` parses them.
+Any method that loads an object before asking has already lost the evidence.
+Related trap in the same family: information hand-added to a *generated* file
+(card 014's banner in the T0 report) survives only until the next regeneration.
 
 **Verify absence, not presence.** Three review FAILs on card 014 came from
 checking that a corrected value was *present* rather than that the stale one was

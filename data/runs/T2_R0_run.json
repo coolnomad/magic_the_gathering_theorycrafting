@@ -1,0 +1,22 @@
+{
+  "chosen_hyperparameters": {
+    "colsample_bytree": 0.8,
+    "eta": 0.05,
+    "max_depth": 5,
+    "min_child_weight": 2.0,
+    "subsample": 0.8
+  },
+  "model_id": "T2_R0",
+  "model_path": "data/runs/T2_R0.xgb",
+  "n_dev_rows": 194215,
+  "n_features": 1,
+  "num_boost_round": 1,
+  "objective": "regression",
+  "predictions_path": "data/runs/T2_R0_predictions.parquet",
+  "representation": "R0",
+  "seed": 20260908,
+  "split_sha256": "ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4",
+  "target": "T2",
+  "xgboost_python_version": "3.1.2",
+  "xgboost_version": "3.1.2"
+}

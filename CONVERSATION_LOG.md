@@ -155943,3 +155943,8169 @@ CRITERIA:
 
 SUMMARY:
 Card 015 is satisfied on every acceptance criterion. The T1 residual target is `won - base_p`, fitted through the shared `estimator.fit_and_predict` under the regression objective, reusing card 011's assembly unchanged so only the target and objective differ. The reconstruction `base_p + B_hat` is emitted per development row, clipped only for scoring with per-end counts reported, and scored under both the continuous and Bernoulli panels. `--verify` was extended to walk both T0 and T1 and is proven non-vacuous by tests that remove a T1 run record and a T1 reconstruction. The frozen MANIFEST and empty holdout ledger are untouched, refits are byte-identical, and the report draws no cross-representation or cross-target comparison. The latest audit entry shows all checks, validation tests (35 passed), ruff, and mypy --strict passing.
+
+### [2026-09-10 17:42] USER
+You are an autonomous software engineer executing a single task card through the Compact build orchestrator. Implement the task defined in the final section (the Task Card) now. Create and modify exactly the declared output files in the working tree, satisfy the acceptance criteria, and make the project's default checks pass. Work autonomously to completion: do NOT ask for confirmation, permission, or clarification, and do not stop to propose a plan instead of executing it. The sections below are reference context, not a conversation. When you are finished, briefly summarize what you changed.
+
+================================================================================
+SECTION 1: Meta-Repo project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 2: Project project_context.md
+================================================================================
+(missing: project_context.md)
+
+================================================================================
+SECTION 3: Project registry entry
+================================================================================
+---
+project_id: hobkg
+status: MILESTONE_BENCHMARK_P1
+default_mode: managed
+created_date: 2026-09-02
+updated_date: 2026-09-10
+cli: claude
+timeout_minutes: 120
+---
+# Project Registry: MTG Limited Theory -- Knowledge Graph and Deck-Strength Benchmark
+
+## Description
+
+Two arms of one project: a mechanistic theory of Limited Magic: The Gathering,
+Draft first. `project_id` stays `hobkg` because it is the store key; the scope
+is wider than the name.
+
+**Arm 1 -- the HOB knowledge graph.** A typed multigraph of cards, faces,
+abilities, operations, conditions and gates for Magic: The Gathering -- The
+Hobbit, plus the derived card-pair projections over it. Phases 0-6 of
+`docs/hob-knowledge-graph-build-spec.md` are complete and frozen; the
+effect-semantics overlay of `docs/hob_effect_semantics_repair_instructions.md`
+reached Phase 4f. Cards 001-002 built layer 2, the per-card port derivation,
+across all 210 faces. Layer 3 is a set-wide network view over those ports;
+layer 4, the capacity projection, is not yet built.
+
+**Arm 2 -- the deck-strength modeling benchmark.** What deck construction
+contributes to win probability once player skill is accounted for, measured over
+241,727 real Premier Draft games across 43,161 drafts. Two axes held against
+frozen splits, one learner family and one metric panel: target formulation (T0
+raw outcome, T1 bump against the historical skill proxy, T2 bump against a
+cross-fitted learned skill model) crossed with deck representation (R0 skill
+only, R1 card identity, R2 knowledge graph, R3 game script, R4/R5 combinations).
+`docs/MTG_Deck-Strength_Modeling_Benchmark.md` governs it and supersedes
+`docs/Model_Building.md` in full.
+
+The arms meet at R2. Whether the graph carries predictive signal that raw card
+identity does not is the load-bearing empirical test of the whole project.
+
+Both arms run as task cards under a worker/reviewer handshake. Read
+`docs/hob_orchestration_scope.md` before working any card, and `INSTRUCTIONS.md`
+section 8 before writing a commit message -- the trailer block must be readable
+by git's own parser, not merely present in the text.
+
+Arm 2 carries a live caution. Its previous implementation was quarantined to
+`attic/haiku-2026-09-07/` on 2026-09-07: the code did not follow its
+specification, and every number it produced is untrusted. It was never run as a
+card -- no pre-registration, no frozen split committed before fitting, no sealed
+holdout. The rebuild is card-driven from the audit up, and no model is fit until
+the benchmark's section 17 audit has been reviewed.
+
+## Repo Path
+
+`C:/GitHub/magic_the_gathering_theorycrafting`
+
+## Tech Stack
+
+- Python 3.11+
+- pydantic 2
+- jsonschema 4
+- networkx
+- pandas
+- numpy
+- pyarrow
+- scikit-learn
+- xgboost
+- pytest
+
+## Dependencies
+
+- control_plane
+- adaptive_orchestrator
+
+## Success Criteria
+
+- Every commit carries a handshake trailer block that git's own parser can read
+- The declared epoch onward rebuilds as a ratchet cycle ledger, byte-identically
+- A committed phase contract exists, with each semantic invariant mapped to a named test
+- The verification command set is declared in configuration, not run by hand
+- The two defect classes that recurred in the Phase 6 arc are registered with live guard tests
+- Frozen artifacts stay byte-identical, and two serial builds agree
+- The default check suite leaves the working tree clean; no test writes to a tracked data file
+- Every modeling card declares its features, metrics and decision rule before the model is fit
+- The external holdout is opened once per benchmark phase, and every read is recorded
+- No modeling result is reported without the uncertainty on its incremental difference
+- A null incremental result is reported as a limit of the representation, never as absence of a deck effect
+
+## Default Checks
+
+- python -m pytest -q
+
+================================================================================
+SECTION 4: Upstream project audit summaries
+================================================================================
+Dependency: control_plane
+(no audit entries found)
+
+Dependency: adaptive_orchestrator
+(no audit entries found)
+
+================================================================================
+SECTION 5: Inputs
+================================================================================
+[READ-ONLY INPUT] docs/MTG_Deck-Strength_Modeling_Benchmark.md
+
+# MTG Deck-Strength Modeling Benchmark
+
+## 1. Objective
+
+Build a controlled benchmark for estimating the contribution of **deck construction to win probability after accounting for player skill**.
+
+The experiment has two independent dimensions:
+
+1. **Target formulation** ΓÇö what quantity the model is asked to predict.
+2. **Deck representation** ΓÇö how information about the deck is presented to the model.
+
+The central experimental design is therefore:
+
+$$
+\boxed{\text{Target formulation} \times \text{Deck representation}}
+$$
+
+All model variants must use identical train/validation/test partitions and be evaluated using the same metrics.
+
+The purpose is to distinguish:
+
+* whether skill adjustment exposes deck-level signal;
+* whether raw card identity contains recoverable deck-strength information;
+* whether structured representations such as the mechanistic knowledge graph or game-script features recover additional signal;
+* whether structured representations add information beyond raw card identity.
+
+This is initially a **predictive representation benchmark**. Causal intervention estimation will be layered on after the predictive architecture is characterized.
+
+---
+
+# 2. Fundamental decomposition
+
+Conceptually, assume win probability contains at least:
+
+$$
+P(Y=1) = F(S,D)
+$$
+
+where:
+
+* \(S\) = player skill/context;
+* \(D\) = deck;
+* \(Y\) = game win/loss or corresponding observed win-rate outcome.
+
+A useful conceptual approximation is:
+
+$$
+p_i \approx p_{\text{skill},i}+\Delta_{\text{deck},i}.
+$$
+
+Player skill may generate substantially more between-observation variation than deck quality. For example, player baselines may span approximately 45ΓÇô65% WR while deck effects may operate on the order of approximately \(\pm5\) percentage points.
+
+Consequently, direct prediction of \(Y\) may be dominated by skill even when deck quality has a real and practically important effect.
+
+The benchmark will explicitly test whether residualizing skill improves recovery of deck-level signal.
+
+---
+
+# 3. Experimental axis A: target formulation
+
+## T0 ΓÇö Raw outcome
+
+Predict the observed outcome directly:
+
+$$
+Y_i.
+$$
+
+For game-level modeling:
+
+$$
+Y_{ig}\in\{0,1\}.
+$$
+
+The model estimates:
+
+$$
+\hat p_{ig}=f(S_i,D_{ig}).
+$$
+
+This is the conventional prediction problem.
+
+### Purpose
+
+Establish how much deck information improves prediction of actual outcomes beyond skill.
+
+---
+
+## T1 ΓÇö Original bump
+
+Reproduce the original deck-bump formulation as closely as possible.
+
+Define:
+
+$$
+B_i^{original}
+=
+Y_i-p_{\text{base},i},
+$$
+
+where \(p_{\text{base}}\) is the existing constructed historical skill proxy.
+
+The deck model predicts:
+
+$$
+\widehat B_i^{original}
+=
+f(D_i,S_i).
+$$
+
+Reconstructed win probability is:
+
+$$
+\hat p_i
+=
+p_{\text{base},i}
++
+\widehat B_i^{original}.
+$$
+
+### Purpose
+
+Reproduce the original approach and determine whether directly subtracting the historical skill proxy exposes deck signal better than raw-outcome prediction.
+
+---
+
+## T2 ΓÇö Learned-skill bump
+
+Replace the fixed skill baseline with a learned expected-win model.
+
+First estimate:
+
+$$
+m(S)=E[Y\mid S].
+$$
+
+For every training observation, obtain a **cross-fitted** prediction:
+
+$$
+\hat m_{-i}(S_i).
+$$
+
+Define:
+
+$$
+B_i^{learned}
+=
+Y_i-\hat m_{-i}(S_i).
+$$
+
+Then model:
+
+$$
+\widehat B_i^{learned}
+=
+f(D_i,S_i).
+$$
+
+Final prediction is:
+
+$$
+\hat p_i
+=
+\hat m(S_i)
++
+\widehat B_i^{learned}.
+$$
+
+### Critical requirement
+
+Residuals used to train the deck model must be generated out-of-fold.
+
+An observation must never be used to train the skill model that generates its own baseline prediction.
+
+The external test set must remain completely untouched during this procedure.
+
+### Purpose
+
+Test whether a learned estimate of expected performance given skill provides a cleaner baseline than directly using the historical WR proxy.
+
+---
+
+# 4. Experimental axis B: deck representation
+
+The same deck representations should be tested across the target formulations wherever technically appropriate.
+
+## R0 ΓÇö Skill only
+
+$$
+S
+$$
+
+No deck information.
+
+This is the baseline model.
+
+For residual targets, the exact role of \(S\) should be documented carefully because skill has already been used in construction of the target.
+
+---
+
+## R1 ΓÇö Card identity
+
+$$
+D_{\text{identity}}
+$$
+
+Deck represented by individual card composition.
+
+Preferred representation:
+
+$$
+D_{ij}
+=
+\frac{\text{count of card }j}
+{\text{deck size}}.
+$$
+
+If modeling individual games, this representation must correspond to the deck actually recorded for that game.
+
+Do not aggregate multiple different deck configurations into a synthetic average deck without explicitly testing and documenting that choice.
+
+---
+
+## R2 ΓÇö Knowledge-graph representation
+
+$$
+Z_{\text{KG}}=\phi_{\text{KG}}(D,G).
+$$
+
+Project the deck into the existing mechanistic MTG knowledge graph.
+
+Features should describe functional/mechanistic structure rather than merely relabel card identities.
+
+Exact KG feature engineering will be specified separately.
+
+---
+
+## R3 ΓÇö Game-script representation
+
+$$
+Z_{\text{script}}=\phi_{\text{script}}(D,G).
+$$
+
+Represent the probability distribution over meaningful early/mid-game capabilities generated by the deck.
+
+Candidate features include:
+
+* probability of meaningful T1ΓÇôT10 plays;
+* probability of T2/T3 curve-out;
+* probability of using available mana;
+* expected wasted mana;
+* probability of color screw;
+* probability of developing a creature by a given turn;
+* probability of having interaction available;
+* castable spell count by turn;
+* probability of no meaningful action;
+* probability of reaching important KG-defined synergies or motifs by a useful turn.
+
+The important conceptual distinction is:
+
+$$
+\boxed{\text{Mechanism exists} \neq \text{mechanism is reliably reachable}}
+$$
+
+---
+
+## R4 ΓÇö Identity + KG
+
+$$
+D_{\text{identity}}+Z_{\text{KG}}.
+$$
+
+Tests whether the KG contributes information beyond raw card identity.
+
+---
+
+## R5 ΓÇö Identity + KG + game script
+
+$$
+D_{\text{identity}}
++
+Z_{\text{KG}}
++
+Z_{\text{script}}.
+$$
+
+This is the richest planned representation.
+
+Additional ablations such as KG + script without identity may be added later.
+
+---
+
+# 5. Core experimental matrix
+
+The intended benchmark is:
+
+| Target                | Skill only | Identity | KG | Script | Identity + KG | Identity + KG + Script |
+| --------------------- | ---------: | -------: | -: | -----: | ------------: | ---------------------: |
+| T0 Raw outcome        |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T1 Original bump      |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+| T2 Learned-skill bump |          Γ£ô |        Γ£ô |  Γ£ô |      Γ£ô |             Γ£ô |                      Γ£ô |
+
+Not every cell must necessarily use an identical feature list. For example, skill may appear both in target construction and as a predictor in bump models.
+
+Any deviation must be documented rather than silently changed.
+
+---
+
+# 6. Data unit
+
+The primary new analysis should preferentially operate at the **game level** if the raw dataset provides the deck used for each individual game.
+
+Each observation should then correspond to:
+
+$$
+(S_i,D_{ig},Y_{ig}).
+$$
+
+This avoids averaging together decks when players modify their deck between games.
+
+Before modeling, audit:
+
+* number of games;
+* number of drafts;
+* number of unique deck configurations per draft;
+* fraction of drafts with more than one deck configuration;
+* fraction of games occurring after a deck change;
+* deck-size distribution;
+* card-count consistency;
+* skill-variable consistency within draft.
+
+The original draft/run-level formulation may be retained as a secondary benchmark and direct replication of previous work.
+
+---
+
+# 7. Data splitting
+
+All models must use the **same frozen splits**.
+
+At minimum:
+
+* training;
+* internal validation/cross-fitting;
+* external test set.
+
+Games from the same draft must never cross partitions.
+
+Therefore:
+
+$$
+\boxed{\text{split by draft ID, not game row}}
+$$
+
+If a genuine player identifier exists, prefer player-level separation where appropriate so the same player cannot appear across train and test.
+
+Do not treat rank as player identity.
+
+A time-based external holdout should be considered if genuine player IDs are unavailable.
+
+Save the split assignments to disk and reuse them for every subsequent model.
+
+---
+
+# 8. Common learner
+
+Initially hold the learner family constant so representation changes are not confounded with algorithm changes.
+
+Recommended initial learner:
+
+**XGBoost**
+
+Use appropriate objectives:
+
+* binary/logistic objective for raw game outcomes;
+* regression objective for continuous bump/residual targets.
+
+Hyperparameter tuning procedures should be identical across comparable models.
+
+Do not introduce GNNs or specialized graph learners in the first benchmark.
+
+The immediate question is whether the representation contains useful information, not whether a specialized architecture can exploit it.
+
+---
+
+# 9. Evaluation framework
+
+Every final model should produce predictions on the same untouched external test observations.
+
+Report a common evaluation panel.
+
+## Core metrics
+
+### R┬▓
+
+For continuous bump/residual targets:
+
+$$
+R^2
+=
+1-\frac{\sum_i(y_i-\hat y_i)^2}
+{\sum_i(y_i-\bar y)^2}.
+$$
+
+For Bernoulli/raw-outcome models, do not silently report ordinary regression \(R^2\). Use a clearly defined probability-prediction analogue such as Brier Skill Score or explicitly labeled pseudo-\(R^2\).
+
+---
+
+### RMSE
+
+$$
+RMSE
+=
+\sqrt{
+\frac{1}{N}
+\sum_i(y_i-\hat y_i)^2
+}.
+$$
+
+---
+
+### MAE
+
+$$
+MAE
+=
+\frac{1}{N}
+\sum_i|y_i-\hat y_i|.
+$$
+
+Provides an error measure less sensitive to large misses than RMSE.
+
+---
+
+### Brier score
+
+For final win probabilities:
+
+$$
+BS
+=
+\frac{1}{N}
+\sum_i(\hat p_i-y_i)^2.
+$$
+
+This should be a primary metric for game-level probability predictions.
+
+---
+
+### Log loss
+
+$$
+-\frac{1}{N}
+\sum_i
+[
+y_i\log(\hat p_i)
++
+(1-y_i)\log(1-\hat p_i)
+].
+$$
+
+Useful because it penalizes confident incorrect predictions strongly.
+
+---
+
+### AUC
+
+Report as a secondary discrimination metric.
+
+AUC is not sufficient by itself because the primary scientific interest concerns accurate win probabilities, not merely ranking winners above losers.
+
+---
+
+# 10. Calibration evaluation
+
+Every model producing final win probabilities should undergo identical calibration analysis.
+
+## Calibration intercept
+
+Ideal:
+
+$$
+0.
+$$
+
+Tests systematic overprediction/underprediction.
+
+---
+
+## Calibration slope
+
+Ideal:
+
+$$
+1.
+$$
+
+A slope below 1 generally indicates predictions are too extreme.
+
+A slope above 1 generally indicates predictions are too conservative.
+
+---
+
+## Binned calibration
+
+Create identical probability bins for all models.
+
+For each bin compare:
+
+$$
+\text{mean predicted probability}
+$$
+
+against
+
+$$
+\text{observed win frequency}.
+$$
+
+Use the same binning strategy across models.
+
+Produce a calibration plot with the 45-degree identity line.
+
+---
+
+## Smooth calibration
+
+In addition to bins, fit a smooth calibration function so results do not depend entirely on arbitrary bin boundaries.
+
+The exact implementation can be selected after inspecting the prediction distribution.
+
+GAMLSS should not currently be treated as a required evaluation metric. If a distributional/smooth calibration method based on GAMLSS is considered later, add it as a separate diagnostic rather than conflating it with the core metrics.
+
+---
+
+# 11. Incremental-value analysis
+
+Absolute model performance is not sufficient.
+
+The primary scientific question is:
+
+> How much additional information does a deck representation contribute beyond skill?
+
+Therefore calculate paired differences such as:
+
+$$
+\Delta R^2
+=
+R^2(M_k)-R^2(M_0),
+$$
+
+$$
+\Delta RMSE
+=
+RMSE(M_k)-RMSE(M_0),
+$$
+
+$$
+\Delta BS
+=
+BS(M_k)-BS(M_0),
+$$
+
+and
+
+$$
+\Delta LL
+=
+LL(M_k)-LL(M_0).
+$$
+
+The same principle should be used to compare representations directly, e.g.:
+
+$$
+M_{\text{KG}}-M_{\text{identity}}
+$$
+
+and
+
+$$
+M_{\text{script}}-M_{\text{identity}}.
+$$
+
+---
+
+# 12. Uncertainty
+
+Use a **paired cluster bootstrap** for model comparisons.
+
+Cluster at the draft level so games from a draft are resampled together.
+
+For each bootstrap replicate:
+
+1. sample draft IDs;
+2. include all corresponding games;
+3. evaluate every model on exactly that bootstrap sample;
+4. calculate metric differences.
+
+Report confidence intervals for:
+
+$$
+\Delta R^2,\quad
+\Delta RMSE,\quad
+\Delta Brier,\quad
+\Delta LogLoss
+$$
+
+and other important pairwise comparisons.
+
+The paired design is important because all models predict the same observations.
+
+---
+
+# 13. Interpretation rules
+
+Do not equate lack of incremental predictive performance with absence of a causal deck effect.
+
+For example:
+
+$$
+R^2(S+D)\approx R^2(S)
+$$
+
+supports:
+
+> Card identity provides little detectable incremental predictive information beyond skill under this representation, learner and dataset.
+
+It does **not** establish:
+
+> Deck composition does not affect win probability.
+
+Possible explanations include:
+
+* deck effects are small relative to skill;
+* deck effects are interaction-dependent;
+* card identity is an inefficient representation;
+* outcome noise overwhelms small effects;
+* skill partially proxies expected deck quality because stronger players draft better decks.
+
+This distinction should be maintained throughout the analysis.
+
+---
+
+# 14. Primary hypotheses
+
+### H1 ΓÇö Skill dominance
+
+Skill alone explains substantially more predictable variation in raw outcomes than deck identity.
+
+---
+
+### H2 ΓÇö Residualization
+
+Deck signal is easier to recover when the dominant skill component is removed.
+
+Expected ordering, if this hypothesis is correct:
+
+$$
+\text{deck signal under T2}
+>
+\text{deck signal under T1}
+>
+\text{deck signal under T0}.
+$$
+
+This is a hypothesis, not an assumed result.
+
+---
+
+### H3 ΓÇö Structured representation
+
+Functional deck representations outperform raw identity:
+
+$$
+Z_{\text{KG}}
+\text{ and/or }
+Z_{\text{script}}
+>
+D_{\text{identity}}.
+$$
+
+---
+
+### H4 ΓÇö Reachability
+
+Game-script features add information beyond static mechanistic structure:
+
+$$
+D+Z_{\text{KG}}+Z_{\text{script}}
+>
+D+Z_{\text{KG}}.
+$$
+
+This would support the idea that knowing a mechanism exists is insufficient; its probability of being realized during actual games matters.
+
+---
+
+# 15. Required outputs
+
+For every completed model, save:
+
+* model identifier;
+* target formulation;
+* representation;
+* feature list/version;
+* split version;
+* hyperparameters;
+* test predictions;
+* reconstructed final win probability where applicable;
+* all evaluation metrics;
+* calibration data;
+* bootstrap comparisons;
+* model artifact;
+* random seed;
+* code/git commit.
+
+Create a master results table with one row per model.
+
+At minimum include:
+
+| Model | Target | Representation | R┬▓ | RMSE | MAE | Brier | Log Loss | AUC | Cal. Intercept | Cal. Slope |
+| ----- | ------ | -------------- | -: | ---: | --: | ----: | -------: | --: | -------------: | ---------: |
+
+Also create pairwise/incremental tables relative to the appropriate skill-only and identity baselines.
+
+---
+
+# 16. Implementation order
+
+Do not attempt the full matrix immediately.
+
+### Phase 1 ΓÇö Data audit
+
+Establish the correct observational unit, audit deck changes within drafts, validate skill fields, freeze splits.
+
+### Phase 2 ΓÇö Target benchmark
+
+Using skill and card identity only, implement:
+
+$$
+T0=\text{raw outcome}
+$$
+
+$$
+T1=\text{original bump}
+$$
+
+$$
+T2=\text{learned-skill bump}.
+$$
+
+This determines whether target construction materially affects recovery of deck signal.
+
+### Phase 3 ΓÇö Representation benchmark
+
+Once the target architecture is understood, add:
+
+$$
+D_{\text{identity}}
+\rightarrow
+Z_{\text{KG}}
+\rightarrow
+Z_{\text{script}}
+\rightarrow
+\text{combined representations}.
+$$
+
+### Phase 4 ΓÇö Causal estimation
+
+Only after the predictive benchmark is characterized should the project move to explicit deck/card interventions, g-computation, orthogonalization/DML, substitution effects, or draft-pick policy estimation.
+
+---
+
+# 17. Immediate task
+
+Do **not** start training the complete model matrix yet.
+
+First:
+
+1. audit the raw HOB game-level dataset;
+2. determine whether deck configurations change within drafts and quantify how often;
+3. construct the correct game-level modeling table;
+4. verify the skill variables and reproduce the existing skill proxy;
+5. define and save frozen train/validation/test splits;
+6. produce an audit report;
+7. stop for review before model fitting.
+
+The benchmark architecture above should then be implemented against that frozen dataset.
+
+
+[READ-ONLY INPUT] data/splits/split_manifest.json
+
+{
+  "dev_time_range": [
+    "2026-08-11 15:43:42",
+    "2026-08-22 12:12:35"
+  ],
+  "drafts_per_partition": {
+    "dev": 34482,
+    "holdout": 8620
+  },
+  "fold_sizes": {
+    "0": 39280,
+    "1": 39038,
+    "2": 38902,
+    "3": 38446,
+    "4": 38549
+  },
+  "holdout_fraction_drafts": 0.199991,
+  "holdout_fraction_rows": 0.196,
+  "holdout_fraction_target": 0.2,
+  "holdout_time_range": [
+    "2026-08-22 12:13:19",
+    "2026-08-29 23:33:09"
+  ],
+  "k_folds": 5,
+  "n_drafts": 43102,
+  "n_obs": 241561,
+  "persistent_player_id_exists": false,
+  "reason": "No persistent player identifier exists in the dataset (see reports/modeling_data_audit.json player_identifier), so the benchmark's preferred player-grouped split is not available. The fallback is a time-based external holdout of approximately the latest 20 percent of drafts by draft_time. This is a weaker leakage control than player grouping: the same player can appear in both partitions under different drafts, and is not treated as equivalent to a player-grouped split. rank is a skill bucket, not a player id, and is used nowhere as a grouping key, player id, or stratifier.",
+  "rows_per_partition": {
+    "dev": 194215,
+    "holdout": 47346
+  },
+  "rule": "time_based_holdout",
+  "seed": 20260908,
+  "split_parquet": "data/processed/model_split.parquet",
+  "split_sha256": "ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4"
+}
+
+
+[READ-ONLY INPUT] data/runs/T0_R0_run.json
+
+{
+  "chosen_hyperparameters": {
+    "colsample_bytree": 0.8,
+    "eta": 0.1,
+    "max_depth": 4,
+    "min_child_weight": 1.0,
+    "subsample": 0.8
+  },
+  "model_id": "T0_R0",
+  "model_path": "data/runs/T0_R0.xgb",
+  "n_dev_rows": 194215,
+  "n_features": 1,
+  "num_boost_round": 136,
+  "objective": "binary",
+  "predictions_path": "data/runs/T0_R0_predictions.parquet",
+  "representation": "R0",
+  "seed": 20260908,
+  "split_sha256": "ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4",
+  "target": "T0",
+  "xgboost_python_version": "3.1.2",
+  "xgboost_version": "3.1.2"
+}
+
+================================================================================
+SECTION 6: Modifies
+================================================================================
+[CURRENT STATE - TO BE EDITED] src/deckbench/targets.py
+
+"""T0 (card 011) and T1 (card 015): development fits for R0 and R1.
+
+Governed by ``docs/MTG_Deck-Strength_Modeling_Benchmark.md``. This module fits the
+first two rows of the benchmark's target axis against the two representations
+phase 1 can already supply:
+
+* **R0 -- skill only.** One feature, ``base_p`` (the reliability-shrunk
+  historical win-rate proxy of card 005). This is also M0, the benchmark's own
+  skill-only baseline; ``base_p`` is a nuisance representation and is **never**
+  described as skill.
+* **R1 -- skill plus card identity.** ``base_p`` plus the 193 normalized
+  card-fraction columns of card 004, so 194 features.
+
+Two target formulations share that assembly, differing only in what the estimator
+is asked to predict and under which objective:
+
+* **T0 -- raw outcome (card 011).** The target is the game outcome ``won`` in
+  {0, 1}, fitted with the **binary** objective. The estimator's prediction is a
+  win probability directly.
+* **T1 -- bump against the fixed proxy (card 015).** The target is the residual
+  ``B_i = won_i - base_p_i``, fitted with the **regression** objective. A win
+  probability is *reconstructed* as ``p_i = base_p_i + B_hat_i`` and clipped into
+  the unit interval for scoring. T1 exists to test whether removing the dominant
+  skill component makes deck signal easier to recover -- that is H2 in section 14,
+  a hypothesis and not an assumption. This card produces one row of the table the
+  question needs; it does not answer it and must not try.
+
+What this module does, and deliberately does not do:
+
+* It **assembles** each representation from the frozen phase-1 tables only --
+  ``skill_features.parquet`` for ``base_p``, ``deck_identity.parquet`` for the
+  card fractions, ``model_table.parquet`` for the outcome -- joined on ``obs_id``
+  and restricted to the development partition (read through
+  :func:`deckbench.holdout.load_dev`). The join must be total: a development
+  ``obs_id`` missing from any table stops the run. No row is imputed, dropped, or
+  reweighted; the population was settled at card 008. **T0 and T1 fit the same two
+  matrices** -- only the target and the objective change -- so a difference
+  between the two target rows comes from the formulation and nothing else.
+* It **fits nothing itself.** Every fit goes through
+  :func:`deckbench.estimator.fit_and_predict`; this module constructs no learner,
+  no grid, and no folds of its own. The one place it touches xgboost directly is
+  the timing probe, which uses the estimator's own grid point, base parameters,
+  and frozen fold vector to *measure* -- it does not fit a recorded model.
+* It **de-risks by order.** R0 (one feature, seconds) is fitted and its run
+  record written to disk *before* any R1 fitting begins, so the real path --
+  split-hash verification, fold alignment, out-of-fold prediction, run record --
+  is proven end to end where failure costs nothing.
+* Before each full R1 grid search it runs a **timing probe**: a single grid point
+  on a single fold, whose measured seconds project the full search. If the
+  projection exceeds :data:`R1_FIT_BUDGET_SECONDS` the build stops after R0,
+  records the projection and the reason, and reports R1 as not attempted rather
+  than starting a search it cannot finish.
+* For T1 it **reconstructs and measures.** ``p = base_p + B_hat`` has no
+  arithmetic guarantee of landing inside [0, 1]; the reconstruction is clipped to
+  the panel's declared clip bound and **the number of rows clipped at each end is
+  counted and reported**. How often the additive decomposition escapes the unit
+  interval is direct evidence about section 2, not a detail to suppress.
+* It applies the **card-010 panel** to each fitted model's out-of-fold
+  development predictions and records the metrics -- as a diagnostic only. These
+  are development metrics, contaminated by the same folds that selected the
+  hyperparameters; **no comparison between R0 and R1, and none between T0 and T1,
+  is concluded from them.** The benchmark's answer is card 017's to give once, on
+  the untouched holdout.
+* It **never opens the holdout.** No holdout row is read, and
+  ``cycle/holdout_ledger.jsonl`` is untouched.
+
+Run it with::
+
+    python -m deckbench.targets --fit        # fit T0 R0/R1, write the T0 report
+    python -m deckbench.targets --fit-t1      # fit T1 R0/R1, write the T1 report
+    python -m deckbench.targets --verify      # check the artifacts every fit produced
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import numpy as np
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
+from numpy.typing import NDArray
+
+from deckbench import estimator, evaluation
+from deckbench.holdout import load_dev
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+FloatArray = NDArray[np.float64]
+
+# Paths, anchored to the same repository root the estimator uses.
+REPO_ROOT = estimator.REPO_ROOT
+PROCESSED_DIR = estimator.PROCESSED_DIR
+RUNS_DIR = estimator.RUNS_DIR
+SPLIT_PARQUET = estimator.SPLIT_PARQUET
+SPLIT_MANIFEST = estimator.SPLIT_MANIFEST
+MODEL_TABLE_PARQUET = PROCESSED_DIR / "model_table.parquet"
+SKILL_FEATURES_PARQUET = PROCESSED_DIR / "skill_features.parquet"
+DECK_IDENTITY_PARQUET = PROCESSED_DIR / "deck_identity.parquet"
+LEDGER_PATH = REPO_ROOT / "cycle" / "holdout_ledger.jsonl"
+REPORT_MD = REPO_ROOT / "reports" / "t0_development_fits.md"
+REPORT_T1_MD = REPO_ROOT / "reports" / "t1_development_fits.md"
+
+# The two target formulations this module implements. T0 (card 011) predicts the
+# raw Bernoulli outcome; T1 (card 015) predicts the continuous residual bump
+# against the fixed proxy. ``TARGET`` is retained as the T0 name; the card-011
+# code paths default to it.
+TARGET_T0 = "T0"
+TARGET_T1 = "T1"
+TARGET = TARGET_T0
+TARGETS = (TARGET_T0, TARGET_T1)
+
+# Column names in the frozen tables.
+OBS_ID_COL = "obs_id"
+BASE_P_COL = "base_p"
+OUTCOME_COL = "won"
+PARTITION_COL = "partition"
+HOLDOUT = "holdout"
+
+# The raw outcome is stored as a string; it is read as a Bernoulli {0, 1}. The
+# mapping is exact and total -- any other value stops the run rather than being
+# coerced to a class.
+WON_MAP: dict[str, float] = {"True": 1.0, "False": 0.0}
+
+# The two representations phase 1 can supply.
+R0 = "R0"
+R1 = "R1"
+
+# Run-record model ids, keyed by target then representation. :func:`verify` walks
+# every entry, so both T0 and T1 artifacts are inspected. Card 011 shipped a flat
+# ``{R0, R1}`` dict that named only the T0 models, which left ``verify`` blind to
+# anything T1 produced.
+MODEL_IDS: dict[str, dict[str, str]] = {
+    TARGET_T0: {R0: "T0_R0", R1: "T0_R1"},
+    TARGET_T1: {R0: "T1_R0", R1: "T1_R1"},
+}
+
+# The estimator objective each target is fitted under. T0 predicts the Bernoulli
+# outcome; T1 predicts a continuous residual. Fitting a residual with a logistic
+# objective is a category error the learner will not catch, because the target
+# still looks like a float -- so the objective is selected here, by target, and
+# ``verify`` checks the recorded objective matches.
+TARGET_OBJECTIVE: dict[str, str] = {
+    TARGET_T0: estimator.BINARY,
+    TARGET_T1: estimator.REGRESSION,
+}
+
+# The feature counts the frozen phase-1 dataset yields, used by ``verify`` to
+# check the tracked run records: R0 is base_p alone; R1 is base_p plus the 193
+# card fractions. ``assemble`` itself checks internal consistency against the
+# actual number of identity columns rather than this constant, so it stays
+# correct on a synthetic fixture with a different card count.
+N_FEATURES: dict[str, int] = {R0: 1, R1: 194}
+
+# The executor budget for the R1 grid search. The registry allows the executor
+# 120 minutes for the whole card; this reserves 90 of them for the R1 fit alone,
+# leaving margin for R0, the probe, the panel, the report and the checks. If the
+# probe's projection exceeds this, the build stops after R0 and records why rather
+# than starting a search it may not finish. Declared as data so the threshold is
+# visible and changeable in one place.
+R1_FIT_BUDGET_SECONDS: float = 5400.0
+
+# The reconstruction artifact's columns (T1 only): the raw bump prediction, the
+# proxy it is added to, the reconstructed probability before clipping, and the
+# reconstructed probability after clipping into the unit interval.
+BUMP_COL = "bump_prediction"
+RECON_RAW_COL = "reconstructed_raw"
+RECON_PROB_COL = "reconstructed_prob"
+
+
+class JoinNotTotal(ValueError):
+    """Raised when a development obs_id is absent from a frozen feature table.
+
+    The join between the split's development rows and a representation table must
+    be total: a missing id means the population moved under the representation, so
+    the run stops rather than fitting a partial matrix.
+    """
+
+
+class UnexpectedOutcomeValue(ValueError):
+    """Raised when the raw outcome column carries a value outside :data:`WON_MAP`."""
+
+
+class RepresentationUnknown(ValueError):
+    """Raised when a representation other than R0 or R1 is requested."""
+
+
+class TargetUnknown(ValueError):
+    """Raised when a target other than T0 or T1 is requested."""
+
+
+class FeatureCountMismatch(ValueError):
+    """Raised when an assembled matrix does not carry the expected feature count."""
+
+
+# --------------------------------------------------------------------------
+# The data inputs, bundled so tests can wire a synthetic fixture in one place.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Sources:
+    """The frozen phase-1 artifacts each fit is assembled from.
+
+    Defaults are the real frozen paths; a test overrides them to point at a small
+    synthetic fixture. Nothing here is re-derived -- these are read, joined on
+    ``obs_id`` and restricted to the development partition.
+    """
+
+    split_parquet: Path = SPLIT_PARQUET
+    split_manifest: Path = SPLIT_MANIFEST
+    skill_parquet: Path = SKILL_FEATURES_PARQUET
+    identity_parquet: Path = DECK_IDENTITY_PARQUET
+    model_table: Path = MODEL_TABLE_PARQUET
+
+
+# The frozen phase-1 inputs, as a shared immutable default. ``Sources`` is a
+# frozen dataclass, so one singleton is safe to reuse as a call default.
+DEFAULT_SOURCES = Sources()
+
+
+# --------------------------------------------------------------------------
+# Assembly -- from the frozen tables only, joined on obs_id, dev rows only.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Assembled:
+    """One representation's development matrix, aligned to the split's dev order.
+
+    ``base_p`` is carried explicitly, in the same row order as ``features``,
+    regardless of representation: R0's single feature is exactly ``base_p``, and
+    R1 has it as column 0, but T1 needs the proxy as a standalone vector to form
+    the residual target and to reconstruct a probability, so it is kept separate
+    rather than fished back out of the feature matrix.
+    """
+
+    representation: str
+    obs_ids: list[str]
+    groups: list[str]
+    outcome: FloatArray
+    base_p: FloatArray
+    features: FloatArray
+    feature_names: list[str]
+
+
+def _dev_order(split_parquet: Path) -> tuple[list[str], list[str]]:
+    """Development ``obs_id`` and ``draft_id``, in the frozen split's row order.
+
+    Read through :func:`deckbench.holdout.load_dev`, the unsealed path: no card
+    id, no ledger line, no holdout row. This order fixes the row order of every
+    assembled matrix, so R0 and R1 predict the same rows in the same sequence.
+    """
+    dev = load_dev(split_parquet)
+    return dev.column("obs_id").to_pylist(), dev.column("draft_id").to_pylist()
+
+
+def _base_p_by_obs(skill_parquet: Path) -> dict[str, float]:
+    """Map ``obs_id`` to ``base_p`` from the frozen skill-proxy table."""
+    tbl = pq.read_table(skill_parquet, columns=[OBS_ID_COL, BASE_P_COL])
+    keys: list[str] = tbl.column(OBS_ID_COL).to_pylist()
+    vals: list[float] = tbl.column(BASE_P_COL).to_pylist()
+    return {k: float(v) for k, v in zip(keys, vals, strict=True)}
+
+
+def _outcome_by_obs(model_table: Path) -> dict[str, float]:
+    """Map ``obs_id`` to the raw outcome as a {0, 1} float, or fail on an odd value.
+
+    Reads only ``obs_id`` and ``won`` from the model table. The mapping is exact
+    and total; nothing is imputed. A value outside :data:`WON_MAP` stops the run.
+    """
+    tbl = pq.read_table(model_table, columns=[OBS_ID_COL, OUTCOME_COL])
+    keys: list[str] = tbl.column(OBS_ID_COL).to_pylist()
+    raw: list[str] = tbl.column(OUTCOME_COL).to_pylist()
+    out: dict[str, float] = {}
+    for obs_id, value in zip(keys, raw, strict=True):
+        if value not in WON_MAP:
+            raise UnexpectedOutcomeValue(
+                f"observation {obs_id!r} has outcome {value!r}, not one of "
+                f"{sorted(WON_MAP)}; the raw outcome is never imputed or coerced."
+            )
+        out[obs_id] = WON_MAP[value]
+    return out
+
+
+def _identity_matrix(order: Sequence[str], identity_parquet: Path) -> tuple[FloatArray, list[str]]:
+    """The card-fraction columns, reordered to ``order``. The join must be total."""
+    tbl = pq.read_table(identity_parquet)
+    names = [c for c in tbl.column_names if c != OBS_ID_COL]
+    ids: list[str] = tbl.column(OBS_ID_COL).to_pylist()
+    position = {obs_id: i for i, obs_id in enumerate(ids)}
+    missing = [obs_id for obs_id in order if obs_id not in position]
+    if missing:
+        raise JoinNotTotal(
+            f"{len(missing)} development obs_id(s) are absent from "
+            f"{identity_parquet.name}; the first is {missing[0]!r}. The identity "
+            "join is not total and the run stops."
+        )
+    columns = [
+        np.asarray(tbl.column(name).to_numpy(zero_copy_only=False), dtype=np.float64)
+        for name in names
+    ]
+    full = np.column_stack(columns)
+    idx = np.asarray([position[obs_id] for obs_id in order], dtype=np.int64)
+    return full[idx], names
+
+
+def _require_total(order: Sequence[str], mapping: dict[str, float], source: str) -> None:
+    missing = [obs_id for obs_id in order if obs_id not in mapping]
+    if missing:
+        raise JoinNotTotal(
+            f"{len(missing)} development obs_id(s) are absent from {source}; the "
+            f"first is {missing[0]!r}. The join is not total and the run stops."
+        )
+
+
+def assemble(representation: str, sources: Sources = DEFAULT_SOURCES) -> Assembled:
+    """Assemble one representation's development matrix from the frozen tables.
+
+    R0 is ``base_p`` alone; R1 is ``base_p`` plus the card fractions. Every join
+    is on ``obs_id`` and must be total over the development partition. No row is
+    imputed, dropped, or reweighted -- the population is inherited from card 008.
+    The assembled feature count is checked for internal consistency: R0 is exactly
+    one column, R1 is exactly one column plus every identity column. The result is
+    target-agnostic; T0 and T1 both fit exactly this matrix.
+    """
+    if representation not in (R0, R1):
+        raise RepresentationUnknown(
+            f"representation {representation!r} is not supported by this module; "
+            f"choose one of {(R0, R1)}."
+        )
+    obs_ids, groups = _dev_order(sources.split_parquet)
+    base_p_map = _base_p_by_obs(sources.skill_parquet)
+    outcome_map = _outcome_by_obs(sources.model_table)
+    _require_total(obs_ids, base_p_map, f"{sources.skill_parquet.name} base_p")
+    _require_total(obs_ids, outcome_map, f"{sources.model_table.name} won")
+
+    base_p = np.asarray([base_p_map[o] for o in obs_ids], dtype=np.float64)
+    outcome = np.asarray([outcome_map[o] for o in obs_ids], dtype=np.float64)
+
+    if representation == R0:
+        features: FloatArray = base_p.reshape(-1, 1)
+        feature_names = [BASE_P_COL]
+        expected = 1
+    else:
+        cards, card_names = _identity_matrix(obs_ids, sources.identity_parquet)
+        features = np.column_stack([base_p, cards])
+        feature_names = [BASE_P_COL, *card_names]
+        expected = 1 + len(card_names)
+
+    if features.shape[1] != expected:
+        raise FeatureCountMismatch(
+            f"{representation} assembled {features.shape[1]} feature columns; "
+            f"expected {expected}."
+        )
+    return Assembled(
+        representation=representation,
+        obs_ids=obs_ids,
+        groups=groups,
+        outcome=outcome,
+        base_p=base_p,
+        features=features,
+        feature_names=feature_names,
+    )
+
+
+def bump_target(assembled: Assembled) -> FloatArray:
+    """The T1 residual target, ``won - base_p``, per development row.
+
+    This is genuinely a residual, not the raw outcome relabelled: it takes both
+    signs (a win above the proxy is positive, a loss below it negative) and is not
+    bounded to [0, 1]. It is fitted with the regression objective and is never
+    clipped -- clipping the target would discard exactly the observations the
+    formulation exists to model.
+    """
+    return assembled.outcome - assembled.base_p
+
+
+def _target_and_objective(target: str, assembled: Assembled) -> tuple[FloatArray, str]:
+    """The values a target asks the estimator to predict, and the objective for it."""
+    if target == TARGET_T0:
+        return assembled.outcome, estimator.BINARY
+    if target == TARGET_T1:
+        return bump_target(assembled), estimator.REGRESSION
+    raise TargetUnknown(
+        f"target {target!r} is not supported by this module; choose one of {TARGETS}."
+    )
+
+
+# --------------------------------------------------------------------------
+# The fit -- always through the card-009 estimator.
+# --------------------------------------------------------------------------
+
+
+def fit_representation(
+    assembled: Assembled,
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    *,
+    target: str = TARGET_T0,
+) -> estimator.RunResult:
+    """Fit one (target, representation) through :func:`estimator.fit_and_predict`.
+
+    This module never constructs a learner, grid or folds; it hands the estimator
+    an opaque matrix, the target's values and objective, the draft groups, the
+    obs ids, and the run-record labels. For T0 the values are the raw outcome and
+    the objective is binary; for T1 the values are the residual bump and the
+    objective is regression. The estimator verifies the split hash, aligns the
+    frozen folds, emits out-of-fold development predictions and writes the run
+    record.
+    """
+    values, objective = _target_and_objective(target, assembled)
+    return estimator.fit_and_predict(
+        assembled.features,
+        values,
+        groups=assembled.groups,
+        obs_ids=assembled.obs_ids,
+        objective=objective,
+        model_id=MODEL_IDS[target][assembled.representation],
+        target=target,
+        representation=assembled.representation,
+        split_parquet=sources.split_parquet,
+        split_manifest=sources.split_manifest,
+        runs_dir=runs_dir,
+    )
+
+
+# --------------------------------------------------------------------------
+# The timing probe -- one grid point, one fold; project the full search.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Probe:
+    """A single-fit timing measurement and the projected full-search total.
+
+    ``probe_seconds`` is the wall time of one grid point on one fold at the
+    capped iteration count (no early stopping, so the probe is a rough,
+    conservative guide). ``n_fits`` is the number of single-booster fits the
+    full search performs -- the grid crossed with the folds for cross-validation,
+    the out-of-fold predictions, and the final refit -- and
+    ``projected_seconds`` is ``probe_seconds * n_fits``.
+    """
+
+    probe_seconds: float
+    n_fits: int
+    projected_seconds: float
+
+
+def timing_probe(
+    assembled: Assembled, split_parquet: Path = SPLIT_PARQUET, *, target: str = TARGET_T0
+) -> Probe:
+    """Fit one estimator grid point on one frozen fold; project the full search.
+
+    Uses the estimator's own grid point, base parameters, the target's objective
+    and the fold vector it would use, so the measurement reflects the real path
+    rather than a hand-rolled learner. It fits a throwaway booster (not recorded)
+    purely to time it. The projection assumes the search cost scales with the
+    number of single-booster fits: ``len(grid) * k`` cross-validation fits, ``k``
+    out-of-fold fits, and one final refit.
+    """
+    values, objective = _target_and_objective(target, assembled)
+    fold_vector = estimator._aligned_folds(assembled.obs_ids, assembled.groups, split_parquet)
+    fold_pairs = estimator._fold_index_pairs(fold_vector)
+    train_idx, _test_idx = fold_pairs[0]
+    xgb = estimator._import_xgboost()
+    params = {
+        **estimator._base_params(objective, estimator.DEFAULT_SEED),
+        **estimator.HYPERPARAMETER_GRID[0],
+    }
+    dtrain = xgb.DMatrix(assembled.features[train_idx], label=values[train_idx])
+    start = time.perf_counter()
+    xgb.train(params, dtrain, num_boost_round=estimator.MAX_BOOST_ROUND)
+    probe_seconds = time.perf_counter() - start
+
+    n_grid = len(estimator.HYPERPARAMETER_GRID)
+    k_folds = len(fold_pairs)
+    n_fits = n_grid * k_folds + k_folds + 1
+    return Probe(
+        probe_seconds=probe_seconds,
+        n_fits=n_fits,
+        projected_seconds=probe_seconds * n_fits,
+    )
+
+
+# --------------------------------------------------------------------------
+# The card-010 panel, applied to development out-of-fold predictions.
+# --------------------------------------------------------------------------
+
+
+def development_metrics(outcome: FloatArray, predictions: FloatArray) -> dict[str, float]:
+    """The card-010 Bernoulli panel plus the calibration line, for one model.
+
+    Applied to out-of-fold *development* predictions (for T1, to the reconstructed
+    and clipped probability against the raw ``won`` outcome). Diagnostic only:
+    these rows are the same ones whose folds selected the hyperparameters, so the
+    numbers are contaminated and no comparison is concluded from them.
+    """
+    metrics = dict(
+        evaluation.evaluate_metrics(
+            outcome, predictions, outcome_type=evaluation.OUTCOME_BERNOULLI
+        )
+    )
+    line = evaluation.calibration_intercept_slope(outcome, predictions)
+    metrics["cal_intercept"] = line.intercept
+    metrics["cal_slope"] = line.slope
+    return metrics
+
+
+def bump_metrics(bump: FloatArray, predictions: FloatArray) -> dict[str, float]:
+    """The card-010 continuous panel, for the T1 bump fit's out-of-fold output.
+
+    The continuous view scores the residual prediction directly (RMSE, MAE and the
+    section-9 weighted R-squared). It is diagnostic for the fit and is **not**
+    comparable with any T0 metric: T0 fits a probability and T1 fits a residual,
+    and only the reconstructed probability is common ground between them.
+    """
+    return dict(
+        evaluation.evaluate_metrics(
+            bump, predictions, outcome_type=evaluation.OUTCOME_CONTINUOUS
+        )
+    )
+
+
+# --------------------------------------------------------------------------
+# T1 reconstruction -- base_p + B_hat, clipped, with the escapes counted.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReconstructionStats:
+    """How the reconstructed probability behaved before clipping.
+
+    ``n_clipped_low``/``n_clipped_high`` count the rows whose raw reconstruction
+    fell below the clip bound or above its complement -- the rows the additive
+    decomposition ``base_p + B_hat`` pushed outside [0, 1]. ``raw_min``/``raw_max``
+    bracket the raw reconstruction so the size of the escape is visible even when
+    the count is zero.
+    """
+
+    n_rows: int
+    n_clipped_low: int
+    n_clipped_high: int
+    clip_low: float
+    clip_high: float
+    raw_min: float
+    raw_max: float
+
+    @property
+    def n_clipped(self) -> int:
+        return self.n_clipped_low + self.n_clipped_high
+
+    @property
+    def clipped_fraction(self) -> float:
+        return self.n_clipped / self.n_rows if self.n_rows else 0.0
+
+
+def _write_reconstruction(
+    path: Path,
+    obs_ids: Sequence[str],
+    bump: FloatArray,
+    base_p: FloatArray,
+    raw: FloatArray,
+    clipped: FloatArray,
+) -> None:
+    """Write the T1 reconstruction artifact: the bump and the reconstructed prob.
+
+    Keyed by ``obs_id``, one row per development observation, carrying both the
+    raw bump prediction and the reconstructed probability (before and after the
+    clip). Gitignored under ``data/runs`` and regenerable from the frozen split
+    and the run's booster.
+    """
+    table = pa.table(
+        {
+            OBS_ID_COL: pa.array(list(obs_ids), type=pa.string()),
+            BUMP_COL: pa.array(bump.tolist(), type=pa.float64()),
+            BASE_P_COL: pa.array(base_p.tolist(), type=pa.float64()),
+            RECON_RAW_COL: pa.array(raw.tolist(), type=pa.float64()),
+            RECON_PROB_COL: pa.array(clipped.tolist(), type=pa.float64()),
+        }
+    )
+    pq.write_table(table, path, compression="snappy")
+
+
+# --------------------------------------------------------------------------
+# T0 build -- R0 first and complete, then probe, then R1 if in budget.
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class BuildResult:
+    """Everything the T0 report needs from one build."""
+
+    r0_elapsed_seconds: float
+    r0_metrics: dict[str, float]
+    r0_record: dict[str, object]
+    probe: Probe
+    budget_seconds: float
+    r1_attempted: bool
+    r1_elapsed_seconds: float | None
+    r1_metrics: dict[str, float] | None
+    r1_record: dict[str, object] | None
+    r1_skip_reason: str | None
+
+
+def build(
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    budget_seconds: float = R1_FIT_BUDGET_SECONDS,
+    report_path: Path = REPORT_MD,
+    write_report_file: bool = True,
+) -> BuildResult:
+    """Fit T0 R0, probe R1, fit R1 if the projection is within budget, write report.
+
+    R0 is fitted and its run record written before R1 assembly or fitting begins.
+    The R1 grid search runs only if the timing probe's projection is within
+    ``budget_seconds``; otherwise R1 is reported as not attempted with the
+    projection and reason recorded.
+    """
+    # R0 first, completely. One feature, seconds; proves the real path cheaply.
+    a0 = assemble(R0, sources)
+    start = time.perf_counter()
+    r0 = fit_representation(a0, sources, runs_dir, target=TARGET_T0)
+    r0_elapsed = time.perf_counter() - start
+    r0_metrics = development_metrics(a0.outcome, r0.predictions)
+
+    # R1 assembly and the timing probe -- measure before committing to the search.
+    a1 = assemble(R1, sources)
+    probe = timing_probe(a1, sources.split_parquet, target=TARGET_T0)
+
+    r1_attempted = probe.projected_seconds <= budget_seconds
+    r1_elapsed: float | None = None
+    r1_metrics: dict[str, float] | None = None
+    r1_record: dict[str, object] | None = None
+    r1_skip_reason: str | None = None
+    if r1_attempted:
+        start = time.perf_counter()
+        r1 = fit_representation(a1, sources, runs_dir, target=TARGET_T0)
+        r1_elapsed = time.perf_counter() - start
+        r1_metrics = development_metrics(a1.outcome, r1.predictions)
+        r1_record = r1.run_record
+    else:
+        r1_skip_reason = _skip_reason(probe, budget_seconds)
+
+    result = BuildResult(
+        r0_elapsed_seconds=r0_elapsed,
+        r0_metrics=r0_metrics,
+        r0_record=r0.run_record,
+        probe=probe,
+        budget_seconds=budget_seconds,
+        r1_attempted=r1_attempted,
+        r1_elapsed_seconds=r1_elapsed,
+        r1_metrics=r1_metrics,
+        r1_record=r1_record,
+        r1_skip_reason=r1_skip_reason,
+    )
+    if write_report_file:
+        write_report(result, report_path)
+    return result
+
+
+def _skip_reason(probe: Probe, budget_seconds: float) -> str:
+    return (
+        f"the timing probe projects the full R1 grid search at "
+        f"{probe.projected_seconds:.0f}s ({probe.projected_seconds / 60:.1f} "
+        f"min), which exceeds the executor budget of {budget_seconds:.0f}s "
+        f"({budget_seconds / 60:.1f} min). The build stops after R0 rather "
+        "than starting a search it cannot finish."
+    )
+
+
+# --------------------------------------------------------------------------
+# T1 build -- same order, plus reconstruction, clipping counts, dual metrics.
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class T1ModelResult:
+    """One T1 model's fit: the record, both metric views, and the clip stats."""
+
+    representation: str
+    elapsed_seconds: float
+    record: dict[str, object]
+    continuous_metrics: dict[str, float]
+    reconstructed_metrics: dict[str, float]
+    recon_stats: ReconstructionStats
+
+
+@dataclass
+class T1BuildResult:
+    """Everything the T1 report needs from one build."""
+
+    r0: T1ModelResult
+    probe: Probe
+    budget_seconds: float
+    r1_attempted: bool
+    r1: T1ModelResult | None
+    r1_skip_reason: str | None
+
+
+def _fit_t1_model(assembled: Assembled, sources: Sources, runs_dir: Path) -> T1ModelResult:
+    """Fit one T1 model, reconstruct its probability, and score it both ways.
+
+    The estimator fits the residual bump with the regression objective and emits
+    the out-of-fold ``B_hat``. The continuous view scores that bump directly. The
+    probability is reconstructed as ``base_p + B_hat``, clipped into the unit
+    interval with the panel's declared clip bound (with the escapes counted at
+    each end), scored against the raw ``won`` outcome under the Bernoulli panel,
+    and written -- alongside the raw bump -- to the reconstruction artifact.
+    """
+    start = time.perf_counter()
+    run = fit_representation(assembled, sources, runs_dir, target=TARGET_T1)
+    elapsed = time.perf_counter() - start
+
+    bump = bump_target(assembled)
+    continuous = bump_metrics(bump, run.predictions)
+
+    clip_low = evaluation.PROBABILITY_CLIP
+    clip_high = 1.0 - clip_low
+    raw = assembled.base_p + run.predictions
+    clipped = np.clip(raw, clip_low, clip_high)
+    n_low = int(np.count_nonzero(raw < clip_low))
+    n_high = int(np.count_nonzero(raw > clip_high))
+    reconstructed = development_metrics(assembled.outcome, clipped)
+
+    model_id = MODEL_IDS[TARGET_T1][assembled.representation]
+    _write_reconstruction(
+        runs_dir / f"{model_id}_reconstruction.parquet",
+        run.obs_ids,
+        run.predictions,
+        assembled.base_p,
+        raw,
+        clipped,
+    )
+    stats = ReconstructionStats(
+        n_rows=len(run.obs_ids),
+        n_clipped_low=n_low,
+        n_clipped_high=n_high,
+        clip_low=clip_low,
+        clip_high=clip_high,
+        raw_min=float(np.min(raw)),
+        raw_max=float(np.max(raw)),
+    )
+    return T1ModelResult(
+        representation=assembled.representation,
+        elapsed_seconds=elapsed,
+        record=run.run_record,
+        continuous_metrics=continuous,
+        reconstructed_metrics=reconstructed,
+        recon_stats=stats,
+    )
+
+
+def build_t1(
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    budget_seconds: float = R1_FIT_BUDGET_SECONDS,
+    report_path: Path = REPORT_T1_MD,
+    write_report_file: bool = True,
+) -> T1BuildResult:
+    """Fit T1 R0, probe R1, fit R1 if the projection is within budget, write report.
+
+    Same de-risking order as :func:`build`: R0 is fitted, reconstructed and its
+    run record written before R1 assembly or fitting begins. The R1 grid search
+    runs only if the timing probe's projection is within ``budget_seconds``;
+    otherwise R1 is reported as not attempted with the projection and reason
+    recorded. No comparison between R0 and R1, and none between T0 and T1, is
+    drawn anywhere here.
+    """
+    a0 = assemble(R0, sources)
+    r0 = _fit_t1_model(a0, sources, runs_dir)
+
+    a1 = assemble(R1, sources)
+    probe = timing_probe(a1, sources.split_parquet, target=TARGET_T1)
+
+    r1_attempted = probe.projected_seconds <= budget_seconds
+    r1: T1ModelResult | None = None
+    r1_skip_reason: str | None = None
+    if r1_attempted:
+        r1 = _fit_t1_model(a1, sources, runs_dir)
+    else:
+        r1_skip_reason = _skip_reason(probe, budget_seconds)
+
+    result = T1BuildResult(
+        r0=r0,
+        probe=probe,
+        budget_seconds=budget_seconds,
+        r1_attempted=r1_attempted,
+        r1=r1,
+        r1_skip_reason=r1_skip_reason,
+    )
+    if write_report_file:
+        write_t1_report(result, report_path)
+    return result
+
+
+# --------------------------------------------------------------------------
+# The T0 report.
+# --------------------------------------------------------------------------
+
+_METRIC_ORDER: tuple[str, ...] = (
+    evaluation.LOG_LOSS,
+    evaluation.BRIER,
+    evaluation.BRIER_SKILL_SCORE,
+    evaluation.RMSE,
+    evaluation.MAE,
+    evaluation.AUC,
+    "cal_intercept",
+    "cal_slope",
+)
+
+_CONTINUOUS_METRIC_ORDER: tuple[str, ...] = (
+    evaluation.RMSE,
+    evaluation.MAE,
+    evaluation.R2,
+)
+
+
+def _metric_row(label: str, metrics: dict[str, float]) -> str:
+    cells = [f"{metrics[m]:.6f}" for m in _METRIC_ORDER]
+    return "| " + label + " | " + " | ".join(cells) + " |"
+
+
+def _continuous_metric_row(label: str, metrics: dict[str, float]) -> str:
+    cells = [f"{metrics[m]:.6f}" for m in _CONTINUOUS_METRIC_ORDER]
+    return "| " + label + " | " + " | ".join(cells) + " |"
+
+
+def _report_lines(result: BuildResult) -> list[str]:
+    r0_rec = result.r0_record
+    probe = result.probe
+    header = "| Model | " + " | ".join(_METRIC_ORDER) + " |"
+    divider = "| " + " | ".join(["---"] * (len(_METRIC_ORDER) + 1)) + " |"
+    metric_rows = [header, divider, _metric_row("T0 / R0 (skill only)", result.r0_metrics)]
+    if result.r1_metrics is not None:
+        metric_rows.append(_metric_row("T0 / R1 (skill + identity)", result.r1_metrics))
+
+    lines: list[str] = [
+        "# T0 raw outcome -- development fits for R0 and R1 (card 011)",
+        "",
+        "The first row of the benchmark matrix, and the first real fits in the "
+        "project. Target formulation **T0** (the raw game outcome `won` in "
+        "{0, 1}) against the two representations phase 1 can supply: **R0** "
+        "(skill only) and **R1** (skill + card identity). Both are fitted through "
+        "`deckbench.estimator.fit_and_predict`; this card constructs no learner, "
+        "grid, or folds of its own, and never opens the holdout.",
+        "",
+        "> **`base_p` is not skill.** R0's single feature is the reliability-shrunk "
+        "historical win-rate proxy `base_p`, a nuisance representation reproduced "
+        "from the inherited implementation (card 005). It is not a measurement of "
+        "player skill and is not described as one here.",
+        "",
+        "## Regeneration history",
+        "",
+        "These fits have been regenerated twice since card 011 first produced "
+        "them. Neither regeneration changed the learner, the grid, the folds, the "
+        "seed, or the population, and neither opened the holdout. Both are "
+        "recorded here because the numbers below moved each time, and a metric "
+        "that moves without a stated reason is not attributable.",
+        "",
+        "1. **Card 014 -- skill-proxy fidelity correction.** The proxy's shrinkage "
+        "target `mu` changed from a per-game mean to a per-draft mean, to match "
+        "the R implementation being reproduced "
+        "(`scripts/R/04_real_inference_refactored.R` line 324; `mu` 0.546211 -> "
+        "0.533339). R0 is `[base_p]` and R1 contains it, so both consumed the "
+        "changed column and were refitted. See `reports/mu_fidelity_correction.md`.",
+        "",
+        "2. **xgboost provenance correction.** Cards 011 and 014 recorded "
+        "`xgboost_version` from the Python package's `__version__`, which read "
+        "`3.4.1` while the compiled library that actually trained the boosters "
+        "was `3.1.2` -- a false provenance string that survived two reviewer "
+        "passes. The run record now takes the version from the library's own "
+        "`XGBoostVersion()` and records the Python wrapper's version separately. "
+        "Refitting under a matched 3.1.2 wrapper did **not** reproduce the earlier "
+        "T0 boosters: R0 selected a different grid point (`max_depth` 3 -> 4, "
+        "`subsample` and `colsample_bytree` 1.0 -> 0.8) and 367 -> 136 rounds, and "
+        "the panel metrics moved in the fifth decimal. The T1 fits of card 015, "
+        "which were produced under a matched wrapper, reproduced byte-identically "
+        "in the same exercise. The artifacts described below are the reproducible "
+        "ones; the card-011 and card-014 T0 artifacts were not reproducible in "
+        "this environment and have been replaced.",
+        "",
+        "## Fit order and elapsed time",
+        "",
+        "R0 was fitted **first and completely**, and its run record written to "
+        "disk, **before any R1 assembly or fitting began**. R0 is one feature and "
+        "finishes in seconds; fitting it first proves the real path -- split-hash "
+        "verification, fold alignment, out-of-fold prediction, run record -- at a "
+        "point where failure costs nothing. R0 is also M0, the benchmark's own "
+        "skill-only baseline, so it is not a throwaway warm-up.",
+        "",
+        f"- **R0 fit** ({MODEL_IDS[TARGET_T0][R0]}): **{result.r0_elapsed_seconds:.1f} s**, "
+        f"{r0_rec['n_dev_rows']} development rows x {r0_rec['n_features']} feature.",
+    ]
+    if result.r1_attempted and result.r1_record is not None:
+        assert result.r1_elapsed_seconds is not None
+        lines.append(
+            f"- **R1 fit** ({MODEL_IDS[TARGET_T0][R1]}): "
+            f"**{result.r1_elapsed_seconds:.1f} s**, "
+            f"{result.r1_record['n_dev_rows']} development rows x "
+            f"{result.r1_record['n_features']} features."
+        )
+    else:
+        lines.append("- **R1 fit**: not attempted (see the timing probe below).")
+
+    lines += [
+        "",
+        "## Timing probe and the budget decision",
+        "",
+        "Before the full R1 grid search, a probe fits a **single grid point on a "
+        "single fold** at the capped iteration count (no early stopping). The full "
+        "search performs `len(grid) * k` cross-validation fits, `k` out-of-fold "
+        "fits, and one final refit.",
+        "",
+        f"- Probe (one grid point, one fold): **{probe.probe_seconds:.1f} s**",
+        f"- Single-booster fits in the full search: **{probe.n_fits}** "
+        f"({len(estimator.HYPERPARAMETER_GRID)} grid x 5 folds + 5 out-of-fold + "
+        "1 refit)",
+        f"- Projected full-search total: **{probe.projected_seconds:.1f} s** "
+        f"({probe.projected_seconds / 60:.1f} min)",
+        f"- Executor budget for R1: **{result.budget_seconds:.0f} s** "
+        f"({result.budget_seconds / 60:.1f} min)",
+        "",
+    ]
+    if result.r1_attempted:
+        assert result.r1_elapsed_seconds is not None
+        r1_elapsed = result.r1_elapsed_seconds
+        direction = "under" if r1_elapsed <= probe.projected_seconds else "over"
+        lines.append(
+            "The projection was within budget, so the full R1 grid search was "
+            f"run. The measured R1 fit came in at {r1_elapsed:.1f} s, {direction} "
+            f"the {probe.projected_seconds:.1f} s projection. The probe is only a "
+            "rough guide, not a precise predictor: it times one grid point on one "
+            "fold at the capped iteration count with no early stopping, whereas "
+            "the real search runs all grid points (each early-stopped on the "
+            "native metric, some to more rounds or a deeper tree than the "
+            "probe's) plus a final refit on all development rows. The two need "
+            "not agree closely; both are far inside the budget, which is the only "
+            "decision the probe exists to make."
+        )
+    else:
+        assert result.r1_skip_reason is not None
+        lines.append(result.r1_skip_reason)
+
+    lines += [
+        "",
+        "## Development metrics (diagnostic only -- no comparison concluded)",
+        "",
+        "The card-010 panel applied to each model's **out-of-fold development** "
+        "predictions, with `outcome_type = \"bernoulli\"`.",
+        "",
+        *metric_rows,
+        "",
+        "**These are development metrics, and they are diagnostic only.** They are "
+        "computed on the same development rows whose folds selected each model's "
+        "hyperparameters, so they are contaminated and cannot stand in for an "
+        "honest generalization estimate. They are reported here only so that a "
+        "first look confirms the pipeline produces sane probabilities in the unit "
+        "interval rather than, say, 0.5 everywhere.",
+        "",
+        "**No comparison between R0 and R1 is concluded from these numbers, in "
+        "either direction.** Whether card identity adds information beyond the "
+        "skill proxy is not a question development metrics can answer; the "
+        "benchmark's design puts that answer on the untouched external holdout, "
+        "opened exactly once at card 014, scored through this same panel with the "
+        "paired cluster bootstrap carrying the uncertainty on the difference. "
+        "Section 13 also forbids reading any null incremental result as an absence "
+        "of a deck effect. So: look, record, and draw nothing.",
+        "",
+        "## Provenance",
+        "",
+        f"- Split SHA256 (verified before each fit): `{r0_rec['split_sha256']}`",
+        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}** "
+        f"(compiled library; Python package "
+        f"**{r0_rec.get('xgboost_python_version', 'not recorded')}**), "
+        "single-threaded (byte-identical determinism).",
+        f"- R0 chosen hyperparameters: `{r0_rec['chosen_hyperparameters']}`, "
+        f"{r0_rec['num_boost_round']} boosting rounds.",
+    ]
+    if result.r1_record is not None:
+        lines.append(
+            f"- R1 chosen hyperparameters: "
+            f"`{result.r1_record['chosen_hyperparameters']}`, "
+            f"{result.r1_record['num_boost_round']} boosting rounds."
+        )
+    lines += [
+        "- Run records are tracked in git (`data/runs/*_run.json`); the prediction "
+        "parquets and fitted boosters are gitignored and regenerable from the "
+        "frozen split and the representation tables.",
+        "- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is "
+        "byte-identical (0 bytes) before and after this card.",
+        "",
+    ]
+    return lines
+
+
+def write_report(result: BuildResult, report_path: Path = REPORT_MD) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(_report_lines(result)), encoding="utf-8", newline="\n")
+
+
+# --------------------------------------------------------------------------
+# The T1 report.
+# --------------------------------------------------------------------------
+
+
+def _t1_fit_line(label: str, model_id: str, model: T1ModelResult) -> str:
+    n_features = model.record["n_features"]
+    unit = "feature" if n_features == 1 else "features"
+    return (
+        f"- **{label} fit** ({model_id}): **{model.elapsed_seconds:.1f} s**, "
+        f"{model.record['n_dev_rows']} development rows x {n_features} {unit}."
+    )
+
+
+def _t1_clip_line(label: str, model: T1ModelResult) -> str:
+    s = model.recon_stats
+    return (
+        f"- **{label}**: {s.n_clipped} of {s.n_rows} rows clipped "
+        f"({s.clipped_fraction * 100:.4f}%) -- {s.n_clipped_low} below the lower "
+        f"bound, {s.n_clipped_high} above the upper. Raw reconstruction ranged "
+        f"[{s.raw_min:.6f}, {s.raw_max:.6f}] before clipping to "
+        f"[{s.clip_low:.0e}, 1 - {s.clip_low:.0e}]."
+    )
+
+
+def _t1_report_lines(result: T1BuildResult) -> list[str]:
+    r0 = result.r0
+    r0_rec = r0.record
+    probe = result.probe
+
+    recon_header = "| Model | " + " | ".join(_METRIC_ORDER) + " |"
+    recon_divider = "| " + " | ".join(["---"] * (len(_METRIC_ORDER) + 1)) + " |"
+    recon_rows = [
+        recon_header,
+        recon_divider,
+        _metric_row("T1 / R0 (skill only)", r0.reconstructed_metrics),
+    ]
+    cont_header = "| Model | " + " | ".join(_CONTINUOUS_METRIC_ORDER) + " |"
+    cont_divider = "| " + " | ".join(["---"] * (len(_CONTINUOUS_METRIC_ORDER) + 1)) + " |"
+    cont_rows = [
+        cont_header,
+        cont_divider,
+        _continuous_metric_row("T1 / R0 (skill only)", r0.continuous_metrics),
+    ]
+    if result.r1 is not None:
+        recon_rows.append(
+            _metric_row("T1 / R1 (skill + identity)", result.r1.reconstructed_metrics)
+        )
+        cont_rows.append(
+            _continuous_metric_row("T1 / R1 (skill + identity)", result.r1.continuous_metrics)
+        )
+
+    lines: list[str] = [
+        "# T1 bump against the fixed skill proxy -- development fits for R0 and R1 "
+        "(card 015)",
+        "",
+        "The benchmark's second target formulation. Where T0 predicts the game "
+        "outcome directly, **T1 predicts the residual left after subtracting the "
+        "fixed historical proxy**, then reconstructs a win probability from it:",
+        "",
+        "```",
+        "B_i     = won_i - base_p_i      (the target actually fitted)",
+        "p_hat_i = base_p_i + B_hat_i    (the probability reconstructed from it)",
+        "```",
+        "",
+        "The residual is fitted with the estimator's **regression** objective; T0 "
+        "used the binary one. Same two representations phase 1 can supply -- **R0** "
+        "(skill only) and **R1** (skill + card identity) -- through the same "
+        "`deckbench.estimator.fit_and_predict`, the same grid, the same frozen "
+        "folds and the same seed. This card constructs no learner, grid, or folds "
+        "of its own, and never opens the holdout.",
+        "",
+        "> **`base_p` is not skill.** R0's single feature is the reliability-shrunk "
+        "historical win-rate proxy `base_p`, a nuisance representation reproduced "
+        "from the inherited implementation (card 005). It is not a measurement of "
+        "player skill and is not described as one here.",
+        "",
+        "## Why T1, and what it does not decide",
+        "",
+        "Section 2 of the benchmark observes that player skill may generate far "
+        "more between-observation variation than deck quality, so direct "
+        "prediction of the outcome can be dominated by skill even where deck "
+        "quality matters. T1 subtracts the skill component up front so the model "
+        "is asked only for what is left. Whether that actually helps recover deck "
+        "signal is **H2** (section 14), which predicts an ordering across T0, T1 "
+        "and T2. **H2 is a hypothesis, not an assumed result.** This card produces "
+        "one row of the table that question needs; it does not test the ordering, "
+        "and it draws no conclusion. The single holdout read at card 017 is where "
+        "any comparison is made.",
+        "",
+        "## R0's role under a residual target",
+        "",
+        "It is fair to ask what a model can learn about `won - base_p` when its "
+        "only feature is `base_p` itself -- the proxy has already been used to "
+        "construct the target. Per benchmark section 4, this is a coherent "
+        "question and not a degenerate one: `T1_R0` asks what **systematic "
+        "structure the proxy leaves behind** -- miscalibration at the extremes, "
+        "regression toward the mean, a reliability weighting that over- or "
+        "under-shrinks particular buckets. A flat prediction near zero would "
+        "itself be informative, saying the proxy has no exploitable residual "
+        "structure. R0 is scored here for exactly that reason; nothing about it is "
+        "read as skill, and its role in constructing the target is stated rather "
+        "than hidden.",
+        "",
+        "## Fit order and elapsed time",
+        "",
+        "R0 was fitted **first and completely**, reconstructed, and its run record "
+        "written to disk, **before any R1 assembly or fitting began** -- the same "
+        "de-risking order T0 used, so the real path is proven where failure costs "
+        "nothing.",
+        "",
+        _t1_fit_line("R0", MODEL_IDS[TARGET_T1][R0], r0),
+    ]
+    if result.r1 is not None:
+        lines.append(_t1_fit_line("R1", MODEL_IDS[TARGET_T1][R1], result.r1))
+    else:
+        lines.append("- **R1 fit**: not attempted (see the timing probe below).")
+
+    lines += [
+        "",
+        "## Timing probe and the budget decision",
+        "",
+        "Before the full R1 grid search, a probe fits a **single grid point on a "
+        "single fold** at the capped iteration count (no early stopping), under "
+        "the regression objective T1 uses.",
+        "",
+        f"- Probe (one grid point, one fold): **{probe.probe_seconds:.1f} s**",
+        f"- Single-booster fits in the full search: **{probe.n_fits}** "
+        f"({len(estimator.HYPERPARAMETER_GRID)} grid x 5 folds + 5 out-of-fold + "
+        "1 refit)",
+        f"- Projected full-search total: **{probe.projected_seconds:.1f} s** "
+        f"({probe.projected_seconds / 60:.1f} min)",
+        f"- Executor budget for R1: **{result.budget_seconds:.0f} s** "
+        f"({result.budget_seconds / 60:.1f} min)",
+        "",
+    ]
+    if result.r1_attempted:
+        lines.append(
+            "The projection was within budget, so the full R1 grid search was run. "
+            "The probe is only a rough guide, not a precise predictor; the one "
+            "decision it exists to make is whether the search fits inside the "
+            "budget."
+        )
+    else:
+        assert result.r1_skip_reason is not None
+        lines.append(result.r1_skip_reason)
+
+    lines += [
+        "",
+        "## Reconstruction and clipping (a measurement, not a nuisance)",
+        "",
+        "`p_hat = base_p + B_hat` has no arithmetic guarantee of landing inside "
+        "[0, 1]. The reconstruction is clipped into the unit interval using the "
+        "panel's declared clip bound (`PROBABILITY_CLIP` = "
+        f"{evaluation.PROBABILITY_CLIP:.0e}) **only for scoring** -- the target "
+        "itself is never clipped. How often the additive decomposition escapes "
+        "the unit interval, and by how much, is direct evidence about whether the "
+        "decomposition in section 2 holds on this data; a large clipped fraction "
+        "would be a finding about the formulation, not a detail to suppress.",
+        "",
+        _t1_clip_line("R0", r0),
+    ]
+    if result.r1 is not None:
+        lines.append(_t1_clip_line("R1", result.r1))
+
+    lines += [
+        "",
+        "## Development metrics (diagnostic only -- no comparison concluded)",
+        "",
+        "The card-010 panel is applied **twice** per model. The **continuous** "
+        "view scores the bump prediction directly against the fitted residual "
+        "`won - base_p`; the **Bernoulli** view scores the reconstructed, clipped "
+        "probability against the raw `won` outcome, through the same panel T0 "
+        "used. Both are out-of-fold development predictions.",
+        "",
+        "### Reconstructed-probability view (`outcome_type = \"bernoulli\"`)",
+        "",
+        *recon_rows,
+        "",
+        "### Bump view (`outcome_type = \"continuous\"`)",
+        "",
+        *cont_rows,
+        "",
+        "**Only the reconstructed-probability metrics are comparable with T0.** T0 "
+        "fits a probability and T1 fits a residual, so their native metrics answer "
+        "different questions -- an R-squared on a bump and a log loss on a "
+        "probability are not commensurable. The one thing both formulations "
+        "produce for the same observation is a win probability, so the "
+        "reconstructed probability is the only common ground, and it is what card "
+        "017 will compare. The continuous view is diagnostic for the T1 fit alone.",
+        "",
+        "**These are development metrics, and they are diagnostic only.** They are "
+        "computed on the same development rows whose folds selected each model's "
+        "hyperparameters, so they are contaminated and cannot stand in for an "
+        "honest generalization estimate. They confirm the pipeline produces sane "
+        "numbers; they settle nothing.",
+        "",
+        "**No comparison between R0 and R1, and none between T0 and T1, is "
+        "concluded from these numbers, in any direction.** Card 011's prohibition "
+        "stands unchanged and for the same reason: whether a representation or a "
+        "target formulation adds information is not a question development metrics "
+        "can answer. The benchmark's design puts that answer on the untouched "
+        "external holdout, opened exactly once at card 017, scored through this "
+        "same panel with the paired cluster bootstrap carrying the uncertainty on "
+        "the difference. Section 13 forbids reading any null incremental result as "
+        "an absence of a deck effect. So: look, record, and draw nothing.",
+        "",
+        "## Provenance",
+        "",
+        f"- Split SHA256 (verified before each fit): `{r0_rec['split_sha256']}`",
+        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}** "
+        f"(compiled library; Python package "
+        f"**{r0_rec.get('xgboost_python_version', 'not recorded')}**), "
+        "single-threaded (byte-identical determinism).",
+        f"- Objective: **{r0_rec['objective']}** (regression), for the continuous "
+        "residual target -- distinct from T0's binary objective.",
+        f"- R0 chosen hyperparameters: `{r0_rec['chosen_hyperparameters']}`, "
+        f"{r0_rec['num_boost_round']} boosting rounds.",
+    ]
+    if result.r1 is not None:
+        lines.append(
+            f"- R1 chosen hyperparameters: "
+            f"`{result.r1.record['chosen_hyperparameters']}`, "
+            f"{result.r1.record['num_boost_round']} boosting rounds."
+        )
+    lines += [
+        "- Run records are tracked in git (`data/runs/*_run.json`); the prediction "
+        "parquets, reconstruction parquets and fitted boosters are gitignored and "
+        "regenerable from the frozen split and the representation tables.",
+        "- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is "
+        "byte-identical (0 bytes) before and after this card.",
+        "",
+    ]
+    return lines
+
+
+def write_t1_report(result: T1BuildResult, report_path: Path = REPORT_T1_MD) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(_t1_report_lines(result)), encoding="utf-8", newline="\n")
+
+
+# --------------------------------------------------------------------------
+# Verify -- check the artifacts every fit produced. No fitting, fast.
+# --------------------------------------------------------------------------
+
+
+def _holdout_obs_ids(split_parquet: Path) -> set[str]:
+    tbl = pq.read_table(split_parquet, columns=[OBS_ID_COL, PARTITION_COL])
+    ids = tbl.column(OBS_ID_COL).to_pylist()
+    parts = tbl.column(PARTITION_COL).to_pylist()
+    return {o for o, p in zip(ids, parts, strict=True) if p == HOLDOUT}
+
+
+def _expected_feature_counts(sources: Sources) -> dict[str, int]:
+    """Expected feature counts, derived from the identity table's own schema.
+
+    R0 is ``base_p`` alone (1); R1 is ``base_p`` plus every card column. Reading
+    the parquet schema is a metadata-only operation, so ``verify`` stays cheap and
+    never reassembles a matrix. On the frozen dataset this yields
+    ``{R0: 1, R1: 194}`` (matching :data:`N_FEATURES`); on a synthetic fixture it
+    tracks that fixture's card count instead of a hardcoded 194.
+    """
+    schema = pq.read_schema(sources.identity_parquet)
+    n_cards = len([name for name in schema.names if name != OBS_ID_COL])
+    return {R0: 1, R1: 1 + n_cards}
+
+
+def _verify_model(
+    target: str,
+    representation: str,
+    runs_dir: Path,
+    holdout_ids: set[str],
+    expected_split_sha: str,
+    expected_features: int,
+    problems: list[str],
+) -> bool:
+    """Verify one model's run record and artifacts. Returns whether it exists.
+
+    Checks the run record's labels (including the objective the target must have
+    been fitted under), the feature count, the split hash, the seed and the chosen
+    hyperparameters; then the predictions parquet (present, non-empty, disjoint
+    from the holdout). For T1 it additionally checks the reconstruction artifact:
+    present, disjoint from the holdout, and every reconstructed probability inside
+    the panel's clip bound.
+    """
+    model_id = MODEL_IDS[target][representation]
+    label = f"{target}/{representation}"
+    record_path = runs_dir / f"{model_id}_run.json"
+    if not record_path.exists():
+        return False
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    if record.get("target") != target:
+        problems.append(f"{label}: target is {record.get('target')!r}, not {target!r}")
+    if record.get("representation") != representation:
+        problems.append(f"{label}: representation label is {record.get('representation')!r}")
+    if record.get("objective") != TARGET_OBJECTIVE[target]:
+        problems.append(
+            f"{label}: objective is {record.get('objective')!r}, expected "
+            f"{TARGET_OBJECTIVE[target]!r}"
+        )
+    if record.get("n_features") != expected_features:
+        problems.append(
+            f"{label}: n_features is {record.get('n_features')!r}, "
+            f"expected {expected_features}"
+        )
+    if record.get("split_sha256") != expected_split_sha:
+        problems.append(f"{label}: split_sha256 does not match the manifest")
+    if not isinstance(record.get("seed"), int):
+        problems.append(f"{label}: seed is not recorded as an integer")
+    if not isinstance(record.get("chosen_hyperparameters"), dict):
+        problems.append(f"{label}: chosen_hyperparameters missing")
+
+    predictions_path = runs_dir / f"{model_id}_predictions.parquet"
+    if not predictions_path.exists():
+        problems.append(f"{label}: predictions parquet {predictions_path.name} missing")
+        return True
+    preds = pq.read_table(predictions_path)
+    emitted = set(preds.column(OBS_ID_COL).to_pylist())
+    if not emitted:
+        problems.append(f"{label}: predictions parquet is empty")
+    if not emitted.isdisjoint(holdout_ids):
+        problems.append(f"{label}: emitted obs_ids intersect the holdout partition")
+
+    if target == TARGET_T1:
+        _verify_reconstruction(label, model_id, runs_dir, holdout_ids, problems)
+    return True
+
+
+def _verify_reconstruction(
+    label: str,
+    model_id: str,
+    runs_dir: Path,
+    holdout_ids: set[str],
+    problems: list[str],
+) -> None:
+    """Check a T1 reconstruction artifact: present, dev-only, clipped in range."""
+    recon_path = runs_dir / f"{model_id}_reconstruction.parquet"
+    if not recon_path.exists():
+        problems.append(f"{label}: reconstruction parquet {recon_path.name} missing")
+        return
+    recon = pq.read_table(recon_path)
+    recon_ids = set(recon.column(OBS_ID_COL).to_pylist())
+    if not recon_ids:
+        problems.append(f"{label}: reconstruction parquet is empty")
+    if not recon_ids.isdisjoint(holdout_ids):
+        problems.append(f"{label}: reconstruction obs_ids intersect the holdout partition")
+    if RECON_PROB_COL not in recon.column_names:
+        problems.append(f"{label}: reconstruction parquet lacks a {RECON_PROB_COL!r} column")
+        return
+    prob = np.asarray(
+        recon.column(RECON_PROB_COL).to_numpy(zero_copy_only=False), dtype=np.float64
+    )
+    clip_low = evaluation.PROBABILITY_CLIP
+    if prob.size and (float(np.min(prob)) < clip_low or float(np.max(prob)) > 1.0 - clip_low):
+        problems.append(
+            f"{label}: reconstructed probability escapes the clip bound "
+            f"[{clip_low:.0e}, 1 - {clip_low:.0e}]"
+        )
+
+
+def verify(
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    report_path: Path = REPORT_MD,
+    ledger_path: Path = LEDGER_PATH,
+    report_t1_path: Path = REPORT_T1_MD,
+) -> int:
+    """Check the artifacts every fit produced, without fitting anything.
+
+    Fast enough for the 300-second check budget: it reads the run records, the
+    prediction parquets and (for T1) the reconstruction parquets, and asserts
+    feature counts, the split hash, the recorded objective, the disjoint holdout,
+    the reports, and the untouched ledger. It walks **both** target formulations
+    -- T0 and T1 -- so it inspects everything each card produced, not only T0.
+    Each target's R0 is mandatory; R1 is checked only if its run record exists (a
+    build may legitimately have stopped after R0).
+    """
+    problems: list[str] = []
+    expected_split_sha = estimator.verify_split_hash(sources.split_parquet, sources.split_manifest)
+    holdout_ids = _holdout_obs_ids(sources.split_parquet)
+    expected = _expected_feature_counts(sources)
+
+    r1_present: dict[str, bool] = {}
+    for target in TARGETS:
+        if not _verify_model(
+            target, R0, runs_dir, holdout_ids, expected_split_sha, expected[R0], problems
+        ):
+            problems.append(
+                f"{target}/R0 run record "
+                f"{runs_dir / (MODEL_IDS[target][R0] + '_run.json')} is missing; "
+                f"{target}/R0 must always be fitted."
+            )
+        r1_present[target] = _verify_model(
+            target, R1, runs_dir, holdout_ids, expected_split_sha, expected[R1], problems
+        )
+
+    if not report_path.exists():
+        problems.append(f"T0 report {report_path} is missing")
+    if not report_t1_path.exists():
+        problems.append(f"T1 report {report_t1_path} is missing")
+
+    if ledger_path.exists() and ledger_path.stat().st_size != 0:
+        problems.append(
+            f"holdout ledger {ledger_path} is not empty; this card must not open "
+            "the holdout."
+        )
+
+    if problems:
+        print("targets --verify FAILED:")
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1
+
+    states = ", ".join(
+        f"{target} R1 {'fitted' if r1_present[target] else 'not attempted'}"
+        for target in TARGETS
+    )
+    print(
+        "targets --verify OK: T0 and T1 R0 run records and predictions present, "
+        "feature counts and recorded objectives correct, split hash verified, "
+        f"holdout disjoint, T1 reconstruction in range ({states}); reports "
+        "present; holdout ledger untouched."
+    )
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--fit",
+        action="store_true",
+        help="fit T0 R0, run the R1 timing probe, fit R1 if within budget, write the T0 report.",
+    )
+    group.add_argument(
+        "--fit-t1",
+        dest="fit_t1",
+        action="store_true",
+        help="fit T1 R0, probe, fit R1 if within budget, reconstruct, write the T1 report.",
+    )
+    group.add_argument(
+        "--verify",
+        action="store_true",
+        help="check the artifacts every fit produced (no fitting).",
+    )
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    if args.fit:
+        result = build()
+        r1 = (
+            f"R1 fitted in {result.r1_elapsed_seconds:.1f}s"
+            if result.r1_attempted
+            else "R1 not attempted (over budget)"
+        )
+        print(
+            f"targets --fit OK: T0 R0 fitted in {result.r0_elapsed_seconds:.1f}s; "
+            f"probe {result.probe.probe_seconds:.1f}s -> projected "
+            f"{result.probe.projected_seconds:.1f}s; {r1}. "
+            f"Report at {REPORT_MD.relative_to(REPO_ROOT).as_posix()}."
+        )
+        return 0
+    if args.fit_t1:
+        result_t1 = build_t1()
+        r1t = (
+            f"R1 fitted in {result_t1.r1.elapsed_seconds:.1f}s"
+            if result_t1.r1_attempted and result_t1.r1 is not None
+            else "R1 not attempted (over budget)"
+        )
+        print(
+            f"targets --fit-t1 OK: T1 R0 fitted in "
+            f"{result_t1.r0.elapsed_seconds:.1f}s "
+            f"(clipped {result_t1.r0.recon_stats.n_clipped}/"
+            f"{result_t1.r0.recon_stats.n_rows}); probe "
+            f"{result_t1.probe.probe_seconds:.1f}s -> projected "
+            f"{result_t1.probe.projected_seconds:.1f}s; {r1t}. "
+            f"Report at {REPORT_T1_MD.relative_to(REPO_ROOT).as_posix()}."
+        )
+        return 0
+    if args.verify:
+        return verify()
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+[CURRENT STATE - TO BE EDITED] tests/test_deckbench_targets.py
+
+"""Tests for the T0 (card 011) and T1 (card 015) R0/R1 fitting (:mod:`deckbench.targets`).
+
+The real fits run on 194,215 development rows and take minutes, far beyond the
+validation budget, so these tests never fit the real dataset. Two fixtures cover
+the two things that need checking:
+
+* a **synthetic** wiring (a small split + skill + identity + model table in a
+  temp dir) drives assembly, the fit-through-the-estimator path, the timing
+  probe, the panel, the budget decision, determinism, the T1 residual target and
+  its reconstruction, and ``verify`` end to end, fast; and
+* a **real-artifact** group, run only when the frozen phase-1 parquets are on
+  disk, pins the two facts about the real data the card asserts -- R0 has exactly
+  one feature ``base_p`` and R1 has exactly 194 -- and checks the tracked run
+  records the actual fits produced for both targets.
+
+The load-bearing guards are that every fit goes through the estimator (no learner
+is built here), that T1 fits the residual under the regression objective, that no
+assembled or emitted row is a holdout row, and that the holdout ledger is
+byte-identical across a build.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
+import pytest
+
+from deckbench import estimator, evaluation, targets
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# The frozen phase-1 artifacts, present here but gitignored; the real-data group
+# skips when a fresh checkout has not rebuilt them.
+_REAL = targets.Sources()
+_REAL_PRESENT = (
+    _REAL.split_parquet.exists()
+    and _REAL.skill_parquet.exists()
+    and _REAL.identity_parquet.exists()
+    and _REAL.model_table.exists()
+)
+requires_real = pytest.mark.skipif(
+    not _REAL_PRESENT, reason="frozen phase-1 parquets not on disk"
+)
+
+
+# --------------------------------------------------------------------------
+# Synthetic fixture: a small split and three aligned tables in a temp dir.
+# --------------------------------------------------------------------------
+
+_N_DRAFTS = 40
+_GAMES = 3
+_HOLDOUT_DRAFTS = 4
+_N_CARDS = 5
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class _Wired:
+    """A synthetic split plus skill/identity/model tables that all share obs_ids."""
+
+    def __init__(self, tmp_path: Path) -> None:
+        processed = tmp_path / "data" / "processed"
+        processed.mkdir(parents=True)
+        splits = tmp_path / "data" / "splits"
+        splits.mkdir(parents=True)
+
+        obs_ids: list[str] = []
+        draft_ids: list[str] = []
+        partitions: list[str] = []
+        folds: list[int] = []
+        for d in range(_N_DRAFTS):
+            draft = f"draft{d:03d}"
+            is_holdout = d >= _N_DRAFTS - _HOLDOUT_DRAFTS
+            for g in range(_GAMES):
+                obs_ids.append(f"obs{d:03d}{g}")
+                draft_ids.append(draft)
+                if is_holdout:
+                    partitions.append(targets.HOLDOUT)
+                    folds.append(-1)
+                else:
+                    partitions.append(estimator.DEV)
+                    folds.append(d % 5)
+        self.all_obs_ids = obs_ids
+        self.holdout_obs_id = f"obs{_N_DRAFTS - 1:03d}0"
+
+        split = pa.table(
+            {
+                "obs_id": pa.array(obs_ids, type=pa.string()),
+                "draft_id": pa.array(draft_ids, type=pa.string()),
+                "partition": pa.array(partitions, type=pa.string()),
+                "fold": pa.array(folds, type=pa.int32()),
+            }
+        )
+        self.split_parquet = processed / "model_split.parquet"
+        pq.write_table(split, self.split_parquet, compression="snappy")
+        self.split_manifest = splits / "split_manifest.json"
+        self.split_manifest.write_text(
+            json.dumps({"split_sha256": _sha256(self.split_parquet)}) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        rng = np.random.default_rng(3)
+        n = len(obs_ids)
+        base_p = rng.uniform(0.4, 0.65, size=n)
+        self.skill_parquet = processed / "skill_features.parquet"
+        pq.write_table(
+            pa.table(
+                {
+                    "obs_id": pa.array(obs_ids, type=pa.string()),
+                    "base_p_raw": pa.array(base_p, type=pa.float64()),
+                    "base_p": pa.array(base_p, type=pa.float64()),
+                }
+            ),
+            self.skill_parquet,
+            compression="snappy",
+        )
+
+        # A card-fraction table whose rows sum to 1, one column per synthetic card.
+        cards = rng.dirichlet(np.ones(_N_CARDS), size=n)
+        identity_cols: dict[str, object] = {"obs_id": pa.array(obs_ids, type=pa.string())}
+        for j in range(_N_CARDS):
+            identity_cols[f"card_c{j}"] = pa.array(cards[:, j], type=pa.float64())
+        self.identity_parquet = processed / "deck_identity.parquet"
+        pq.write_table(pa.table(identity_cols), self.identity_parquet, compression="snappy")
+
+        # The model table carries the string outcome the card maps to {0, 1}.
+        signal = base_p - 0.5 + 0.1 * cards[:, 0]
+        won = (signal + rng.normal(scale=0.2, size=n) > 0).tolist()
+        self.model_table = processed / "model_table.parquet"
+        pq.write_table(
+            pa.table(
+                {
+                    "obs_id": pa.array(obs_ids, type=pa.string()),
+                    "won": pa.array([str(bool(w)) for w in won], type=pa.string()),
+                    "deck_size": pa.array([40] * n, type=pa.int32()),
+                }
+            ),
+            self.model_table,
+            compression="snappy",
+        )
+
+        self.sources = targets.Sources(
+            split_parquet=self.split_parquet,
+            split_manifest=self.split_manifest,
+            skill_parquet=self.skill_parquet,
+            identity_parquet=self.identity_parquet,
+            model_table=self.model_table,
+        )
+        self.runs_dir = tmp_path / "runs"
+        self.report_path = tmp_path / "report.md"
+        self.report_t1_path = tmp_path / "report_t1.md"
+        self.ledger_path = tmp_path / "cycle" / "holdout_ledger.jsonl"
+
+    @property
+    def dev_obs_ids(self) -> set[str]:
+        table = pq.read_table(self.split_parquet)
+        return {
+            o
+            for o, p in zip(
+                table.column("obs_id").to_pylist(),
+                table.column("partition").to_pylist(),
+                strict=True,
+            )
+            if p == estimator.DEV
+        }
+
+    @property
+    def holdout_ids(self) -> set[str]:
+        table = pq.read_table(self.split_parquet)
+        return {
+            o
+            for o, p in zip(
+                table.column("obs_id").to_pylist(),
+                table.column("partition").to_pylist(),
+                strict=True,
+            )
+            if p == targets.HOLDOUT
+        }
+
+
+@pytest.fixture
+def wired(tmp_path: Path) -> _Wired:
+    return _Wired(tmp_path)
+
+
+# --------------------------------------------------------------------------
+# Assembly: shape, order, dev-only rows, outcome mapping, totality.
+# --------------------------------------------------------------------------
+
+
+def test_r0_has_exactly_one_base_p_feature(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    assert a0.features.shape[1] == 1
+    assert a0.feature_names == [targets.BASE_P_COL]
+
+
+def test_r1_is_base_p_plus_every_card_fraction(wired: _Wired) -> None:
+    a1 = targets.assemble(targets.R1, wired.sources)
+    assert a1.features.shape[1] == 1 + _N_CARDS
+    assert a1.feature_names[0] == targets.BASE_P_COL
+    # base_p is column 0; the remaining columns are exactly the identity columns.
+    assert a1.feature_names[1:] == [f"card_c{j}" for j in range(_N_CARDS)]
+
+
+def test_assembly_is_dev_rows_only_in_split_order(wired: _Wired) -> None:
+    a1 = targets.assemble(targets.R1, wired.sources)
+    assert set(a1.obs_ids) == wired.dev_obs_ids
+    assert set(a1.obs_ids).isdisjoint(wired.holdout_ids)
+    # Row order equals load_dev's row order.
+    dev = pq.read_table(wired.split_parquet)
+    expected = [
+        o
+        for o, p in zip(
+            dev.column("obs_id").to_pylist(),
+            dev.column("partition").to_pylist(),
+            strict=True,
+        )
+        if p == estimator.DEV
+    ]
+    assert a1.obs_ids == expected
+
+
+def test_outcome_is_mapped_to_zero_one(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    assert set(np.unique(a0.outcome)).issubset({0.0, 1.0})
+    assert a0.outcome.shape == (len(a0.obs_ids),)
+
+
+def test_groups_are_the_draft_ids(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    split = pq.read_table(wired.split_parquet)
+    truth = dict(
+        zip(
+            split.column("obs_id").to_pylist(),
+            split.column("draft_id").to_pylist(),
+            strict=True,
+        )
+    )
+    for obs_id, group in zip(a0.obs_ids, a0.groups, strict=True):
+        assert group == truth[obs_id]
+
+
+def test_unknown_representation_is_rejected(wired: _Wired) -> None:
+    with pytest.raises(targets.RepresentationUnknown):
+        targets.assemble("R2", wired.sources)
+
+
+def test_unexpected_outcome_value_stops_the_run(wired: _Wired, tmp_path: Path) -> None:
+    # Corrupt one outcome cell to a value outside the {True, False} mapping.
+    tbl = pq.read_table(wired.model_table)
+    won = tbl.column("won").to_pylist()
+    won[0] = "Maybe"
+    bad = tbl.set_column(tbl.schema.get_field_index("won"), "won", pa.array(won, pa.string()))
+    pq.write_table(bad, wired.model_table, compression="snappy")
+    with pytest.raises(targets.UnexpectedOutcomeValue):
+        targets.assemble(targets.R0, wired.sources)
+
+
+def test_non_total_join_stops_the_run(wired: _Wired) -> None:
+    # Drop one development row from the identity table: the join is no longer total.
+    tbl = pq.read_table(wired.identity_parquet)
+    dev_id = sorted(wired.dev_obs_ids)[0]
+    keep = [o != dev_id for o in tbl.column("obs_id").to_pylist()]
+    pq.write_table(tbl.filter(pa.array(keep)), wired.identity_parquet, compression="snappy")
+    with pytest.raises(targets.JoinNotTotal):
+        targets.assemble(targets.R1, wired.sources)
+
+
+# --------------------------------------------------------------------------
+# The fit goes through the estimator, and no learner is built here.
+# --------------------------------------------------------------------------
+
+
+def test_module_builds_no_learner_grid_or_folds() -> None:
+    source = Path(targets.__file__).read_text(encoding="utf-8")
+    # No hyperparameter grid, fold construction, or split reader defined locally:
+    # every one of those comes from the estimator.
+    assert "HYPERPARAMETER_GRID: " not in source  # only referenced, never redefined
+    assert "def _fold_index_pairs" not in source
+    assert "def fit_and_predict" not in source
+    # The holdout's sealed reader is never named.
+    assert "load_holdout" not in source
+
+
+def test_fit_goes_through_the_estimator(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        calls.append(kw)
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    assert len(calls) == 1
+    assert calls[0]["objective"] == estimator.BINARY
+    assert calls[0]["target"] == targets.TARGET
+    assert calls[0]["representation"] == targets.R0
+    assert result.run_record["n_features"] == 1
+
+
+def test_fit_emits_dev_only_predictions_disjoint_from_holdout(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    emitted = set(result.obs_ids)
+    assert emitted == wired.dev_obs_ids
+    assert emitted.isdisjoint(wired.holdout_ids)
+    preds = pq.read_table(result.predictions_path)
+    assert set(preds.column("obs_id").to_pylist()).isdisjoint(wired.holdout_ids)
+
+
+def test_refitting_r0_is_byte_identical(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    first = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    before = first.predictions_path.read_bytes()
+    second = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    assert np.array_equal(first.predictions, second.predictions)
+    assert second.predictions_path.read_bytes() == before
+
+
+# --------------------------------------------------------------------------
+# The timing probe and the budget decision.
+# --------------------------------------------------------------------------
+
+
+def test_probe_projects_the_full_search(wired: _Wired) -> None:
+    a1 = targets.assemble(targets.R1, wired.sources)
+    probe = targets.timing_probe(a1, wired.sources.split_parquet)
+    n_grid = len(estimator.HYPERPARAMETER_GRID)
+    assert probe.n_fits == n_grid * 5 + 5 + 1
+    assert probe.probe_seconds > 0.0
+    assert probe.projected_seconds == pytest.approx(probe.probe_seconds * probe.n_fits)
+
+
+def test_over_budget_stops_after_r0(wired: _Wired) -> None:
+    # A zero budget forces the R1 skip branch: R0 is fitted, R1 is not attempted.
+    result = targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=0.0,
+        report_path=wired.report_path,
+    )
+    assert result.r1_attempted is False
+    assert result.r1_record is None
+    assert result.r1_skip_reason is not None
+    assert (wired.runs_dir / "T0_R0_run.json").exists()
+    assert not (wired.runs_dir / "T0_R1_run.json").exists()
+    # The report records the projection and the reason R1 was not attempted.
+    text = wired.report_path.read_text(encoding="utf-8")
+    assert "not attempted" in text
+    assert f"{result.probe.projected_seconds:.0f}s" in text
+
+
+# --------------------------------------------------------------------------
+# The panel is applied and produces sane Bernoulli probabilities.
+# --------------------------------------------------------------------------
+
+
+def test_development_metrics_are_the_bernoulli_panel(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    metrics = targets.development_metrics(a0.outcome, result.predictions)
+    # The Bernoulli panel: no bare r2, a brier_skill_score instead.
+    assert "r2" not in metrics
+    assert "brier_skill_score" in metrics
+    for key in ("log_loss", "brier", "rmse", "mae", "auc", "cal_intercept", "cal_slope"):
+        assert key in metrics
+    # xgboost's logistic objective emits probabilities in the unit interval.
+    assert 0.0 <= result.predictions.min() and result.predictions.max() <= 1.0
+
+
+# --------------------------------------------------------------------------
+# build() end to end on the synthetic wiring, and the ledger stays untouched.
+# --------------------------------------------------------------------------
+
+
+def test_build_fits_r0_before_r1(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    order: list[str] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        order.append(str(kw["representation"]))
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_path,
+    )
+    assert order == [targets.R0, targets.R1]
+
+
+def test_build_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")  # the frozen state: zero reads
+    before = wired.ledger_path.read_bytes()
+    targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_path,
+    )
+    assert wired.ledger_path.read_bytes() == before
+
+
+# --------------------------------------------------------------------------
+# T1: the residual target, the regression objective, and the reconstruction.
+# --------------------------------------------------------------------------
+
+
+def test_bump_target_has_both_signs_and_is_not_the_unit_interval(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    bump = targets.bump_target(a0)
+    # A genuine residual, not the raw outcome relabelled: both signs are present
+    # and it escapes [0, 1] on the low side (a loss below the proxy is negative).
+    assert bool((bump < 0.0).any())
+    assert bool((bump > 0.0).any())
+    assert float(bump.min()) < 0.0
+    # It is exactly won - base_p.
+    assert np.allclose(bump, a0.outcome - a0.base_p)
+
+
+def test_t1_fit_uses_the_regression_objective(
+    wired: _Wired, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[dict[str, object]] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        calls.append(kw)
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    a0 = targets.assemble(targets.R0, wired.sources)
+    run = targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1)
+    assert len(calls) == 1
+    assert calls[0]["objective"] == estimator.REGRESSION
+    assert calls[0]["target"] == targets.TARGET_T1
+    assert run.run_record["model_id"] == "T1_R0"
+    assert run.run_record["objective"] == "regression"
+    assert run.run_record["n_features"] == 1
+    # The regression prediction is a bump, not a probability: it takes both signs.
+    assert bool((run.predictions < 0.0).any())
+
+
+def test_build_t1_records_feature_counts_and_regression(wired: _Wired) -> None:
+    result = targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert result.r0.record["n_features"] == 1
+    assert result.r0.record["objective"] == "regression"
+    assert result.r0.record["target"] == "T1"
+    assert result.r1 is not None
+    assert result.r1.record["n_features"] == 1 + _N_CARDS
+    assert result.r1.record["objective"] == "regression"
+
+
+def test_t1_reconstruction_artifact_carries_bump_and_probability(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    recon_path = wired.runs_dir / "T1_R0_reconstruction.parquet"
+    assert recon_path.exists()
+    tbl = pq.read_table(recon_path)
+    for col in (
+        "obs_id",
+        targets.BUMP_COL,
+        targets.BASE_P_COL,
+        targets.RECON_RAW_COL,
+        targets.RECON_PROB_COL,
+    ):
+        assert col in tbl.column_names
+    ids = set(tbl.column("obs_id").to_pylist())
+    assert ids == wired.dev_obs_ids
+    assert ids.isdisjoint(wired.holdout_ids)
+    # The reconstruction is base_p + bump, clipped into the panel's unit interval.
+    base_p = np.asarray(tbl.column(targets.BASE_P_COL).to_numpy(zero_copy_only=False))
+    bump = np.asarray(tbl.column(targets.BUMP_COL).to_numpy(zero_copy_only=False))
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    prob = np.asarray(tbl.column(targets.RECON_PROB_COL).to_numpy(zero_copy_only=False))
+    assert np.allclose(raw, base_p + bump)
+    clip = evaluation.PROBABILITY_CLIP
+    assert float(prob.min()) >= clip
+    assert float(prob.max()) <= 1.0 - clip
+    assert np.allclose(prob, np.clip(raw, clip, 1.0 - clip))
+
+
+def test_t1_clip_counts_match_the_raw_reconstruction(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    tbl = pq.read_table(wired.runs_dir / "T1_R0_reconstruction.parquet")
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    clip = evaluation.PROBABILITY_CLIP
+    stats = result.recon_stats
+    assert stats.n_clipped_low == int(np.count_nonzero(raw < clip))
+    assert stats.n_clipped_high == int(np.count_nonzero(raw > 1.0 - clip))
+    assert stats.n_clipped == stats.n_clipped_low + stats.n_clipped_high
+    assert stats.n_rows == len(a0.obs_ids)
+
+
+def test_t1_scores_both_the_continuous_and_the_bernoulli_views(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    # Continuous view (on the bump): weighted r2, no probabilistic metrics.
+    assert "r2" in result.continuous_metrics
+    assert "log_loss" not in result.continuous_metrics
+    assert "auc" not in result.continuous_metrics
+    # Bernoulli view (on the reconstructed probability): no bare r2, a BSS instead.
+    assert "r2" not in result.reconstructed_metrics
+    assert "brier_skill_score" in result.reconstructed_metrics
+    for key in ("log_loss", "brier", "rmse", "mae", "auc", "cal_intercept", "cal_slope"):
+        assert key in result.reconstructed_metrics
+
+
+def test_refitting_t1_r0_is_byte_identical(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    first = targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1)
+    before = first.predictions_path.read_bytes()
+    second = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1
+    )
+    assert np.array_equal(first.predictions, second.predictions)
+    assert second.predictions_path.read_bytes() == before
+
+
+def test_build_t1_fits_r0_before_r1(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    order: list[str] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        order.append(str(kw["representation"]))
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert order == [targets.R0, targets.R1]
+
+
+def test_t1_over_budget_stops_after_r0(wired: _Wired) -> None:
+    result = targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=0.0,
+        report_path=wired.report_t1_path,
+    )
+    assert result.r1_attempted is False
+    assert result.r1 is None
+    assert result.r1_skip_reason is not None
+    assert (wired.runs_dir / "T1_R0_run.json").exists()
+    assert not (wired.runs_dir / "T1_R1_run.json").exists()
+    text = wired.report_t1_path.read_text(encoding="utf-8")
+    assert "not attempted" in text
+    assert f"{result.probe.projected_seconds:.0f}s" in text
+
+
+def test_build_t1_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")  # the frozen state: zero reads
+    before = wired.ledger_path.read_bytes()
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert wired.ledger_path.read_bytes() == before
+
+
+# --------------------------------------------------------------------------
+# verify(): passes on a good build of both targets, fails on a tampered one.
+# --------------------------------------------------------------------------
+
+
+def _build_both(wired: _Wired) -> None:
+    """Fit T0 and T1 R0/R1 on the synthetic wiring, ledger frozen empty."""
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")
+    targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_path,
+    )
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+
+
+def _verify(wired: _Wired) -> int:
+    return targets.verify(
+        wired.sources,
+        wired.runs_dir,
+        wired.report_path,
+        wired.ledger_path,
+        wired.report_t1_path,
+    )
+
+
+def test_verify_passes_on_a_good_build(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
+
+
+def test_verify_fails_when_r0_is_missing(wired: _Wired) -> None:
+    wired.runs_dir.mkdir(parents=True, exist_ok=True)
+    wired.report_path.write_text("stub", encoding="utf-8")
+    wired.report_t1_path.write_text("stub", encoding="utf-8")
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_ledger_is_dirty(wired: _Wired) -> None:
+    _build_both(wired)
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_text('{"card_id": "099"}\n', encoding="utf-8")
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t1_run_record_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0  # the build is good to begin with
+    (wired.runs_dir / "T1_R0_run.json").unlink()
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t1_reconstruction_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
+    # Removing only the reconstruction artifact -- the run record and predictions
+    # still present -- must still fail: the check is not vacuous.
+    (wired.runs_dir / "T1_R1_reconstruction.parquet").unlink()
+    assert _verify(wired) == 1
+
+
+# --------------------------------------------------------------------------
+# Real frozen dataset: the two feature-count facts the card asserts, and the
+# tracked run records the actual fit produced. No fitting happens here.
+# --------------------------------------------------------------------------
+
+
+@requires_real
+def test_real_r0_has_one_feature_and_r1_has_194() -> None:
+    a0 = targets.assemble(targets.R0)
+    a1 = targets.assemble(targets.R1)
+    assert a0.features.shape[1] == 1
+    assert a0.feature_names == [targets.BASE_P_COL]
+    assert a1.features.shape[1] == 194
+    assert a1.feature_names[0] == targets.BASE_P_COL
+    assert len(a1.feature_names) == 194
+    # Every development row appears in both, with no holdout row.
+    assert a0.obs_ids == a1.obs_ids
+    holdout = targets._holdout_obs_ids(_REAL.split_parquet)
+    assert set(a0.obs_ids).isdisjoint(holdout)
+
+
+@requires_real
+def test_real_run_records_are_present_and_consistent() -> None:
+    r0_path = targets.RUNS_DIR / "T0_R0_run.json"
+    if not r0_path.exists():
+        pytest.skip("run records not produced yet (run `python -m deckbench.targets --fit`)")
+    r0 = json.loads(r0_path.read_text(encoding="utf-8"))
+    assert r0["n_features"] == 1
+    assert r0["target"] == "T0"
+    assert r0["representation"] == "R0"
+    expected_sha = estimator.verify_split_hash(_REAL.split_parquet, _REAL.split_manifest)
+    assert r0["split_sha256"] == expected_sha
+    r1_path = targets.RUNS_DIR / "T0_R1_run.json"
+    if r1_path.exists():
+        r1 = json.loads(r1_path.read_text(encoding="utf-8"))
+        assert r1["n_features"] == 194
+        assert r1["representation"] == "R1"
+
+
+@requires_real
+def test_real_t1_run_records_are_present_and_consistent() -> None:
+    r0_path = targets.RUNS_DIR / "T1_R0_run.json"
+    if not r0_path.exists():
+        pytest.skip("T1 run records not produced yet (run `python -m deckbench.targets --fit-t1`)")
+    r0 = json.loads(r0_path.read_text(encoding="utf-8"))
+    assert r0["n_features"] == 1
+    assert r0["target"] == "T1"
+    assert r0["representation"] == "R0"
+    assert r0["objective"] == "regression"
+    expected_sha = estimator.verify_split_hash(_REAL.split_parquet, _REAL.split_manifest)
+    assert r0["split_sha256"] == expected_sha
+    r1_path = targets.RUNS_DIR / "T1_R1_run.json"
+    if r1_path.exists():
+        r1 = json.loads(r1_path.read_text(encoding="utf-8"))
+        assert r1["n_features"] == 194
+        assert r1["representation"] == "R1"
+        assert r1["objective"] == "regression"
+
+================================================================================
+SECTION 7: See Also
+================================================================================
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/t0_development_fits.md
+
+# T0 raw outcome -- development fits for R0 and R1 (card 011)
+
+The first row of the benchmark matrix, and the first real fits in the project. Target formulation **T0** (the raw game outcome `won` in {0, 1}) against the two representations phase 1 can supply: **R0** (skill only) and **R1** (skill + card identity). Both are fitted through `deckbench.estimator.fit_and_predict`; this card constructs no learner, grid, or folds of its own, and never opens the holdout.
+
+> **`base_p` is not skill.** R0's single feature is the reliability-shrunk historical win-rate proxy `base_p`, a nuisance representation reproduced from the inherited implementation (card 005). It is not a measurement of player skill and is not described as one here.
+
+## Regeneration history
+
+These fits have been regenerated twice since card 011 first produced them. Neither regeneration changed the learner, the grid, the folds, the seed, or the population, and neither opened the holdout. Both are recorded here because the numbers below moved each time, and a metric that moves without a stated reason is not attributable.
+
+1. **Card 014 -- skill-proxy fidelity correction.** The proxy's shrinkage target `mu` changed from a per-game mean to a per-draft mean, to match the R implementation being reproduced (`scripts/R/04_real_inference_refactored.R` line 324; `mu` 0.546211 -> 0.533339). R0 is `[base_p]` and R1 contains it, so both consumed the changed column and were refitted. See `reports/mu_fidelity_correction.md`.
+
+2. **xgboost provenance correction.** Cards 011 and 014 recorded `xgboost_version` from the Python package's `__version__`, which read `3.4.1` while the compiled library that actually trained the boosters was `3.1.2` -- a false provenance string that survived two reviewer passes. The run record now takes the version from the library's own `XGBoostVersion()` and records the Python wrapper's version separately. Refitting under a matched 3.1.2 wrapper did **not** reproduce the earlier T0 boosters: R0 selected a different grid point (`max_depth` 3 -> 4, `subsample` and `colsample_bytree` 1.0 -> 0.8) and 367 -> 136 rounds, and the panel metrics moved in the fifth decimal. The T1 fits of card 015, which were produced under a matched wrapper, reproduced byte-identically in the same exercise. The artifacts described below are the reproducible ones; the card-011 and card-014 T0 artifacts were not reproducible in this environment and have been replaced.
+
+## Fit order and elapsed time
+
+R0 was fitted **first and completely**, and its run record written to disk, **before any R1 assembly or fitting began**. R0 is one feature and finishes in seconds; fitting it first proves the real path -- split-hash verification, fold alignment, out-of-fold prediction, run record -- at a point where failure costs nothing. R0 is also M0, the benchmark's own skill-only baseline, so it is not a throwaway warm-up.
+
+- **R0 fit** (T0_R0): **79.9 s**, 194215 development rows x 1 feature.
+- **R1 fit** (T0_R1): **387.2 s**, 194215 development rows x 194 features.
+
+## Timing probe and the budget decision
+
+Before the full R1 grid search, a probe fits a **single grid point on a single fold** at the capped iteration count (no early stopping). The full search performs `len(grid) * k` cross-validation fits, `k` out-of-fold fits, and one final refit.
+
+- Probe (one grid point, one fold): **14.5 s**
+- Single-booster fits in the full search: **21** (3 grid x 5 folds + 5 out-of-fold + 1 refit)
+- Projected full-search total: **304.6 s** (5.1 min)
+- Executor budget for R1: **5400 s** (90.0 min)
+
+The projection was within budget, so the full R1 grid search was run. The measured R1 fit came in at 387.2 s, over the 304.6 s projection. The probe is only a rough guide, not a precise predictor: it times one grid point on one fold at the capped iteration count with no early stopping, whereas the real search runs all grid points (each early-stopped on the native metric, some to more rounds or a deeper tree than the probe's) plus a final refit on all development rows. The two need not agree closely; both are far inside the budget, which is the only decision the probe exists to make.
+
+## Development metrics (diagnostic only -- no comparison concluded)
+
+The card-010 panel applied to each model's **out-of-fold development** predictions, with `outcome_type = "bernoulli"`.
+
+| Model | log_loss | brier | brier_skill_score | rmse | mae | auc | cal_intercept | cal_slope |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T0 / R0 (skill only) | 0.666441 | 0.237157 | 0.037582 | 0.486987 | 0.474243 | 0.605327 | 0.001443 | 0.994568 |
+| T0 / R1 (skill + identity) | 0.664381 | 0.236137 | 0.041720 | 0.485939 | 0.472685 | 0.613597 | 0.008871 | 1.009140 |
+
+**These are development metrics, and they are diagnostic only.** They are computed on the same development rows whose folds selected each model's hyperparameters, so they are contaminated and cannot stand in for an honest generalization estimate. They are reported here only so that a first look confirms the pipeline produces sane probabilities in the unit interval rather than, say, 0.5 everywhere.
+
+**No comparison between R0 and R1 is concluded from these numbers, in either direction.** Whether card identity adds information beyond the skill proxy is not a question development metrics can answer; the benchmark's design puts that answer on the untouched external holdout, opened exactly once at card 014, scored through this same panel with the paired cluster bootstrap carrying the uncertainty on the difference. Section 13 also forbids reading any null incremental result as an absence of a deck effect. So: look, record, and draw nothing.
+
+## Provenance
+
+- Split SHA256 (verified before each fit): `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`
+- Seed: **20260908**; xgboost **3.1.2** (compiled library; Python package **3.1.2**), single-threaded (byte-identical determinism).
+- R0 chosen hyperparameters: `{'max_depth': 4, 'eta': 0.1, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 1.0}`, 136 boosting rounds.
+- R1 chosen hyperparameters: `{'max_depth': 5, 'eta': 0.05, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 2.0}`, 268 boosting rounds.
+- Run records are tracked in git (`data/runs/*_run.json`); the prediction parquets and fitted boosters are gitignored and regenerable from the frozen split and the representation tables.
+- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is byte-identical (0 bytes) before and after this card.
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/t1_development_fits.md
+
+# T1 bump against the fixed skill proxy -- development fits for R0 and R1 (card 015)
+
+The benchmark's second target formulation. Where T0 predicts the game outcome directly, **T1 predicts the residual left after subtracting the fixed historical proxy**, then reconstructs a win probability from it:
+
+```
+B_i     = won_i - base_p_i      (the target actually fitted)
+p_hat_i = base_p_i + B_hat_i    (the probability reconstructed from it)
+```
+
+The residual is fitted with the estimator's **regression** objective; T0 used the binary one. Same two representations phase 1 can supply -- **R0** (skill only) and **R1** (skill + card identity) -- through the same `deckbench.estimator.fit_and_predict`, the same grid, the same frozen folds and the same seed. This card constructs no learner, grid, or folds of its own, and never opens the holdout.
+
+> **`base_p` is not skill.** R0's single feature is the reliability-shrunk historical win-rate proxy `base_p`, a nuisance representation reproduced from the inherited implementation (card 005). It is not a measurement of player skill and is not described as one here.
+
+## Why T1, and what it does not decide
+
+Section 2 of the benchmark observes that player skill may generate far more between-observation variation than deck quality, so direct prediction of the outcome can be dominated by skill even where deck quality matters. T1 subtracts the skill component up front so the model is asked only for what is left. Whether that actually helps recover deck signal is **H2** (section 14), which predicts an ordering across T0, T1 and T2. **H2 is a hypothesis, not an assumed result.** This card produces one row of the table that question needs; it does not test the ordering, and it draws no conclusion. The single holdout read at card 017 is where any comparison is made.
+
+## R0's role under a residual target
+
+It is fair to ask what a model can learn about `won - base_p` when its only feature is `base_p` itself -- the proxy has already been used to construct the target. Per benchmark section 4, this is a coherent question and not a degenerate one: `T1_R0` asks what **systematic structure the proxy leaves behind** -- miscalibration at the extremes, regression toward the mean, a reliability weighting that over- or under-shrinks particular buckets. A flat prediction near zero would itself be informative, saying the proxy has no exploitable residual structure. R0 is scored here for exactly that reason; nothing about it is read as skill, and its role in constructing the target is stated rather than hidden.
+
+## Fit order and elapsed time
+
+R0 was fitted **first and completely**, reconstructed, and its run record written to disk, **before any R1 assembly or fitting began** -- the same de-risking order T0 used, so the real path is proven where failure costs nothing.
+
+- **R0 fit** (T1_R0): **43.4 s**, 194215 development rows x 1 feature.
+- **R1 fit** (T1_R1): **320.8 s**, 194215 development rows x 194 features.
+
+## Timing probe and the budget decision
+
+Before the full R1 grid search, a probe fits a **single grid point on a single fold** at the capped iteration count (no early stopping), under the regression objective T1 uses.
+
+- Probe (one grid point, one fold): **14.0 s**
+- Single-booster fits in the full search: **21** (3 grid x 5 folds + 5 out-of-fold + 1 refit)
+- Projected full-search total: **293.0 s** (4.9 min)
+- Executor budget for R1: **5400 s** (90.0 min)
+
+The projection was within budget, so the full R1 grid search was run. The probe is only a rough guide, not a precise predictor; the one decision it exists to make is whether the search fits inside the budget.
+
+## Reconstruction and clipping (a measurement, not a nuisance)
+
+`p_hat = base_p + B_hat` has no arithmetic guarantee of landing inside [0, 1]. The reconstruction is clipped into the unit interval using the panel's declared clip bound (`PROBABILITY_CLIP` = 1e-12) **only for scoring** -- the target itself is never clipped. How often the additive decomposition escapes the unit interval, and by how much, is direct evidence about whether the decomposition in section 2 holds on this data; a large clipped fraction would be a finding about the formulation, not a detail to suppress.
+
+- **R0**: 358 of 194215 rows clipped (0.1843%) -- 358 below the lower bound, 0 above the upper. Raw reconstruction ranged [-0.020578, 0.984723] before clipping to [1e-12, 1 - 1e-12].
+- **R1**: 307 of 194215 rows clipped (0.1581%) -- 307 below the lower bound, 0 above the upper. Raw reconstruction ranged [-0.191449, 0.974994] before clipping to [1e-12, 1 - 1e-12].
+
+## Development metrics (diagnostic only -- no comparison concluded)
+
+The card-010 panel is applied **twice** per model. The **continuous** view scores the bump prediction directly against the fitted residual `won - base_p`; the **Bernoulli** view scores the reconstructed, clipped probability against the raw `won` outcome, through the same panel T0 used. Both are out-of-fold development predictions.
+
+### Reconstructed-probability view (`outcome_type = "bernoulli"`)
+
+| Model | log_loss | brier | brier_skill_score | rmse | mae | auc | cal_intercept | cal_slope |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T1 / R0 (skill only) | 0.666416 | 0.237153 | 0.037597 | 0.486984 | 0.474171 | 0.605422 | 0.002409 | 0.990592 |
+| T1 / R1 (skill + identity) | 0.664523 | 0.236216 | 0.041401 | 0.486020 | 0.472797 | 0.613229 | 0.010340 | 1.005061 |
+
+### Bump view (`outcome_type = "continuous"`)
+
+| Model | rmse | mae | r2 |
+| --- | --- | --- | --- |
+| T1 / R0 (skill only) | 0.486984 | 0.474181 | 0.010845 |
+| T1 / R1 (skill + identity) | 0.486028 | 0.472887 | 0.014725 |
+
+**Only the reconstructed-probability metrics are comparable with T0.** T0 fits a probability and T1 fits a residual, so their native metrics answer different questions -- an R-squared on a bump and a log loss on a probability are not commensurable. The one thing both formulations produce for the same observation is a win probability, so the reconstructed probability is the only common ground, and it is what card 017 will compare. The continuous view is diagnostic for the T1 fit alone.
+
+**These are development metrics, and they are diagnostic only.** They are computed on the same development rows whose folds selected each model's hyperparameters, so they are contaminated and cannot stand in for an honest generalization estimate. They confirm the pipeline produces sane numbers; they settle nothing.
+
+**No comparison between R0 and R1, and none between T0 and T1, is concluded from these numbers, in any direction.** Card 011's prohibition stands unchanged and for the same reason: whether a representation or a target formulation adds information is not a question development metrics can answer. The benchmark's design puts that answer on the untouched external holdout, opened exactly once at card 017, scored through this same panel with the paired cluster bootstrap carrying the uncertainty on the difference. Section 13 forbids reading any null incremental result as an absence of a deck effect. So: look, record, and draw nothing.
+
+## Provenance
+
+- Split SHA256 (verified before each fit): `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`
+- Seed: **20260908**; xgboost **3.1.2** (compiled library; Python package **3.1.2**), single-threaded (byte-identical determinism).
+- Objective: **regression** (regression), for the continuous residual target -- distinct from T0's binary objective.
+- R0 chosen hyperparameters: `{'max_depth': 4, 'eta': 0.1, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 1.0}`, 135 boosting rounds.
+- R1 chosen hyperparameters: `{'max_depth': 5, 'eta': 0.05, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 2.0}`, 269 boosting rounds.
+- Run records are tracked in git (`data/runs/*_run.json`); the prediction parquets, reconstruction parquets and fitted boosters are gitignored and regenerable from the frozen split and the representation tables.
+- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is byte-identical (0 bytes) before and after this card.
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/evaluation_panel.md
+
+# The evaluation panel ΓÇö fixed before any model is scored (card 010)
+
+This report states, in advance of a single model being fitted against it, every
+choice the benchmark's evaluation panel makes: each metric's definition, the
+weighting convention, the probability clip, the binning strategy, the smooth
+calibration method, and the paired cluster bootstrap's seed and cluster level. It
+is a pre-registration device. Once results exist, each of these choices becomes a
+degree of freedom that can be steered toward a conclusion; fixing them here
+removes that freedom. The panel is `src/deckbench/evaluation.py`; the tests that
+pin its arithmetic are `tests/test_deckbench_evaluation.py`.
+
+The concrete failure this prevents is in this repository's own history. The
+quarantined pipeline (`attic/haiku-2026-09-07/`) produced a `KEY FINDINGS` block
+asserting three checkmarked improvements next to a companion analysis whose
+confidence interval crossed zero ΓÇö two artifacts, one comparison, no way to
+adjudicate. The panel exists so the adjudication is fixed in advance.
+
+The panel governs `docs/MTG_Deck-Strength_Modeling_Benchmark.md` ┬º┬º9ΓÇô12.
+
+---
+
+## 0. What the panel is, and is not
+
+The panel is a **pure function of arrays** `(y, p, weight, group)`. It:
+
+- loads no parquet, reads no split, and never touches the holdout partition or
+  its ledger;
+- accepts **no partition label** ΓÇö it scores exactly the rows it is handed and
+  the caller is accountable for which rows those are;
+- does not know which model produced the predictions, nor what representation was
+  used;
+- **fits nothing** and imports no learner ΓÇö not `xgboost`, not `sklearn.ensemble`,
+  nothing from `deckbench.estimator`. The single place a model is fit at all is
+  the calibration intercept/slope, a two-parameter weighted logistic regression
+  solved by hand with numpy alone (`_weighted_logistic_newton`).
+
+Every metric weights by the observation weight passed in. An unweighted metric
+silently answers a different question, so weighting is universal, not optional.
+
+---
+
+## 1. The scalar metrics
+
+All are weighted by the passed observation weight `w`; write `W = ╬ú wß╡ó`.
+
+| Metric | Definition | Reported for |
+| --- | --- | --- |
+| **Log loss** | `ΓêÆ(1/W) ╬ú wß╡ó [ yß╡ó log p╠âß╡ó + (1ΓêÆyß╡ó) log(1ΓêÆp╠âß╡ó) ]` | Bernoulli |
+| **Brier score** | `(1/W) ╬ú wß╡ó (pß╡ó ΓêÆ yß╡ó)┬▓` | Bernoulli |
+| **RMSE** | `ΓêÜ[ (1/W) ╬ú wß╡ó (yß╡ó ΓêÆ ┼╖ß╡ó)┬▓ ]` | both |
+| **MAE** | `(1/W) ╬ú wß╡ó \|yß╡ó ΓêÆ ┼╖ß╡ó\|` | both |
+| **AUC** | weighted MannΓÇôWhitney statistic, ties at half credit | Bernoulli |
+| **Weighted R┬▓** | `1 ΓêÆ ╬ú wß╡ó(yß╡ó ΓêÆ ┼╖ß╡ó)┬▓ / ╬ú wß╡ó(yß╡ó ΓêÆ ╚│_w)┬▓`, `╚│_w` the weighted mean | **continuous only** |
+| **Brier Skill Score** | `1 ΓêÆ BS / BS_ref`, `BS_ref` = Brier of the weighted base rate | **Bernoulli only** |
+
+`p╠â` denotes the clipped probability (┬º2). `╚│_w` is the weighted mean of the
+outcome.
+
+Every metric is verified against a **hand-computed** value on a small fixture in
+the tests, so each is checked against arithmetic rather than against its own
+output. The degenerate cases are asserted directly: perfect predictions score log
+loss 0 (to within the clip), Brier 0, and AUC 1; predicting the weighted base
+rate everywhere scores weighted R┬▓ 0 and Brier Skill Score 0.
+
+### The R┬▓ trap
+
+Section 9 forbids reporting an ordinary regression R┬▓ on a raw Bernoulli outcome
+without a name that marks what it is; the quarantined pipeline did exactly that.
+The panel closes this: `evaluate_metrics(..., outcome_type="bernoulli")` returns
+**no `r2` key at all**, and instead returns a `brier_skill_score` whose name
+marks it as the probability-prediction analogue. The section-9 weighted R┬▓ is
+reported only for a continuous bump/residual target
+(`outcome_type="continuous"`), which is what that formula is for.
+
+No R┬▓ produced here is described as approaching a theoretical ceiling. The
+7-wins/3-losses draft stopping rule puts an irreducible binomial floor under the
+residual variance, and the ceiling is unknown without the latent per-observation
+win probability. AUC is reported only as a secondary discrimination metric; the
+scientific interest is accurate win probabilities, not merely ranking.
+
+---
+
+## 2. The probability clip
+
+Before any logarithm, probabilities are clipped to
+`[PROBABILITY_CLIP, 1 ΓêÆ PROBABILITY_CLIP]` with
+
+```
+PROBABILITY_CLIP = 1e-12
+```
+
+declared as a named constant in the module. This keeps a confident-and-wrong
+prediction finite (penalty `ΓêÆlog(1e-12) Γëê 27.6`) rather than infinite, and a
+perfect prediction near zero (`ΓêÆlog(1 ΓêÆ 1e-12) Γëê 1e-12`) rather than exactly
+zero. The clip is applied to log loss and to the logit used in calibration; it is
+not applied to Brier, RMSE, MAE or AUC, which take no logarithm.
+
+---
+
+## 3. Calibration
+
+### Intercept and slope (Cox calibration)
+
+`calibration_intercept_slope(y, p, w)` fits, by weighted logistic regression,
+
+```
+logit( E[y] ) = intercept + slope ┬╖ logit(p╠â)
+```
+
+Ideal intercept is 0 and ideal slope is 1. A slope **below 1** indicates
+predictions that are too extreme (over-confident); a slope **above 1** indicates
+predictions that are too conservative (under-confident). The tests assert both
+directions on constructed fixtures whose calibration relation is exact (each true
+probability `q` encoded as two weighted rows, `(y=1, w=q)` and `(y=0, w=1ΓêÆq)`, so
+the weighted outcome is exactly `q` with no sampling noise): an over-confident
+set recovers slope `0.5`, an under-confident set recovers slope `2.0`, and a
+well-calibrated set recovers intercept `0`, slope `1`.
+
+### Binned calibration ΓÇö one strategy, every model
+
+`binned_calibration(y, p, w)` uses **equal-width bins over [0, 1]**:
+
+```
+CALIBRATION_BINS = 10
+edges = linspace(0, 1, 11)
+```
+
+Equal-width ΓÇö not equal-count/quantile ΓÇö is deliberate: the bin edges are then
+**identical across every model**, regardless of each model's prediction
+distribution. Quantile bins would move with the model and amount to silent
+rebinning. The rightmost edge is inclusive so `p = 1` lands in the last bin. The
+**edges are returned alongside the per-bin counts, weighted counts, mean
+predicted probability, and observed frequency**, so a downstream plot cannot
+silently rebin. Bins with no weight carry `NaN` for the two means and 0 for the
+counts.
+
+### Smooth calibration ΓÇö free of bin boundaries
+
+`smooth_calibration(y, p, w)` provides a curve that does not depend on where the
+bins fall, so a conclusion cannot rest on arbitrary bin boundaries. It is a
+**weighted Gaussian-kernel (NadarayaΓÇôWatson) regression** of the outcome on the
+predicted probability:
+
+```
+SMOOTH_CALIBRATION_POINTS    = 101   (grid = linspace(0, 1, 101))
+SMOOTH_CALIBRATION_BANDWIDTH = 0.05  (Gaussian kernel, in probability units)
+```
+
+For each grid point `g`, the smoothed observed frequency is
+`╬ú wß╡ó K(pß╡ó; g) yß╡ó / ╬ú wß╡ó K(pß╡ó; g)` with `K` the Gaussian kernel centred at `g`.
+Grid points with no kernel support carry `NaN`.
+
+**GAMLSS is not part of this panel.** If a distributional/smooth calibration
+diagnostic built on GAMLSS is wanted later, it is added as a **separate**
+diagnostic and never folded into the core panel (┬º10).
+
+---
+
+## 4. The paired cluster bootstrap
+
+`paired_cluster_bootstrap(...)` carries the uncertainty for the incremental-value
+analysis of ┬º11 using the paired cluster bootstrap of ┬º12.
+
+```
+cluster level               = draft_id
+DEFAULT_BOOTSTRAP_SEED       = 20260908
+DEFAULT_BOOTSTRAP_REPLICATES = 1000
+DEFAULT_CI_LEVEL             = 0.95   (2.5thΓÇô97.5th percentile interval)
+```
+
+**Clustered on the draft, not the row.** Each replicate resamples `draft_id`s
+with replacement and includes **every game of each sampled draft together**.
+Card 003 measured that a draft contributes multiple games and that 19% of drafts
+change deck between them; games within a draft share a player, a skill bucket and
+usually a deck. Resampling rows would treat them as independent and understate
+the variance of exactly the comparisons this benchmark reports. Card 006's split
+already partitions at the draft level, so the two agree. A test asserts that
+every game of a sampled draft appears together in the resample.
+
+**Paired across models.** All models predict the same observations, so a **single
+set of resample indices is drawn per replicate and every model is scored on
+exactly those indices**. The interval on a difference is then the variance of the
+difference, not the summed variance of two independent resamples ΓÇö an unpaired
+resample per model would inflate the interval on a difference and could hide a
+real effect as easily as manufacture one. A test asserts pairing directly: two
+identical models produce an exactly-zero difference in every replicate.
+
+**Intervals on differences, not only levels.** The result carries a confidence
+interval for each model's absolute metric **and** for each requested pairwise
+**difference** `metric(model_a) ΓêÆ metric(model_b)` ΓÇö the incremental-value
+question of ┬º11 cannot be answered by an absolute level alone. The comparisons of
+interest include each representation against the skill-only and identity
+baselines, and `KG ΓêÆ identity` and `script ΓêÆ identity` directly.
+
+**Deterministic.** The bootstrap draws its resamples from
+`np.random.default_rng(seed)`; two runs with the same seed produce byte-identical
+intervals. A test asserts this.
+
+AUC is undefined on a single-class resample; the panel returns `NaN` there and
+the bootstrap uses a NaN-aware percentile, so a rare degenerate resample does not
+crash the run. On the frozen dataset (241,561 games) this does not arise in
+practice.
+
+---
+
+## 5. Interpretation guard
+
+Per ┬º13, a null incremental result is a limit of the representation, learner and
+dataset ΓÇö **never** evidence that deck composition does not affect win
+probability. The panel computes the differences and their intervals; it does not
+label a difference whose interval crosses zero as an effect, and it does not
+label the absence of a detectable difference as the absence of a deck effect.
+
+---
+
+## 6. Where each choice lives
+
+| Choice | Constant / function in `deckbench.evaluation` |
+| --- | --- |
+| Probability clip | `PROBABILITY_CLIP = 1e-12` |
+| Outcome families | `OUTCOME_BERNOULLI`, `OUTCOME_CONTINUOUS` |
+| Scalar panel | `evaluate_metrics` |
+| Calibration line | `calibration_intercept_slope` ΓåÆ `CalibrationLine` |
+| Binning | `CALIBRATION_BINS = 10`, `binned_calibration` ΓåÆ `BinnedCalibration` |
+| Smooth curve | `SMOOTH_CALIBRATION_POINTS`, `SMOOTH_CALIBRATION_BANDWIDTH`, `smooth_calibration` |
+| Bootstrap | `DEFAULT_BOOTSTRAP_SEED = 20260908`, cluster `draft_id`, `paired_cluster_bootstrap` |
+
+Self-test: `python -m deckbench.evaluation --selftest`.
+
+
+[SUPPLEMENTARY CONTEXT - DO NOT MODIFY] reports/estimator_api.md
+
+# The estimator API ΓÇö one learner, blind to its features
+
+Card 009. `deckbench.estimator` is the single code path every model in the
+benchmark is fit through. Section 8 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md`
+holds the learner family constant so a difference between two models is
+attributable to the **representation** and not to the algorithm; section 10 names
+the requirement that makes that hold ΓÇö *the estimator should not know how the
+representation was generated.* This card builds exactly that estimator.
+
+No model is fit against real data here, no metric is computed, and the holdout is
+never opened. This is the infrastructure the modeling cards (011 T0, 012 T1, 013
+T2) call, and the holdout is opened once, for all of them, at card 014.
+
+## The one entry point
+
+```python
+fit_and_predict(
+    features,            # opaque 2-D float array: rows = development observations
+    outcome,             # 1-D float array aligned to the rows
+    *,
+    groups,              # draft id per row
+    obs_ids,             # observation id per row
+    objective,           # "binary" (raw outcomes) or "regression" (bump targets)
+    model_id, target, representation,   # LABELS for the run record ΓÇö see below
+    weights=None,
+    seed=20260908,
+    split_parquet=..., split_manifest=..., runs_dir=...,
+) -> RunResult
+```
+
+The **fitting inputs** are the feature matrix, the outcome, the optional weights,
+the row groups and ids, the objective, and the frozen split (read through
+`deckbench.holdout.load_dev`). That is the whole set. `model_id`, `target` and
+`representation` are **labels**: they are written to the run record (section 15
+requires a representation name) and are handed to no function that touches the
+matrix. The core search-and-fit routine receives only arrays, an objective, the
+frozen folds and a seed ΓÇö so it cannot behave differently for one representation
+than another.
+
+## Blind to provenance ΓÇö the load-bearing property
+
+The estimator takes the feature matrix as an **opaque array**. It never inspects
+a column name, never imports the representation builders (`deckbench.identity`
+and the future KG/script builders), and never reads a feature parquet itself. The
+only parquet it reads is the split, and only through `load_dev`.
+
+The test that enforces this passes a **real** feature matrix and a **random**
+matrix of the same shape through the identical call and requires both to
+complete and to emit a prediction per development row. It is easy to write an
+estimator that "knows nothing about representations" while quietly special-casing
+a column named `base_p`; a random matrix of the same shape would break such a
+path, and this one it does not.
+
+## One grid, declared once as data
+
+`HYPERPARAMETER_GRID` is a module-level constant ΓÇö the single grid searched for
+every model fit through this path. It is never rebuilt per call; a test asserts
+the very same object (by identity) is used across a binary and a regression fit.
+Holding the grid fixed is what lets section 8's comparison attribute a
+difference to the representation rather than to a search that happened to try
+harder for one model.
+
+The grid is kept deliberately small. The first benchmark asks whether a
+representation *carries* information, not whether an exhaustive search can wring
+it out (section 8); a specialized graph learner is explicitly out of scope.
+
+## Folds come from the frozen split, never re-derived
+
+The inner cross-validation uses exactly the folds recorded in
+`data/processed/model_split.parquet`. The estimator reads them via `load_dev`,
+aligns them to the passed rows by `obs_id`, and cross-checks that each row's
+caller-supplied group matches the split's own `draft_id` (a disagreement means a
+misaligned matrix and stops the fit). It never invents its own folds and never
+accepts a caller-supplied fold vector ΓÇö the frozen split is the only source. A
+test asserts the fold vector the estimator used equals the one in the parquet.
+Because those folds are assigned per draft upstream (card 006), no draft
+contributes rows to more than one inner fold; this is inherited and asserted, not
+re-established.
+
+## Two objectives, selected by the caller
+
+* `objective="binary"` ΓåÆ `binary:logistic`, native metric `logloss`, for raw
+  game outcomes in {0, 1}.
+* `objective="regression"` ΓåÆ `reg:squarederror`, native metric `rmse`, for
+  continuous bump/residual targets (T1, T2).
+
+Tuning watches the learner's **native training objective** (the metric above),
+which is intrinsic to the learner and needs no external panel. That is the only
+place a metric appears, and it is used solely to select an iteration count and a
+grid point ΓÇö it is **never emitted**. No R┬▓, log loss (as an output), Brier, AUC,
+or calibration quantity is computed anywhere in this card, even as a convenience.
+The evaluation panel is card 010, and it operates on emitted predictions; the two
+cards are decoupled in both directions.
+
+## What a fit emits
+
+For every fit, three artifacts are written under `runs_dir` (default
+`data/runs/`, gitignored):
+
+* **Predictions** ΓÇö `<model_id>_predictions.parquet`, keyed by `obs_id`, one
+  **out-of-fold** prediction per development row (each row predicted by a booster
+  trained on the folds that do not contain it). No holdout row is present; a test
+  asserts the emitted id set is disjoint from the holdout partition. These
+  out-of-fold predictions are the honest development output the residual and
+  cross-fitting targets build on.
+* **Run record** ΓÇö `<model_id>_run.json`, carrying the model identifier, target
+  formulation, representation name, feature count, development row count, the
+  split SHA256, the seed, the **chosen** hyperparameters (the grid point that
+  won, not the grid that was searched), the fitted iteration count, and the
+  xgboost version. A record that cannot reproduce its own fit is not a record.
+* **Final booster** ΓÇö `<model_id>.xgb`, fit on all development rows with the
+  chosen hyperparameters, for card 014 to score once against the holdout.
+
+## The split's identity is verified before any fit
+
+`verify_split_hash` reads `split_sha256` from `data/splits/split_manifest.json`
+and compares it to the SHA256 of the split parquet on disk. A mismatch ΓÇö the
+split moved after it was frozen ΓÇö fails the fit closed before any data is read,
+so a model is never recorded against a split that changed under it. The verified
+hash is the one written into the run record.
+
+## The holdout is never touched
+
+Development rows are read through `deckbench.holdout.load_dev`, the **unsealed**
+path that requires no card id and writes no ledger line, so ordinary fitting does
+not fill the holdout ledger with noise. The estimator never routes through the
+sealed reader ΓÇö its source contains no reference to it, asserted by test ΓÇö and a
+test confirms `cycle/holdout_ledger.jsonl` is byte-identical before and after a
+full fit. The holdout partition is never read, sampled, or fit on by any route.
+
+## Determinism
+
+xgboost is run single-threaded (its multi-threaded histogram build is not
+bit-reproducible) with the seed threaded through. Two fits on the same inputs
+produce byte-identical predictions ΓÇö asserted both on the arrays and on the
+emitted parquet bytes. The seed is declared (`DEFAULT_SEED = 20260908`) and
+recorded in every run record.
+
+## Dependency handling
+
+xgboost is imported lazily, inside the fit path, so the module stays importable
+in a graph-only checkout. The first fit without it raises `MissingDependency`
+naming the package and the `modeling` extra in `pyproject.toml`. It is declared
+in the registry's tech stack and in that extra.
+
+## Self-test
+
+```
+python -m deckbench.estimator --selftest
+```
+
+fits a small synthetic binary and regression model end to end in a temporary
+directory, checks determinism, confirms no holdout row is emitted and the split
+hash matches, and touches no tracked file.
+
+================================================================================
+SECTION 8: Schemas in scope
+================================================================================
+(none)
+
+================================================================================
+SECTION 9: Task card
+================================================================================
+---
+id: 016
+status: TODO
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 016: T2, the bump against a cross-fitted learned baseline
+
+## Objective
+
+Fit the benchmark's third and last target formulation. T1 subtracted a **fixed**
+historical proxy. T2 subtracts a **learned** one, and the learned baseline must
+be cross-fitted so that no observation ever helps train the model that produces
+its own baseline:
+
+    m_hat_-i(S_i)                        the cross-fitted baseline, E[Y|S] out of fold
+    B_i = Y_i - m_hat_-i(S_i)            the target actually fitted
+    p_i = m_hat(S_i) + B_hat_i           the probability reconstructed from it
+
+Same two representations as T0 and T1 -- **R0** skill only, **R1** skill plus
+card identity -- through the same estimator, the same grid, the same frozen
+folds, the same seed.
+
+This is the third row H2 needs (section 14 predicts T2 > T1 > T0 in recovered
+deck signal). It is a hypothesis, not an assumed result. This card produces the
+row. It does not test the ordering and must not try.
+
+No holdout is opened. No conclusion is drawn.
+
+## Acceptance Criteria
+
+- [ ] `T0_R0`'s run record is validated **before** its predictions are used: `target == "T0"`, `representation == "R0"`, `objective == binary`, `n_features == 1`, `seed` equal to the card's seed, and `split_sha256` matching `data/splits/split_manifest.json`. Any mismatch stops the run rather than silently residualizing against the wrong baseline
+- [ ] The fitted target is `won - m_hat_-i(base_p)`, where the baseline vector is read from `T0_R0`'s **out-of-fold predictions**, joined on `obs_id`, failing if the join is not total
+- [ ] **A test proves the baseline is out-of-fold and not the full-data refit.** It must assert both that the baseline vector equals `T0_R0`'s stored out-of-fold predictions *and* that those differ from the full-data booster's in-sample predictions on the same rows -- otherwise the assertion is satisfied by a model that leaked
+- [ ] The estimator is called with the **regression** objective; `TARGET_OBJECTIVE[TARGET_T2]` records it
+- [ ] `T2_R0` uses exactly one feature, `base_p`; `T2_R1` uses 194 -- identical assembly to cards 011 and 015, from the same frozen parquets, joined on `obs_id`
+- [ ] **The development reconstruction uses the out-of-fold baseline**, `p_i = m_hat_-i(S_i) + B_hat_i`, not the full-data refit. Reconstructing development rows against a baseline fitted on those same rows would inject a leak that makes T2's development numbers incomparable with T0's and T1's. The report must state this, and state that card 017 uses the full-data `m_hat(S)` on holdout rows, where it is honest by construction
+- [ ] The reconstruction is clipped into the unit interval using the panel's declared clip bound, and the number of rows clipped **at each end** is counted and reported
+- [ ] The evaluation panel is applied **twice** per model: continuous on the bump, Bernoulli on the reconstructed probability against the raw `won` outcome
+- [ ] The report states that only the **reconstructed-probability** metrics are comparable across T0, T1 and T2
+- [ ] **`T2_R0` is reported as a cross-fitting diagnostic, not as a result.** `E[B|S] = E[Y|S] - m_hat(S)` is approximately zero by construction, so `T2_R0`'s predictions should sit near zero. The report must give their mean, standard deviation and range, and state plainly that a large systematic departure from zero indicates leakage or misfit in the baseline rather than recovered signal
+- [ ] The report documents that **hyperparameter selection is not fold-honest**: the out-of-fold training is, but `chosen` was selected by cross-validation over all development folds, so fold k's baseline comes from a booster trained without fold k under hyperparameters informed by it. Section T2's critical requirement governs *training*; this residual leak is accepted, bounded (a choice among the grid's points), and recorded rather than hidden
+- [ ] Both fits go through `deckbench.estimator.fit_and_predict` with the same seed and the frozen split; neither constructs its own learner, grid, or folds
+- [ ] Each fit writes a tracked run record carrying split SHA256, seed, chosen hyperparameters, objective, feature count and both xgboost versions; the recorded split SHA256 still matches the manifest
+- [ ] The run record or report records **which baseline artifact was consumed**, by path and by the `T0_R0` run record's own recorded hyperparameters, so the residual is reproducible from the record alone
+- [ ] `python -m deckbench.targets --verify` covers the T2 models as well as T0 and T1, and **fails if a T2 run record, prediction or reconstruction artifact is missing**
+- [ ] A test asserts `--verify` fails when a T2 artifact is removed, so the check is demonstrably not vacuous
+- [ ] `data/processed/MANIFEST.sha256` is unchanged by this card
+- [ ] `cycle/holdout_ledger.jsonl` is byte-identical (0 bytes) before and after this card runs
+- [ ] Re-fitting `T2_R0` with the same seed reproduces byte-identical predictions
+- [ ] The report draws no comparison among T0, T1 and T2, and none between R0 and R1
+- [ ] All new tests pass and every touched module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+- data/splits/split_manifest.json
+- data/runs/T0_R0_run.json
+
+## Modifies
+
+- src/deckbench/targets.py
+- tests/test_deckbench_targets.py
+
+## See Also
+
+- reports/t0_development_fits.md
+- reports/t1_development_fits.md
+- reports/evaluation_panel.md
+- reports/estimator_api.md
+
+## Outputs
+
+- reports/t2_development_fits.md
+
+## Requirements
+
+- **Do not modify `src/deckbench/estimator.py`.** It is the shared learner path for T0, T1 and T2, and card 017 compares fits made through it. Changing it now would mean the models being compared were not produced by the same code. Everything this card needs already exists there
+- **Do not build the residual from the full-data refit.** `B_i = Y_i - m_hat(S_i)` using the model trained on all development rows is precisely the leak section T2's critical requirement forbids: observation i would have helped train its own baseline. The out-of-fold vector is the only admissible source
+- Do not refit `m(S)`. Reuse `T0_R0`'s artifacts; validate the run record and fail closed if it does not match
+- Do not clip the target. Clip only the reconstructed probability, and only for scoring
+- Do not change `_NTHREAD`, the hyperparameter grid, or the seed
+- Do not read the holdout partition or call `deckbench.holdout.load_holdout`
+- Do not fit on, or reweight, any row outside the population card 008 froze
+- **Do not describe `base_p` as skill, and do not describe `m_hat` as skill either.** `m_hat` is a learned estimate of expected win probability given the skill representation. It is a baseline, not a measurement of a player
+- Do not report or imply any ordering among T0, T1 and T2, or between R0 and R1. H2 predicts an ordering; producing its third row is not testing it
+- Do not put a model fit in `## Checks` or `## Output Validation`; the caps are 300s and 60s and the R1 fit exceeds both
+- Do not write a hash of a regenerated artifact into a report during execution; `## Checks` runs after the executor writes its reports
+- **Finish the fits inside the executor's own turn.** compact's executor is a single `claude -p` call. Card 015 launched its fit in the background and scheduled a wakeup; the executor returned, the pipeline moved to checks, and the orphaned fit died with the process. Do not defer work to a wakeup that will never fire
+
+## Checks
+
+- python -m deckbench.targets --verify
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_targets.py -q
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/targets.py tests/test_deckbench_targets.py
+- mypy --strict src/deckbench/targets.py
+
+## Blocked By
+
+- 015
+
+## Notes
+
+**The baseline already exists -- do not refit it.** `m(S) = E[Y|S]` fitted on
+**R0** with the **binary** objective, predicted out of fold, is exactly what card
+011 already produced as `T0_R0`. `data/runs/T0_R0_predictions.parquet` (a parquet, so deliberately **not** a
+declared Input -- compact reads declared inputs as UTF-8 text and a binary file
+crashes context assembly) is the out-of-fold `m_hat_-i(S_i)` -- 194,215 development rows, no NaN -- because
+`estimator._out_of_fold_predictions` builds each fold's predictions from a
+booster trained on the other folds, using the frozen folds and nothing else.
+`data/runs/T0_R0.xgb` is the full-data refit `m_hat(S)`, for card 017. Reuse
+both. Refitting an identical model would burn ~80s to produce the same numbers
+and would let T2's baseline drift from the `T0_R0` that card 017 also scores,
+which is the one thing that would make the T0/T2 contrast unreadable.
+
+**Why a learned baseline at all.** T1 subtracts a proxy built by hand from a
+historical win-rate bucket and a shrinkage rule. If that proxy is miscalibrated
+-- and `T1_R0` measured that it is, slightly, with an out-of-fold r-squared of
+0.0108 against its own residual -- then part of what T1's deck model recovers is
+proxy error rather than deck quality. T2 replaces the hand-built baseline with
+`E[Y|S]` estimated by the same learner, so the residual it hands the deck model
+is what a good model of the skill representation could not already explain.
+Whether that is a cleaner baseline is the question; section T2's purpose states
+it as a question.
+
+**Cross-fitting is the whole card.** A learned baseline is only a baseline if it
+did not see the observation it is baselining. Fit `m` on everything, subtract,
+and the residual is shrunk toward zero exactly where the baseline overfit, which
+manufactures the appearance of a clean subtraction while destroying the signal
+underneath. The frozen 5-fold split is what makes this checkable: each fold's
+baseline comes from a booster trained on the other four, and card 009 already
+implements it. The criterion demanding a test that the out-of-fold vector
+*differs from* the in-sample one exists because an assertion that the baseline
+"is the out-of-fold prediction" passes trivially if the two happen to be equal
+-- and they would be equal if something had gone wrong.
+
+**`T2_R0` is a control, not a model.** Under T2 the R0 features are the same `S`
+the baseline was fitted on, so `E[B|S]` is approximately zero by construction
+and `T2_R0` should predict close to nothing. That makes it the most informative
+diagnostic in the card: if it finds substantial structure, the cross-fitting
+leaked or the baseline underfit. Report its predictions' location and spread and
+read them as a check on the machinery. Do not read a small non-zero value as
+deck signal -- R0 contains no deck information at all.
+
+**Two baselines, two places.** The out-of-fold `m_hat_-i` builds the training
+residual *and* reconstructs development probabilities, so the development report
+is honest about its own baseline. The full-data `m_hat` is for card 017, where
+holdout rows never trained it and it is honest by construction. Using the
+full-data model to reconstruct development rows would flatter T2 against T0 and
+T1 for no reason other than leakage, and the two must not be swapped.
+
+**What this card does not decide.** Card 017 opens the sealed holdout once and
+scores every model through the same panel with the paired cluster bootstrap on
+the differences. Until then T2 is one row of a table, recorded and
+uninterpreted. Section 13 forbids reading a null incremental result as absence
+of a deck effect.
+
+### [2026-09-10 18:11] ASSISTANT
+I'll start by reading the required project files and understanding the estimator's out-of-fold prediction structure.
+
+Now let me examine the evaluation module, the holdout module, and check the state of the T0_R0 artifacts on disk.
+
+Let me read the T0_R0 run record and confirm the evaluation functions.
+
+I now have a complete picture. Let me implement T2 in `targets.py`. First, the module docstring and constants.
+
+The file is in the task card context but I must Read it in this conversation. Let me read it.
+
+Now the constants block:
+
+Now MODEL_IDS, TARGET_OBJECTIVE, and reconstruction columns. Let me read that section.
+
+Now update the exception docstrings and add `BaselineRecordInvalid`:
+
+Now let me read the bump_target / _target_and_objective / fit_representation / timing_probe region:
+
+Now the `timing_probe`. Let me read it:
+
+Now add the `Baseline` dataclass and `load_baseline`. I'll insert a dedicated section after `assemble`:
+
+Now update `_write_reconstruction` to accept a base column name. Let me read it:
+
+Now let me read the T1 build section to place the T2 build after it:
+
+Now I'll add the T2 build section after `build_t1` (after line 978):
+
+Now let me read the T1 report helpers and `write_t1_report` region to add the T2 report after it:
+
+Now update the verify section and `main`. Let me read them:
+
+Now update `_verify_model` reconstruction check, `_verify_reconstruction` docstring, `verify` signature/docstring/message, and `main`:
+
+Now the `main` CLI â€” add `--fit-t2`. Let me read the rest of main:
+
+The source is complete. Now let me update the test file. First, add `report_t2_path` to the `_Wired` fixture:
+
+I need to Read the test file in this conversation first.
+
+Now update the `_build_both` and `_verify` helpers, and add T2 verify test. Let me read that region of the test file:
+
+Now let me add the T2 verify-failure tests and the T2 test block. Let me insert after the T1 reconstruction-removed test:
+
+Let me clean up the confusing alias in one test:
+
+Now let me run the synthetic tests to validate the wiring (excluding the slow real fits, which are skip-guarded):
+
+All 54 pass. Now let me check ruff/mypy availability and run the real T2 fit inline (this is the card's real work and must finish in-turn):
+
+Both are installed. Let me run them on the modified files:
+
+Ruff clean; targets.py itself is clean. The one mypy error is in `estimator.py` (which I must not modify and didn't touch). Let me check the mypy config and whether this is pre-existing:
+
+`estimator.py` is unchanged (no diff) and I'm forbidden to modify it; its line-232 error is pre-existing (surfaced only because mypy is now installed, per HANDOFF's note that earlier cards recorded these gates clean without running them). `targets.py` itself is clean. Let me confirm targets.py alone produces no errors, then run the real T2 fit inline:
+
+`targets.py` in isolation is clean. Now let me record baseline state and run the real T2 fit inline (the card's real work â€” must complete this turn):
+
+The `python` resolved to control_plane's venv. Let me find how deckbench is made importable (pytest worked via a config). Let me check:
+
+deckbench is on `pythonpath=["src"]` for pytest but not pip-installed. Let me run the fit via an explicit path insert (avoiding PYTHONPATH/cd prompts), using the same interpreter that ran the tests:
+
+T2 fit succeeded â€” T2_R0's B_hat mean is +0.000033 (near zero, the healthy cross-fitting diagnostic), 0 rows clipped, R1 fitted in 290.8s. Now verify all acceptance conditions:
+
+All green: verify walks T2, ledger 0 bytes, manifest unchanged, 8 T2 artifacts present. Let me run the full test file (real-data T2 tests now active) and inspect the T2 run record:
+
+The T2 run record shows **xgboost 3.4.1**, but the frozen `T0_R0` baseline and all other `data/runs/` artifacts were produced under **3.1.2** (the registry pins `xgboost==3.1.2`, and card 017 compares boosters across T0/T1/T2). Fitting T2 under 3.4.1 would confound that comparison. The `control_plane` venv has the wrong version. Let me find an interpreter with 3.1.2:
+
+`py -3.14` (C:\Python314\python.exe) has xgboost **3.1.2** â€” the interpreter the frozen artifacts were produced with. Let me confirm it has the full stack and correct library version, then re-fit T2 with it:
+
+`py -3.14` matches the frozen baseline exactly (wrapper 3.1.2, library 3.1.2). My first fit used the wrong interpreter. Let me re-fit T2 under the correct one (it overwrites the 3.4.1 artifacts):
+
+T2 now recorded under 3.1.2, matching T0/T1; ledger still 0 bytes. Let me confirm real-data determinism of `T2_R0` (criterion 19) with a cheap R0-only refit, and re-run verify:
+
+Byte-identical across separate processes â€” determinism confirmed on real data. Let me run the final verify and inspect the generated report for the content criteria:
+
+The report satisfies every content criterion. Let me confirm the tracked-file diff is exactly what's intended (no stray changes to `estimator.py`, `MANIFEST`, or the ledger) and that run records are the new tracked artifacts:
+
+Everything is in order. The tracked diff is exactly the intended set â€” `targets.py`, the test file, plus new run records and the report; `estimator.py`, `MANIFEST.sha256`, and the holdout ledger are all untouched (`CONVERSATION_LOG.md` is the auto-logging hook).
+
+## Summary
+
+I implemented **card 016 â€” T2, the bump against a cross-fitted learned baseline** â€” the benchmark's third and final target row.
+
+### What changed
+
+**`src/deckbench/targets.py`**
+- Added `TARGET_T2`, its `MODEL_IDS`/`TARGET_OBJECTIVE` (regression) entries, and `RECONSTRUCTION_TARGETS`.
+- **`Baseline` + `load_baseline`**: reads `T0_R0`'s **out-of-fold** predictions as `m_hat_-i(S_i)` and refits nothing. It **validates the `T0_R0` run record before use** (target=T0, rep=R0, objective=binary, n_features=1, seed, split-hash) â€” a mismatch raises `BaselineRecordInvalid` rather than residualizing against the wrong baseline. `.aligned()` fails if the obs_id join isn't total.
+- Threaded a `baseline` argument through `_target_and_objective`/`fit_representation`/`timing_probe`, so T2 fits `won - m_hat_-i` under the **regression** objective.
+- **`_fit_t2_model` / `build_t2`**: same R0-first de-risking order as T1; reconstructs development probabilities with the **out-of-fold** baseline (`p = m_hat_-i + B_hat`), clips and counts escapes at each end, scores the panel twice (continuous on the bump, Bernoulli on the reconstruction), and records the `T2_R0` `B_hat` mean/std/range as the cross-fitting diagnostic. The reconstruction artifact carries a `baseline` column (not mislabeled `base_p`).
+- Extended `verify` and the `--fit-t2` CLI; verify now walks T0/T1/T2 and fails if any T2 run record, prediction, or reconstruction is missing.
+
+**`reports/t2_development_fits.md`** (output) â€” states the baseline is reused-and-validated, records it by path + `T0_R0`'s hyperparameters, explains why development uses the OOF baseline while card 017 uses full-data `m_hat` on holdout, documents the bounded non-fold-honest hyperparameter-selection leak, reports the R0 diagnostic (`B_hat` mean **+0.000018**, std 0.000682 â€” near zero as expected), clip counts, and draws **no** comparison among T0/T1/T2 or R0/R1.
+
+**`tests/test_deckbench_targets.py`** â€” added T2 coverage including the load-bearing test that the baseline **equals `T0_R0`'s stored OOF vector AND differs from the full-data booster's in-sample predictions**, regression/learned-residual wiring, reconstruction-uses-baseline, determinism, budget/order, and two verify-fails-when-a-T2-artifact-is-removed tests.
+
+### Verification
+- `--verify` passes; **54 tests pass**; `ruff` clean; `mypy --strict` clean on `targets.py` in isolation.
+- `cycle/holdout_ledger.jsonl` = **0 bytes** and `data/processed/MANIFEST.sha256` unchanged, before and after.
+- Fits completed **inline this turn**. `T2_R0` predictions are **byte-identical across two separate processes**.
+
+### One provenance catch worth flagging
+My first fit ran under the `control_plane` venv, which has **xgboost 3.4.1** â€” but the frozen `T0_R0` baseline and all `data/runs/` artifacts were produced under **3.1.2** (the registry pin), and card 017 compares boosters across targets. I re-fit T2 using `py -3.14` (wrapper+library both **3.1.2**), matching the baseline exactly; the run records now record 3.1.2.
+
+Note: `mypy --strict src/deckbench/estimator.py` reports one pre-existing error (`xgboost.core` `_LIB` not explicitly exported, line 232). `estimator.py` is unchanged and is explicitly out of scope for this card; the error surfaces only because mypy is now installed (HANDOFF noted earlier cards recorded these gates clean without running them). I left `estimator.py` untouched as required.
+
+### [2026-09-10 18:26] USER
+## Section 1: Reviewer Instructions
+
+You are the compact task reviewer.
+
+Return a verdict block in this exact shape:
+
+VERDICT: PASS|FAIL
+CRITERIA:
+- one bullet per acceptance criterion with evidence
+SUMMARY:
+one short summary paragraph
+
+Rules:
+- Base the judgment only on the supplied task card, latest passing audit entry, and supplied file contents.
+- Every judgment-class criterion must cite concrete evidence: a quoted line, a structural property, or a verified absence.
+- If evidence is insufficient, fail the task and explain the missing evidence.
+- Do not omit the `VERDICT:` line.
+
+## Section 2: Task Card
+
+---
+id: 016
+status: REVIEW
+reviewer: opus
+milestone: benchmark-p2
+---
+# Task 016: T2, the bump against a cross-fitted learned baseline
+
+## Objective
+
+Fit the benchmark's third and last target formulation. T1 subtracted a **fixed**
+historical proxy. T2 subtracts a **learned** one, and the learned baseline must
+be cross-fitted so that no observation ever helps train the model that produces
+its own baseline:
+
+    m_hat_-i(S_i)                        the cross-fitted baseline, E[Y|S] out of fold
+    B_i = Y_i - m_hat_-i(S_i)            the target actually fitted
+    p_i = m_hat(S_i) + B_hat_i           the probability reconstructed from it
+
+Same two representations as T0 and T1 -- **R0** skill only, **R1** skill plus
+card identity -- through the same estimator, the same grid, the same frozen
+folds, the same seed.
+
+This is the third row H2 needs (section 14 predicts T2 > T1 > T0 in recovered
+deck signal). It is a hypothesis, not an assumed result. This card produces the
+row. It does not test the ordering and must not try.
+
+No holdout is opened. No conclusion is drawn.
+
+## Acceptance Criteria
+
+- [ ] `T0_R0`'s run record is validated **before** its predictions are used: `target == "T0"`, `representation == "R0"`, `objective == binary`, `n_features == 1`, `seed` equal to the card's seed, and `split_sha256` matching `data/splits/split_manifest.json`. Any mismatch stops the run rather than silently residualizing against the wrong baseline
+- [ ] The fitted target is `won - m_hat_-i(base_p)`, where the baseline vector is read from `T0_R0`'s **out-of-fold predictions**, joined on `obs_id`, failing if the join is not total
+- [ ] **A test proves the baseline is out-of-fold and not the full-data refit.** It must assert both that the baseline vector equals `T0_R0`'s stored out-of-fold predictions *and* that those differ from the full-data booster's in-sample predictions on the same rows -- otherwise the assertion is satisfied by a model that leaked
+- [ ] The estimator is called with the **regression** objective; `TARGET_OBJECTIVE[TARGET_T2]` records it
+- [ ] `T2_R0` uses exactly one feature, `base_p`; `T2_R1` uses 194 -- identical assembly to cards 011 and 015, from the same frozen parquets, joined on `obs_id`
+- [ ] **The development reconstruction uses the out-of-fold baseline**, `p_i = m_hat_-i(S_i) + B_hat_i`, not the full-data refit. Reconstructing development rows against a baseline fitted on those same rows would inject a leak that makes T2's development numbers incomparable with T0's and T1's. The report must state this, and state that card 017 uses the full-data `m_hat(S)` on holdout rows, where it is honest by construction
+- [ ] The reconstruction is clipped into the unit interval using the panel's declared clip bound, and the number of rows clipped **at each end** is counted and reported
+- [ ] The evaluation panel is applied **twice** per model: continuous on the bump, Bernoulli on the reconstructed probability against the raw `won` outcome
+- [ ] The report states that only the **reconstructed-probability** metrics are comparable across T0, T1 and T2
+- [ ] **`T2_R0` is reported as a cross-fitting diagnostic, not as a result.** `E[B|S] = E[Y|S] - m_hat(S)` is approximately zero by construction, so `T2_R0`'s predictions should sit near zero. The report must give their mean, standard deviation and range, and state plainly that a large systematic departure from zero indicates leakage or misfit in the baseline rather than recovered signal
+- [ ] The report documents that **hyperparameter selection is not fold-honest**: the out-of-fold training is, but `chosen` was selected by cross-validation over all development folds, so fold k's baseline comes from a booster trained without fold k under hyperparameters informed by it. Section T2's critical requirement governs *training*; this residual leak is accepted, bounded (a choice among the grid's points), and recorded rather than hidden
+- [ ] Both fits go through `deckbench.estimator.fit_and_predict` with the same seed and the frozen split; neither constructs its own learner, grid, or folds
+- [ ] Each fit writes a tracked run record carrying split SHA256, seed, chosen hyperparameters, objective, feature count and both xgboost versions; the recorded split SHA256 still matches the manifest
+- [ ] The run record or report records **which baseline artifact was consumed**, by path and by the `T0_R0` run record's own recorded hyperparameters, so the residual is reproducible from the record alone
+- [ ] `python -m deckbench.targets --verify` covers the T2 models as well as T0 and T1, and **fails if a T2 run record, prediction or reconstruction artifact is missing**
+- [ ] A test asserts `--verify` fails when a T2 artifact is removed, so the check is demonstrably not vacuous
+- [ ] `data/processed/MANIFEST.sha256` is unchanged by this card
+- [ ] `cycle/holdout_ledger.jsonl` is byte-identical (0 bytes) before and after this card runs
+- [ ] Re-fitting `T2_R0` with the same seed reproduces byte-identical predictions
+- [ ] The report draws no comparison among T0, T1 and T2, and none between R0 and R1
+- [ ] All new tests pass and every touched module is clean under ruff and mypy --strict
+
+## Inputs
+
+- docs/MTG_Deck-Strength_Modeling_Benchmark.md
+- data/splits/split_manifest.json
+- data/runs/T0_R0_run.json
+
+## Modifies
+
+- src/deckbench/targets.py
+- tests/test_deckbench_targets.py
+
+## See Also
+
+- reports/t0_development_fits.md
+- reports/t1_development_fits.md
+- reports/evaluation_panel.md
+- reports/estimator_api.md
+
+## Outputs
+
+- reports/t2_development_fits.md
+
+## Requirements
+
+- **Do not modify `src/deckbench/estimator.py`.** It is the shared learner path for T0, T1 and T2, and card 017 compares fits made through it. Changing it now would mean the models being compared were not produced by the same code. Everything this card needs already exists there
+- **Do not build the residual from the full-data refit.** `B_i = Y_i - m_hat(S_i)` using the model trained on all development rows is precisely the leak section T2's critical requirement forbids: observation i would have helped train its own baseline. The out-of-fold vector is the only admissible source
+- Do not refit `m(S)`. Reuse `T0_R0`'s artifacts; validate the run record and fail closed if it does not match
+- Do not clip the target. Clip only the reconstructed probability, and only for scoring
+- Do not change `_NTHREAD`, the hyperparameter grid, or the seed
+- Do not read the holdout partition or call `deckbench.holdout.load_holdout`
+- Do not fit on, or reweight, any row outside the population card 008 froze
+- **Do not describe `base_p` as skill, and do not describe `m_hat` as skill either.** `m_hat` is a learned estimate of expected win probability given the skill representation. It is a baseline, not a measurement of a player
+- Do not report or imply any ordering among T0, T1 and T2, or between R0 and R1. H2 predicts an ordering; producing its third row is not testing it
+- Do not put a model fit in `## Checks` or `## Output Validation`; the caps are 300s and 60s and the R1 fit exceeds both
+- Do not write a hash of a regenerated artifact into a report during execution; `## Checks` runs after the executor writes its reports
+- **Finish the fits inside the executor's own turn.** compact's executor is a single `claude -p` call. Card 015 launched its fit in the background and scheduled a wakeup; the executor returned, the pipeline moved to checks, and the orphaned fit died with the process. Do not defer work to a wakeup that will never fire
+
+## Checks
+
+- python -m deckbench.targets --verify
+
+## Output Validation
+
+- python -m pytest tests/test_deckbench_targets.py -q
+- ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/targets.py tests/test_deckbench_targets.py
+- mypy --strict src/deckbench/targets.py
+
+## Blocked By
+
+- 015
+
+## Notes
+
+**The baseline already exists -- do not refit it.** `m(S) = E[Y|S]` fitted on
+**R0** with the **binary** objective, predicted out of fold, is exactly what card
+011 already produced as `T0_R0`. `data/runs/T0_R0_predictions.parquet` (a parquet, so deliberately **not** a
+declared Input -- compact reads declared inputs as UTF-8 text and a binary file
+crashes context assembly) is the out-of-fold `m_hat_-i(S_i)` -- 194,215 development rows, no NaN -- because
+`estimator._out_of_fold_predictions` builds each fold's predictions from a
+booster trained on the other folds, using the frozen folds and nothing else.
+`data/runs/T0_R0.xgb` is the full-data refit `m_hat(S)`, for card 017. Reuse
+both. Refitting an identical model would burn ~80s to produce the same numbers
+and would let T2's baseline drift from the `T0_R0` that card 017 also scores,
+which is the one thing that would make the T0/T2 contrast unreadable.
+
+**Why a learned baseline at all.** T1 subtracts a proxy built by hand from a
+historical win-rate bucket and a shrinkage rule. If that proxy is miscalibrated
+-- and `T1_R0` measured that it is, slightly, with an out-of-fold r-squared of
+0.0108 against its own residual -- then part of what T1's deck model recovers is
+proxy error rather than deck quality. T2 replaces the hand-built baseline with
+`E[Y|S]` estimated by the same learner, so the residual it hands the deck model
+is what a good model of the skill representation could not already explain.
+Whether that is a cleaner baseline is the question; section T2's purpose states
+it as a question.
+
+**Cross-fitting is the whole card.** A learned baseline is only a baseline if it
+did not see the observation it is baselining. Fit `m` on everything, subtract,
+and the residual is shrunk toward zero exactly where the baseline overfit, which
+manufactures the appearance of a clean subtraction while destroying the signal
+underneath. The frozen 5-fold split is what makes this checkable: each fold's
+baseline comes from a booster trained on the other four, and card 009 already
+implements it. The criterion demanding a test that the out-of-fold vector
+*differs from* the in-sample one exists because an assertion that the baseline
+"is the out-of-fold prediction" passes trivially if the two happen to be equal
+-- and they would be equal if something had gone wrong.
+
+**`T2_R0` is a control, not a model.** Under T2 the R0 features are the same `S`
+the baseline was fitted on, so `E[B|S]` is approximately zero by construction
+and `T2_R0` should predict close to nothing. That makes it the most informative
+diagnostic in the card: if it finds substantial structure, the cross-fitting
+leaked or the baseline underfit. Report its predictions' location and spread and
+read them as a check on the machinery. Do not read a small non-zero value as
+deck signal -- R0 contains no deck information at all.
+
+**Two baselines, two places.** The out-of-fold `m_hat_-i` builds the training
+residual *and* reconstructs development probabilities, so the development report
+is honest about its own baseline. The full-data `m_hat` is for card 017, where
+holdout rows never trained it and it is honest by construction. Using the
+full-data model to reconstruct development rows would flatter T2 against T0 and
+T1 for no reason other than leakage, and the two must not be swapped.
+
+**What this card does not decide.** Card 017 opens the sealed holdout once and
+scores every model through the same panel with the paired cluster bootstrap on
+the differences. Until then T2 is one row of a table, recorded and
+uninterpreted. Section 13 forbids reading a null incremental result as absence
+of a deck effect.
+
+## Section 3: Latest Passing Audit Entry
+
+---
+entry_id: 20260910_182615_hobkg_016
+timestamp: 2026-09-10T18:26:15.346062-04:00
+project: hobkg
+task_id: 016
+task_title: T2, the bump against a cross-fitted learned baseline
+mode: retry
+model: operator
+reviewer_model: opus
+status_before: BLOCKED
+status_after: REVIEW
+git_sha_project: fab7953e47876dcfbdc659f351b90d1acad4cbd7
+git_sha_orchestrator: 828617311d7f7bcde1bf05a7e403e015952a17fb
+python_version: 3.14.0
+lockfile_hash: 1132929d0ced89d89902f37fd31ccd263a5ac477b459550cdc33f6bf16758a12
+duration_seconds: 0.0
+---
+# Audit Entry: 20260910_182615_hobkg_016
+
+## Notes
+
+Retry completed successfully after manual operator fixes.
+
+## Check Results
+
+- [OK]   python -m pytest -q (224.1s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ........................................................................ [  9%]
+  ........................................................................ [ 19%]
+  ........................................................................ [ 28%]
+  ........................................................................ [ 38%]
+  ........................................................................ [ 47%]
+  ........................................................................ [ 57%]
+  ........................................................................ [ 66%]
+  ........................................................................ [ 76%]
+  ........................................................................ [ 86%]
+  ........................................................................ [ 95%]
+  .................................                                        [100%]
+  ============================== warnings summary ===============================
+  tests/test_deckbench_targets.py::test_t2_baseline_is_out_of_fold_not_full_data_refit
+    C:\GitHub\magic_the_gathering_theorycrafting\tests\test_deckbench_targets.py:751: UserWarning: [18:24:16] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\c_api\c_api.cc:1511: Unknown file format: `xgb`. Using UBJSON (`ubj`) as a guess.
+      booster.load_model(str(baseline.model_path))
+
+  -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+  753 passed, 1 warning in 222.32s (0:03:42)
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   python -m deckbench.targets --verify (3.9s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  targets --verify OK: T0, T1 and T2 R0 run records and predictions present, feature counts and recorded objectives correct, split hash verified, holdout disjoint, T1/T2 reconstruction in range (T0 R1 fitted, T1 R1 fitted, T2 R1 fitted); reports present; holdout ledger untouched.
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Validation Results
+
+- [OK]   python -m pytest tests/test_deckbench_targets.py -q (43.2s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  ......................................................                   [100%]
+  ============================== warnings summary ===============================
+  tests/test_deckbench_targets.py::test_t2_baseline_is_out_of_fold_not_full_data_refit
+    C:\GitHub\magic_the_gathering_theorycrafting\tests\test_deckbench_targets.py:751: UserWarning: [18:25:54] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\c_api\c_api.cc:1511: Unknown file format: `xgb`. Using UBJSON (`ubj`) as a guess.
+      booster.load_model(str(baseline.model_path))
+
+  -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+  54 passed, 1 warning in 41.63s
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   ruff check --select E,F,I,B,UP --line-length 100 src/deckbench/targets.py tests/test_deckbench_targets.py (0.1s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  All checks passed!
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+- [OK]   mypy --strict src/deckbench/targets.py (5.5s, exit code 0)
+
+  Stdout (verbatim):
+  ```
+  Success: no issues found in 1 source file
+  ```
+
+  Stderr (verbatim):
+  ```
+  ```
+
+## Section 4: Files Produced Or Modified By The Task
+
+### reports/t2_development_fits.md
+
+```
+# T2 bump against a cross-fitted learned baseline -- development fits for R0 and R1 (card 016)
+
+The benchmark's third and last target formulation. T1 subtracted a **fixed** historical proxy; **T2 subtracts a learned one, cross-fitted so that no observation ever helps train the model that produces its own baseline**, then reconstructs a win probability from the residual:
+
+```
+m_hat_-i(S_i)              the cross-fitted baseline, E[Y|S] out of fold
+B_i     = won_i - m_hat_-i(S_i)   (the target actually fitted)
+p_hat_i = m_hat_-i(S_i) + B_hat_i (the probability reconstructed from it)
+```
+
+The residual is fitted with the estimator's **regression** objective. Same two representations phase 1 can supply -- **R0** (skill only) and **R1** (skill + card identity) -- through the same `deckbench.estimator.fit_and_predict`, the same grid, the same frozen folds and the same seed. This card constructs no learner, grid, or folds of its own, and never opens the holdout.
+
+> **Neither `base_p` nor `m_hat` is skill.** R0's single feature is the reliability-shrunk historical win-rate proxy `base_p`, a nuisance representation (card 005). `m_hat` is a *learned* estimate of expected win probability given that representation. Both are baselines; neither is a measurement of a player, and neither is described as skill here.
+
+## The baseline is reused from T0_R0, not refitted
+
+`m(S) = E[Y|S]` fitted on R0 with the binary objective and predicted out of fold is exactly what card 011 produced as `T0_R0`. This card **reuses that artifact and refits nothing**: refitting an identical model would burn time to reproduce the same numbers and would let T2's baseline drift from the `T0_R0` card 017 also scores, which is the one thing that would make the T0/T2 contrast unreadable. Before the predictions were used, the `T0_R0` run record was validated -- target, representation, objective, feature count, seed and split hash all had to match -- so the residual is never formed against the wrong baseline.
+
+Baseline artifact consumed, so the residual is reproducible from the record alone:
+
+- Out-of-fold `m_hat_-i` predictions: `data/runs/T0_R0_predictions.parquet`
+- `T0_R0` chosen hyperparameters: `{'colsample_bytree': 0.8, 'eta': 0.1, 'max_depth': 4, 'min_child_weight': 1.0, 'subsample': 0.8}`, 136 boosting rounds, objective **binary**, seed **20260908**.
+- Full-data `m_hat` booster (**not** used here; card 017's): `data/runs/T0_R0.xgb`.
+
+## Two baselines, two places -- and why development uses the out-of-fold one
+
+The **development** reconstruction here adds the **out-of-fold** `m_hat_-i`, the same vector that formed the training residual. Using the full-data refit `m_hat(S)` to reconstruct development rows would add a baseline fitted **on those same rows**, injecting a leak that flatters T2 against T0 and T1 for no reason other than leakage and makes T2's development numbers incomparable with theirs. The full-data `m_hat(S)` (`T0_R0.xgb`) is **card 017's**, where it reconstructs holdout rows it never trained on and is honest by construction. The two must not be swapped, and they are not.
+
+## R0 is a cross-fitting diagnostic, not a result
+
+Under T2 the R0 features are the same `S` the baseline was fitted on, so `E[B|S] = E[Y|S] - m_hat(S)` is approximately zero by construction and `T2_R0` should predict close to nothing. That makes it the most informative check in the card, not a model: if its predictions carry substantial systematic structure, the cross-fitting leaked or the baseline underfit. R0 contains no deck information at all, so a small non-zero value is **not** deck signal -- it is read only as a check on the machinery.
+
+- **R0** (T2_R0): out-of-fold `B_hat` mean **+0.000018**, std **0.000682**, range [-0.006288, +0.008895].
+- **R1** (T2_R1): out-of-fold `B_hat` mean **-0.001203**, std **0.031270**, range [-0.197308, +0.158243].
+
+A mean near zero with a small spread is the expected, healthy reading: the out-of-fold baseline left no exploitable systematic structure in `S`. A large systematic departure from zero would indicate leakage or baseline misfit and would be a finding about the machinery, not recovered signal.
+
+## A bounded, recorded leak: hyperparameter selection is not fold-honest
+
+The out-of-fold **training** is honest: each fold's baseline comes from a booster trained on the other four folds. But the grid point `chosen` was selected by cross-validation over **all** development folds, so fold k's baseline is produced by a booster trained without fold k under hyperparameters informed by it. Section T2's critical requirement governs *training*, which is fold-honest; this residual leak is a choice among the grid's three points, is bounded, and is **recorded here rather than hidden**. Strict nested cross-validation would remove it at a cost this first benchmark does not need to pay; the decision to accept and document it is deliberate.
+
+## Fit order and elapsed time
+
+R0 was fitted **first and completely**, reconstructed, and its run record written to disk, **before any R1 assembly or fitting began** -- the same de-risking order T0 and T1 used, so the real path is proven where failure costs nothing.
+
+- **R0 fit** (T2_R0): **7.6 s**, 194215 development rows x 1 feature.
+- **R1 fit** (T2_R1): **233.5 s**, 194215 development rows x 194 features.
+
+## Timing probe and the budget decision
+
+Before the full R1 grid search, a probe fits a **single grid point on a single fold** at the capped iteration count (no early stopping), under the regression objective T2 uses.
+
+- Probe (one grid point, one fold): **13.9 s**
+- Single-booster fits in the full search: **21** (3 grid x 5 folds + 5 out-of-fold + 1 refit)
+- Projected full-search total: **291.0 s** (4.9 min)
+- Executor budget for R1: **5400 s** (90.0 min)
+
+The projection was within budget, so the full R1 grid search was run. The probe is only a rough guide, not a precise predictor; the one decision it exists to make is whether the search fits inside the budget.
+
+## Reconstruction and clipping (a measurement, not a nuisance)
+
+`p_hat = m_hat_-i + B_hat` has no arithmetic guarantee of landing inside [0, 1]. The reconstruction is clipped into the unit interval using the panel's declared clip bound (`PROBABILITY_CLIP` = 1e-12) **only for scoring** -- the target itself is never clipped. How often the additive decomposition escapes the unit interval, and by how much, is direct evidence about whether the decomposition in section 2 holds on this data; a large clipped fraction would be a finding about the formulation, not a detail to suppress.
+
+- **R0**: 0 of 194215 rows clipped (0.0000%) -- 0 below the lower bound, 0 above the upper. Raw reconstruction ranged [0.001964, 0.973934] before clipping to [1e-12, 1 - 1e-12].
+- **R1**: 241 of 194215 rows clipped (0.1241%) -- 234 below the lower bound, 7 above the upper. Raw reconstruction ranged [-0.133856, 1.068684] before clipping to [1e-12, 1 - 1e-12].
+
+## Development metrics (diagnostic only -- no comparison concluded)
+
+The card-010 panel is applied **twice** per model. The **continuous** view scores the bump prediction directly against the fitted residual `won - m_hat_-i`; the **Bernoulli** view scores the reconstructed, clipped probability against the raw `won` outcome, through the same panel T0 and T1 used. Both are out-of-fold development predictions.
+
+### Reconstructed-probability view (`outcome_type = "bernoulli"`)
+
+| Model | log_loss | brier | brier_skill_score | rmse | mae | auc | cal_intercept | cal_slope |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T2 / R0 (skill only) | 0.666463 | 0.237165 | 0.037547 | 0.486996 | 0.474243 | 0.605329 | 0.001631 | 0.993468 |
+| T2 / R1 (skill + identity) | 0.664317 | 0.236018 | 0.042204 | 0.485816 | 0.471922 | 0.613462 | 0.010093 | 0.978445 |
+
+### Bump view (`outcome_type = "continuous"`)
+
+| Model | rmse | mae | r2 |
+| --- | --- | --- | --- |
+| T2 / R0 (skill only) | 0.486996 | 0.474243 | -0.000037 |
+| T2 / R1 (skill + identity) | 0.485820 | 0.471966 | 0.004789 |
+
+**Only the reconstructed-probability metrics are comparable across T0, T1 and T2.** Each target fits a different quantity -- a probability (T0), a residual against a fixed proxy (T1), a residual against a learned baseline (T2) -- so their native metrics answer different questions and an R-squared on a bump is not commensurable with a log loss on a probability. The one thing all three formulations produce for the same observation is a win probability, so the reconstructed probability is the only common ground, and it is what card 017 will compare. The continuous view is diagnostic for the T2 fit alone.
+
+**These are development metrics, and they are diagnostic only.** They are computed on the same development rows whose folds selected each model's hyperparameters, so they are contaminated and cannot stand in for an honest generalization estimate. They confirm the pipeline produces sane numbers; they settle nothing.
+
+**No comparison between R0 and R1, and none among T0, T1 and T2, is concluded from these numbers, in any direction.** H2 (section 14) predicts an ordering T2 > T1 > T0 in recovered deck signal; **producing T2's row is not testing that ordering, and this card does not test it.** Whether a representation or a target formulation adds information is not a question development metrics can answer. The benchmark's design puts that answer on the untouched external holdout, opened exactly once at card 017, scored through this same panel with the paired cluster bootstrap carrying the uncertainty on the difference. Section 13 forbids reading any null incremental result as an absence of a deck effect. So: look, record, and draw nothing.
+
+## Provenance
+
+- Split SHA256 (verified before each fit): `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`
+- Seed: **20260908**; xgboost **3.1.2** (compiled library; Python package **3.1.2**), single-threaded (byte-identical determinism).
+- Objective: **regression** (regression), for the continuous residual target -- distinct from T0's binary objective.
+- R0 chosen hyperparameters: `{'max_depth': 5, 'eta': 0.05, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 2.0}`, 1 boosting rounds.
+- R1 chosen hyperparameters: `{'max_depth': 3, 'eta': 0.1, 'subsample': 1.0, 'colsample_bytree': 1.0, 'min_child_weight': 1.0}`, 211 boosting rounds.
+- Run records are tracked in git (`data/runs/*_run.json`); the prediction parquets, reconstruction parquets and fitted boosters are gitignored and regenerable from the frozen split, the representation tables and the reused `T0_R0` baseline.
+- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is byte-identical (0 bytes) before and after this card.
+
+```
+
+### src/deckbench/targets.py
+
+```
+"""T0 (card 011), T1 (card 015) and T2 (card 016): development fits for R0 and R1.
+
+Governed by ``docs/MTG_Deck-Strength_Modeling_Benchmark.md``. This module fits the
+first three rows of the benchmark's target axis against the two representations
+phase 1 can already supply:
+
+* **R0 -- skill only.** One feature, ``base_p`` (the reliability-shrunk
+  historical win-rate proxy of card 005). This is also M0, the benchmark's own
+  skill-only baseline; ``base_p`` is a nuisance representation and is **never**
+  described as skill.
+* **R1 -- skill plus card identity.** ``base_p`` plus the 193 normalized
+  card-fraction columns of card 004, so 194 features.
+
+Three target formulations share that assembly, differing only in what the
+estimator is asked to predict and under which objective:
+
+* **T0 -- raw outcome (card 011).** The target is the game outcome ``won`` in
+  {0, 1}, fitted with the **binary** objective. The estimator's prediction is a
+  win probability directly.
+* **T1 -- bump against the fixed proxy (card 015).** The target is the residual
+  ``B_i = won_i - base_p_i``, fitted with the **regression** objective. A win
+  probability is *reconstructed* as ``p_i = base_p_i + B_hat_i`` and clipped into
+  the unit interval for scoring. T1 exists to test whether removing the dominant
+  skill component makes deck signal easier to recover -- that is H2 in section 14,
+  a hypothesis and not an assumption. This card produces one row of the table the
+  question needs; it does not answer it and must not try.
+* **T2 -- bump against a cross-fitted learned baseline (card 016).** The target is
+  the residual ``B_i = won_i - m_hat_-i(S_i)``, fitted with the **regression**
+  objective, where ``m_hat_-i`` is a *learned* estimate of ``E[Y|S]`` predicted
+  **out of fold** -- exactly ``T0_R0``'s stored out-of-fold predictions. No
+  observation ever helped train the baseline it is residualized against. The
+  probability is *reconstructed* as ``p_i = m_hat_-i(S_i) + B_hat_i`` on
+  development rows and clipped for scoring; card 017 reconstructs on the holdout
+  with the full-data ``m_hat(S)`` (``T0_R0.xgb``), where holdout rows never
+  trained it and it is honest by construction. ``m_hat`` is a baseline, **never**
+  a measurement of a player. T2 is the third row H2 needs; producing it is not
+  testing the ordering.
+
+What this module does, and deliberately does not do:
+
+* It **assembles** each representation from the frozen phase-1 tables only --
+  ``skill_features.parquet`` for ``base_p``, ``deck_identity.parquet`` for the
+  card fractions, ``model_table.parquet`` for the outcome -- joined on ``obs_id``
+  and restricted to the development partition (read through
+  :func:`deckbench.holdout.load_dev`). The join must be total: a development
+  ``obs_id`` missing from any table stops the run. No row is imputed, dropped, or
+  reweighted; the population was settled at card 008. **T0, T1 and T2 fit the same
+  two matrices** -- only the target and the objective change (and, for T2, the
+  baseline vector that forms the residual) -- so a difference between the target
+  rows comes from the formulation and nothing else.
+* For T2 it **reuses ``T0_R0``'s artifacts and refits nothing.** The baseline
+  ``m_hat_-i`` is read from ``T0_R0``'s out-of-fold predictions parquet, joined on
+  ``obs_id`` (the join must be total); before it is used, ``T0_R0``'s run record
+  is validated (target, representation, objective, feature count, seed and split
+  hash) so the residual is never formed against the wrong baseline. The full-data
+  ``m_hat`` (``T0_R0.xgb``) is left for card 017.
+* It **fits nothing itself.** Every fit goes through
+  :func:`deckbench.estimator.fit_and_predict`; this module constructs no learner,
+  no grid, and no folds of its own. The one place it touches xgboost directly is
+  the timing probe, which uses the estimator's own grid point, base parameters,
+  and frozen fold vector to *measure* -- it does not fit a recorded model.
+* It **de-risks by order.** R0 (one feature, seconds) is fitted and its run
+  record written to disk *before* any R1 fitting begins, so the real path --
+  split-hash verification, fold alignment, out-of-fold prediction, run record --
+  is proven end to end where failure costs nothing.
+* Before each full R1 grid search it runs a **timing probe**: a single grid point
+  on a single fold, whose measured seconds project the full search. If the
+  projection exceeds :data:`R1_FIT_BUDGET_SECONDS` the build stops after R0,
+  records the projection and the reason, and reports R1 as not attempted rather
+  than starting a search it cannot finish.
+* For T1 and T2 it **reconstructs and measures.** ``p = base + B_hat`` (with
+  ``base`` the fixed proxy for T1, the out-of-fold ``m_hat_-i`` for T2) has no
+  arithmetic guarantee of landing inside [0, 1]; the reconstruction is clipped to
+  the panel's declared clip bound and **the number of rows clipped at each end is
+  counted and reported**. How often the additive decomposition escapes the unit
+  interval is direct evidence about section 2, not a detail to suppress.
+* It applies the **card-010 panel** to each fitted model's out-of-fold
+  development predictions and records the metrics -- as a diagnostic only. These
+  are development metrics, contaminated by the same folds that selected the
+  hyperparameters; **no comparison between R0 and R1, and none among T0, T1 and
+  T2, is concluded from them.** The benchmark's answer is card 017's to give once,
+  on the untouched holdout.
+* It **never opens the holdout.** No holdout row is read, and
+  ``cycle/holdout_ledger.jsonl`` is untouched.
+
+Run it with::
+
+    python -m deckbench.targets --fit        # fit T0 R0/R1, write the T0 report
+    python -m deckbench.targets --fit-t1      # fit T1 R0/R1, write the T1 report
+    python -m deckbench.targets --fit-t2      # fit T2 R0/R1, write the T2 report
+    python -m deckbench.targets --verify      # check the artifacts every fit produced
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import numpy as np
+import pyarrow as pa  # type: ignore[import-untyped]
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
+from numpy.typing import NDArray
+
+from deckbench import estimator, evaluation
+from deckbench.holdout import load_dev
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+FloatArray = NDArray[np.float64]
+
+# Paths, anchored to the same repository root the estimator uses.
+REPO_ROOT = estimator.REPO_ROOT
+PROCESSED_DIR = estimator.PROCESSED_DIR
+RUNS_DIR = estimator.RUNS_DIR
+SPLIT_PARQUET = estimator.SPLIT_PARQUET
+SPLIT_MANIFEST = estimator.SPLIT_MANIFEST
+MODEL_TABLE_PARQUET = PROCESSED_DIR / "model_table.parquet"
+SKILL_FEATURES_PARQUET = PROCESSED_DIR / "skill_features.parquet"
+DECK_IDENTITY_PARQUET = PROCESSED_DIR / "deck_identity.parquet"
+LEDGER_PATH = REPO_ROOT / "cycle" / "holdout_ledger.jsonl"
+REPORT_MD = REPO_ROOT / "reports" / "t0_development_fits.md"
+REPORT_T1_MD = REPO_ROOT / "reports" / "t1_development_fits.md"
+REPORT_T2_MD = REPO_ROOT / "reports" / "t2_development_fits.md"
+
+# The three target formulations this module implements. T0 (card 011) predicts
+# the raw Bernoulli outcome; T1 (card 015) predicts the continuous residual bump
+# against the fixed proxy; T2 (card 016) predicts the residual bump against a
+# cross-fitted learned baseline. ``TARGET`` is retained as the T0 name; the
+# card-011 code paths default to it.
+TARGET_T0 = "T0"
+TARGET_T1 = "T1"
+TARGET_T2 = "T2"
+TARGET = TARGET_T0
+TARGETS = (TARGET_T0, TARGET_T1, TARGET_T2)
+
+# The targets that reconstruct a probability from a bump and therefore write a
+# reconstruction artifact ``verify`` must inspect. T0 predicts a probability
+# directly and writes none.
+RECONSTRUCTION_TARGETS = (TARGET_T1, TARGET_T2)
+
+# The T2 baseline artifact. ``m(S) = E[Y|S]`` fitted on R0 with the binary
+# objective and predicted out of fold is exactly what card 011 produced as
+# ``T0_R0``: its predictions parquet is the out-of-fold ``m_hat_-i(S_i)`` T2's
+# residual is formed against, and its booster is the full-data ``m_hat(S)`` card
+# 017 reconstructs the holdout with. This card reuses both and refits neither.
+BASELINE_MODEL_ID = "T0_R0"
+
+# Column names in the frozen tables.
+OBS_ID_COL = "obs_id"
+BASE_P_COL = "base_p"
+OUTCOME_COL = "won"
+PARTITION_COL = "partition"
+HOLDOUT = "holdout"
+
+# The raw outcome is stored as a string; it is read as a Bernoulli {0, 1}. The
+# mapping is exact and total -- any other value stops the run rather than being
+# coerced to a class.
+WON_MAP: dict[str, float] = {"True": 1.0, "False": 0.0}
+
+# The two representations phase 1 can supply.
+R0 = "R0"
+R1 = "R1"
+
+# Run-record model ids, keyed by target then representation. :func:`verify` walks
+# every entry, so T0, T1 and T2 artifacts are all inspected. Card 011 shipped a
+# flat ``{R0, R1}`` dict that named only the T0 models, which left ``verify``
+# blind to anything T1 produced.
+MODEL_IDS: dict[str, dict[str, str]] = {
+    TARGET_T0: {R0: "T0_R0", R1: "T0_R1"},
+    TARGET_T1: {R0: "T1_R0", R1: "T1_R1"},
+    TARGET_T2: {R0: "T2_R0", R1: "T2_R1"},
+}
+
+# The estimator objective each target is fitted under. T0 predicts the Bernoulli
+# outcome; T1 and T2 predict a continuous residual. Fitting a residual with a
+# logistic objective is a category error the learner will not catch, because the
+# target still looks like a float -- so the objective is selected here, by target,
+# and ``verify`` checks the recorded objective matches.
+TARGET_OBJECTIVE: dict[str, str] = {
+    TARGET_T0: estimator.BINARY,
+    TARGET_T1: estimator.REGRESSION,
+    TARGET_T2: estimator.REGRESSION,
+}
+
+# The feature counts the frozen phase-1 dataset yields, used by ``verify`` to
+# check the tracked run records: R0 is base_p alone; R1 is base_p plus the 193
+# card fractions. ``assemble`` itself checks internal consistency against the
+# actual number of identity columns rather than this constant, so it stays
+# correct on a synthetic fixture with a different card count.
+N_FEATURES: dict[str, int] = {R0: 1, R1: 194}
+
+# The executor budget for the R1 grid search. The registry allows the executor
+# 120 minutes for the whole card; this reserves 90 of them for the R1 fit alone,
+# leaving margin for R0, the probe, the panel, the report and the checks. If the
+# probe's projection exceeds this, the build stops after R0 and records why rather
+# than starting a search it may not finish. Declared as data so the threshold is
+# visible and changeable in one place.
+R1_FIT_BUDGET_SECONDS: float = 5400.0
+
+# The reconstruction artifact's columns (T1 and T2): the raw bump prediction, the
+# base it is added to, the reconstructed probability before clipping, and the
+# reconstructed probability after clipping into the unit interval. The base column
+# is named ``base_p`` for T1 (the fixed proxy) and :data:`BASELINE_COL` for T2
+# (the cross-fitted ``m_hat_-i``), so the artifact never mislabels which quantity
+# the bump was added to.
+BUMP_COL = "bump_prediction"
+BASELINE_COL = "baseline"
+RECON_RAW_COL = "reconstructed_raw"
+RECON_PROB_COL = "reconstructed_prob"
+
+
+class JoinNotTotal(ValueError):
+    """Raised when a development obs_id is absent from a frozen feature table.
+
+    The join between the split's development rows and a representation table must
+    be total: a missing id means the population moved under the representation, so
+    the run stops rather than fitting a partial matrix.
+    """
+
+
+class UnexpectedOutcomeValue(ValueError):
+    """Raised when the raw outcome column carries a value outside :data:`WON_MAP`."""
+
+
+class RepresentationUnknown(ValueError):
+    """Raised when a representation other than R0 or R1 is requested."""
+
+
+class TargetUnknown(ValueError):
+    """Raised when a target other than T0, T1 or T2 is requested."""
+
+
+class FeatureCountMismatch(ValueError):
+    """Raised when an assembled matrix does not carry the expected feature count."""
+
+
+class BaselineRecordInvalid(ValueError):
+    """Raised when the T2 baseline (``T0_R0``) does not describe what T2 needs.
+
+    Before T2 residualizes against ``T0_R0``'s out-of-fold predictions, that fit's
+    run record is validated: it must be the T0 raw-outcome model on R0, fitted
+    under the binary objective with one feature, the card's seed, and the split
+    hash pinned in the manifest. Any mismatch stops the run rather than silently
+    forming the residual against the wrong baseline.
+    """
+
+
+# --------------------------------------------------------------------------
+# The data inputs, bundled so tests can wire a synthetic fixture in one place.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Sources:
+    """The frozen phase-1 artifacts each fit is assembled from.
+
+    Defaults are the real frozen paths; a test overrides them to point at a small
+    synthetic fixture. Nothing here is re-derived -- these are read, joined on
+    ``obs_id`` and restricted to the development partition.
+    """
+
+    split_parquet: Path = SPLIT_PARQUET
+    split_manifest: Path = SPLIT_MANIFEST
+    skill_parquet: Path = SKILL_FEATURES_PARQUET
+    identity_parquet: Path = DECK_IDENTITY_PARQUET
+    model_table: Path = MODEL_TABLE_PARQUET
+
+
+# The frozen phase-1 inputs, as a shared immutable default. ``Sources`` is a
+# frozen dataclass, so one singleton is safe to reuse as a call default.
+DEFAULT_SOURCES = Sources()
+
+
+# --------------------------------------------------------------------------
+# Assembly -- from the frozen tables only, joined on obs_id, dev rows only.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Assembled:
+    """One representation's development matrix, aligned to the split's dev order.
+
+    ``base_p`` is carried explicitly, in the same row order as ``features``,
+    regardless of representation: R0's single feature is exactly ``base_p``, and
+    R1 has it as column 0, but T1 needs the proxy as a standalone vector to form
+    the residual target and to reconstruct a probability, so it is kept separate
+    rather than fished back out of the feature matrix.
+    """
+
+    representation: str
+    obs_ids: list[str]
+    groups: list[str]
+    outcome: FloatArray
+    base_p: FloatArray
+    features: FloatArray
+    feature_names: list[str]
+
+
+def _dev_order(split_parquet: Path) -> tuple[list[str], list[str]]:
+    """Development ``obs_id`` and ``draft_id``, in the frozen split's row order.
+
+    Read through :func:`deckbench.holdout.load_dev`, the unsealed path: no card
+    id, no ledger line, no holdout row. This order fixes the row order of every
+    assembled matrix, so R0 and R1 predict the same rows in the same sequence.
+    """
+    dev = load_dev(split_parquet)
+    return dev.column("obs_id").to_pylist(), dev.column("draft_id").to_pylist()
+
+
+def _base_p_by_obs(skill_parquet: Path) -> dict[str, float]:
+    """Map ``obs_id`` to ``base_p`` from the frozen skill-proxy table."""
+    tbl = pq.read_table(skill_parquet, columns=[OBS_ID_COL, BASE_P_COL])
+    keys: list[str] = tbl.column(OBS_ID_COL).to_pylist()
+    vals: list[float] = tbl.column(BASE_P_COL).to_pylist()
+    return {k: float(v) for k, v in zip(keys, vals, strict=True)}
+
+
+def _outcome_by_obs(model_table: Path) -> dict[str, float]:
+    """Map ``obs_id`` to the raw outcome as a {0, 1} float, or fail on an odd value.
+
+    Reads only ``obs_id`` and ``won`` from the model table. The mapping is exact
+    and total; nothing is imputed. A value outside :data:`WON_MAP` stops the run.
+    """
+    tbl = pq.read_table(model_table, columns=[OBS_ID_COL, OUTCOME_COL])
+    keys: list[str] = tbl.column(OBS_ID_COL).to_pylist()
+    raw: list[str] = tbl.column(OUTCOME_COL).to_pylist()
+    out: dict[str, float] = {}
+    for obs_id, value in zip(keys, raw, strict=True):
+        if value not in WON_MAP:
+            raise UnexpectedOutcomeValue(
+                f"observation {obs_id!r} has outcome {value!r}, not one of "
+                f"{sorted(WON_MAP)}; the raw outcome is never imputed or coerced."
+            )
+        out[obs_id] = WON_MAP[value]
+    return out
+
+
+def _identity_matrix(order: Sequence[str], identity_parquet: Path) -> tuple[FloatArray, list[str]]:
+    """The card-fraction columns, reordered to ``order``. The join must be total."""
+    tbl = pq.read_table(identity_parquet)
+    names = [c for c in tbl.column_names if c != OBS_ID_COL]
+    ids: list[str] = tbl.column(OBS_ID_COL).to_pylist()
+    position = {obs_id: i for i, obs_id in enumerate(ids)}
+    missing = [obs_id for obs_id in order if obs_id not in position]
+    if missing:
+        raise JoinNotTotal(
+            f"{len(missing)} development obs_id(s) are absent from "
+            f"{identity_parquet.name}; the first is {missing[0]!r}. The identity "
+            "join is not total and the run stops."
+        )
+    columns = [
+        np.asarray(tbl.column(name).to_numpy(zero_copy_only=False), dtype=np.float64)
+        for name in names
+    ]
+    full = np.column_stack(columns)
+    idx = np.asarray([position[obs_id] for obs_id in order], dtype=np.int64)
+    return full[idx], names
+
+
+def _require_total(order: Sequence[str], mapping: dict[str, float], source: str) -> None:
+    missing = [obs_id for obs_id in order if obs_id not in mapping]
+    if missing:
+        raise JoinNotTotal(
+            f"{len(missing)} development obs_id(s) are absent from {source}; the "
+            f"first is {missing[0]!r}. The join is not total and the run stops."
+        )
+
+
+def assemble(representation: str, sources: Sources = DEFAULT_SOURCES) -> Assembled:
+    """Assemble one representation's development matrix from the frozen tables.
+
+    R0 is ``base_p`` alone; R1 is ``base_p`` plus the card fractions. Every join
+    is on ``obs_id`` and must be total over the development partition. No row is
+    imputed, dropped, or reweighted -- the population is inherited from card 008.
+    The assembled feature count is checked for internal consistency: R0 is exactly
+    one column, R1 is exactly one column plus every identity column. The result is
+    target-agnostic; T0 and T1 both fit exactly this matrix.
+    """
+    if representation not in (R0, R1):
+        raise RepresentationUnknown(
+            f"representation {representation!r} is not supported by this module; "
+            f"choose one of {(R0, R1)}."
+        )
+    obs_ids, groups = _dev_order(sources.split_parquet)
+    base_p_map = _base_p_by_obs(sources.skill_parquet)
+    outcome_map = _outcome_by_obs(sources.model_table)
+    _require_total(obs_ids, base_p_map, f"{sources.skill_parquet.name} base_p")
+    _require_total(obs_ids, outcome_map, f"{sources.model_table.name} won")
+
+    base_p = np.asarray([base_p_map[o] for o in obs_ids], dtype=np.float64)
+    outcome = np.asarray([outcome_map[o] for o in obs_ids], dtype=np.float64)
+
+    if representation == R0:
+        features: FloatArray = base_p.reshape(-1, 1)
+        feature_names = [BASE_P_COL]
+        expected = 1
+    else:
+        cards, card_names = _identity_matrix(obs_ids, sources.identity_parquet)
+        features = np.column_stack([base_p, cards])
+        feature_names = [BASE_P_COL, *card_names]
+        expected = 1 + len(card_names)
+
+    if features.shape[1] != expected:
+        raise FeatureCountMismatch(
+            f"{representation} assembled {features.shape[1]} feature columns; "
+            f"expected {expected}."
+        )
+    return Assembled(
+        representation=representation,
+        obs_ids=obs_ids,
+        groups=groups,
+        outcome=outcome,
+        base_p=base_p,
+        features=features,
+        feature_names=feature_names,
+    )
+
+
+# --------------------------------------------------------------------------
+# The T2 learned baseline -- reused from T0_R0, validated, never refitted.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Baseline:
+    """The cross-fitted learned baseline ``m_hat_-i`` T2 residualizes against.
+
+    ``by_obs`` maps every development ``obs_id`` to ``T0_R0``'s stored out-of-fold
+    prediction -- the estimate of ``E[Y|S]`` for that row from a booster trained
+    without that row's fold. ``predictions_path`` and ``model_path`` name the
+    consumed artifacts, and ``run_record`` carries ``T0_R0``'s validated record
+    (its chosen hyperparameters make the baseline reproducible from the record
+    alone). The full-data ``m_hat`` booster at ``model_path`` is **not** used here;
+    it is card 017's, for reconstructing holdout rows it never trained on.
+    """
+
+    by_obs: dict[str, float]
+    predictions_path: Path
+    model_path: Path
+    run_record: dict[str, object]
+
+    def aligned(self, order: Sequence[str]) -> FloatArray:
+        """The baseline vector in ``order``'s row order; fail if the join is not total."""
+        missing = [obs_id for obs_id in order if obs_id not in self.by_obs]
+        if missing:
+            raise JoinNotTotal(
+                f"{len(missing)} development obs_id(s) are absent from the T2 "
+                f"baseline predictions; the first is {missing[0]!r}. The baseline "
+                "join is not total and the run stops."
+            )
+        return np.asarray([self.by_obs[obs_id] for obs_id in order], dtype=np.float64)
+
+
+def load_baseline(
+    runs_dir: Path = RUNS_DIR,
+    expected_split_sha: str | None = None,
+    expected_seed: int = estimator.DEFAULT_SEED,
+) -> Baseline:
+    """Load and validate ``T0_R0``'s out-of-fold predictions as the T2 baseline.
+
+    ``T0_R0`` is the learned skill baseline ``m(S) = E[Y|S]`` fitted on R0 with the
+    binary objective; its stored predictions are the out-of-fold ``m_hat_-i(S_i)``.
+    The run record is validated **before** the predictions are used -- target,
+    representation, objective, feature count, seed and split hash must all match --
+    so the residual is never formed against the wrong baseline. This refits
+    nothing; it reuses the artifacts card 011 already produced. Pass
+    ``expected_split_sha`` (the manifest hash) to bind the baseline to the same
+    frozen split every fit verifies against.
+    """
+    record_path = runs_dir / f"{BASELINE_MODEL_ID}_run.json"
+    if not record_path.exists():
+        raise BaselineRecordInvalid(
+            f"the T2 baseline run record {record_path} is missing; fit T0_R0 "
+            "(`python -m deckbench.targets --fit`) before fitting T2."
+        )
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+
+    problems: list[str] = []
+    if record.get("target") != TARGET_T0:
+        problems.append(f"target is {record.get('target')!r}, expected {TARGET_T0!r}")
+    if record.get("representation") != R0:
+        problems.append(f"representation is {record.get('representation')!r}, expected {R0!r}")
+    if record.get("objective") != estimator.BINARY:
+        problems.append(
+            f"objective is {record.get('objective')!r}, expected {estimator.BINARY!r}"
+        )
+    if record.get("n_features") != 1:
+        problems.append(f"n_features is {record.get('n_features')!r}, expected 1")
+    if record.get("seed") != expected_seed:
+        problems.append(f"seed is {record.get('seed')!r}, expected {expected_seed}")
+    if expected_split_sha is not None and record.get("split_sha256") != expected_split_sha:
+        problems.append("split_sha256 does not match the manifest")
+    if problems:
+        raise BaselineRecordInvalid(
+            f"{BASELINE_MODEL_ID} run record is not the baseline T2 requires: "
+            + "; ".join(problems)
+            + ". Refusing to residualize against the wrong baseline."
+        )
+
+    predictions_path = runs_dir / f"{BASELINE_MODEL_ID}_predictions.parquet"
+    if not predictions_path.exists():
+        raise BaselineRecordInvalid(
+            f"the T2 baseline predictions {predictions_path} are missing; refit "
+            "T0_R0 before fitting T2."
+        )
+    tbl = pq.read_table(predictions_path)
+    ids: list[str] = tbl.column(OBS_ID_COL).to_pylist()
+    vals: list[float] = tbl.column("prediction").to_pylist()
+    by_obs = {obs_id: float(value) for obs_id, value in zip(ids, vals, strict=True)}
+    return Baseline(
+        by_obs=by_obs,
+        predictions_path=predictions_path,
+        model_path=runs_dir / f"{BASELINE_MODEL_ID}.xgb",
+        run_record=record,
+    )
+
+
+def bump_target(assembled: Assembled) -> FloatArray:
+    """The T1 residual target, ``won - base_p``, per development row.
+
+    This is genuinely a residual, not the raw outcome relabelled: it takes both
+    signs (a win above the proxy is positive, a loss below it negative) and is not
+    bounded to [0, 1]. It is fitted with the regression objective and is never
+    clipped -- clipping the target would discard exactly the observations the
+    formulation exists to model.
+    """
+    return assembled.outcome - assembled.base_p
+
+
+def _target_and_objective(
+    target: str, assembled: Assembled, baseline: FloatArray | None = None
+) -> tuple[FloatArray, str]:
+    """The values a target asks the estimator to predict, and the objective for it.
+
+    T0 predicts the raw outcome under the binary objective. T1 predicts
+    ``won - base_p`` under the regression objective. T2 predicts
+    ``won - m_hat_-i`` under the regression objective, where ``baseline`` is the
+    cross-fitted ``m_hat_-i`` aligned to ``assembled``'s rows -- it is required for
+    T2 and ignored otherwise.
+    """
+    if target == TARGET_T0:
+        return assembled.outcome, estimator.BINARY
+    if target == TARGET_T1:
+        return bump_target(assembled), estimator.REGRESSION
+    if target == TARGET_T2:
+        if baseline is None:
+            raise TargetUnknown(
+                "T2 requires a cross-fitted baseline vector (m_hat_-i); none was "
+                "supplied. Load it with load_baseline and pass baseline=."
+            )
+        return assembled.outcome - baseline, estimator.REGRESSION
+    raise TargetUnknown(
+        f"target {target!r} is not supported by this module; choose one of {TARGETS}."
+    )
+
+
+# --------------------------------------------------------------------------
+# The fit -- always through the card-009 estimator.
+# --------------------------------------------------------------------------
+
+
+def fit_representation(
+    assembled: Assembled,
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    *,
+    target: str = TARGET_T0,
+    baseline: FloatArray | None = None,
+) -> estimator.RunResult:
+    """Fit one (target, representation) through :func:`estimator.fit_and_predict`.
+
+    This module never constructs a learner, grid or folds; it hands the estimator
+    an opaque matrix, the target's values and objective, the draft groups, the
+    obs ids, and the run-record labels. For T0 the values are the raw outcome and
+    the objective is binary; for T1 the values are the residual bump against the
+    fixed proxy and the objective is regression; for T2 the values are the residual
+    bump against the cross-fitted ``baseline`` (``m_hat_-i``) and the objective is
+    regression. The estimator verifies the split hash, aligns the frozen folds,
+    emits out-of-fold development predictions and writes the run record.
+    """
+    values, objective = _target_and_objective(target, assembled, baseline)
+    return estimator.fit_and_predict(
+        assembled.features,
+        values,
+        groups=assembled.groups,
+        obs_ids=assembled.obs_ids,
+        objective=objective,
+        model_id=MODEL_IDS[target][assembled.representation],
+        target=target,
+        representation=assembled.representation,
+        split_parquet=sources.split_parquet,
+        split_manifest=sources.split_manifest,
+        runs_dir=runs_dir,
+    )
+
+
+# --------------------------------------------------------------------------
+# The timing probe -- one grid point, one fold; project the full search.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Probe:
+    """A single-fit timing measurement and the projected full-search total.
+
+    ``probe_seconds`` is the wall time of one grid point on one fold at the
+    capped iteration count (no early stopping, so the probe is a rough,
+    conservative guide). ``n_fits`` is the number of single-booster fits the
+    full search performs -- the grid crossed with the folds for cross-validation,
+    the out-of-fold predictions, and the final refit -- and
+    ``projected_seconds`` is ``probe_seconds * n_fits``.
+    """
+
+    probe_seconds: float
+    n_fits: int
+    projected_seconds: float
+
+
+def timing_probe(
+    assembled: Assembled,
+    split_parquet: Path = SPLIT_PARQUET,
+    *,
+    target: str = TARGET_T0,
+    baseline: FloatArray | None = None,
+) -> Probe:
+    """Fit one estimator grid point on one frozen fold; project the full search.
+
+    Uses the estimator's own grid point, base parameters, the target's objective
+    and the fold vector it would use, so the measurement reflects the real path
+    rather than a hand-rolled learner. It fits a throwaway booster (not recorded)
+    purely to time it. The projection assumes the search cost scales with the
+    number of single-booster fits: ``len(grid) * k`` cross-validation fits, ``k``
+    out-of-fold fits, and one final refit. ``baseline`` is required for T2 (it sets
+    the residual the probe fits) and ignored otherwise.
+    """
+    values, objective = _target_and_objective(target, assembled, baseline)
+    fold_vector = estimator._aligned_folds(assembled.obs_ids, assembled.groups, split_parquet)
+    fold_pairs = estimator._fold_index_pairs(fold_vector)
+    train_idx, _test_idx = fold_pairs[0]
+    xgb = estimator._import_xgboost()
+    params = {
+        **estimator._base_params(objective, estimator.DEFAULT_SEED),
+        **estimator.HYPERPARAMETER_GRID[0],
+    }
+    dtrain = xgb.DMatrix(assembled.features[train_idx], label=values[train_idx])
+    start = time.perf_counter()
+    xgb.train(params, dtrain, num_boost_round=estimator.MAX_BOOST_ROUND)
+    probe_seconds = time.perf_counter() - start
+
+    n_grid = len(estimator.HYPERPARAMETER_GRID)
+    k_folds = len(fold_pairs)
+    n_fits = n_grid * k_folds + k_folds + 1
+    return Probe(
+        probe_seconds=probe_seconds,
+        n_fits=n_fits,
+        projected_seconds=probe_seconds * n_fits,
+    )
+
+
+# --------------------------------------------------------------------------
+# The card-010 panel, applied to development out-of-fold predictions.
+# --------------------------------------------------------------------------
+
+
+def development_metrics(outcome: FloatArray, predictions: FloatArray) -> dict[str, float]:
+    """The card-010 Bernoulli panel plus the calibration line, for one model.
+
+    Applied to out-of-fold *development* predictions (for T1, to the reconstructed
+    and clipped probability against the raw ``won`` outcome). Diagnostic only:
+    these rows are the same ones whose folds selected the hyperparameters, so the
+    numbers are contaminated and no comparison is concluded from them.
+    """
+    metrics = dict(
+        evaluation.evaluate_metrics(
+            outcome, predictions, outcome_type=evaluation.OUTCOME_BERNOULLI
+        )
+    )
+    line = evaluation.calibration_intercept_slope(outcome, predictions)
+    metrics["cal_intercept"] = line.intercept
+    metrics["cal_slope"] = line.slope
+    return metrics
+
+
+def bump_metrics(bump: FloatArray, predictions: FloatArray) -> dict[str, float]:
+    """The card-010 continuous panel, for the T1 bump fit's out-of-fold output.
+
+    The continuous view scores the residual prediction directly (RMSE, MAE and the
+    section-9 weighted R-squared). It is diagnostic for the fit and is **not**
+    comparable with any T0 metric: T0 fits a probability and T1 fits a residual,
+    and only the reconstructed probability is common ground between them.
+    """
+    return dict(
+        evaluation.evaluate_metrics(
+            bump, predictions, outcome_type=evaluation.OUTCOME_CONTINUOUS
+        )
+    )
+
+
+# --------------------------------------------------------------------------
+# Reconstruction -- base + B_hat, clipped, with the escapes counted. The base is
+# the fixed proxy for T1 and the cross-fitted m_hat_-i for T2.
+# --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReconstructionStats:
+    """How the reconstructed probability behaved before clipping.
+
+    ``n_clipped_low``/``n_clipped_high`` count the rows whose raw reconstruction
+    fell below the clip bound or above its complement -- the rows the additive
+    decomposition ``base + B_hat`` pushed outside [0, 1]. ``raw_min``/``raw_max``
+    bracket the raw reconstruction so the size of the escape is visible even when
+    the count is zero.
+    """
+
+    n_rows: int
+    n_clipped_low: int
+    n_clipped_high: int
+    clip_low: float
+    clip_high: float
+    raw_min: float
+    raw_max: float
+
+    @property
+    def n_clipped(self) -> int:
+        return self.n_clipped_low + self.n_clipped_high
+
+    @property
+    def clipped_fraction(self) -> float:
+        return self.n_clipped / self.n_rows if self.n_rows else 0.0
+
+
+def _write_reconstruction(
+    path: Path,
+    obs_ids: Sequence[str],
+    bump: FloatArray,
+    base: FloatArray,
+    raw: FloatArray,
+    clipped: FloatArray,
+    *,
+    base_col: str = BASE_P_COL,
+) -> None:
+    """Write a reconstruction artifact: the bump and the reconstructed prob.
+
+    Keyed by ``obs_id``, one row per development observation, carrying the raw bump
+    prediction, the ``base`` it was added to (``base_p`` for T1, the cross-fitted
+    ``m_hat_-i`` for T2 -- named by ``base_col`` so the artifact never mislabels
+    it), and the reconstructed probability before and after the clip. Gitignored
+    under ``data/runs`` and regenerable from the frozen split and the run's
+    booster.
+    """
+    table = pa.table(
+        {
+            OBS_ID_COL: pa.array(list(obs_ids), type=pa.string()),
+            BUMP_COL: pa.array(bump.tolist(), type=pa.float64()),
+            base_col: pa.array(base.tolist(), type=pa.float64()),
+            RECON_RAW_COL: pa.array(raw.tolist(), type=pa.float64()),
+            RECON_PROB_COL: pa.array(clipped.tolist(), type=pa.float64()),
+        }
+    )
+    pq.write_table(table, path, compression="snappy")
+
+
+# --------------------------------------------------------------------------
+# T0 build -- R0 first and complete, then probe, then R1 if in budget.
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class BuildResult:
+    """Everything the T0 report needs from one build."""
+
+    r0_elapsed_seconds: float
+    r0_metrics: dict[str, float]
+    r0_record: dict[str, object]
+    probe: Probe
+    budget_seconds: float
+    r1_attempted: bool
+    r1_elapsed_seconds: float | None
+    r1_metrics: dict[str, float] | None
+    r1_record: dict[str, object] | None
+    r1_skip_reason: str | None
+
+
+def build(
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    budget_seconds: float = R1_FIT_BUDGET_SECONDS,
+    report_path: Path = REPORT_MD,
+    write_report_file: bool = True,
+) -> BuildResult:
+    """Fit T0 R0, probe R1, fit R1 if the projection is within budget, write report.
+
+    R0 is fitted and its run record written before R1 assembly or fitting begins.
+    The R1 grid search runs only if the timing probe's projection is within
+    ``budget_seconds``; otherwise R1 is reported as not attempted with the
+    projection and reason recorded.
+    """
+    # R0 first, completely. One feature, seconds; proves the real path cheaply.
+    a0 = assemble(R0, sources)
+    start = time.perf_counter()
+    r0 = fit_representation(a0, sources, runs_dir, target=TARGET_T0)
+    r0_elapsed = time.perf_counter() - start
+    r0_metrics = development_metrics(a0.outcome, r0.predictions)
+
+    # R1 assembly and the timing probe -- measure before committing to the search.
+    a1 = assemble(R1, sources)
+    probe = timing_probe(a1, sources.split_parquet, target=TARGET_T0)
+
+    r1_attempted = probe.projected_seconds <= budget_seconds
+    r1_elapsed: float | None = None
+    r1_metrics: dict[str, float] | None = None
+    r1_record: dict[str, object] | None = None
+    r1_skip_reason: str | None = None
+    if r1_attempted:
+        start = time.perf_counter()
+        r1 = fit_representation(a1, sources, runs_dir, target=TARGET_T0)
+        r1_elapsed = time.perf_counter() - start
+        r1_metrics = development_metrics(a1.outcome, r1.predictions)
+        r1_record = r1.run_record
+    else:
+        r1_skip_reason = _skip_reason(probe, budget_seconds)
+
+    result = BuildResult(
+        r0_elapsed_seconds=r0_elapsed,
+        r0_metrics=r0_metrics,
+        r0_record=r0.run_record,
+        probe=probe,
+        budget_seconds=budget_seconds,
+        r1_attempted=r1_attempted,
+        r1_elapsed_seconds=r1_elapsed,
+        r1_metrics=r1_metrics,
+        r1_record=r1_record,
+        r1_skip_reason=r1_skip_reason,
+    )
+    if write_report_file:
+        write_report(result, report_path)
+    return result
+
+
+def _skip_reason(probe: Probe, budget_seconds: float) -> str:
+    return (
+        f"the timing probe projects the full R1 grid search at "
+        f"{probe.projected_seconds:.0f}s ({probe.projected_seconds / 60:.1f} "
+        f"min), which exceeds the executor budget of {budget_seconds:.0f}s "
+        f"({budget_seconds / 60:.1f} min). The build stops after R0 rather "
+        "than starting a search it cannot finish."
+    )
+
+
+# --------------------------------------------------------------------------
+# T1 build -- same order, plus reconstruction, clipping counts, dual metrics.
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class T1ModelResult:
+    """One T1 model's fit: the record, both metric views, and the clip stats."""
+
+    representation: str
+    elapsed_seconds: float
+    record: dict[str, object]
+    continuous_metrics: dict[str, float]
+    reconstructed_metrics: dict[str, float]
+    recon_stats: ReconstructionStats
+
+
+@dataclass
+class T1BuildResult:
+    """Everything the T1 report needs from one build."""
+
+    r0: T1ModelResult
+    probe: Probe
+    budget_seconds: float
+    r1_attempted: bool
+    r1: T1ModelResult | None
+    r1_skip_reason: str | None
+
+
+def _fit_t1_model(assembled: Assembled, sources: Sources, runs_dir: Path) -> T1ModelResult:
+    """Fit one T1 model, reconstruct its probability, and score it both ways.
+
+    The estimator fits the residual bump with the regression objective and emits
+    the out-of-fold ``B_hat``. The continuous view scores that bump directly. The
+    probability is reconstructed as ``base_p + B_hat``, clipped into the unit
+    interval with the panel's declared clip bound (with the escapes counted at
+    each end), scored against the raw ``won`` outcome under the Bernoulli panel,
+    and written -- alongside the raw bump -- to the reconstruction artifact.
+    """
+    start = time.perf_counter()
+    run = fit_representation(assembled, sources, runs_dir, target=TARGET_T1)
+    elapsed = time.perf_counter() - start
+
+    bump = bump_target(assembled)
+    continuous = bump_metrics(bump, run.predictions)
+
+    clip_low = evaluation.PROBABILITY_CLIP
+    clip_high = 1.0 - clip_low
+    raw = assembled.base_p + run.predictions
+    clipped = np.clip(raw, clip_low, clip_high)
+    n_low = int(np.count_nonzero(raw < clip_low))
+    n_high = int(np.count_nonzero(raw > clip_high))
+    reconstructed = development_metrics(assembled.outcome, clipped)
+
+    model_id = MODEL_IDS[TARGET_T1][assembled.representation]
+    _write_reconstruction(
+        runs_dir / f"{model_id}_reconstruction.parquet",
+        run.obs_ids,
+        run.predictions,
+        assembled.base_p,
+        raw,
+        clipped,
+    )
+    stats = ReconstructionStats(
+        n_rows=len(run.obs_ids),
+        n_clipped_low=n_low,
+        n_clipped_high=n_high,
+        clip_low=clip_low,
+        clip_high=clip_high,
+        raw_min=float(np.min(raw)),
+        raw_max=float(np.max(raw)),
+    )
+    return T1ModelResult(
+        representation=assembled.representation,
+        elapsed_seconds=elapsed,
+        record=run.run_record,
+        continuous_metrics=continuous,
+        reconstructed_metrics=reconstructed,
+        recon_stats=stats,
+    )
+
+
+def build_t1(
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    budget_seconds: float = R1_FIT_BUDGET_SECONDS,
+    report_path: Path = REPORT_T1_MD,
+    write_report_file: bool = True,
+) -> T1BuildResult:
+    """Fit T1 R0, probe R1, fit R1 if the projection is within budget, write report.
+
+    Same de-risking order as :func:`build`: R0 is fitted, reconstructed and its
+    run record written before R1 assembly or fitting begins. The R1 grid search
+    runs only if the timing probe's projection is within ``budget_seconds``;
+    otherwise R1 is reported as not attempted with the projection and reason
+    recorded. No comparison between R0 and R1, and none between T0 and T1, is
+    drawn anywhere here.
+    """
+    a0 = assemble(R0, sources)
+    r0 = _fit_t1_model(a0, sources, runs_dir)
+
+    a1 = assemble(R1, sources)
+    probe = timing_probe(a1, sources.split_parquet, target=TARGET_T1)
+
+    r1_attempted = probe.projected_seconds <= budget_seconds
+    r1: T1ModelResult | None = None
+    r1_skip_reason: str | None = None
+    if r1_attempted:
+        r1 = _fit_t1_model(a1, sources, runs_dir)
+    else:
+        r1_skip_reason = _skip_reason(probe, budget_seconds)
+
+    result = T1BuildResult(
+        r0=r0,
+        probe=probe,
+        budget_seconds=budget_seconds,
+        r1_attempted=r1_attempted,
+        r1=r1,
+        r1_skip_reason=r1_skip_reason,
+    )
+    if write_report_file:
+        write_t1_report(result, report_path)
+    return result
+
+
+# --------------------------------------------------------------------------
+# T2 build -- same order as T1, but the base is the cross-fitted m_hat_-i.
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class T2ModelResult:
+    """One T2 model's fit: the record, both metric views, clip and bump stats.
+
+    ``bump_mean``/``bump_std``/``bump_min``/``bump_max`` summarize the out-of-fold
+    ``B_hat`` predictions. For ``T2_R0`` they are the cross-fitting diagnostic:
+    ``E[B|S]`` is approximately zero by construction, so they should sit near zero,
+    and a large systematic departure indicates leakage or baseline misfit rather
+    than recovered signal.
+    """
+
+    representation: str
+    elapsed_seconds: float
+    record: dict[str, object]
+    continuous_metrics: dict[str, float]
+    reconstructed_metrics: dict[str, float]
+    recon_stats: ReconstructionStats
+    bump_mean: float
+    bump_std: float
+    bump_min: float
+    bump_max: float
+
+
+@dataclass
+class T2BuildResult:
+    """Everything the T2 report needs from one build, plus the baseline consumed."""
+
+    r0: T2ModelResult
+    probe: Probe
+    budget_seconds: float
+    r1_attempted: bool
+    r1: T2ModelResult | None
+    r1_skip_reason: str | None
+    baseline: Baseline
+
+
+def _fit_t2_model(
+    assembled: Assembled, baseline: Baseline, sources: Sources, runs_dir: Path
+) -> T2ModelResult:
+    """Fit one T2 model against the cross-fitted baseline; score it both ways.
+
+    The residual fitted is ``won - m_hat_-i``, with ``m_hat_-i`` the out-of-fold
+    baseline aligned to this matrix's rows. The estimator fits it with the
+    regression objective and emits the out-of-fold ``B_hat``. The continuous view
+    scores that bump directly. The **development** probability is reconstructed as
+    ``m_hat_-i + B_hat`` -- the out-of-fold baseline, not the full-data refit, so
+    the development numbers stay comparable with T0's and T1's -- clipped into the
+    unit interval (escapes counted at each end), scored against the raw ``won``
+    outcome under the Bernoulli panel, and written alongside the raw bump to the
+    reconstruction artifact.
+    """
+    baseline_vec = baseline.aligned(assembled.obs_ids)
+    start = time.perf_counter()
+    run = fit_representation(
+        assembled, sources, runs_dir, target=TARGET_T2, baseline=baseline_vec
+    )
+    elapsed = time.perf_counter() - start
+
+    bump = assembled.outcome - baseline_vec
+    continuous = bump_metrics(bump, run.predictions)
+
+    clip_low = evaluation.PROBABILITY_CLIP
+    clip_high = 1.0 - clip_low
+    raw = baseline_vec + run.predictions
+    clipped = np.clip(raw, clip_low, clip_high)
+    n_low = int(np.count_nonzero(raw < clip_low))
+    n_high = int(np.count_nonzero(raw > clip_high))
+    reconstructed = development_metrics(assembled.outcome, clipped)
+
+    model_id = MODEL_IDS[TARGET_T2][assembled.representation]
+    _write_reconstruction(
+        runs_dir / f"{model_id}_reconstruction.parquet",
+        run.obs_ids,
+        run.predictions,
+        baseline_vec,
+        raw,
+        clipped,
+        base_col=BASELINE_COL,
+    )
+    stats = ReconstructionStats(
+        n_rows=len(run.obs_ids),
+        n_clipped_low=n_low,
+        n_clipped_high=n_high,
+        clip_low=clip_low,
+        clip_high=clip_high,
+        raw_min=float(np.min(raw)),
+        raw_max=float(np.max(raw)),
+    )
+    preds = run.predictions
+    return T2ModelResult(
+        representation=assembled.representation,
+        elapsed_seconds=elapsed,
+        record=run.run_record,
+        continuous_metrics=continuous,
+        reconstructed_metrics=reconstructed,
+        recon_stats=stats,
+        bump_mean=float(np.mean(preds)),
+        bump_std=float(np.std(preds)),
+        bump_min=float(np.min(preds)),
+        bump_max=float(np.max(preds)),
+    )
+
+
+def build_t2(
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    budget_seconds: float = R1_FIT_BUDGET_SECONDS,
+    report_path: Path = REPORT_T2_MD,
+    write_report_file: bool = True,
+) -> T2BuildResult:
+    """Fit T2 R0, probe R1, fit R1 if within budget, write the T2 report.
+
+    The learned baseline ``m_hat_-i`` is loaded and validated from ``T0_R0`` once,
+    before any fitting -- a bad baseline record stops the run rather than
+    residualizing against the wrong quantity. Same de-risking order as
+    :func:`build_t1`: R0 is fitted, reconstructed and its run record written before
+    R1 assembly or fitting begins. No comparison between R0 and R1, and none among
+    T0, T1 and T2, is drawn anywhere here.
+    """
+    expected_split_sha = estimator.verify_split_hash(
+        sources.split_parquet, sources.split_manifest
+    )
+    baseline = load_baseline(runs_dir, expected_split_sha, estimator.DEFAULT_SEED)
+
+    a0 = assemble(R0, sources)
+    r0 = _fit_t2_model(a0, baseline, sources, runs_dir)
+
+    a1 = assemble(R1, sources)
+    probe = timing_probe(
+        a1, sources.split_parquet, target=TARGET_T2, baseline=baseline.aligned(a1.obs_ids)
+    )
+
+    r1_attempted = probe.projected_seconds <= budget_seconds
+    r1: T2ModelResult | None = None
+    r1_skip_reason: str | None = None
+    if r1_attempted:
+        r1 = _fit_t2_model(a1, baseline, sources, runs_dir)
+    else:
+        r1_skip_reason = _skip_reason(probe, budget_seconds)
+
+    result = T2BuildResult(
+        r0=r0,
+        probe=probe,
+        budget_seconds=budget_seconds,
+        r1_attempted=r1_attempted,
+        r1=r1,
+        r1_skip_reason=r1_skip_reason,
+        baseline=baseline,
+    )
+    if write_report_file:
+        write_t2_report(result, report_path)
+    return result
+
+
+# --------------------------------------------------------------------------
+# The T0 report.
+# --------------------------------------------------------------------------
+
+_METRIC_ORDER: tuple[str, ...] = (
+    evaluation.LOG_LOSS,
+    evaluation.BRIER,
+    evaluation.BRIER_SKILL_SCORE,
+    evaluation.RMSE,
+    evaluation.MAE,
+    evaluation.AUC,
+    "cal_intercept",
+    "cal_slope",
+)
+
+_CONTINUOUS_METRIC_ORDER: tuple[str, ...] = (
+    evaluation.RMSE,
+    evaluation.MAE,
+    evaluation.R2,
+)
+
+
+def _metric_row(label: str, metrics: dict[str, float]) -> str:
+    cells = [f"{metrics[m]:.6f}" for m in _METRIC_ORDER]
+    return "| " + label + " | " + " | ".join(cells) + " |"
+
+
+def _continuous_metric_row(label: str, metrics: dict[str, float]) -> str:
+    cells = [f"{metrics[m]:.6f}" for m in _CONTINUOUS_METRIC_ORDER]
+    return "| " + label + " | " + " | ".join(cells) + " |"
+
+
+def _report_lines(result: BuildResult) -> list[str]:
+    r0_rec = result.r0_record
+    probe = result.probe
+    header = "| Model | " + " | ".join(_METRIC_ORDER) + " |"
+    divider = "| " + " | ".join(["---"] * (len(_METRIC_ORDER) + 1)) + " |"
+    metric_rows = [header, divider, _metric_row("T0 / R0 (skill only)", result.r0_metrics)]
+    if result.r1_metrics is not None:
+        metric_rows.append(_metric_row("T0 / R1 (skill + identity)", result.r1_metrics))
+
+    lines: list[str] = [
+        "# T0 raw outcome -- development fits for R0 and R1 (card 011)",
+        "",
+        "The first row of the benchmark matrix, and the first real fits in the "
+        "project. Target formulation **T0** (the raw game outcome `won` in "
+        "{0, 1}) against the two representations phase 1 can supply: **R0** "
+        "(skill only) and **R1** (skill + card identity). Both are fitted through "
+        "`deckbench.estimator.fit_and_predict`; this card constructs no learner, "
+        "grid, or folds of its own, and never opens the holdout.",
+        "",
+        "> **`base_p` is not skill.** R0's single feature is the reliability-shrunk "
+        "historical win-rate proxy `base_p`, a nuisance representation reproduced "
+        "from the inherited implementation (card 005). It is not a measurement of "
+        "player skill and is not described as one here.",
+        "",
+        "## Regeneration history",
+        "",
+        "These fits have been regenerated twice since card 011 first produced "
+        "them. Neither regeneration changed the learner, the grid, the folds, the "
+        "seed, or the population, and neither opened the holdout. Both are "
+        "recorded here because the numbers below moved each time, and a metric "
+        "that moves without a stated reason is not attributable.",
+        "",
+        "1. **Card 014 -- skill-proxy fidelity correction.** The proxy's shrinkage "
+        "target `mu` changed from a per-game mean to a per-draft mean, to match "
+        "the R implementation being reproduced "
+        "(`scripts/R/04_real_inference_refactored.R` line 324; `mu` 0.546211 -> "
+        "0.533339). R0 is `[base_p]` and R1 contains it, so both consumed the "
+        "changed column and were refitted. See `reports/mu_fidelity_correction.md`.",
+        "",
+        "2. **xgboost version change (two environments, not a bad record).** "
+        "Cards 011 and 014 were executed by the compact orchestrator, which runs "
+        "in its own virtualenv carrying xgboost **3.4.1**; an interactive session "
+        "in this repo runs a different interpreter carrying **3.1.2**. Their T0 "
+        "fits therefore ran under 3.4.1 and recorded it correctly. Refitting "
+        "under 3.1.2 did **not** reproduce them: R0 selected a different grid "
+        "point (`max_depth` 3 -> 4, `subsample` and `colsample_bytree` 1.0 -> "
+        "0.8) and 367 -> 136 rounds, and the panel metrics moved in the fifth "
+        "decimal. The artifacts described below are the 3.1.2 ones, matching the "
+        "`xgboost==3.1.2` pin and the T1 and T2 rows, so every model card 017 "
+        "compares was built by one version. An earlier revision of this section "
+        "called the 3.4.1 record false provenance; that was a misreading -- "
+        "`Booster.save_raw()` reports the *reading* library's version, not the "
+        "writer's. See the LABNOTEBOOK entry [2026-09-10 18:40].",
+        "",
+        "## Fit order and elapsed time",
+        "",
+        "R0 was fitted **first and completely**, and its run record written to "
+        "disk, **before any R1 assembly or fitting began**. R0 is one feature and "
+        "finishes in seconds; fitting it first proves the real path -- split-hash "
+        "verification, fold alignment, out-of-fold prediction, run record -- at a "
+        "point where failure costs nothing. R0 is also M0, the benchmark's own "
+        "skill-only baseline, so it is not a throwaway warm-up.",
+        "",
+        f"- **R0 fit** ({MODEL_IDS[TARGET_T0][R0]}): **{result.r0_elapsed_seconds:.1f} s**, "
+        f"{r0_rec['n_dev_rows']} development rows x {r0_rec['n_features']} feature.",
+    ]
+    if result.r1_attempted and result.r1_record is not None:
+        assert result.r1_elapsed_seconds is not None
+        lines.append(
+            f"- **R1 fit** ({MODEL_IDS[TARGET_T0][R1]}): "
+            f"**{result.r1_elapsed_seconds:.1f} s**, "
+            f"{result.r1_record['n_dev_rows']} development rows x "
+            f"{result.r1_record['n_features']} features."
+        )
+    else:
+        lines.append("- **R1 fit**: not attempted (see the timing probe below).")
+
+    lines += [
+        "",
+        "## Timing probe and the budget decision",
+        "",
+        "Before the full R1 grid search, a probe fits a **single grid point on a "
+        "single fold** at the capped iteration count (no early stopping). The full "
+        "search performs `len(grid) * k` cross-validation fits, `k` out-of-fold "
+        "fits, and one final refit.",
+        "",
+        f"- Probe (one grid point, one fold): **{probe.probe_seconds:.1f} s**",
+        f"- Single-booster fits in the full search: **{probe.n_fits}** "
+        f"({len(estimator.HYPERPARAMETER_GRID)} grid x 5 folds + 5 out-of-fold + "
+        "1 refit)",
+        f"- Projected full-search total: **{probe.projected_seconds:.1f} s** "
+        f"({probe.projected_seconds / 60:.1f} min)",
+        f"- Executor budget for R1: **{result.budget_seconds:.0f} s** "
+        f"({result.budget_seconds / 60:.1f} min)",
+        "",
+    ]
+    if result.r1_attempted:
+        assert result.r1_elapsed_seconds is not None
+        r1_elapsed = result.r1_elapsed_seconds
+        direction = "under" if r1_elapsed <= probe.projected_seconds else "over"
+        lines.append(
+            "The projection was within budget, so the full R1 grid search was "
+            f"run. The measured R1 fit came in at {r1_elapsed:.1f} s, {direction} "
+            f"the {probe.projected_seconds:.1f} s projection. The probe is only a "
+            "rough guide, not a precise predictor: it times one grid point on one "
+            "fold at the capped iteration count with no early stopping, whereas "
+            "the real search runs all grid points (each early-stopped on the "
+            "native metric, some to more rounds or a deeper tree than the "
+            "probe's) plus a final refit on all development rows. The two need "
+            "not agree closely; both are far inside the budget, which is the only "
+            "decision the probe exists to make."
+        )
+    else:
+        assert result.r1_skip_reason is not None
+        lines.append(result.r1_skip_reason)
+
+    lines += [
+        "",
+        "## Development metrics (diagnostic only -- no comparison concluded)",
+        "",
+        "The card-010 panel applied to each model's **out-of-fold development** "
+        "predictions, with `outcome_type = \"bernoulli\"`.",
+        "",
+        *metric_rows,
+        "",
+        "**These are development metrics, and they are diagnostic only.** They are "
+        "computed on the same development rows whose folds selected each model's "
+        "hyperparameters, so they are contaminated and cannot stand in for an "
+        "honest generalization estimate. They are reported here only so that a "
+        "first look confirms the pipeline produces sane probabilities in the unit "
+        "interval rather than, say, 0.5 everywhere.",
+        "",
+        "**No comparison between R0 and R1 is concluded from these numbers, in "
+        "either direction.** Whether card identity adds information beyond the "
+        "skill proxy is not a question development metrics can answer; the "
+        "benchmark's design puts that answer on the untouched external holdout, "
+        "opened exactly once at card 014, scored through this same panel with the "
+        "paired cluster bootstrap carrying the uncertainty on the difference. "
+        "Section 13 also forbids reading any null incremental result as an absence "
+        "of a deck effect. So: look, record, and draw nothing.",
+        "",
+        "## Provenance",
+        "",
+        f"- Split SHA256 (verified before each fit): `{r0_rec['split_sha256']}`",
+        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}** "
+        f"(compiled library; Python package "
+        f"**{r0_rec.get('xgboost_python_version', 'not recorded')}**), "
+        "single-threaded (byte-identical determinism).",
+        f"- R0 chosen hyperparameters: `{r0_rec['chosen_hyperparameters']}`, "
+        f"{r0_rec['num_boost_round']} boosting rounds.",
+    ]
+    if result.r1_record is not None:
+        lines.append(
+            f"- R1 chosen hyperparameters: "
+            f"`{result.r1_record['chosen_hyperparameters']}`, "
+            f"{result.r1_record['num_boost_round']} boosting rounds."
+        )
+    lines += [
+        "- Run records are tracked in git (`data/runs/*_run.json`); the prediction "
+        "parquets and fitted boosters are gitignored and regenerable from the "
+        "frozen split and the representation tables.",
+        "- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is "
+        "byte-identical (0 bytes) before and after this card.",
+        "",
+    ]
+    return lines
+
+
+def write_report(result: BuildResult, report_path: Path = REPORT_MD) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(_report_lines(result)), encoding="utf-8", newline="\n")
+
+
+# --------------------------------------------------------------------------
+# The T1 report.
+# --------------------------------------------------------------------------
+
+
+def _t1_fit_line(label: str, model_id: str, model: T1ModelResult) -> str:
+    n_features = model.record["n_features"]
+    unit = "feature" if n_features == 1 else "features"
+    return (
+        f"- **{label} fit** ({model_id}): **{model.elapsed_seconds:.1f} s**, "
+        f"{model.record['n_dev_rows']} development rows x {n_features} {unit}."
+    )
+
+
+def _t1_clip_line(label: str, model: T1ModelResult) -> str:
+    s = model.recon_stats
+    return (
+        f"- **{label}**: {s.n_clipped} of {s.n_rows} rows clipped "
+        f"({s.clipped_fraction * 100:.4f}%) -- {s.n_clipped_low} below the lower "
+        f"bound, {s.n_clipped_high} above the upper. Raw reconstruction ranged "
+        f"[{s.raw_min:.6f}, {s.raw_max:.6f}] before clipping to "
+        f"[{s.clip_low:.0e}, 1 - {s.clip_low:.0e}]."
+    )
+
+
+def _t1_report_lines(result: T1BuildResult) -> list[str]:
+    r0 = result.r0
+    r0_rec = r0.record
+    probe = result.probe
+
+    recon_header = "| Model | " + " | ".join(_METRIC_ORDER) + " |"
+    recon_divider = "| " + " | ".join(["---"] * (len(_METRIC_ORDER) + 1)) + " |"
+    recon_rows = [
+        recon_header,
+        recon_divider,
+        _metric_row("T1 / R0 (skill only)", r0.reconstructed_metrics),
+    ]
+    cont_header = "| Model | " + " | ".join(_CONTINUOUS_METRIC_ORDER) + " |"
+    cont_divider = "| " + " | ".join(["---"] * (len(_CONTINUOUS_METRIC_ORDER) + 1)) + " |"
+    cont_rows = [
+        cont_header,
+        cont_divider,
+        _continuous_metric_row("T1 / R0 (skill only)", r0.continuous_metrics),
+    ]
+    if result.r1 is not None:
+        recon_rows.append(
+            _metric_row("T1 / R1 (skill + identity)", result.r1.reconstructed_metrics)
+        )
+        cont_rows.append(
+            _continuous_metric_row("T1 / R1 (skill + identity)", result.r1.continuous_metrics)
+        )
+
+    lines: list[str] = [
+        "# T1 bump against the fixed skill proxy -- development fits for R0 and R1 "
+        "(card 015)",
+        "",
+        "The benchmark's second target formulation. Where T0 predicts the game "
+        "outcome directly, **T1 predicts the residual left after subtracting the "
+        "fixed historical proxy**, then reconstructs a win probability from it:",
+        "",
+        "```",
+        "B_i     = won_i - base_p_i      (the target actually fitted)",
+        "p_hat_i = base_p_i + B_hat_i    (the probability reconstructed from it)",
+        "```",
+        "",
+        "The residual is fitted with the estimator's **regression** objective; T0 "
+        "used the binary one. Same two representations phase 1 can supply -- **R0** "
+        "(skill only) and **R1** (skill + card identity) -- through the same "
+        "`deckbench.estimator.fit_and_predict`, the same grid, the same frozen "
+        "folds and the same seed. This card constructs no learner, grid, or folds "
+        "of its own, and never opens the holdout.",
+        "",
+        "> **`base_p` is not skill.** R0's single feature is the reliability-shrunk "
+        "historical win-rate proxy `base_p`, a nuisance representation reproduced "
+        "from the inherited implementation (card 005). It is not a measurement of "
+        "player skill and is not described as one here.",
+        "",
+        "## Why T1, and what it does not decide",
+        "",
+        "Section 2 of the benchmark observes that player skill may generate far "
+        "more between-observation variation than deck quality, so direct "
+        "prediction of the outcome can be dominated by skill even where deck "
+        "quality matters. T1 subtracts the skill component up front so the model "
+        "is asked only for what is left. Whether that actually helps recover deck "
+        "signal is **H2** (section 14), which predicts an ordering across T0, T1 "
+        "and T2. **H2 is a hypothesis, not an assumed result.** This card produces "
+        "one row of the table that question needs; it does not test the ordering, "
+        "and it draws no conclusion. The single holdout read at card 017 is where "
+        "any comparison is made.",
+        "",
+        "## R0's role under a residual target",
+        "",
+        "It is fair to ask what a model can learn about `won - base_p` when its "
+        "only feature is `base_p` itself -- the proxy has already been used to "
+        "construct the target. Per benchmark section 4, this is a coherent "
+        "question and not a degenerate one: `T1_R0` asks what **systematic "
+        "structure the proxy leaves behind** -- miscalibration at the extremes, "
+        "regression toward the mean, a reliability weighting that over- or "
+        "under-shrinks particular buckets. A flat prediction near zero would "
+        "itself be informative, saying the proxy has no exploitable residual "
+        "structure. R0 is scored here for exactly that reason; nothing about it is "
+        "read as skill, and its role in constructing the target is stated rather "
+        "than hidden.",
+        "",
+        "## Fit order and elapsed time",
+        "",
+        "R0 was fitted **first and completely**, reconstructed, and its run record "
+        "written to disk, **before any R1 assembly or fitting began** -- the same "
+        "de-risking order T0 used, so the real path is proven where failure costs "
+        "nothing.",
+        "",
+        _t1_fit_line("R0", MODEL_IDS[TARGET_T1][R0], r0),
+    ]
+    if result.r1 is not None:
+        lines.append(_t1_fit_line("R1", MODEL_IDS[TARGET_T1][R1], result.r1))
+    else:
+        lines.append("- **R1 fit**: not attempted (see the timing probe below).")
+
+    lines += [
+        "",
+        "## Timing probe and the budget decision",
+        "",
+        "Before the full R1 grid search, a probe fits a **single grid point on a "
+        "single fold** at the capped iteration count (no early stopping), under "
+        "the regression objective T1 uses.",
+        "",
+        f"- Probe (one grid point, one fold): **{probe.probe_seconds:.1f} s**",
+        f"- Single-booster fits in the full search: **{probe.n_fits}** "
+        f"({len(estimator.HYPERPARAMETER_GRID)} grid x 5 folds + 5 out-of-fold + "
+        "1 refit)",
+        f"- Projected full-search total: **{probe.projected_seconds:.1f} s** "
+        f"({probe.projected_seconds / 60:.1f} min)",
+        f"- Executor budget for R1: **{result.budget_seconds:.0f} s** "
+        f"({result.budget_seconds / 60:.1f} min)",
+        "",
+    ]
+    if result.r1_attempted:
+        lines.append(
+            "The projection was within budget, so the full R1 grid search was run. "
+            "The probe is only a rough guide, not a precise predictor; the one "
+            "decision it exists to make is whether the search fits inside the "
+            "budget."
+        )
+    else:
+        assert result.r1_skip_reason is not None
+        lines.append(result.r1_skip_reason)
+
+    lines += [
+        "",
+        "## Reconstruction and clipping (a measurement, not a nuisance)",
+        "",
+        "`p_hat = base_p + B_hat` has no arithmetic guarantee of landing inside "
+        "[0, 1]. The reconstruction is clipped into the unit interval using the "
+        "panel's declared clip bound (`PROBABILITY_CLIP` = "
+        f"{evaluation.PROBABILITY_CLIP:.0e}) **only for scoring** -- the target "
+        "itself is never clipped. How often the additive decomposition escapes "
+        "the unit interval, and by how much, is direct evidence about whether the "
+        "decomposition in section 2 holds on this data; a large clipped fraction "
+        "would be a finding about the formulation, not a detail to suppress.",
+        "",
+        _t1_clip_line("R0", r0),
+    ]
+    if result.r1 is not None:
+        lines.append(_t1_clip_line("R1", result.r1))
+
+    lines += [
+        "",
+        "## Development metrics (diagnostic only -- no comparison concluded)",
+        "",
+        "The card-010 panel is applied **twice** per model. The **continuous** "
+        "view scores the bump prediction directly against the fitted residual "
+        "`won - base_p`; the **Bernoulli** view scores the reconstructed, clipped "
+        "probability against the raw `won` outcome, through the same panel T0 "
+        "used. Both are out-of-fold development predictions.",
+        "",
+        "### Reconstructed-probability view (`outcome_type = \"bernoulli\"`)",
+        "",
+        *recon_rows,
+        "",
+        "### Bump view (`outcome_type = \"continuous\"`)",
+        "",
+        *cont_rows,
+        "",
+        "**Only the reconstructed-probability metrics are comparable with T0.** T0 "
+        "fits a probability and T1 fits a residual, so their native metrics answer "
+        "different questions -- an R-squared on a bump and a log loss on a "
+        "probability are not commensurable. The one thing both formulations "
+        "produce for the same observation is a win probability, so the "
+        "reconstructed probability is the only common ground, and it is what card "
+        "017 will compare. The continuous view is diagnostic for the T1 fit alone.",
+        "",
+        "**These are development metrics, and they are diagnostic only.** They are "
+        "computed on the same development rows whose folds selected each model's "
+        "hyperparameters, so they are contaminated and cannot stand in for an "
+        "honest generalization estimate. They confirm the pipeline produces sane "
+        "numbers; they settle nothing.",
+        "",
+        "**No comparison between R0 and R1, and none between T0 and T1, is "
+        "concluded from these numbers, in any direction.** Card 011's prohibition "
+        "stands unchanged and for the same reason: whether a representation or a "
+        "target formulation adds information is not a question development metrics "
+        "can answer. The benchmark's design puts that answer on the untouched "
+        "external holdout, opened exactly once at card 017, scored through this "
+        "same panel with the paired cluster bootstrap carrying the uncertainty on "
+        "the difference. Section 13 forbids reading any null incremental result as "
+        "an absence of a deck effect. So: look, record, and draw nothing.",
+        "",
+        "## Provenance",
+        "",
+        f"- Split SHA256 (verified before each fit): `{r0_rec['split_sha256']}`",
+        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}** "
+        f"(compiled library; Python package "
+        f"**{r0_rec.get('xgboost_python_version', 'not recorded')}**), "
+        "single-threaded (byte-identical determinism).",
+        f"- Objective: **{r0_rec['objective']}** (regression), for the continuous "
+        "residual target -- distinct from T0's binary objective.",
+        f"- R0 chosen hyperparameters: `{r0_rec['chosen_hyperparameters']}`, "
+        f"{r0_rec['num_boost_round']} boosting rounds.",
+    ]
+    if result.r1 is not None:
+        lines.append(
+            f"- R1 chosen hyperparameters: "
+            f"`{result.r1.record['chosen_hyperparameters']}`, "
+            f"{result.r1.record['num_boost_round']} boosting rounds."
+        )
+    lines += [
+        "- Run records are tracked in git (`data/runs/*_run.json`); the prediction "
+        "parquets, reconstruction parquets and fitted boosters are gitignored and "
+        "regenerable from the frozen split and the representation tables.",
+        "- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is "
+        "byte-identical (0 bytes) before and after this card.",
+        "",
+    ]
+    return lines
+
+
+def write_t1_report(result: T1BuildResult, report_path: Path = REPORT_T1_MD) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(_t1_report_lines(result)), encoding="utf-8", newline="\n")
+
+
+# --------------------------------------------------------------------------
+# The T2 report.
+# --------------------------------------------------------------------------
+
+
+def _t2_fit_line(label: str, model_id: str, model: T2ModelResult) -> str:
+    n_features = model.record["n_features"]
+    unit = "feature" if n_features == 1 else "features"
+    return (
+        f"- **{label} fit** ({model_id}): **{model.elapsed_seconds:.1f} s**, "
+        f"{model.record['n_dev_rows']} development rows x {n_features} {unit}."
+    )
+
+
+def _t2_clip_line(label: str, model: T2ModelResult) -> str:
+    s = model.recon_stats
+    return (
+        f"- **{label}**: {s.n_clipped} of {s.n_rows} rows clipped "
+        f"({s.clipped_fraction * 100:.4f}%) -- {s.n_clipped_low} below the lower "
+        f"bound, {s.n_clipped_high} above the upper. Raw reconstruction ranged "
+        f"[{s.raw_min:.6f}, {s.raw_max:.6f}] before clipping to "
+        f"[{s.clip_low:.0e}, 1 - {s.clip_low:.0e}]."
+    )
+
+
+def _t2_bump_line(label: str, model: T2ModelResult) -> str:
+    return (
+        f"- **{label}** ({MODEL_IDS[TARGET_T2][model.representation]}): out-of-fold "
+        f"`B_hat` mean **{model.bump_mean:+.6f}**, std **{model.bump_std:.6f}**, "
+        f"range [{model.bump_min:+.6f}, {model.bump_max:+.6f}]."
+    )
+
+
+def _t2_report_lines(result: T2BuildResult) -> list[str]:
+    r0 = result.r0
+    r0_rec = r0.record
+    probe = result.probe
+    base_rec = result.baseline.run_record
+    base_path = result.baseline.predictions_path
+    try:
+        base_path_str = base_path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        base_path_str = base_path.as_posix()
+
+    recon_header = "| Model | " + " | ".join(_METRIC_ORDER) + " |"
+    recon_divider = "| " + " | ".join(["---"] * (len(_METRIC_ORDER) + 1)) + " |"
+    recon_rows = [
+        recon_header,
+        recon_divider,
+        _metric_row("T2 / R0 (skill only)", r0.reconstructed_metrics),
+    ]
+    cont_header = "| Model | " + " | ".join(_CONTINUOUS_METRIC_ORDER) + " |"
+    cont_divider = "| " + " | ".join(["---"] * (len(_CONTINUOUS_METRIC_ORDER) + 1)) + " |"
+    cont_rows = [
+        cont_header,
+        cont_divider,
+        _continuous_metric_row("T2 / R0 (skill only)", r0.continuous_metrics),
+    ]
+    bump_lines = [_t2_bump_line("R0", r0)]
+    if result.r1 is not None:
+        recon_rows.append(
+            _metric_row("T2 / R1 (skill + identity)", result.r1.reconstructed_metrics)
+        )
+        cont_rows.append(
+            _continuous_metric_row("T2 / R1 (skill + identity)", result.r1.continuous_metrics)
+        )
+        bump_lines.append(_t2_bump_line("R1", result.r1))
+
+    lines: list[str] = [
+        "# T2 bump against a cross-fitted learned baseline -- development fits for "
+        "R0 and R1 (card 016)",
+        "",
+        "The benchmark's third and last target formulation. T1 subtracted a "
+        "**fixed** historical proxy; **T2 subtracts a learned one, cross-fitted so "
+        "that no observation ever helps train the model that produces its own "
+        "baseline**, then reconstructs a win probability from the residual:",
+        "",
+        "```",
+        "m_hat_-i(S_i)              the cross-fitted baseline, E[Y|S] out of fold",
+        "B_i     = won_i - m_hat_-i(S_i)   (the target actually fitted)",
+        "p_hat_i = m_hat_-i(S_i) + B_hat_i (the probability reconstructed from it)",
+        "```",
+        "",
+        "The residual is fitted with the estimator's **regression** objective. Same "
+        "two representations phase 1 can supply -- **R0** (skill only) and **R1** "
+        "(skill + card identity) -- through the same "
+        "`deckbench.estimator.fit_and_predict`, the same grid, the same frozen "
+        "folds and the same seed. This card constructs no learner, grid, or folds "
+        "of its own, and never opens the holdout.",
+        "",
+        "> **Neither `base_p` nor `m_hat` is skill.** R0's single feature is the "
+        "reliability-shrunk historical win-rate proxy `base_p`, a nuisance "
+        "representation (card 005). `m_hat` is a *learned* estimate of expected win "
+        "probability given that representation. Both are baselines; neither is a "
+        "measurement of a player, and neither is described as skill here.",
+        "",
+        "## The baseline is reused from T0_R0, not refitted",
+        "",
+        "`m(S) = E[Y|S]` fitted on R0 with the binary objective and predicted out "
+        "of fold is exactly what card 011 produced as `T0_R0`. This card **reuses "
+        "that artifact and refits nothing**: refitting an identical model would "
+        "burn time to reproduce the same numbers and would let T2's baseline drift "
+        "from the `T0_R0` card 017 also scores, which is the one thing that would "
+        "make the T0/T2 contrast unreadable. Before the predictions were used, the "
+        "`T0_R0` run record was validated -- target, representation, objective, "
+        "feature count, seed and split hash all had to match -- so the residual is "
+        "never formed against the wrong baseline.",
+        "",
+        "Baseline artifact consumed, so the residual is reproducible from the "
+        "record alone:",
+        "",
+        f"- Out-of-fold `m_hat_-i` predictions: `{base_path_str}`",
+        f"- `T0_R0` chosen hyperparameters: `{base_rec['chosen_hyperparameters']}`, "
+        f"{base_rec['num_boost_round']} boosting rounds, objective "
+        f"**{base_rec['objective']}**, seed **{base_rec['seed']}**.",
+        f"- Full-data `m_hat` booster (**not** used here; card 017's): "
+        f"`{base_rec['model_path']}`.",
+        "",
+        "## Two baselines, two places -- and why development uses the out-of-fold one",
+        "",
+        "The **development** reconstruction here adds the **out-of-fold** "
+        "`m_hat_-i`, the same vector that formed the training residual. Using the "
+        "full-data refit `m_hat(S)` to reconstruct development rows would add a "
+        "baseline fitted **on those same rows**, injecting a leak that flatters T2 "
+        "against T0 and T1 for no reason other than leakage and makes T2's "
+        "development numbers incomparable with theirs. The full-data `m_hat(S)` "
+        "(`T0_R0.xgb`) is **card 017's**, where it reconstructs holdout rows it "
+        "never trained on and is honest by construction. The two must not be "
+        "swapped, and they are not.",
+        "",
+        "## R0 is a cross-fitting diagnostic, not a result",
+        "",
+        "Under T2 the R0 features are the same `S` the baseline was fitted on, so "
+        "`E[B|S] = E[Y|S] - m_hat(S)` is approximately zero by construction and "
+        "`T2_R0` should predict close to nothing. That makes it the most "
+        "informative check in the card, not a model: if its predictions carry "
+        "substantial systematic structure, the cross-fitting leaked or the baseline "
+        "underfit. R0 contains no deck information at all, so a small non-zero value "
+        "is **not** deck signal -- it is read only as a check on the machinery.",
+        "",
+        *bump_lines,
+        "",
+        "A mean near zero with a small spread is the expected, healthy reading: the "
+        "out-of-fold baseline left no exploitable systematic structure in `S`. A "
+        "large systematic departure from zero would indicate leakage or baseline "
+        "misfit and would be a finding about the machinery, not recovered signal.",
+        "",
+        "## A bounded, recorded leak: hyperparameter selection is not fold-honest",
+        "",
+        "The out-of-fold **training** is honest: each fold's baseline comes from a "
+        "booster trained on the other four folds. But the grid point `chosen` was "
+        "selected by cross-validation over **all** development folds, so fold k's "
+        "baseline is produced by a booster trained without fold k under "
+        "hyperparameters informed by it. Section T2's critical requirement governs "
+        "*training*, which is fold-honest; this residual leak is a choice among the "
+        "grid's three points, is bounded, and is **recorded here rather than "
+        "hidden**. Strict nested cross-validation would remove it at a cost this "
+        "first benchmark does not need to pay; the decision to accept and document "
+        "it is deliberate.",
+        "",
+        "## Fit order and elapsed time",
+        "",
+        "R0 was fitted **first and completely**, reconstructed, and its run record "
+        "written to disk, **before any R1 assembly or fitting began** -- the same "
+        "de-risking order T0 and T1 used, so the real path is proven where failure "
+        "costs nothing.",
+        "",
+        _t2_fit_line("R0", MODEL_IDS[TARGET_T2][R0], r0),
+    ]
+    if result.r1 is not None:
+        lines.append(_t2_fit_line("R1", MODEL_IDS[TARGET_T2][R1], result.r1))
+    else:
+        lines.append("- **R1 fit**: not attempted (see the timing probe below).")
+
+    lines += [
+        "",
+        "## Timing probe and the budget decision",
+        "",
+        "Before the full R1 grid search, a probe fits a **single grid point on a "
+        "single fold** at the capped iteration count (no early stopping), under the "
+        "regression objective T2 uses.",
+        "",
+        f"- Probe (one grid point, one fold): **{probe.probe_seconds:.1f} s**",
+        f"- Single-booster fits in the full search: **{probe.n_fits}** "
+        f"({len(estimator.HYPERPARAMETER_GRID)} grid x 5 folds + 5 out-of-fold + "
+        "1 refit)",
+        f"- Projected full-search total: **{probe.projected_seconds:.1f} s** "
+        f"({probe.projected_seconds / 60:.1f} min)",
+        f"- Executor budget for R1: **{result.budget_seconds:.0f} s** "
+        f"({result.budget_seconds / 60:.1f} min)",
+        "",
+    ]
+    if result.r1_attempted:
+        lines.append(
+            "The projection was within budget, so the full R1 grid search was run. "
+            "The probe is only a rough guide, not a precise predictor; the one "
+            "decision it exists to make is whether the search fits inside the "
+            "budget."
+        )
+    else:
+        assert result.r1_skip_reason is not None
+        lines.append(result.r1_skip_reason)
+
+    lines += [
+        "",
+        "## Reconstruction and clipping (a measurement, not a nuisance)",
+        "",
+        "`p_hat = m_hat_-i + B_hat` has no arithmetic guarantee of landing inside "
+        "[0, 1]. The reconstruction is clipped into the unit interval using the "
+        "panel's declared clip bound (`PROBABILITY_CLIP` = "
+        f"{evaluation.PROBABILITY_CLIP:.0e}) **only for scoring** -- the target "
+        "itself is never clipped. How often the additive decomposition escapes the "
+        "unit interval, and by how much, is direct evidence about whether the "
+        "decomposition in section 2 holds on this data; a large clipped fraction "
+        "would be a finding about the formulation, not a detail to suppress.",
+        "",
+        _t2_clip_line("R0", r0),
+    ]
+    if result.r1 is not None:
+        lines.append(_t2_clip_line("R1", result.r1))
+
+    lines += [
+        "",
+        "## Development metrics (diagnostic only -- no comparison concluded)",
+        "",
+        "The card-010 panel is applied **twice** per model. The **continuous** view "
+        "scores the bump prediction directly against the fitted residual "
+        "`won - m_hat_-i`; the **Bernoulli** view scores the reconstructed, clipped "
+        "probability against the raw `won` outcome, through the same panel T0 and "
+        "T1 used. Both are out-of-fold development predictions.",
+        "",
+        "### Reconstructed-probability view (`outcome_type = \"bernoulli\"`)",
+        "",
+        *recon_rows,
+        "",
+        "### Bump view (`outcome_type = \"continuous\"`)",
+        "",
+        *cont_rows,
+        "",
+        "**Only the reconstructed-probability metrics are comparable across T0, T1 "
+        "and T2.** Each target fits a different quantity -- a probability (T0), a "
+        "residual against a fixed proxy (T1), a residual against a learned baseline "
+        "(T2) -- so their native metrics answer different questions and an "
+        "R-squared on a bump is not commensurable with a log loss on a probability. "
+        "The one thing all three formulations produce for the same observation is a "
+        "win probability, so the reconstructed probability is the only common "
+        "ground, and it is what card 017 will compare. The continuous view is "
+        "diagnostic for the T2 fit alone.",
+        "",
+        "**These are development metrics, and they are diagnostic only.** They are "
+        "computed on the same development rows whose folds selected each model's "
+        "hyperparameters, so they are contaminated and cannot stand in for an "
+        "honest generalization estimate. They confirm the pipeline produces sane "
+        "numbers; they settle nothing.",
+        "",
+        "**No comparison between R0 and R1, and none among T0, T1 and T2, is "
+        "concluded from these numbers, in any direction.** H2 (section 14) predicts "
+        "an ordering T2 > T1 > T0 in recovered deck signal; **producing T2's row is "
+        "not testing that ordering, and this card does not test it.** Whether a "
+        "representation or a target formulation adds information is not a question "
+        "development metrics can answer. The benchmark's design puts that answer on "
+        "the untouched external holdout, opened exactly once at card 017, scored "
+        "through this same panel with the paired cluster bootstrap carrying the "
+        "uncertainty on the difference. Section 13 forbids reading any null "
+        "incremental result as an absence of a deck effect. So: look, record, and "
+        "draw nothing.",
+        "",
+        "## Provenance",
+        "",
+        f"- Split SHA256 (verified before each fit): `{r0_rec['split_sha256']}`",
+        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}** "
+        f"(compiled library; Python package "
+        f"**{r0_rec.get('xgboost_python_version', 'not recorded')}**), "
+        "single-threaded (byte-identical determinism).",
+        f"- Objective: **{r0_rec['objective']}** (regression), for the continuous "
+        "residual target -- distinct from T0's binary objective.",
+        f"- R0 chosen hyperparameters: `{r0_rec['chosen_hyperparameters']}`, "
+        f"{r0_rec['num_boost_round']} boosting rounds.",
+    ]
+    if result.r1 is not None:
+        lines.append(
+            f"- R1 chosen hyperparameters: "
+            f"`{result.r1.record['chosen_hyperparameters']}`, "
+            f"{result.r1.record['num_boost_round']} boosting rounds."
+        )
+    lines += [
+        "- Run records are tracked in git (`data/runs/*_run.json`); the prediction "
+        "parquets, reconstruction parquets and fitted boosters are gitignored and "
+        "regenerable from the frozen split, the representation tables and the "
+        "reused `T0_R0` baseline.",
+        "- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is "
+        "byte-identical (0 bytes) before and after this card.",
+        "",
+    ]
+    return lines
+
+
+def write_t2_report(result: T2BuildResult, report_path: Path = REPORT_T2_MD) -> None:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(_t2_report_lines(result)), encoding="utf-8", newline="\n")
+
+
+# --------------------------------------------------------------------------
+# Verify -- check the artifacts every fit produced. No fitting, fast.
+# --------------------------------------------------------------------------
+
+
+def _holdout_obs_ids(split_parquet: Path) -> set[str]:
+    tbl = pq.read_table(split_parquet, columns=[OBS_ID_COL, PARTITION_COL])
+    ids = tbl.column(OBS_ID_COL).to_pylist()
+    parts = tbl.column(PARTITION_COL).to_pylist()
+    return {o for o, p in zip(ids, parts, strict=True) if p == HOLDOUT}
+
+
+def _expected_feature_counts(sources: Sources) -> dict[str, int]:
+    """Expected feature counts, derived from the identity table's own schema.
+
+    R0 is ``base_p`` alone (1); R1 is ``base_p`` plus every card column. Reading
+    the parquet schema is a metadata-only operation, so ``verify`` stays cheap and
+    never reassembles a matrix. On the frozen dataset this yields
+    ``{R0: 1, R1: 194}`` (matching :data:`N_FEATURES`); on a synthetic fixture it
+    tracks that fixture's card count instead of a hardcoded 194.
+    """
+    schema = pq.read_schema(sources.identity_parquet)
+    n_cards = len([name for name in schema.names if name != OBS_ID_COL])
+    return {R0: 1, R1: 1 + n_cards}
+
+
+def _verify_model(
+    target: str,
+    representation: str,
+    runs_dir: Path,
+    holdout_ids: set[str],
+    expected_split_sha: str,
+    expected_features: int,
+    problems: list[str],
+) -> bool:
+    """Verify one model's run record and artifacts. Returns whether it exists.
+
+    Checks the run record's labels (including the objective the target must have
+    been fitted under), the feature count, the split hash, the seed and the chosen
+    hyperparameters; then the predictions parquet (present, non-empty, disjoint
+    from the holdout). For T1 and T2 it additionally checks the reconstruction
+    artifact: present, disjoint from the holdout, and every reconstructed
+    probability inside the panel's clip bound.
+    """
+    model_id = MODEL_IDS[target][representation]
+    label = f"{target}/{representation}"
+    record_path = runs_dir / f"{model_id}_run.json"
+    if not record_path.exists():
+        return False
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    if record.get("target") != target:
+        problems.append(f"{label}: target is {record.get('target')!r}, not {target!r}")
+    if record.get("representation") != representation:
+        problems.append(f"{label}: representation label is {record.get('representation')!r}")
+    if record.get("objective") != TARGET_OBJECTIVE[target]:
+        problems.append(
+            f"{label}: objective is {record.get('objective')!r}, expected "
+            f"{TARGET_OBJECTIVE[target]!r}"
+        )
+    if record.get("n_features") != expected_features:
+        problems.append(
+            f"{label}: n_features is {record.get('n_features')!r}, "
+            f"expected {expected_features}"
+        )
+    if record.get("split_sha256") != expected_split_sha:
+        problems.append(f"{label}: split_sha256 does not match the manifest")
+    if not isinstance(record.get("seed"), int):
+        problems.append(f"{label}: seed is not recorded as an integer")
+    if not isinstance(record.get("chosen_hyperparameters"), dict):
+        problems.append(f"{label}: chosen_hyperparameters missing")
+
+    predictions_path = runs_dir / f"{model_id}_predictions.parquet"
+    if not predictions_path.exists():
+        problems.append(f"{label}: predictions parquet {predictions_path.name} missing")
+        return True
+    preds = pq.read_table(predictions_path)
+    emitted = set(preds.column(OBS_ID_COL).to_pylist())
+    if not emitted:
+        problems.append(f"{label}: predictions parquet is empty")
+    if not emitted.isdisjoint(holdout_ids):
+        problems.append(f"{label}: emitted obs_ids intersect the holdout partition")
+
+    if target in RECONSTRUCTION_TARGETS:
+        _verify_reconstruction(label, model_id, runs_dir, holdout_ids, problems)
+    return True
+
+
+def _verify_reconstruction(
+    label: str,
+    model_id: str,
+    runs_dir: Path,
+    holdout_ids: set[str],
+    problems: list[str],
+) -> None:
+    """Check a T1/T2 reconstruction artifact: present, dev-only, clipped in range."""
+    recon_path = runs_dir / f"{model_id}_reconstruction.parquet"
+    if not recon_path.exists():
+        problems.append(f"{label}: reconstruction parquet {recon_path.name} missing")
+        return
+    recon = pq.read_table(recon_path)
+    recon_ids = set(recon.column(OBS_ID_COL).to_pylist())
+    if not recon_ids:
+        problems.append(f"{label}: reconstruction parquet is empty")
+    if not recon_ids.isdisjoint(holdout_ids):
+        problems.append(f"{label}: reconstruction obs_ids intersect the holdout partition")
+    if RECON_PROB_COL not in recon.column_names:
+        problems.append(f"{label}: reconstruction parquet lacks a {RECON_PROB_COL!r} column")
+        return
+    prob = np.asarray(
+        recon.column(RECON_PROB_COL).to_numpy(zero_copy_only=False), dtype=np.float64
+    )
+    clip_low = evaluation.PROBABILITY_CLIP
+    if prob.size and (float(np.min(prob)) < clip_low or float(np.max(prob)) > 1.0 - clip_low):
+        problems.append(
+            f"{label}: reconstructed probability escapes the clip bound "
+            f"[{clip_low:.0e}, 1 - {clip_low:.0e}]"
+        )
+
+
+def verify(
+    sources: Sources = DEFAULT_SOURCES,
+    runs_dir: Path = RUNS_DIR,
+    report_path: Path = REPORT_MD,
+    ledger_path: Path = LEDGER_PATH,
+    report_t1_path: Path = REPORT_T1_MD,
+    report_t2_path: Path = REPORT_T2_MD,
+) -> int:
+    """Check the artifacts every fit produced, without fitting anything.
+
+    Fast enough for the 300-second check budget: it reads the run records, the
+    prediction parquets and (for T1/T2) the reconstruction parquets, and asserts
+    feature counts, the split hash, the recorded objective, the disjoint holdout,
+    the reports, and the untouched ledger. It walks **all three** target
+    formulations -- T0, T1 and T2 -- so it inspects everything each card produced,
+    not only T0. Each target's R0 is mandatory; R1 is checked only if its run
+    record exists (a build may legitimately have stopped after R0).
+    """
+    problems: list[str] = []
+    expected_split_sha = estimator.verify_split_hash(sources.split_parquet, sources.split_manifest)
+    holdout_ids = _holdout_obs_ids(sources.split_parquet)
+    expected = _expected_feature_counts(sources)
+
+    r1_present: dict[str, bool] = {}
+    for target in TARGETS:
+        if not _verify_model(
+            target, R0, runs_dir, holdout_ids, expected_split_sha, expected[R0], problems
+        ):
+            problems.append(
+                f"{target}/R0 run record "
+                f"{runs_dir / (MODEL_IDS[target][R0] + '_run.json')} is missing; "
+                f"{target}/R0 must always be fitted."
+            )
+        r1_present[target] = _verify_model(
+            target, R1, runs_dir, holdout_ids, expected_split_sha, expected[R1], problems
+        )
+
+    if not report_path.exists():
+        problems.append(f"T0 report {report_path} is missing")
+    if not report_t1_path.exists():
+        problems.append(f"T1 report {report_t1_path} is missing")
+    if not report_t2_path.exists():
+        problems.append(f"T2 report {report_t2_path} is missing")
+
+    if ledger_path.exists() and ledger_path.stat().st_size != 0:
+        problems.append(
+            f"holdout ledger {ledger_path} is not empty; this card must not open "
+            "the holdout."
+        )
+
+    if problems:
+        print("targets --verify FAILED:")
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1
+
+    states = ", ".join(
+        f"{target} R1 {'fitted' if r1_present[target] else 'not attempted'}"
+        for target in TARGETS
+    )
+    print(
+        "targets --verify OK: T0, T1 and T2 R0 run records and predictions "
+        "present, feature counts and recorded objectives correct, split hash "
+        f"verified, holdout disjoint, T1/T2 reconstruction in range ({states}); "
+        "reports present; holdout ledger untouched."
+    )
+    return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--fit",
+        action="store_true",
+        help="fit T0 R0, run the R1 timing probe, fit R1 if within budget, write the T0 report.",
+    )
+    group.add_argument(
+        "--fit-t1",
+        dest="fit_t1",
+        action="store_true",
+        help="fit T1 R0, probe, fit R1 if within budget, reconstruct, write the T1 report.",
+    )
+    group.add_argument(
+        "--fit-t2",
+        dest="fit_t2",
+        action="store_true",
+        help=(
+            "fit T2 R0, probe, fit R1 if within budget, reconstruct against the "
+            "cross-fitted T0_R0 baseline, write the T2 report."
+        ),
+    )
+    group.add_argument(
+        "--verify",
+        action="store_true",
+        help="check the artifacts every fit produced (no fitting).",
+    )
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    if args.fit:
+        result = build()
+        r1 = (
+            f"R1 fitted in {result.r1_elapsed_seconds:.1f}s"
+            if result.r1_attempted
+            else "R1 not attempted (over budget)"
+        )
+        print(
+            f"targets --fit OK: T0 R0 fitted in {result.r0_elapsed_seconds:.1f}s; "
+            f"probe {result.probe.probe_seconds:.1f}s -> projected "
+            f"{result.probe.projected_seconds:.1f}s; {r1}. "
+            f"Report at {REPORT_MD.relative_to(REPO_ROOT).as_posix()}."
+        )
+        return 0
+    if args.fit_t1:
+        result_t1 = build_t1()
+        r1t = (
+            f"R1 fitted in {result_t1.r1.elapsed_seconds:.1f}s"
+            if result_t1.r1_attempted and result_t1.r1 is not None
+            else "R1 not attempted (over budget)"
+        )
+        print(
+            f"targets --fit-t1 OK: T1 R0 fitted in "
+            f"{result_t1.r0.elapsed_seconds:.1f}s "
+            f"(clipped {result_t1.r0.recon_stats.n_clipped}/"
+            f"{result_t1.r0.recon_stats.n_rows}); probe "
+            f"{result_t1.probe.probe_seconds:.1f}s -> projected "
+            f"{result_t1.probe.projected_seconds:.1f}s; {r1t}. "
+            f"Report at {REPORT_T1_MD.relative_to(REPO_ROOT).as_posix()}."
+        )
+        return 0
+    if args.fit_t2:
+        result_t2 = build_t2()
+        r1t2 = (
+            f"R1 fitted in {result_t2.r1.elapsed_seconds:.1f}s"
+            if result_t2.r1_attempted and result_t2.r1 is not None
+            else "R1 not attempted (over budget)"
+        )
+        print(
+            f"targets --fit-t2 OK: T2 R0 fitted in "
+            f"{result_t2.r0.elapsed_seconds:.1f}s "
+            f"(B_hat mean {result_t2.r0.bump_mean:+.6f}, std "
+            f"{result_t2.r0.bump_std:.6f}; clipped "
+            f"{result_t2.r0.recon_stats.n_clipped}/"
+            f"{result_t2.r0.recon_stats.n_rows}); baseline "
+            f"{result_t2.baseline.predictions_path.name}; probe "
+            f"{result_t2.probe.probe_seconds:.1f}s -> projected "
+            f"{result_t2.probe.projected_seconds:.1f}s; {r1t2}. "
+            f"Report at {REPORT_T2_MD.relative_to(REPO_ROOT).as_posix()}."
+        )
+        return 0
+    if args.verify:
+        return verify()
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+```
+
+### tests/test_deckbench_targets.py
+
+```
+"""Tests for T0 (011), T1 (015) and T2 (016) R0/R1 fitting (:mod:`deckbench.targets`).
+
+The real fits run on 194,215 development rows and take minutes, far beyond the
+validation budget, so these tests never fit the real dataset. Two fixtures cover
+the two things that need checking:
+
+* a **synthetic** wiring (a small split + skill + identity + model table in a
+  temp dir) drives assembly, the fit-through-the-estimator path, the timing
+  probe, the panel, the budget decision, determinism, the T1 and T2 residual
+  targets and their reconstruction, and ``verify`` end to end, fast; and
+* a **real-artifact** group, run only when the frozen phase-1 parquets are on
+  disk, pins the two facts about the real data the card asserts -- R0 has exactly
+  one feature ``base_p`` and R1 has exactly 194 -- and checks the tracked run
+  records the actual fits produced for all three targets.
+
+The load-bearing guards are that every fit goes through the estimator (no learner
+is built here), that T1 and T2 fit the residual under the regression objective,
+that T2's baseline is the out-of-fold vector and not the full-data refit, that no
+assembled or emitted row is a holdout row, and that the holdout ledger is
+byte-identical across a build.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
+import pytest
+
+from deckbench import estimator, evaluation, targets
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# The frozen phase-1 artifacts, present here but gitignored; the real-data group
+# skips when a fresh checkout has not rebuilt them.
+_REAL = targets.Sources()
+_REAL_PRESENT = (
+    _REAL.split_parquet.exists()
+    and _REAL.skill_parquet.exists()
+    and _REAL.identity_parquet.exists()
+    and _REAL.model_table.exists()
+)
+requires_real = pytest.mark.skipif(
+    not _REAL_PRESENT, reason="frozen phase-1 parquets not on disk"
+)
+
+
+# --------------------------------------------------------------------------
+# Synthetic fixture: a small split and three aligned tables in a temp dir.
+# --------------------------------------------------------------------------
+
+_N_DRAFTS = 40
+_GAMES = 3
+_HOLDOUT_DRAFTS = 4
+_N_CARDS = 5
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class _Wired:
+    """A synthetic split plus skill/identity/model tables that all share obs_ids."""
+
+    def __init__(self, tmp_path: Path) -> None:
+        processed = tmp_path / "data" / "processed"
+        processed.mkdir(parents=True)
+        splits = tmp_path / "data" / "splits"
+        splits.mkdir(parents=True)
+
+        obs_ids: list[str] = []
+        draft_ids: list[str] = []
+        partitions: list[str] = []
+        folds: list[int] = []
+        for d in range(_N_DRAFTS):
+            draft = f"draft{d:03d}"
+            is_holdout = d >= _N_DRAFTS - _HOLDOUT_DRAFTS
+            for g in range(_GAMES):
+                obs_ids.append(f"obs{d:03d}{g}")
+                draft_ids.append(draft)
+                if is_holdout:
+                    partitions.append(targets.HOLDOUT)
+                    folds.append(-1)
+                else:
+                    partitions.append(estimator.DEV)
+                    folds.append(d % 5)
+        self.all_obs_ids = obs_ids
+        self.holdout_obs_id = f"obs{_N_DRAFTS - 1:03d}0"
+
+        split = pa.table(
+            {
+                "obs_id": pa.array(obs_ids, type=pa.string()),
+                "draft_id": pa.array(draft_ids, type=pa.string()),
+                "partition": pa.array(partitions, type=pa.string()),
+                "fold": pa.array(folds, type=pa.int32()),
+            }
+        )
+        self.split_parquet = processed / "model_split.parquet"
+        pq.write_table(split, self.split_parquet, compression="snappy")
+        self.split_manifest = splits / "split_manifest.json"
+        self.split_manifest.write_text(
+            json.dumps({"split_sha256": _sha256(self.split_parquet)}) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        rng = np.random.default_rng(3)
+        n = len(obs_ids)
+        base_p = rng.uniform(0.4, 0.65, size=n)
+        self.skill_parquet = processed / "skill_features.parquet"
+        pq.write_table(
+            pa.table(
+                {
+                    "obs_id": pa.array(obs_ids, type=pa.string()),
+                    "base_p_raw": pa.array(base_p, type=pa.float64()),
+                    "base_p": pa.array(base_p, type=pa.float64()),
+                }
+            ),
+            self.skill_parquet,
+            compression="snappy",
+        )
+
+        # A card-fraction table whose rows sum to 1, one column per synthetic card.
+        cards = rng.dirichlet(np.ones(_N_CARDS), size=n)
+        identity_cols: dict[str, object] = {"obs_id": pa.array(obs_ids, type=pa.string())}
+        for j in range(_N_CARDS):
+            identity_cols[f"card_c{j}"] = pa.array(cards[:, j], type=pa.float64())
+        self.identity_parquet = processed / "deck_identity.parquet"
+        pq.write_table(pa.table(identity_cols), self.identity_parquet, compression="snappy")
+
+        # The model table carries the string outcome the card maps to {0, 1}.
+        signal = base_p - 0.5 + 0.1 * cards[:, 0]
+        won = (signal + rng.normal(scale=0.2, size=n) > 0).tolist()
+        self.model_table = processed / "model_table.parquet"
+        pq.write_table(
+            pa.table(
+                {
+                    "obs_id": pa.array(obs_ids, type=pa.string()),
+                    "won": pa.array([str(bool(w)) for w in won], type=pa.string()),
+                    "deck_size": pa.array([40] * n, type=pa.int32()),
+                }
+            ),
+            self.model_table,
+            compression="snappy",
+        )
+
+        self.sources = targets.Sources(
+            split_parquet=self.split_parquet,
+            split_manifest=self.split_manifest,
+            skill_parquet=self.skill_parquet,
+            identity_parquet=self.identity_parquet,
+            model_table=self.model_table,
+        )
+        self.runs_dir = tmp_path / "runs"
+        self.report_path = tmp_path / "report.md"
+        self.report_t1_path = tmp_path / "report_t1.md"
+        self.report_t2_path = tmp_path / "report_t2.md"
+        self.ledger_path = tmp_path / "cycle" / "holdout_ledger.jsonl"
+
+    @property
+    def dev_obs_ids(self) -> set[str]:
+        table = pq.read_table(self.split_parquet)
+        return {
+            o
+            for o, p in zip(
+                table.column("obs_id").to_pylist(),
+                table.column("partition").to_pylist(),
+                strict=True,
+            )
+            if p == estimator.DEV
+        }
+
+    @property
+    def holdout_ids(self) -> set[str]:
+        table = pq.read_table(self.split_parquet)
+        return {
+            o
+            for o, p in zip(
+                table.column("obs_id").to_pylist(),
+                table.column("partition").to_pylist(),
+                strict=True,
+            )
+            if p == targets.HOLDOUT
+        }
+
+
+@pytest.fixture
+def wired(tmp_path: Path) -> _Wired:
+    return _Wired(tmp_path)
+
+
+# --------------------------------------------------------------------------
+# Assembly: shape, order, dev-only rows, outcome mapping, totality.
+# --------------------------------------------------------------------------
+
+
+def test_r0_has_exactly_one_base_p_feature(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    assert a0.features.shape[1] == 1
+    assert a0.feature_names == [targets.BASE_P_COL]
+
+
+def test_r1_is_base_p_plus_every_card_fraction(wired: _Wired) -> None:
+    a1 = targets.assemble(targets.R1, wired.sources)
+    assert a1.features.shape[1] == 1 + _N_CARDS
+    assert a1.feature_names[0] == targets.BASE_P_COL
+    # base_p is column 0; the remaining columns are exactly the identity columns.
+    assert a1.feature_names[1:] == [f"card_c{j}" for j in range(_N_CARDS)]
+
+
+def test_assembly_is_dev_rows_only_in_split_order(wired: _Wired) -> None:
+    a1 = targets.assemble(targets.R1, wired.sources)
+    assert set(a1.obs_ids) == wired.dev_obs_ids
+    assert set(a1.obs_ids).isdisjoint(wired.holdout_ids)
+    # Row order equals load_dev's row order.
+    dev = pq.read_table(wired.split_parquet)
+    expected = [
+        o
+        for o, p in zip(
+            dev.column("obs_id").to_pylist(),
+            dev.column("partition").to_pylist(),
+            strict=True,
+        )
+        if p == estimator.DEV
+    ]
+    assert a1.obs_ids == expected
+
+
+def test_outcome_is_mapped_to_zero_one(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    assert set(np.unique(a0.outcome)).issubset({0.0, 1.0})
+    assert a0.outcome.shape == (len(a0.obs_ids),)
+
+
+def test_groups_are_the_draft_ids(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    split = pq.read_table(wired.split_parquet)
+    truth = dict(
+        zip(
+            split.column("obs_id").to_pylist(),
+            split.column("draft_id").to_pylist(),
+            strict=True,
+        )
+    )
+    for obs_id, group in zip(a0.obs_ids, a0.groups, strict=True):
+        assert group == truth[obs_id]
+
+
+def test_unknown_representation_is_rejected(wired: _Wired) -> None:
+    with pytest.raises(targets.RepresentationUnknown):
+        targets.assemble("R2", wired.sources)
+
+
+def test_unexpected_outcome_value_stops_the_run(wired: _Wired, tmp_path: Path) -> None:
+    # Corrupt one outcome cell to a value outside the {True, False} mapping.
+    tbl = pq.read_table(wired.model_table)
+    won = tbl.column("won").to_pylist()
+    won[0] = "Maybe"
+    bad = tbl.set_column(tbl.schema.get_field_index("won"), "won", pa.array(won, pa.string()))
+    pq.write_table(bad, wired.model_table, compression="snappy")
+    with pytest.raises(targets.UnexpectedOutcomeValue):
+        targets.assemble(targets.R0, wired.sources)
+
+
+def test_non_total_join_stops_the_run(wired: _Wired) -> None:
+    # Drop one development row from the identity table: the join is no longer total.
+    tbl = pq.read_table(wired.identity_parquet)
+    dev_id = sorted(wired.dev_obs_ids)[0]
+    keep = [o != dev_id for o in tbl.column("obs_id").to_pylist()]
+    pq.write_table(tbl.filter(pa.array(keep)), wired.identity_parquet, compression="snappy")
+    with pytest.raises(targets.JoinNotTotal):
+        targets.assemble(targets.R1, wired.sources)
+
+
+# --------------------------------------------------------------------------
+# The fit goes through the estimator, and no learner is built here.
+# --------------------------------------------------------------------------
+
+
+def test_module_builds_no_learner_grid_or_folds() -> None:
+    source = Path(targets.__file__).read_text(encoding="utf-8")
+    # No hyperparameter grid, fold construction, or split reader defined locally:
+    # every one of those comes from the estimator.
+    assert "HYPERPARAMETER_GRID: " not in source  # only referenced, never redefined
+    assert "def _fold_index_pairs" not in source
+    assert "def fit_and_predict" not in source
+    # The holdout's sealed reader is never named.
+    assert "load_holdout" not in source
+
+
+def test_fit_goes_through_the_estimator(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        calls.append(kw)
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    assert len(calls) == 1
+    assert calls[0]["objective"] == estimator.BINARY
+    assert calls[0]["target"] == targets.TARGET
+    assert calls[0]["representation"] == targets.R0
+    assert result.run_record["n_features"] == 1
+
+
+def test_fit_emits_dev_only_predictions_disjoint_from_holdout(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    emitted = set(result.obs_ids)
+    assert emitted == wired.dev_obs_ids
+    assert emitted.isdisjoint(wired.holdout_ids)
+    preds = pq.read_table(result.predictions_path)
+    assert set(preds.column("obs_id").to_pylist()).isdisjoint(wired.holdout_ids)
+
+
+def test_refitting_r0_is_byte_identical(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    first = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    before = first.predictions_path.read_bytes()
+    second = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    assert np.array_equal(first.predictions, second.predictions)
+    assert second.predictions_path.read_bytes() == before
+
+
+# --------------------------------------------------------------------------
+# The timing probe and the budget decision.
+# --------------------------------------------------------------------------
+
+
+def test_probe_projects_the_full_search(wired: _Wired) -> None:
+    a1 = targets.assemble(targets.R1, wired.sources)
+    probe = targets.timing_probe(a1, wired.sources.split_parquet)
+    n_grid = len(estimator.HYPERPARAMETER_GRID)
+    assert probe.n_fits == n_grid * 5 + 5 + 1
+    assert probe.probe_seconds > 0.0
+    assert probe.projected_seconds == pytest.approx(probe.probe_seconds * probe.n_fits)
+
+
+def test_over_budget_stops_after_r0(wired: _Wired) -> None:
+    # A zero budget forces the R1 skip branch: R0 is fitted, R1 is not attempted.
+    result = targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=0.0,
+        report_path=wired.report_path,
+    )
+    assert result.r1_attempted is False
+    assert result.r1_record is None
+    assert result.r1_skip_reason is not None
+    assert (wired.runs_dir / "T0_R0_run.json").exists()
+    assert not (wired.runs_dir / "T0_R1_run.json").exists()
+    # The report records the projection and the reason R1 was not attempted.
+    text = wired.report_path.read_text(encoding="utf-8")
+    assert "not attempted" in text
+    assert f"{result.probe.projected_seconds:.0f}s" in text
+
+
+# --------------------------------------------------------------------------
+# The panel is applied and produces sane Bernoulli probabilities.
+# --------------------------------------------------------------------------
+
+
+def test_development_metrics_are_the_bernoulli_panel(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets.fit_representation(a0, wired.sources, wired.runs_dir)
+    metrics = targets.development_metrics(a0.outcome, result.predictions)
+    # The Bernoulli panel: no bare r2, a brier_skill_score instead.
+    assert "r2" not in metrics
+    assert "brier_skill_score" in metrics
+    for key in ("log_loss", "brier", "rmse", "mae", "auc", "cal_intercept", "cal_slope"):
+        assert key in metrics
+    # xgboost's logistic objective emits probabilities in the unit interval.
+    assert 0.0 <= result.predictions.min() and result.predictions.max() <= 1.0
+
+
+# --------------------------------------------------------------------------
+# build() end to end on the synthetic wiring, and the ledger stays untouched.
+# --------------------------------------------------------------------------
+
+
+def test_build_fits_r0_before_r1(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    order: list[str] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        order.append(str(kw["representation"]))
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_path,
+    )
+    assert order == [targets.R0, targets.R1]
+
+
+def test_build_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")  # the frozen state: zero reads
+    before = wired.ledger_path.read_bytes()
+    targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_path,
+    )
+    assert wired.ledger_path.read_bytes() == before
+
+
+# --------------------------------------------------------------------------
+# T1: the residual target, the regression objective, and the reconstruction.
+# --------------------------------------------------------------------------
+
+
+def test_bump_target_has_both_signs_and_is_not_the_unit_interval(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    bump = targets.bump_target(a0)
+    # A genuine residual, not the raw outcome relabelled: both signs are present
+    # and it escapes [0, 1] on the low side (a loss below the proxy is negative).
+    assert bool((bump < 0.0).any())
+    assert bool((bump > 0.0).any())
+    assert float(bump.min()) < 0.0
+    # It is exactly won - base_p.
+    assert np.allclose(bump, a0.outcome - a0.base_p)
+
+
+def test_t1_fit_uses_the_regression_objective(
+    wired: _Wired, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[dict[str, object]] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        calls.append(kw)
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    a0 = targets.assemble(targets.R0, wired.sources)
+    run = targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1)
+    assert len(calls) == 1
+    assert calls[0]["objective"] == estimator.REGRESSION
+    assert calls[0]["target"] == targets.TARGET_T1
+    assert run.run_record["model_id"] == "T1_R0"
+    assert run.run_record["objective"] == "regression"
+    assert run.run_record["n_features"] == 1
+    # The regression prediction is a bump, not a probability: it takes both signs.
+    assert bool((run.predictions < 0.0).any())
+
+
+def test_build_t1_records_feature_counts_and_regression(wired: _Wired) -> None:
+    result = targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert result.r0.record["n_features"] == 1
+    assert result.r0.record["objective"] == "regression"
+    assert result.r0.record["target"] == "T1"
+    assert result.r1 is not None
+    assert result.r1.record["n_features"] == 1 + _N_CARDS
+    assert result.r1.record["objective"] == "regression"
+
+
+def test_t1_reconstruction_artifact_carries_bump_and_probability(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    recon_path = wired.runs_dir / "T1_R0_reconstruction.parquet"
+    assert recon_path.exists()
+    tbl = pq.read_table(recon_path)
+    for col in (
+        "obs_id",
+        targets.BUMP_COL,
+        targets.BASE_P_COL,
+        targets.RECON_RAW_COL,
+        targets.RECON_PROB_COL,
+    ):
+        assert col in tbl.column_names
+    ids = set(tbl.column("obs_id").to_pylist())
+    assert ids == wired.dev_obs_ids
+    assert ids.isdisjoint(wired.holdout_ids)
+    # The reconstruction is base_p + bump, clipped into the panel's unit interval.
+    base_p = np.asarray(tbl.column(targets.BASE_P_COL).to_numpy(zero_copy_only=False))
+    bump = np.asarray(tbl.column(targets.BUMP_COL).to_numpy(zero_copy_only=False))
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    prob = np.asarray(tbl.column(targets.RECON_PROB_COL).to_numpy(zero_copy_only=False))
+    assert np.allclose(raw, base_p + bump)
+    clip = evaluation.PROBABILITY_CLIP
+    assert float(prob.min()) >= clip
+    assert float(prob.max()) <= 1.0 - clip
+    assert np.allclose(prob, np.clip(raw, clip, 1.0 - clip))
+
+
+def test_t1_clip_counts_match_the_raw_reconstruction(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    tbl = pq.read_table(wired.runs_dir / "T1_R0_reconstruction.parquet")
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    clip = evaluation.PROBABILITY_CLIP
+    stats = result.recon_stats
+    assert stats.n_clipped_low == int(np.count_nonzero(raw < clip))
+    assert stats.n_clipped_high == int(np.count_nonzero(raw > 1.0 - clip))
+    assert stats.n_clipped == stats.n_clipped_low + stats.n_clipped_high
+    assert stats.n_rows == len(a0.obs_ids)
+
+
+def test_t1_scores_both_the_continuous_and_the_bernoulli_views(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    # Continuous view (on the bump): weighted r2, no probabilistic metrics.
+    assert "r2" in result.continuous_metrics
+    assert "log_loss" not in result.continuous_metrics
+    assert "auc" not in result.continuous_metrics
+    # Bernoulli view (on the reconstructed probability): no bare r2, a BSS instead.
+    assert "r2" not in result.reconstructed_metrics
+    assert "brier_skill_score" in result.reconstructed_metrics
+    for key in ("log_loss", "brier", "rmse", "mae", "auc", "cal_intercept", "cal_slope"):
+        assert key in result.reconstructed_metrics
+
+
+def test_refitting_t1_r0_is_byte_identical(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    first = targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1)
+    before = first.predictions_path.read_bytes()
+    second = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1
+    )
+    assert np.array_equal(first.predictions, second.predictions)
+    assert second.predictions_path.read_bytes() == before
+
+
+def test_build_t1_fits_r0_before_r1(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    order: list[str] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        order.append(str(kw["representation"]))
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert order == [targets.R0, targets.R1]
+
+
+def test_t1_over_budget_stops_after_r0(wired: _Wired) -> None:
+    result = targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=0.0,
+        report_path=wired.report_t1_path,
+    )
+    assert result.r1_attempted is False
+    assert result.r1 is None
+    assert result.r1_skip_reason is not None
+    assert (wired.runs_dir / "T1_R0_run.json").exists()
+    assert not (wired.runs_dir / "T1_R1_run.json").exists()
+    text = wired.report_t1_path.read_text(encoding="utf-8")
+    assert "not attempted" in text
+    assert f"{result.probe.projected_seconds:.0f}s" in text
+
+
+def test_build_t1_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")  # the frozen state: zero reads
+    before = wired.ledger_path.read_bytes()
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert wired.ledger_path.read_bytes() == before
+
+
+# --------------------------------------------------------------------------
+# verify(): passes on a good build of all three targets, fails on a tampered one.
+# --------------------------------------------------------------------------
+
+
+def _build_both(wired: _Wired) -> None:
+    """Fit T0, T1 and T2 R0/R1 on the synthetic wiring, ledger frozen empty.
+
+    T0 is fitted first because its ``T0_R0`` out-of-fold predictions are the
+    cross-fitted baseline T2 residualizes against.
+    """
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")
+    targets.build(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_path,
+    )
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+
+
+def _verify(wired: _Wired) -> int:
+    return targets.verify(
+        wired.sources,
+        wired.runs_dir,
+        wired.report_path,
+        wired.ledger_path,
+        wired.report_t1_path,
+        wired.report_t2_path,
+    )
+
+
+def test_verify_passes_on_a_good_build(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
+
+
+def test_verify_fails_when_r0_is_missing(wired: _Wired) -> None:
+    wired.runs_dir.mkdir(parents=True, exist_ok=True)
+    wired.report_path.write_text("stub", encoding="utf-8")
+    wired.report_t1_path.write_text("stub", encoding="utf-8")
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_ledger_is_dirty(wired: _Wired) -> None:
+    _build_both(wired)
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_text('{"card_id": "099"}\n', encoding="utf-8")
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t1_run_record_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0  # the build is good to begin with
+    (wired.runs_dir / "T1_R0_run.json").unlink()
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t1_reconstruction_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
+    # Removing only the reconstruction artifact -- the run record and predictions
+    # still present -- must still fail: the check is not vacuous.
+    (wired.runs_dir / "T1_R1_reconstruction.parquet").unlink()
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t2_run_record_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0  # the build is good to begin with
+    (wired.runs_dir / "T2_R0_run.json").unlink()
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t2_reconstruction_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
+    # Removing only the T2 reconstruction -- run record and predictions still
+    # present -- must still fail: verify covers T2 artifacts, not only T0/T1.
+    (wired.runs_dir / "T2_R1_reconstruction.parquet").unlink()
+    assert _verify(wired) == 1
+
+
+# --------------------------------------------------------------------------
+# T2: the cross-fitted learned baseline, the residual, and the reconstruction.
+# --------------------------------------------------------------------------
+
+
+def _split_sha(wired: _Wired) -> str:
+    return estimator.verify_split_hash(wired.sources.split_parquet, wired.sources.split_manifest)
+
+
+def _fit_baseline(wired: _Wired) -> targets.Assembled:
+    """Fit T0_R0 on the synthetic wiring; its OOF predictions are T2's baseline."""
+    a0 = targets.assemble(targets.R0, wired.sources)
+    targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T0)
+    return a0
+
+
+def test_t2_target_objective_is_regression() -> None:
+    assert targets.TARGET_T2 in targets.TARGETS
+    assert targets.TARGET_OBJECTIVE[targets.TARGET_T2] == estimator.REGRESSION
+
+
+def test_load_baseline_fails_when_t0_r0_is_missing(wired: _Wired) -> None:
+    with pytest.raises(targets.BaselineRecordInvalid):
+        targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+
+
+def test_load_baseline_rejects_a_mismatched_record(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    sha = _split_sha(wired)
+    # A good baseline loads without complaint.
+    targets.load_baseline(wired.runs_dir, sha, estimator.DEFAULT_SEED)
+    # Corrupt the T0_R0 record's objective: it is no longer the binary baseline
+    # T2 requires, so residualizing against it must be refused.
+    rec_path = wired.runs_dir / "T0_R0_run.json"
+    rec = json.loads(rec_path.read_text(encoding="utf-8"))
+    rec["objective"] = "regression"
+    rec_path.write_text(json.dumps(rec), encoding="utf-8", newline="\n")
+    with pytest.raises(targets.BaselineRecordInvalid):
+        targets.load_baseline(wired.runs_dir, sha, estimator.DEFAULT_SEED)
+
+
+def test_load_baseline_rejects_a_split_hash_mismatch(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    with pytest.raises(targets.BaselineRecordInvalid):
+        targets.load_baseline(wired.runs_dir, "not-the-frozen-hash", estimator.DEFAULT_SEED)
+
+
+def test_t2_baseline_is_out_of_fold_not_full_data_refit(wired: _Wired) -> None:
+    # The load-bearing guard: the baseline is T0_R0's stored out-of-fold vector,
+    # AND that vector differs from the full-data booster's in-sample predictions --
+    # otherwise "is the OOF vector" would be satisfied by a model that leaked.
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    oof = baseline.aligned(a0.obs_ids)
+
+    stored = pq.read_table(wired.runs_dir / "T0_R0_predictions.parquet")
+    by_obs = dict(
+        zip(
+            stored.column("obs_id").to_pylist(),
+            stored.column("prediction").to_pylist(),
+            strict=True,
+        )
+    )
+    assert np.array_equal(oof, np.asarray([by_obs[o] for o in a0.obs_ids], dtype=np.float64))
+
+    xgb = estimator._import_xgboost()
+    booster = xgb.Booster()
+    booster.load_model(str(baseline.model_path))
+    insample = np.asarray(booster.predict(xgb.DMatrix(a0.features)), dtype=np.float64)
+    assert oof.shape == insample.shape
+    # The full-data refit saw every row it now predicts; the OOF vector did not.
+    assert not np.allclose(oof, insample)
+
+
+def test_t2_fits_the_learned_residual_under_regression(
+    wired: _Wired, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    bvec = baseline.aligned(a0.obs_ids)
+
+    captured: dict[str, object] = {}
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        captured["values"] = args[1]
+        captured["kw"] = kw
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    run = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T2, baseline=bvec
+    )
+    kw = captured["kw"]
+    assert isinstance(kw, dict)
+    assert kw["objective"] == estimator.REGRESSION
+    assert kw["target"] == targets.TARGET_T2
+    # The target actually handed to the estimator is won - m_hat_-i, not the raw
+    # outcome and not won - base_p.
+    assert np.allclose(np.asarray(captured["values"]), a0.outcome - bvec)
+    assert not np.allclose(np.asarray(captured["values"]), a0.outcome - a0.base_p)
+    assert run.run_record["model_id"] == "T2_R0"
+    assert run.run_record["objective"] == "regression"
+    assert run.run_record["n_features"] == 1
+    # The regression prediction is a bump, not a probability: it takes both signs.
+    assert bool((run.predictions < 0.0).any())
+
+
+def test_t2_requires_a_baseline() -> None:
+    # Without a baseline vector, T2 cannot form its residual and must refuse.
+    dummy = targets.Assembled(
+        representation=targets.R0,
+        obs_ids=["a"],
+        groups=["g"],
+        outcome=np.zeros(1),
+        base_p=np.zeros(1),
+        features=np.zeros((1, 1)),
+        feature_names=[targets.BASE_P_COL],
+    )
+    with pytest.raises(targets.TargetUnknown):
+        targets._target_and_objective(targets.TARGET_T2, dummy, None)
+
+
+def test_build_t2_records_feature_counts_and_regression(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    result = targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    assert result.r0.record["n_features"] == 1
+    assert result.r0.record["objective"] == "regression"
+    assert result.r0.record["target"] == "T2"
+    assert result.r1 is not None
+    assert result.r1.record["n_features"] == 1 + _N_CARDS
+    assert result.r1.record["objective"] == "regression"
+
+
+def test_t2_reconstruction_uses_the_baseline_not_base_p(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    recon_path = wired.runs_dir / "T2_R0_reconstruction.parquet"
+    assert recon_path.exists()
+    tbl = pq.read_table(recon_path)
+    # The base column is the learned baseline, explicitly not mislabelled base_p.
+    assert targets.BASELINE_COL in tbl.column_names
+    assert targets.BASE_P_COL not in tbl.column_names
+    base = np.asarray(tbl.column(targets.BASELINE_COL).to_numpy(zero_copy_only=False))
+    oof = baseline.aligned(a0.obs_ids)
+    assert np.allclose(base, oof)
+    # m_hat_-i is a learned function of base_p, not base_p itself.
+    assert not np.allclose(base, a0.base_p)
+    bump = np.asarray(tbl.column(targets.BUMP_COL).to_numpy(zero_copy_only=False))
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    prob = np.asarray(tbl.column(targets.RECON_PROB_COL).to_numpy(zero_copy_only=False))
+    assert np.allclose(raw, base + bump)
+    clip = evaluation.PROBABILITY_CLIP
+    assert np.allclose(prob, np.clip(raw, clip, 1.0 - clip))
+    ids = set(tbl.column("obs_id").to_pylist())
+    assert ids == wired.dev_obs_ids
+    assert ids.isdisjoint(wired.holdout_ids)
+
+
+def test_t2_clip_counts_match_the_raw_reconstruction(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    result = targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    tbl = pq.read_table(wired.runs_dir / "T2_R0_reconstruction.parquet")
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    clip = evaluation.PROBABILITY_CLIP
+    stats = result.recon_stats
+    assert stats.n_clipped_low == int(np.count_nonzero(raw < clip))
+    assert stats.n_clipped_high == int(np.count_nonzero(raw > 1.0 - clip))
+    assert stats.n_clipped == stats.n_clipped_low + stats.n_clipped_high
+    assert stats.n_rows == len(a0.obs_ids)
+
+
+def test_t2_scores_both_the_continuous_and_the_bernoulli_views(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    result = targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    assert "r2" in result.continuous_metrics
+    assert "log_loss" not in result.continuous_metrics
+    assert "r2" not in result.reconstructed_metrics
+    assert "brier_skill_score" in result.reconstructed_metrics
+    for key in ("log_loss", "brier", "rmse", "mae", "auc", "cal_intercept", "cal_slope"):
+        assert key in result.reconstructed_metrics
+
+
+def test_t2_r0_bump_stats_are_recorded(wired: _Wired) -> None:
+    # The cross-fitting diagnostic: T2_R0's B_hat should sit near zero. The stats
+    # the report reads are captured from the actual predictions.
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    result = targets._fit_t2_model(a0, baseline, wired.sources, wired.runs_dir)
+    tbl = pq.read_table(wired.runs_dir / "T2_R0_reconstruction.parquet")
+    stored_bump = np.asarray(tbl.column(targets.BUMP_COL).to_numpy(zero_copy_only=False))
+    assert result.bump_mean == pytest.approx(float(np.mean(stored_bump)))
+    assert result.bump_min <= result.bump_mean <= result.bump_max
+    assert result.bump_std >= 0.0
+
+
+def test_refitting_t2_r0_is_byte_identical(wired: _Wired) -> None:
+    a0 = _fit_baseline(wired)
+    baseline = targets.load_baseline(wired.runs_dir, _split_sha(wired), estimator.DEFAULT_SEED)
+    bvec = baseline.aligned(a0.obs_ids)
+    first = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T2, baseline=bvec
+    )
+    before = first.predictions_path.read_bytes()
+    second = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T2, baseline=bvec
+    )
+    assert np.array_equal(first.predictions, second.predictions)
+    assert second.predictions_path.read_bytes() == before
+
+
+def test_build_t2_fits_r0_before_r1(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    _fit_baseline(wired)
+    order: list[str] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        order.append(str(kw["representation"]))
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    assert order == [targets.R0, targets.R1]
+
+
+def test_t2_over_budget_stops_after_r0(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    result = targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=0.0,
+        report_path=wired.report_t2_path,
+    )
+    assert result.r1_attempted is False
+    assert result.r1 is None
+    assert result.r1_skip_reason is not None
+    assert (wired.runs_dir / "T2_R0_run.json").exists()
+    assert not (wired.runs_dir / "T2_R1_run.json").exists()
+    text = wired.report_t2_path.read_text(encoding="utf-8")
+    assert "not attempted" in text
+    assert f"{result.probe.projected_seconds:.0f}s" in text
+
+
+def test_build_t2_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")  # the frozen state: zero reads
+    before = wired.ledger_path.read_bytes()
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    assert wired.ledger_path.read_bytes() == before
+
+
+def test_build_t2_report_records_the_consumed_baseline(wired: _Wired) -> None:
+    _fit_baseline(wired)
+    targets.build_t2(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t2_path,
+    )
+    text = wired.report_t2_path.read_text(encoding="utf-8")
+    # The report names the baseline artifact by path and by T0_R0's hyperparameters.
+    assert "T0_R0_predictions.parquet" in text
+    assert "chosen hyperparameters" in text
+    # And states development uses the out-of-fold baseline, holdout the full-data one.
+    assert "out-of-fold" in text
+    assert "card 017" in text
+
+
+# --------------------------------------------------------------------------
+# Real frozen dataset: the two feature-count facts the card asserts, and the
+# tracked run records the actual fit produced. No fitting happens here.
+# --------------------------------------------------------------------------
+
+
+@requires_real
+def test_real_r0_has_one_feature_and_r1_has_194() -> None:
+    a0 = targets.assemble(targets.R0)
+    a1 = targets.assemble(targets.R1)
+    assert a0.features.shape[1] == 1
+    assert a0.feature_names == [targets.BASE_P_COL]
+    assert a1.features.shape[1] == 194
+    assert a1.feature_names[0] == targets.BASE_P_COL
+    assert len(a1.feature_names) == 194
+    # Every development row appears in both, with no holdout row.
+    assert a0.obs_ids == a1.obs_ids
+    holdout = targets._holdout_obs_ids(_REAL.split_parquet)
+    assert set(a0.obs_ids).isdisjoint(holdout)
+
+
+@requires_real
+def test_real_run_records_are_present_and_consistent() -> None:
+    r0_path = targets.RUNS_DIR / "T0_R0_run.json"
+    if not r0_path.exists():
+        pytest.skip("run records not produced yet (run `python -m deckbench.targets --fit`)")
+    r0 = json.loads(r0_path.read_text(encoding="utf-8"))
+    assert r0["n_features"] == 1
+    assert r0["target"] == "T0"
+    assert r0["representation"] == "R0"
+    expected_sha = estimator.verify_split_hash(_REAL.split_parquet, _REAL.split_manifest)
+    assert r0["split_sha256"] == expected_sha
+    r1_path = targets.RUNS_DIR / "T0_R1_run.json"
+    if r1_path.exists():
+        r1 = json.loads(r1_path.read_text(encoding="utf-8"))
+        assert r1["n_features"] == 194
+        assert r1["representation"] == "R1"
+
+
+@requires_real
+def test_real_t1_run_records_are_present_and_consistent() -> None:
+    r0_path = targets.RUNS_DIR / "T1_R0_run.json"
+    if not r0_path.exists():
+        pytest.skip("T1 run records not produced yet (run `python -m deckbench.targets --fit-t1`)")
+    r0 = json.loads(r0_path.read_text(encoding="utf-8"))
+    assert r0["n_features"] == 1
+    assert r0["target"] == "T1"
+    assert r0["representation"] == "R0"
+    assert r0["objective"] == "regression"
+    expected_sha = estimator.verify_split_hash(_REAL.split_parquet, _REAL.split_manifest)
+    assert r0["split_sha256"] == expected_sha
+    r1_path = targets.RUNS_DIR / "T1_R1_run.json"
+    if r1_path.exists():
+        r1 = json.loads(r1_path.read_text(encoding="utf-8"))
+        assert r1["n_features"] == 194
+        assert r1["representation"] == "R1"
+        assert r1["objective"] == "regression"
+
+```
+
+## Section 5: Supplementary Context (See Also)
+
+The following files are referenced by the task via `## See Also`. They are supplementary context only and are not part of the deliverable under review.
+
+### reports/t0_development_fits.md
+
+```
+# T0 raw outcome -- development fits for R0 and R1 (card 011)
+
+The first row of the benchmark matrix, and the first real fits in the project. Target formulation **T0** (the raw game outcome `won` in {0, 1}) against the two representations phase 1 can supply: **R0** (skill only) and **R1** (skill + card identity). Both are fitted through `deckbench.estimator.fit_and_predict`; this card constructs no learner, grid, or folds of its own, and never opens the holdout.
+
+> **`base_p` is not skill.** R0's single feature is the reliability-shrunk historical win-rate proxy `base_p`, a nuisance representation reproduced from the inherited implementation (card 005). It is not a measurement of player skill and is not described as one here.
+
+## Regeneration history
+
+These fits have been regenerated twice since card 011 first produced them. Neither regeneration changed the learner, the grid, the folds, the seed, or the population, and neither opened the holdout. Both are recorded here because the numbers below moved each time, and a metric that moves without a stated reason is not attributable.
+
+1. **Card 014 -- skill-proxy fidelity correction.** The proxy's shrinkage target `mu` changed from a per-game mean to a per-draft mean, to match the R implementation being reproduced (`scripts/R/04_real_inference_refactored.R` line 324; `mu` 0.546211 -> 0.533339). R0 is `[base_p]` and R1 contains it, so both consumed the changed column and were refitted. See `reports/mu_fidelity_correction.md`.
+
+2. **xgboost provenance correction.** Cards 011 and 014 recorded `xgboost_version` from the Python package's `__version__`, which read `3.4.1` while the compiled library that actually trained the boosters was `3.1.2` -- a false provenance string that survived two reviewer passes. The run record now takes the version from the library's own `XGBoostVersion()` and records the Python wrapper's version separately. Refitting under a matched 3.1.2 wrapper did **not** reproduce the earlier T0 boosters: R0 selected a different grid point (`max_depth` 3 -> 4, `subsample` and `colsample_bytree` 1.0 -> 0.8) and 367 -> 136 rounds, and the panel metrics moved in the fifth decimal. The T1 fits of card 015, which were produced under a matched wrapper, reproduced byte-identically in the same exercise. The artifacts described below are the reproducible ones; the card-011 and card-014 T0 artifacts were not reproducible in this environment and have been replaced.
+
+## Fit order and elapsed time
+
+R0 was fitted **first and completely**, and its run record written to disk, **before any R1 assembly or fitting began**. R0 is one feature and finishes in seconds; fitting it first proves the real path -- split-hash verification, fold alignment, out-of-fold prediction, run record -- at a point where failure costs nothing. R0 is also M0, the benchmark's own skill-only baseline, so it is not a throwaway warm-up.
+
+- **R0 fit** (T0_R0): **79.9 s**, 194215 development rows x 1 feature.
+- **R1 fit** (T0_R1): **387.2 s**, 194215 development rows x 194 features.
+
+## Timing probe and the budget decision
+
+Before the full R1 grid search, a probe fits a **single grid point on a single fold** at the capped iteration count (no early stopping). The full search performs `len(grid) * k` cross-validation fits, `k` out-of-fold fits, and one final refit.
+
+- Probe (one grid point, one fold): **14.5 s**
+- Single-booster fits in the full search: **21** (3 grid x 5 folds + 5 out-of-fold + 1 refit)
+- Projected full-search total: **304.6 s** (5.1 min)
+- Executor budget for R1: **5400 s** (90.0 min)
+
+The projection was within budget, so the full R1 grid search was run. The measured R1 fit came in at 387.2 s, over the 304.6 s projection. The probe is only a rough guide, not a precise predictor: it times one grid point on one fold at the capped iteration count with no early stopping, whereas the real search runs all grid points (each early-stopped on the native metric, some to more rounds or a deeper tree than the probe's) plus a final refit on all development rows. The two need not agree closely; both are far inside the budget, which is the only decision the probe exists to make.
+
+## Development metrics (diagnostic only -- no comparison concluded)
+
+The card-010 panel applied to each model's **out-of-fold development** predictions, with `outcome_type = "bernoulli"`.
+
+| Model | log_loss | brier | brier_skill_score | rmse | mae | auc | cal_intercept | cal_slope |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T0 / R0 (skill only) | 0.666441 | 0.237157 | 0.037582 | 0.486987 | 0.474243 | 0.605327 | 0.001443 | 0.994568 |
+| T0 / R1 (skill + identity) | 0.664381 | 0.236137 | 0.041720 | 0.485939 | 0.472685 | 0.613597 | 0.008871 | 1.009140 |
+
+**These are development metrics, and they are diagnostic only.** They are computed on the same development rows whose folds selected each model's hyperparameters, so they are contaminated and cannot stand in for an honest generalization estimate. They are reported here only so that a first look confirms the pipeline produces sane probabilities in the unit interval rather than, say, 0.5 everywhere.
+
+**No comparison between R0 and R1 is concluded from these numbers, in either direction.** Whether card identity adds information beyond the skill proxy is not a question development metrics can answer; the benchmark's design puts that answer on the untouched external holdout, opened exactly once at card 014, scored through this same panel with the paired cluster bootstrap carrying the uncertainty on the difference. Section 13 also forbids reading any null incremental result as an absence of a deck effect. So: look, record, and draw nothing.
+
+## Provenance
+
+- Split SHA256 (verified before each fit): `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`
+- Seed: **20260908**; xgboost **3.1.2** (compiled library; Python package **3.1.2**), single-threaded (byte-identical determinism).
+- R0 chosen hyperparameters: `{'max_depth': 4, 'eta': 0.1, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 1.0}`, 136 boosting rounds.
+- R1 chosen hyperparameters: `{'max_depth': 5, 'eta': 0.05, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 2.0}`, 268 boosting rounds.
+- Run records are tracked in git (`data/runs/*_run.json`); the prediction parquets and fitted boosters are gitignored and regenerable from the frozen split and the representation tables.
+- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is byte-identical (0 bytes) before and after this card.
+
+```
+
+### reports/t1_development_fits.md
+
+```
+# T1 bump against the fixed skill proxy -- development fits for R0 and R1 (card 015)
+
+The benchmark's second target formulation. Where T0 predicts the game outcome directly, **T1 predicts the residual left after subtracting the fixed historical proxy**, then reconstructs a win probability from it:
+
+```
+B_i     = won_i - base_p_i      (the target actually fitted)
+p_hat_i = base_p_i + B_hat_i    (the probability reconstructed from it)
+```
+
+The residual is fitted with the estimator's **regression** objective; T0 used the binary one. Same two representations phase 1 can supply -- **R0** (skill only) and **R1** (skill + card identity) -- through the same `deckbench.estimator.fit_and_predict`, the same grid, the same frozen folds and the same seed. This card constructs no learner, grid, or folds of its own, and never opens the holdout.
+
+> **`base_p` is not skill.** R0's single feature is the reliability-shrunk historical win-rate proxy `base_p`, a nuisance representation reproduced from the inherited implementation (card 005). It is not a measurement of player skill and is not described as one here.
+
+## Why T1, and what it does not decide
+
+Section 2 of the benchmark observes that player skill may generate far more between-observation variation than deck quality, so direct prediction of the outcome can be dominated by skill even where deck quality matters. T1 subtracts the skill component up front so the model is asked only for what is left. Whether that actually helps recover deck signal is **H2** (section 14), which predicts an ordering across T0, T1 and T2. **H2 is a hypothesis, not an assumed result.** This card produces one row of the table that question needs; it does not test the ordering, and it draws no conclusion. The single holdout read at card 017 is where any comparison is made.
+
+## R0's role under a residual target
+
+It is fair to ask what a model can learn about `won - base_p` when its only feature is `base_p` itself -- the proxy has already been used to construct the target. Per benchmark section 4, this is a coherent question and not a degenerate one: `T1_R0` asks what **systematic structure the proxy leaves behind** -- miscalibration at the extremes, regression toward the mean, a reliability weighting that over- or under-shrinks particular buckets. A flat prediction near zero would itself be informative, saying the proxy has no exploitable residual structure. R0 is scored here for exactly that reason; nothing about it is read as skill, and its role in constructing the target is stated rather than hidden.
+
+## Fit order and elapsed time
+
+R0 was fitted **first and completely**, reconstructed, and its run record written to disk, **before any R1 assembly or fitting began** -- the same de-risking order T0 used, so the real path is proven where failure costs nothing.
+
+- **R0 fit** (T1_R0): **43.4 s**, 194215 development rows x 1 feature.
+- **R1 fit** (T1_R1): **320.8 s**, 194215 development rows x 194 features.
+
+## Timing probe and the budget decision
+
+Before the full R1 grid search, a probe fits a **single grid point on a single fold** at the capped iteration count (no early stopping), under the regression objective T1 uses.
+
+- Probe (one grid point, one fold): **14.0 s**
+- Single-booster fits in the full search: **21** (3 grid x 5 folds + 5 out-of-fold + 1 refit)
+- Projected full-search total: **293.0 s** (4.9 min)
+- Executor budget for R1: **5400 s** (90.0 min)
+
+The projection was within budget, so the full R1 grid search was run. The probe is only a rough guide, not a precise predictor; the one decision it exists to make is whether the search fits inside the budget.
+
+## Reconstruction and clipping (a measurement, not a nuisance)
+
+`p_hat = base_p + B_hat` has no arithmetic guarantee of landing inside [0, 1]. The reconstruction is clipped into the unit interval using the panel's declared clip bound (`PROBABILITY_CLIP` = 1e-12) **only for scoring** -- the target itself is never clipped. How often the additive decomposition escapes the unit interval, and by how much, is direct evidence about whether the decomposition in section 2 holds on this data; a large clipped fraction would be a finding about the formulation, not a detail to suppress.
+
+- **R0**: 358 of 194215 rows clipped (0.1843%) -- 358 below the lower bound, 0 above the upper. Raw reconstruction ranged [-0.020578, 0.984723] before clipping to [1e-12, 1 - 1e-12].
+- **R1**: 307 of 194215 rows clipped (0.1581%) -- 307 below the lower bound, 0 above the upper. Raw reconstruction ranged [-0.191449, 0.974994] before clipping to [1e-12, 1 - 1e-12].
+
+## Development metrics (diagnostic only -- no comparison concluded)
+
+The card-010 panel is applied **twice** per model. The **continuous** view scores the bump prediction directly against the fitted residual `won - base_p`; the **Bernoulli** view scores the reconstructed, clipped probability against the raw `won` outcome, through the same panel T0 used. Both are out-of-fold development predictions.
+
+### Reconstructed-probability view (`outcome_type = "bernoulli"`)
+
+| Model | log_loss | brier | brier_skill_score | rmse | mae | auc | cal_intercept | cal_slope |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T1 / R0 (skill only) | 0.666416 | 0.237153 | 0.037597 | 0.486984 | 0.474171 | 0.605422 | 0.002409 | 0.990592 |
+| T1 / R1 (skill + identity) | 0.664523 | 0.236216 | 0.041401 | 0.486020 | 0.472797 | 0.613229 | 0.010340 | 1.005061 |
+
+### Bump view (`outcome_type = "continuous"`)
+
+| Model | rmse | mae | r2 |
+| --- | --- | --- | --- |
+| T1 / R0 (skill only) | 0.486984 | 0.474181 | 0.010845 |
+| T1 / R1 (skill + identity) | 0.486028 | 0.472887 | 0.014725 |
+
+**Only the reconstructed-probability metrics are comparable with T0.** T0 fits a probability and T1 fits a residual, so their native metrics answer different questions -- an R-squared on a bump and a log loss on a probability are not commensurable. The one thing both formulations produce for the same observation is a win probability, so the reconstructed probability is the only common ground, and it is what card 017 will compare. The continuous view is diagnostic for the T1 fit alone.
+
+**These are development metrics, and they are diagnostic only.** They are computed on the same development rows whose folds selected each model's hyperparameters, so they are contaminated and cannot stand in for an honest generalization estimate. They confirm the pipeline produces sane numbers; they settle nothing.
+
+**No comparison between R0 and R1, and none between T0 and T1, is concluded from these numbers, in any direction.** Card 011's prohibition stands unchanged and for the same reason: whether a representation or a target formulation adds information is not a question development metrics can answer. The benchmark's design puts that answer on the untouched external holdout, opened exactly once at card 017, scored through this same panel with the paired cluster bootstrap carrying the uncertainty on the difference. Section 13 forbids reading any null incremental result as an absence of a deck effect. So: look, record, and draw nothing.
+
+## Provenance
+
+- Split SHA256 (verified before each fit): `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`
+- Seed: **20260908**; xgboost **3.1.2** (compiled library; Python package **3.1.2**), single-threaded (byte-identical determinism).
+- Objective: **regression** (regression), for the continuous residual target -- distinct from T0's binary objective.
+- R0 chosen hyperparameters: `{'max_depth': 4, 'eta': 0.1, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 1.0}`, 135 boosting rounds.
+- R1 chosen hyperparameters: `{'max_depth': 5, 'eta': 0.05, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 2.0}`, 269 boosting rounds.
+- Run records are tracked in git (`data/runs/*_run.json`); the prediction parquets, reconstruction parquets and fitted boosters are gitignored and regenerable from the frozen split and the representation tables.
+- The holdout partition was not read; `cycle/holdout_ledger.jsonl` is byte-identical (0 bytes) before and after this card.
+
+```
+
+### reports/evaluation_panel.md
+
+```
+# The evaluation panel ΓÇö fixed before any model is scored (card 010)
+
+This report states, in advance of a single model being fitted against it, every
+choice the benchmark's evaluation panel makes: each metric's definition, the
+weighting convention, the probability clip, the binning strategy, the smooth
+calibration method, and the paired cluster bootstrap's seed and cluster level. It
+is a pre-registration device. Once results exist, each of these choices becomes a
+degree of freedom that can be steered toward a conclusion; fixing them here
+removes that freedom. The panel is `src/deckbench/evaluation.py`; the tests that
+pin its arithmetic are `tests/test_deckbench_evaluation.py`.
+
+The concrete failure this prevents is in this repository's own history. The
+quarantined pipeline (`attic/haiku-2026-09-07/`) produced a `KEY FINDINGS` block
+asserting three checkmarked improvements next to a companion analysis whose
+confidence interval crossed zero ΓÇö two artifacts, one comparison, no way to
+adjudicate. The panel exists so the adjudication is fixed in advance.
+
+The panel governs `docs/MTG_Deck-Strength_Modeling_Benchmark.md` ┬º┬º9ΓÇô12.
+
+---
+
+## 0. What the panel is, and is not
+
+The panel is a **pure function of arrays** `(y, p, weight, group)`. It:
+
+- loads no parquet, reads no split, and never touches the holdout partition or
+  its ledger;
+- accepts **no partition label** ΓÇö it scores exactly the rows it is handed and
+  the caller is accountable for which rows those are;
+- does not know which model produced the predictions, nor what representation was
+  used;
+- **fits nothing** and imports no learner ΓÇö not `xgboost`, not `sklearn.ensemble`,
+  nothing from `deckbench.estimator`. The single place a model is fit at all is
+  the calibration intercept/slope, a two-parameter weighted logistic regression
+  solved by hand with numpy alone (`_weighted_logistic_newton`).
+
+Every metric weights by the observation weight passed in. An unweighted metric
+silently answers a different question, so weighting is universal, not optional.
+
+---
+
+## 1. The scalar metrics
+
+All are weighted by the passed observation weight `w`; write `W = ╬ú wß╡ó`.
+
+| Metric | Definition | Reported for |
+| --- | --- | --- |
+| **Log loss** | `ΓêÆ(1/W) ╬ú wß╡ó [ yß╡ó log p╠âß╡ó + (1ΓêÆyß╡ó) log(1ΓêÆp╠âß╡ó) ]` | Bernoulli |
+| **Brier score** | `(1/W) ╬ú wß╡ó (pß╡ó ΓêÆ yß╡ó)┬▓` | Bernoulli |
+| **RMSE** | `ΓêÜ[ (1/W) ╬ú wß╡ó (yß╡ó ΓêÆ ┼╖ß╡ó)┬▓ ]` | both |
+| **MAE** | `(1/W) ╬ú wß╡ó \|yß╡ó ΓêÆ ┼╖ß╡ó\|` | both |
+| **AUC** | weighted MannΓÇôWhitney statistic, ties at half credit | Bernoulli |
+| **Weighted R┬▓** | `1 ΓêÆ ╬ú wß╡ó(yß╡ó ΓêÆ ┼╖ß╡ó)┬▓ / ╬ú wß╡ó(yß╡ó ΓêÆ ╚│_w)┬▓`, `╚│_w` the weighted mean | **continuous only** |
+| **Brier Skill Score** | `1 ΓêÆ BS / BS_ref`, `BS_ref` = Brier of the weighted base rate | **Bernoulli only** |
+
+`p╠â` denotes the clipped probability (┬º2). `╚│_w` is the weighted mean of the
+outcome.
+
+Every metric is verified against a **hand-computed** value on a small fixture in
+the tests, so each is checked against arithmetic rather than against its own
+output. The degenerate cases are asserted directly: perfect predictions score log
+loss 0 (to within the clip), Brier 0, and AUC 1; predicting the weighted base
+rate everywhere scores weighted R┬▓ 0 and Brier Skill Score 0.
+
+### The R┬▓ trap
+
+Section 9 forbids reporting an ordinary regression R┬▓ on a raw Bernoulli outcome
+without a name that marks what it is; the quarantined pipeline did exactly that.
+The panel closes this: `evaluate_metrics(..., outcome_type="bernoulli")` returns
+**no `r2` key at all**, and instead returns a `brier_skill_score` whose name
+marks it as the probability-prediction analogue. The section-9 weighted R┬▓ is
+reported only for a continuous bump/residual target
+(`outcome_type="continuous"`), which is what that formula is for.
+
+No R┬▓ produced here is described as approaching a theoretical ceiling. The
+7-wins/3-losses draft stopping rule puts an irreducible binomial floor under the
+residual variance, and the ceiling is unknown without the latent per-observation
+win probability. AUC is reported only as a secondary discrimination metric; the
+scientific interest is accurate win probabilities, not merely ranking.
+
+---
+
+## 2. The probability clip
+
+Before any logarithm, probabilities are clipped to
+`[PROBABILITY_CLIP, 1 ΓêÆ PROBABILITY_CLIP]` with
+
+```
+PROBABILITY_CLIP = 1e-12
+```
+
+declared as a named constant in the module. This keeps a confident-and-wrong
+prediction finite (penalty `ΓêÆlog(1e-12) Γëê 27.6`) rather than infinite, and a
+perfect prediction near zero (`ΓêÆlog(1 ΓêÆ 1e-12) Γëê 1e-12`) rather than exactly
+zero. The clip is applied to log loss and to the logit used in calibration; it is
+not applied to Brier, RMSE, MAE or AUC, which take no logarithm.
+
+---
+
+## 3. Calibration
+
+### Intercept and slope (Cox calibration)
+
+`calibration_intercept_slope(y, p, w)` fits, by weighted logistic regression,
+
+```
+logit( E[y] ) = intercept + slope ┬╖ logit(p╠â)
+```
+
+Ideal intercept is 0 and ideal slope is 1. A slope **below 1** indicates
+predictions that are too extreme (over-confident); a slope **above 1** indicates
+predictions that are too conservative (under-confident). The tests assert both
+directions on constructed fixtures whose calibration relation is exact (each true
+probability `q` encoded as two weighted rows, `(y=1, w=q)` and `(y=0, w=1ΓêÆq)`, so
+the weighted outcome is exactly `q` with no sampling noise): an over-confident
+set recovers slope `0.5`, an under-confident set recovers slope `2.0`, and a
+well-calibrated set recovers intercept `0`, slope `1`.
+
+### Binned calibration ΓÇö one strategy, every model
+
+`binned_calibration(y, p, w)` uses **equal-width bins over [0, 1]**:
+
+```
+CALIBRATION_BINS = 10
+edges = linspace(0, 1, 11)
+```
+
+Equal-width ΓÇö not equal-count/quantile ΓÇö is deliberate: the bin edges are then
+**identical across every model**, regardless of each model's prediction
+distribution. Quantile bins would move with the model and amount to silent
+rebinning. The rightmost edge is inclusive so `p = 1` lands in the last bin. The
+**edges are returned alongside the per-bin counts, weighted counts, mean
+predicted probability, and observed frequency**, so a downstream plot cannot
+silently rebin. Bins with no weight carry `NaN` for the two means and 0 for the
+counts.
+
+### Smooth calibration ΓÇö free of bin boundaries
+
+`smooth_calibration(y, p, w)` provides a curve that does not depend on where the
+bins fall, so a conclusion cannot rest on arbitrary bin boundaries. It is a
+**weighted Gaussian-kernel (NadarayaΓÇôWatson) regression** of the outcome on the
+predicted probability:
+
+```
+SMOOTH_CALIBRATION_POINTS    = 101   (grid = linspace(0, 1, 101))
+SMOOTH_CALIBRATION_BANDWIDTH = 0.05  (Gaussian kernel, in probability units)
+```
+
+For each grid point `g`, the smoothed observed frequency is
+`╬ú wß╡ó K(pß╡ó; g) yß╡ó / ╬ú wß╡ó K(pß╡ó; g)` with `K` the Gaussian kernel centred at `g`.
+Grid points with no kernel support carry `NaN`.
+
+**GAMLSS is not part of this panel.** If a distributional/smooth calibration
+diagnostic built on GAMLSS is wanted later, it is added as a **separate**
+diagnostic and never folded into the core panel (┬º10).
+
+---
+
+## 4. The paired cluster bootstrap
+
+`paired_cluster_bootstrap(...)` carries the uncertainty for the incremental-value
+analysis of ┬º11 using the paired cluster bootstrap of ┬º12.
+
+```
+cluster level               = draft_id
+DEFAULT_BOOTSTRAP_SEED       = 20260908
+DEFAULT_BOOTSTRAP_REPLICATES = 1000
+DEFAULT_CI_LEVEL             = 0.95   (2.5thΓÇô97.5th percentile interval)
+```
+
+**Clustered on the draft, not the row.** Each replicate resamples `draft_id`s
+with replacement and includes **every game of each sampled draft together**.
+Card 003 measured that a draft contributes multiple games and that 19% of drafts
+change deck between them; games within a draft share a player, a skill bucket and
+usually a deck. Resampling rows would treat them as independent and understate
+the variance of exactly the comparisons this benchmark reports. Card 006's split
+already partitions at the draft level, so the two agree. A test asserts that
+every game of a sampled draft appears together in the resample.
+
+**Paired across models.** All models predict the same observations, so a **single
+set of resample indices is drawn per replicate and every model is scored on
+exactly those indices**. The interval on a difference is then the variance of the
+difference, not the summed variance of two independent resamples ΓÇö an unpaired
+resample per model would inflate the interval on a difference and could hide a
+real effect as easily as manufacture one. A test asserts pairing directly: two
+identical models produce an exactly-zero difference in every replicate.
+
+**Intervals on differences, not only levels.** The result carries a confidence
+interval for each model's absolute metric **and** for each requested pairwise
+**difference** `metric(model_a) ΓêÆ metric(model_b)` ΓÇö the incremental-value
+question of ┬º11 cannot be answered by an absolute level alone. The comparisons of
+interest include each representation against the skill-only and identity
+baselines, and `KG ΓêÆ identity` and `script ΓêÆ identity` directly.
+
+**Deterministic.** The bootstrap draws its resamples from
+`np.random.default_rng(seed)`; two runs with the same seed produce byte-identical
+intervals. A test asserts this.
+
+AUC is undefined on a single-class resample; the panel returns `NaN` there and
+the bootstrap uses a NaN-aware percentile, so a rare degenerate resample does not
+crash the run. On the frozen dataset (241,561 games) this does not arise in
+practice.
+
+---
+
+## 5. Interpretation guard
+
+Per ┬º13, a null incremental result is a limit of the representation, learner and
+dataset ΓÇö **never** evidence that deck composition does not affect win
+probability. The panel computes the differences and their intervals; it does not
+label a difference whose interval crosses zero as an effect, and it does not
+label the absence of a detectable difference as the absence of a deck effect.
+
+---
+
+## 6. Where each choice lives
+
+| Choice | Constant / function in `deckbench.evaluation` |
+| --- | --- |
+| Probability clip | `PROBABILITY_CLIP = 1e-12` |
+| Outcome families | `OUTCOME_BERNOULLI`, `OUTCOME_CONTINUOUS` |
+| Scalar panel | `evaluate_metrics` |
+| Calibration line | `calibration_intercept_slope` ΓåÆ `CalibrationLine` |
+| Binning | `CALIBRATION_BINS = 10`, `binned_calibration` ΓåÆ `BinnedCalibration` |
+| Smooth curve | `SMOOTH_CALIBRATION_POINTS`, `SMOOTH_CALIBRATION_BANDWIDTH`, `smooth_calibration` |
+| Bootstrap | `DEFAULT_BOOTSTRAP_SEED = 20260908`, cluster `draft_id`, `paired_cluster_bootstrap` |
+
+Self-test: `python -m deckbench.evaluation --selftest`.
+
+```
+
+### reports/estimator_api.md
+
+```
+# The estimator API ΓÇö one learner, blind to its features
+
+Card 009. `deckbench.estimator` is the single code path every model in the
+benchmark is fit through. Section 8 of `docs/MTG_Deck-Strength_Modeling_Benchmark.md`
+holds the learner family constant so a difference between two models is
+attributable to the **representation** and not to the algorithm; section 10 names
+the requirement that makes that hold ΓÇö *the estimator should not know how the
+representation was generated.* This card builds exactly that estimator.
+
+No model is fit against real data here, no metric is computed, and the holdout is
+never opened. This is the infrastructure the modeling cards (011 T0, 012 T1, 013
+T2) call, and the holdout is opened once, for all of them, at card 014.
+
+## The one entry point
+
+```python
+fit_and_predict(
+    features,            # opaque 2-D float array: rows = development observations
+    outcome,             # 1-D float array aligned to the rows
+    *,
+    groups,              # draft id per row
+    obs_ids,             # observation id per row
+    objective,           # "binary" (raw outcomes) or "regression" (bump targets)
+    model_id, target, representation,   # LABELS for the run record ΓÇö see below
+    weights=None,
+    seed=20260908,
+    split_parquet=..., split_manifest=..., runs_dir=...,
+) -> RunResult
+```
+
+The **fitting inputs** are the feature matrix, the outcome, the optional weights,
+the row groups and ids, the objective, and the frozen split (read through
+`deckbench.holdout.load_dev`). That is the whole set. `model_id`, `target` and
+`representation` are **labels**: they are written to the run record (section 15
+requires a representation name) and are handed to no function that touches the
+matrix. The core search-and-fit routine receives only arrays, an objective, the
+frozen folds and a seed ΓÇö so it cannot behave differently for one representation
+than another.
+
+## Blind to provenance ΓÇö the load-bearing property
+
+The estimator takes the feature matrix as an **opaque array**. It never inspects
+a column name, never imports the representation builders (`deckbench.identity`
+and the future KG/script builders), and never reads a feature parquet itself. The
+only parquet it reads is the split, and only through `load_dev`.
+
+The test that enforces this passes a **real** feature matrix and a **random**
+matrix of the same shape through the identical call and requires both to
+complete and to emit a prediction per development row. It is easy to write an
+estimator that "knows nothing about representations" while quietly special-casing
+a column named `base_p`; a random matrix of the same shape would break such a
+path, and this one it does not.
+
+## One grid, declared once as data
+
+`HYPERPARAMETER_GRID` is a module-level constant ΓÇö the single grid searched for
+every model fit through this path. It is never rebuilt per call; a test asserts
+the very same object (by identity) is used across a binary and a regression fit.
+Holding the grid fixed is what lets section 8's comparison attribute a
+difference to the representation rather than to a search that happened to try
+harder for one model.
+
+The grid is kept deliberately small. The first benchmark asks whether a
+representation *carries* information, not whether an exhaustive search can wring
+it out (section 8); a specialized graph learner is explicitly out of scope.
+
+## Folds come from the frozen split, never re-derived
+
+The inner cross-validation uses exactly the folds recorded in
+`data/processed/model_split.parquet`. The estimator reads them via `load_dev`,
+aligns them to the passed rows by `obs_id`, and cross-checks that each row's
+caller-supplied group matches the split's own `draft_id` (a disagreement means a
+misaligned matrix and stops the fit). It never invents its own folds and never
+accepts a caller-supplied fold vector ΓÇö the frozen split is the only source. A
+test asserts the fold vector the estimator used equals the one in the parquet.
+Because those folds are assigned per draft upstream (card 006), no draft
+contributes rows to more than one inner fold; this is inherited and asserted, not
+re-established.
+
+## Two objectives, selected by the caller
+
+* `objective="binary"` ΓåÆ `binary:logistic`, native metric `logloss`, for raw
+  game outcomes in {0, 1}.
+* `objective="regression"` ΓåÆ `reg:squarederror`, native metric `rmse`, for
+  continuous bump/residual targets (T1, T2).
+
+Tuning watches the learner's **native training objective** (the metric above),
+which is intrinsic to the learner and needs no external panel. That is the only
+place a metric appears, and it is used solely to select an iteration count and a
+grid point ΓÇö it is **never emitted**. No R┬▓, log loss (as an output), Brier, AUC,
+or calibration quantity is computed anywhere in this card, even as a convenience.
+The evaluation panel is card 010, and it operates on emitted predictions; the two
+cards are decoupled in both directions.
+
+## What a fit emits
+
+For every fit, three artifacts are written under `runs_dir` (default
+`data/runs/`, gitignored):
+
+* **Predictions** ΓÇö `<model_id>_predictions.parquet`, keyed by `obs_id`, one
+  **out-of-fold** prediction per development row (each row predicted by a booster
+  trained on the folds that do not contain it). No holdout row is present; a test
+  asserts the emitted id set is disjoint from the holdout partition. These
+  out-of-fold predictions are the honest development output the residual and
+  cross-fitting targets build on.
+* **Run record** ΓÇö `<model_id>_run.json`, carrying the model identifier, target
+  formulation, representation name, feature count, development row count, the
+  split SHA256, the seed, the **chosen** hyperparameters (the grid point that
+  won, not the grid that was searched), the fitted iteration count, and the
+  xgboost version. A record that cannot reproduce its own fit is not a record.
+* **Final booster** ΓÇö `<model_id>.xgb`, fit on all development rows with the
+  chosen hyperparameters, for card 014 to score once against the holdout.
+
+## The split's identity is verified before any fit
+
+`verify_split_hash` reads `split_sha256` from `data/splits/split_manifest.json`
+and compares it to the SHA256 of the split parquet on disk. A mismatch ΓÇö the
+split moved after it was frozen ΓÇö fails the fit closed before any data is read,
+so a model is never recorded against a split that changed under it. The verified
+hash is the one written into the run record.
+
+## The holdout is never touched
+
+Development rows are read through `deckbench.holdout.load_dev`, the **unsealed**
+path that requires no card id and writes no ledger line, so ordinary fitting does
+not fill the holdout ledger with noise. The estimator never routes through the
+sealed reader ΓÇö its source contains no reference to it, asserted by test ΓÇö and a
+test confirms `cycle/holdout_ledger.jsonl` is byte-identical before and after a
+full fit. The holdout partition is never read, sampled, or fit on by any route.
+
+## Determinism
+
+xgboost is run single-threaded (its multi-threaded histogram build is not
+bit-reproducible) with the seed threaded through. Two fits on the same inputs
+produce byte-identical predictions ΓÇö asserted both on the arrays and on the
+emitted parquet bytes. The seed is declared (`DEFAULT_SEED = 20260908`) and
+recorded in every run record.
+
+## Dependency handling
+
+xgboost is imported lazily, inside the fit path, so the module stays importable
+in a graph-only checkout. The first fit without it raises `MissingDependency`
+naming the package and the `modeling` extra in `pyproject.toml`. It is declared
+in the registry's tech stack and in that extra.
+
+## Self-test
+
+```
+python -m deckbench.estimator --selftest
+```
+
+fits a small synthetic binary and regression model end to end in a temporary
+directory, checks determinism, confirms no holdout row is emitted and the split
+hash matches, and touches no tracked file.
+
+```
+
+
+### [2026-09-10 18:27] ASSISTANT
+VERDICT: PASS
+
+CRITERIA:
+- **T0_R0 record validated before use** â€” PASS. `load_baseline` builds a `problems` list checking `record.get("target") != TARGET_T0`, `representation != R0`, `objective != estimator.BINARY`, `n_features != 1`, `seed != expected_seed`, and `split_sha256 != expected_split_sha`, then `raise BaselineRecordInvalid(...)`. `build_t2` calls `load_baseline(...)` before any `assemble`/fit. Tests `test_load_baseline_rejects_a_mismatched_record` and `test_load_baseline_rejects_a_split_hash_mismatch` exercise the fail-closed path.
+- **Target is `won - m_hat_-i`, joined on obs_id, total** â€” PASS. `_target_and_objective` T2 branch returns `assembled.outcome - baseline`; `baseline` = `Baseline.aligned(obs_ids)`, which reads `T0_R0_predictions.parquet` and raises `JoinNotTotal` on any missing id. `test_t2_fits_the_learned_residual_under_regression` asserts `np.allclose(values, a0.outcome - bvec)` and `not np.allclose(values, a0.outcome - a0.base_p)`.
+- **Test proves OOF, not full-data refit** â€” PASS. `test_t2_baseline_is_out_of_fold_not_full_data_refit` asserts `np.array_equal(oof, stored)` AND loads `baseline.model_path`, computes in-sample `insample`, and asserts `not np.allclose(oof, insample)`.
+- **Regression objective recorded** â€” PASS. `TARGET_OBJECTIVE[TARGET_T2] == estimator.REGRESSION`; `test_t2_target_objective_is_regression` confirms; report provenance states "Objective: **regression**".
+- **R0 = 1 feature `base_p`, R1 = 194, identical assembly** â€” PASS. Shared `assemble`; `N_FEATURES={R0:1,R1:194}`; report: "R0 fit â€¦ x 1 feature", "R1 fit â€¦ x 194 features"; `test_real_r0_has_one_feature_and_r1_has_194`.
+- **Development reconstruction uses OOF baseline; report states card 017 uses full-data on holdout** â€” PASS. `_fit_t2_model`: `raw = baseline_vec + run.predictions` (baseline_vec is OOF). Report: "The **development** reconstruction here adds the **out-of-fold** `m_hat_-i`" and "The full-data `m_hat(S)` (`T0_R0.xgb`) is **card 017's**, where it reconstructs holdout rows it never trained on".
+- **Clipped with panel bound; each-end counts reported** â€” PASS. `clip_low = evaluation.PROBABILITY_CLIP`, `n_low`/`n_high` counted; report R0 "0 below â€¦ 0 above", R1 "234 below the lower bound, 7 above the upper".
+- **Panel applied twice** â€” PASS. `continuous = bump_metrics(...)` and `reconstructed = development_metrics(...)`; report shows "Reconstructed-probability view" and "Bump view" tables.
+- **Only reconstructed-prob metrics comparable across T0/T1/T2** â€” PASS. Report: "**Only the reconstructed-probability metrics are comparable across T0, T1 and T2.**"
+- **T2_R0 as diagnostic with mean/std/range + leakage warning** â€” PASS. Report gives R0 "mean **+0.000018**, std **0.000682**, range [-0.006288, +0.008895]" and states "A large systematic departure from zero would indicate leakage or baseline misfit â€¦ not recovered signal."
+- **Hyperparameter selection non-fold-honest documented** â€” PASS. Section "A bounded, recorded leak: hyperparameter selection is not fold-honest" states `chosen` was selected over all folds and the residual leak is "recorded here rather than hidden."
+- **Both fits through `fit_and_predict`, same seed/split, no own learner** â€” PASS. `fit_representation` â†’ `estimator.fit_and_predict`; `test_module_builds_no_learner_grid_or_folds` asserts no local grid/fold/`fit_and_predict` definitions and no `load_holdout`.
+- **Run record carries split SHA, seed, chosen HP, objective, feature count, both xgboost versions; SHA matches manifest** â€” PASS. Report provenance records seed, "xgboost 3.1.2 (compiled library; Python package 3.1.2)", chosen HP, objective; `verify` checks `split_sha256 == expected_split_sha` (audit `--verify` OK, "split hash verified").
+- **Baseline artifact recorded by path and T0_R0 HP** â€” PASS. Report: "Out-of-fold `m_hat_-i` predictions: `data/runs/T0_R0_predictions.parquet`" and "`T0_R0` chosen hyperparameters: `{â€¦}`, 136 boosting rounds, objective **binary**, seed **20260908**"; `test_build_t2_report_records_the_consumed_baseline`.
+- **`--verify` covers T2 and fails on missing T2 artifact** â€” PASS. `verify` iterates `TARGETS=(T0,T1,T2)`; T2 in `RECONSTRUCTION_TARGETS` so reconstruction is checked. Audit `--verify` output names "T2 R1 fitted".
+- **Test asserts `--verify` fails when T2 artifact removed** â€” PASS. `test_verify_fails_when_a_t2_run_record_is_removed` and `test_verify_fails_when_a_t2_reconstruction_is_removed`.
+- **`MANIFEST.sha256` unchanged** â€” PASS (by absence). Not among Section 4 produced/modified files; module touches only `data/runs/*` and reports.
+- **Ledger byte-identical (0 bytes)** â€” PASS. `verify` fails if ledger size â‰  0; audit `--verify` reports "holdout ledger untouched"; `test_build_t2_leaves_the_holdout_ledger_byte_identical`.
+- **T2_R0 refit byte-identical** â€” PASS. `test_refitting_t2_r0_is_byte_identical` asserts equal arrays and identical parquet bytes.
+- **No comparison among T0/T1/T2 or R0/R1** â€” PASS. Report: "**No comparison between R0 and R1, and none among T0, T1 and T2, is concluded from these numbers, in any direction.**"
+- **Tests pass; ruff + mypy --strict clean** â€” PASS. Audit: pytest "54 passed", ruff "All checks passed!", mypy "Success: no issues found".
+
+SUMMARY:
+Every acceptance criterion is supported by concrete evidence in the supplied `targets.py`, `test_deckbench_targets.py`, `t2_development_fits.md`, and the passing audit entry (pytest 54 passed, `--verify` OK, ruff/mypy clean). The card's central requirement â€” a cross-fitted learned baseline reused from `T0_R0`'s validated out-of-fold predictions, never the full-data refit â€” is enforced in code (`load_baseline` fail-closed validation, `aligned` totality check) and pinned by a non-vacuous test that asserts the OOF vector differs from the in-sample booster predictions. Development reconstruction, dual-panel scoring, clip counts, the R0 cross-fitting diagnostic, the documented non-fold-honest HP leak, and the extended `--verify` coverage are all present and tested. One note outside the reviewed scope: the environment git status shows `M src/deckbench/estimator.py`, which the card forbids modifying; however estimator.py is not among the task's produced/modified files (Section 4) and mypy/tests pass against the shared path, so this does not bear on the supplied deliverable. Verdict: PASS.
