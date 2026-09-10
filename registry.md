@@ -1,6 +1,6 @@
 ---
 project_id: hobkg
-status: MILESTONE_BENCHMARK-P1
+status: MILESTONE_BENCHMARK_P1
 default_mode: managed
 created_date: 2026-09-02
 updated_date: 2026-09-10
