@@ -1,13 +1,13 @@
 # HANDOFF — read this first
 
-**Last updated 2026-09-09.** Everything below the "KNOWLEDGE-GRAPH ARM" heading
+**Last updated 2026-09-10.** Everything below the "KNOWLEDGE-GRAPH ARM" heading
 dates from 2026-08-17 and describes the KG arm only; it is still accurate for
 that arm. Read this top section first — the project has a second arm and the
 active work is there.
 
 ---
 
-# CURRENT STATE (2026-09-09)
+# CURRENT STATE (2026-09-10)
 
 ## Two arms
 
@@ -19,10 +19,10 @@ needs attention unless you are asked for it.
 `docs/MTG_Deck-Strength_Modeling_Benchmark.md`, which **supersedes**
 `docs/Model_Building.md` in full (that file carries a superseded banner).
 
-## Where the modeling arm stands (2026-09-09)
+## Where the modeling arm stands (2026-09-10)
 
-**Cards 001-014 are all DONE.** Phase 1 is complete and phase 2's infrastructure
-plus its first target row are built. Milestone `benchmark-p1` is detected but
+**Cards 001-015 are all DONE.** Phase 1 is complete and phase 2's infrastructure
+plus its first two target rows are built. Milestone `benchmark-p1` is detected but
 **not yet confirmed** (`compact milestone <repo> benchmark-p1`).
 
 The frozen dataset, all pinned by `data/processed/MANIFEST.sha256` (tracked; the
@@ -53,14 +53,32 @@ unsealed path for ordinary fitting. Do not bypass either.
   013  determinism harness + the PYTHONHASHSEED fix                DONE
   014  mu per draft (fidelity correction) + T0 refits              DONE
 
-  015  T1  -- bump against the fixed skill proxy                   NOT WRITTEN
+  015  T1  -- bump against the fixed skill proxy                   DONE
+
   016  T2  -- bump against a CROSS-FITTED learned baseline         NOT WRITTEN
   017  the single holdout read, all models, paired bootstrap       NOT WRITTEN
 
-**016 carries the real risk.** Cross-fitting must nest inside the frozen 5-fold
-split so that no observation ever helps train the model producing its own
-baseline. Card 009's estimator was not designed for that and may need an
-out-of-fold path it does not have. Check before writing the card, not during.
+**016 is SMALLER than this file used to claim.** The old warning said card 009's
+estimator "may need an out-of-fold path it does not have". **It has one.**
+`estimator._out_of_fold_predictions` predicts every development row from a
+booster trained without that row's fold, using the frozen folds, and card 009's
+docstring names T1/T2 as the reason it exists. More: T2's baseline is **already
+fitted**. `m_hat_-i(S_i) = E[Y|S]` out-of-fold *is* `T0_R0`'s prediction vector
+(`data/runs/T0_R0_predictions.parquet`, 194,215 rows, binary objective, S =
+`[base_p]`, no NaN), and the full-data `m_hat(S)` for the final reconstruction
+is `data/runs/T0_R0.xgb`. Verified 2026-09-10.
+
+Three things card 016 must still decide, none of them blocking:
+1. **Hyperparameter selection is not fold-honest.** The out-of-fold *training*
+   is, but `chosen` was selected by CV over all dev folds, so fold k's baseline
+   comes from a booster trained without fold k under hyperparameters informed by
+   it. Section T2's requirement is about training; this is a mild standard leak.
+   Decide strict nested CV vs accept-and-document, in the card.
+2. **Two different `m_hat` are needed.** Out-of-fold for constructing the
+   training residuals, full-data refit for the final `p_hat = m_hat(S) + B_hat`.
+   Both exist; the card must not use one where the other belongs.
+3. **Reuse T0_R0's artifacts or refit?** Reuse is cheaper and identical by
+   construction, but couples 016 to card 011's outputs.
 
 **017 is the one that answers the question** -- six models, one holdout read,
 one ledger line, paired cluster bootstrap on the differences.
@@ -72,6 +90,24 @@ nothing, changes no state, and has caught five card-authoring defects: a check
 placed under the 60s validation cap, a manifest path that only resolved from a
 subdirectory, a missing manifest-coverage criterion, an undeclared file the card
 had to modify, and lint/type gates aimed at legacy code that was never clean.
+
+**A card whose work outlasts the executor's turn must finish it inline.**
+compact's executor is a single `claude -p` call. Card 015 wrote its code, ran
+its tests, launched the fit in the background and scheduled a wakeup — and when
+the executor returned, the pipeline went straight to checks and the orphaned fit
+died with the process. Never defer a card's real work to a wakeup that will
+never fire.
+
+**Verify a generated artifact against the artifact, not against another
+self-report.** Cards 011 and 014 recorded `xgboost_version` from the Python
+package's `__version__` while the compiled library that actually trained was a
+different version; the record and the wrapper agreed with each other because
+both came from the same wrong source, and a past session cross-checked exactly
+that way and was reassured. The booster on disk embeds the truth. Two related
+traps in the same family: information hand-added to a *generated* file (card
+014's banner in the T0 report) survives only until the next regeneration, and
+`ruff`/`mypy` are **not installed** in this environment despite earlier cards
+recording those gates as clean.
 
 **Verify absence, not presence.** Three review FAILs on card 014 came from
 checking that a corrected value was *present* rather than that the stale one was
@@ -107,13 +143,33 @@ require a hash of that artifact to be written during execution. Checks run
 
 ## Loose ends
 
+- **Open design question, recorded not resolved:** the doc's T1 target is not
+  the original's target. § T1 says "reproduce the original deck-bump formulation
+  as closely as possible" and defines `B_i = Y_i - p_base,i` on the raw outcome,
+  but the R being reproduced uses `p_post - base_p`, where `p_post` is a Beta
+  posterior-mean win rate per stopped run, not a {0,1} game outcome
+  (`scripts/R/04_real_inference_refactored.R` lines 311, 329). Card 015 matches
+  the **doc**; the doc departs from the artifact it names. Changing T1's target
+  would invalidate the card-015 fits, so this is a design decision, not a
+  correction. See LABNOTEBOOK [2026-09-10 12:10]. (T1's use of
+  `reg:squarederror` *is* faithful — the R uses it at line 502, which is why
+  swapping in an `base_margin` log-odds offset would be an improvement on the
+  original, not a reproduction of it.)
+
 - `control_plane` has local commits the operator assigned to another agent to
   investigate (`9a4b829` reviewer binary-file fix, `26eb892` a defects log entry).
   Its open defects are recorded in that repo's `SESSION_LOG.md`.
-- One `git status` entry survives a full suite run:
-  `data/graph_global/card_pair_projection_completeness.jsonl`. It is **raw
-  byte-identical** to its blob — a `text=auto` line-ending artifact, not a
-  content change. Verified twice. Do not chase it.
+- **`git status` is not evidence of change in this repo; `git diff` is.** A full
+  suite run can leave ~34 files "modified" (`data/graph_global/*`,
+  `data/review/*.jsonl`) that are byte-identical to their blobs — `* text=auto`
+  line-ending artifacts and stat-cache noise. This file used to warn about one
+  such file; it is much broader than that. Always confirm with
+  `git diff --name-only` before believing anything changed. (Card 013's
+  determinism fix is holding; these are not real writes.)
+- **The `modeling` extra pins `xgboost==3.1.2`** as of 2026-09-10. It is a pin,
+  not a floor, because the fitted boosters are compared across target
+  formulations in one irreversible holdout read. Changing it invalidates every
+  artifact under `data/runs/`.
 - The quarantined 2026-09-07 modeling pipeline is in `attic/haiku-2026-09-07/`.
   Its numbers are untrusted and must not be cited; its README explains why.
 

@@ -21,10 +21,19 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10"]
-# Not yet imported by anything under src/. Declared so the environment for
-# benchmark phase 2 is reproducible before the cards that need it are written,
-# and kept out of the base install so a graph-only checkout stays light.
-modeling = ["pandas>=2", "scikit-learn>=1.4", "xgboost>=2"]
+# Declared so the environment for benchmark phase 2 is reproducible, and kept
+# out of the base install so a graph-only checkout stays light.
+#
+# xgboost is PINNED, not floored. It is the benchmark's fixed learner (section
+# 8), and the fitted boosters are compared across target formulations in a
+# single irreversible holdout read (card 017), so the learner must not move
+# between the fits being compared. It moved once already: the T0 fits of cards
+# 011 and 014 were made under a 3.4.1 Python wrapper and did not reproduce when
+# refitted under 3.1.2 -- the grid search selected a different point. See the
+# LABNOTEBOOK entry [2026-09-10 11:20]. Recording the version made that drift
+# visible; this pin is what prevents it. Changing this pin invalidates every
+# fitted artifact under data/runs/ and must be a deliberate, recorded decision.
+modeling = ["pandas>=2", "scikit-learn>=1.4", "xgboost==3.1.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

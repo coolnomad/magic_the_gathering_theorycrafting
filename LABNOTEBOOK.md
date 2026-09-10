@@ -2219,3 +2219,54 @@ Refs: `reports/mu_fidelity_correction.md`; `src/deckbench/skill.py`; `tests/test
 **An open item this exposes.** The project has **no dependency pin**. `xgboost` is declared only as `>=2` in pyproject's `modeling` extra, and the environment demonstrably changed under the project between two cards. Recording the version faithfully makes such a change *visible*; it does not prevent it. Pinning the modeling dependencies is a separate decision and is left open here rather than made silently.
 
 Refs: `src/deckbench/estimator.py` (`_xgboost_library_version`, `ProvenanceUnavailable`); `src/deckbench/targets.py` (Regeneration history); `tests/test_deckbench_estimator.py`; `reports/t0_development_fits.md`; `reports/t1_development_fits.md`; `data/runs/T0_R0_run.json`, `T0_R1_run.json`, `T1_R0_run.json`, `T1_R1_run.json`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ 8); LABNOTEBOOK entry [2026-09-09 18:05] (card 014); [[modeling-benchmark-phase1-frozen]]
+
+## [2026-09-10 12:05] RESULT — T1, the bump against the fixed skill proxy (card 015)
+
+Recorded late. Card 015 completed on 2026-09-10 with a reviewer PASS (commit `cf8b0a2`) but wrote no notebook entry, so the second row of the benchmark's target axis was absent from the scientific record. This entry supplies it, using the artifacts as they stand after the provenance correction of [2026-09-10 11:20] — the T1 fits were unaffected by that correction and reproduced byte-identically under it, so the numbers below are the ones card 015 produced.
+
+**What T1 is.** The benchmark's second target formulation (§ T1, "Original bump"). Where T0 predicts the outcome directly, T1 predicts the residual left after subtracting the fixed historical proxy, then reconstructs a probability:
+
+    B_i     = won_i - base_p_i        (the target actually fitted)
+    p_hat_i = base_p_i + B_hat_i      (the probability reconstructed from it)
+
+fitted with the estimator's **regression** objective (`reg:squarederror`) against T0's binary one, through the same `deckbench.estimator.fit_and_predict`, the same grid, the same frozen folds, the same seed (20260908) and the same split hash (`ad7f8596…`). R0 (1 feature) and R1 (194) as in card 011. R0 fitted first and completely before any R1 assembly. `base_p` is not skill.
+
+**The estimand is the same as T0's.** `E[B | X] = E[Y | X] - base_p = p(X) - base_p`, so `base_p + B_hat` targets exactly the function `sigma(F)` targets under T0. T0 and T1 do not differ in what they estimate; they differ in loss (logistic vs squared), link (sigmoid vs identity, hence the possibility of leaving [0,1]), error weighting (Fisher `1/(p(1-p))` vs uniform), and noise model (`Var(B|X) = p(1-p)` is heteroscedastic, squared-error assumes otherwise). This is derivable from the definitions, not an empirical finding, and it is why H2 is a hypothesis about *recoverability*, not about identification.
+
+**Development metrics, diagnostic only.** Reconstructed-probability view (`bernoulli`), the only view comparable with T0:
+
+| Model | log_loss | brier | brier_skill | rmse | mae | auc | cal_int | cal_slope |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T1 / R0 | 0.666416 | 0.237153 | 0.037597 | 0.486984 | 0.474171 | 0.605422 | 0.002409 | 0.990592 |
+| T1 / R1 | 0.664523 | 0.236216 | 0.041401 | 0.486020 | 0.472797 | 0.613229 | 0.010340 | 1.005061 |
+
+Bump view (`continuous`, diagnostic for the T1 fit alone): R0 rmse 0.486984, mae 0.474181, r2 **0.010845**; R1 rmse 0.486028, mae 0.472887, r2 **0.014725**. Chosen hyperparameters: R0 `max_depth 4, eta 0.1, subsample 0.8, colsample_bytree 0.8, min_child_weight 1.0`, 135 rounds; R1 `max_depth 5, eta 0.05, subsample 0.8, colsample_bytree 0.8, min_child_weight 2.0`, 269 rounds. Fits 43.4 s and 320.8 s.
+
+**Only reconstructed-probability metrics are comparable with T0.** An R-squared on a bump and a log loss on a probability are not commensurable; the reconstructed probability is the one quantity both formulations produce for the same observation.
+
+**The additive decomposition of § 2 holds well on this data.** This is a genuine measurement and not contaminated by hyperparameter selection: `p_hat = base_p + B_hat` has no arithmetic guarantee of landing in [0,1], and it escaped for **358 of 194,215 rows (0.1843%) under R0** and **307 (0.1581%) under R1** — every excursion at the *low* end, none above 1, worst raw values -0.020578 (R0) and -0.191449 (R1). A large clipped fraction would have been a finding against the formulation; it is small.
+
+**The target is a genuine two-sided residual**, not the outcome relabelled: it takes both signs (85,483 negative, 108,732 positive) with range [-0.7309, 0.7518]. It is nonetheless *not* continuous — for each observation it takes exactly two values, `1 - base_p_i` on a win and `-base_p_i` on a loss, so T1 is a squared-error regression onto a per-observation-shifted Bernoulli.
+
+**R0 under a residual target is not degenerate.** `E[B | base_p] = p(base_p) - base_p`, identically zero if the proxy were perfectly calibrated, so `T1_R0` is a direct measurement of the proxy's **miscalibration**. Its r2 of 0.0108 says some exploitable structure remains, but very little.
+
+**Nothing is concluded.** These are out-of-fold development metrics computed on the rows whose folds selected the hyperparameters; they are contaminated and cannot stand in for a generalization estimate. No comparison between R0 and R1, and none between T0 and T1, is drawn — in any direction. H2's ordering (T2 > T1 > T0) is tested at card 017 on the untouched holdout, once, with the paired cluster bootstrap on the differences, and § 13 forbids reading a null incremental result as absence of a deck effect. The holdout was not opened: `cycle/holdout_ledger.jsonl` is 0 bytes before and after.
+
+**Observation held for card 017, not acted on.** T1's reconstructed metrics land on top of T0's (R0 identical to four decimals; R1 a hair worse), and the R1-over-R0 increment is nearly unchanged by the reformulation (0.00200 in log loss under T0, 0.00189 under T1). If that survives to the holdout it points against H2's T1 > T0 leg. It is recorded as a development observation only — it cannot settle the question, and the ordering is precisely what card 017 exists to measure.
+
+Refs: `reports/t1_development_fits.md`; `src/deckbench/targets.py`; `data/runs/T1_R0_run.json`, `T1_R1_run.json`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ 2, § T1, § 13, § 14 H2); `tasks/015.md`; LABNOTEBOOK entries [2026-09-08 22:30] (card 010 panel) and [2026-09-10 11:20] (provenance correction); [[modeling-benchmark-phase1-frozen]]
+
+## [2026-09-10 12:10] QUESTION — The doc's T1 target is not the original's target
+
+§ T1 is titled "Original bump" and says "reproduce the original deck-bump formulation as closely as possible", and card 015 reproduced **the doc's formula** faithfully: `B_i = Y_i - p_base,i` with `Y` the raw per-game outcome. The R implementation being reproduced does something different:
+
+    x[, p_post := clip01(posterior_mean_p(A, B))]   # line 311
+    x[, bump_obs := p_post - base_p]                # line 329
+
+`p_post` is a **Beta posterior-mean win rate per stopped run** (a draft's 7-wins/3-losses sequence), not a `{0,1}` game outcome. So the original's residual is (shrunk posterior win rate − proxy) at draft level; ours is (Bernoulli outcome − proxy) at game level.
+
+Two differences stack. The **unit** (draft vs game) was settled deliberately at card 008 and is not in question. The **outcome side** (shrunk posterior vs raw Bernoulli) is newly noticed and was not, as far as this notebook records, ever decided. Under squared loss both target a conditional mean, so the effect may be small — but `p_post` carries real shrinkage toward its prior, and "as closely as possible" is the doc's own standard.
+
+This is a tension **inside the benchmark document**, not a defect in card 015: the code matches the doc, and the doc departs from the artifact it names. Recorded rather than resolved, because changing T1's target would invalidate the card-015 fits and is a design decision, not a correction. Confirmed while checking whether T1's use of `reg:squarederror` was faithful — it is; the R uses `reg:squarederror` at line 502.
+
+Refs: `scripts/R/04_real_inference_refactored.R` (lines 299-342, 502); `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ T1); `reports/t1_development_fits.md`; LABNOTEBOOK entry [2026-09-10 12:05]
