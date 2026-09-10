@@ -22,8 +22,11 @@ needs attention unless you are asked for it.
 ## Where the modeling arm stands (2026-09-10)
 
 **Cards 001-015 are all DONE.** Phase 1 is complete and phase 2's infrastructure
-plus its first two target rows are built. Milestone `benchmark-p1` is detected but
-**not yet confirmed** (`compact milestone <repo> benchmark-p1`).
+plus its first two target rows are built. Milestone `benchmark-p1` was
+**confirmed 2026-09-10**; `registry.md` now carries
+`status: MILESTONE_BENCHMARK-P1`. (Confirming it is what rewrites that field --
+so if `registry.md` shows as modified and nobody edited it, that is compact, not
+a stray write. It arrived mid-commit here and was swept in by a `git add -A`.)
 
 The frozen dataset, all pinned by `data/processed/MANIFEST.sha256` (tracked; the
 parquet blobs are gitignored):
