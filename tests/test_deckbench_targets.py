@@ -1,4 +1,4 @@
-"""Tests for card 011's T0 R0/R1 fitting (:mod:`deckbench.targets`).
+"""Tests for the T0 (card 011) and T1 (card 015) R0/R1 fitting (:mod:`deckbench.targets`).
 
 The real fits run on 194,215 development rows and take minutes, far beyond the
 validation budget, so these tests never fit the real dataset. Two fixtures cover
@@ -6,16 +6,17 @@ the two things that need checking:
 
 * a **synthetic** wiring (a small split + skill + identity + model table in a
   temp dir) drives assembly, the fit-through-the-estimator path, the timing
-  probe, the panel, the budget decision, determinism, and ``verify`` end to end,
-  fast; and
+  probe, the panel, the budget decision, determinism, the T1 residual target and
+  its reconstruction, and ``verify`` end to end, fast; and
 * a **real-artifact** group, run only when the frozen phase-1 parquets are on
   disk, pins the two facts about the real data the card asserts -- R0 has exactly
   one feature ``base_p`` and R1 has exactly 194 -- and checks the tracked run
-  records the actual fit produced.
+  records the actual fits produced for both targets.
 
-The load-bearing guards are that both fits go through the estimator (no learner
-is built here), that no assembled or emitted row is a holdout row, and that the
-holdout ledger is byte-identical across a build.
+The load-bearing guards are that every fit goes through the estimator (no learner
+is built here), that T1 fits the residual under the regression objective, that no
+assembled or emitted row is a holdout row, and that the holdout ledger is
+byte-identical across a build.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from deckbench import estimator, targets
+from deckbench import estimator, evaluation, targets
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -155,6 +156,7 @@ class _Wired:
         )
         self.runs_dir = tmp_path / "runs"
         self.report_path = tmp_path / "report.md"
+        self.report_t1_path = tmp_path / "report_t1.md"
         self.ledger_path = tmp_path / "cycle" / "holdout_ledger.jsonl"
 
     @property
@@ -413,11 +415,182 @@ def test_build_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
 
 
 # --------------------------------------------------------------------------
-# verify(): passes on a good build, fails on a tampered one.
+# T1: the residual target, the regression objective, and the reconstruction.
 # --------------------------------------------------------------------------
 
 
-def test_verify_passes_on_a_good_build(wired: _Wired) -> None:
+def test_bump_target_has_both_signs_and_is_not_the_unit_interval(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    bump = targets.bump_target(a0)
+    # A genuine residual, not the raw outcome relabelled: both signs are present
+    # and it escapes [0, 1] on the low side (a loss below the proxy is negative).
+    assert bool((bump < 0.0).any())
+    assert bool((bump > 0.0).any())
+    assert float(bump.min()) < 0.0
+    # It is exactly won - base_p.
+    assert np.allclose(bump, a0.outcome - a0.base_p)
+
+
+def test_t1_fit_uses_the_regression_objective(
+    wired: _Wired, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[dict[str, object]] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        calls.append(kw)
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    a0 = targets.assemble(targets.R0, wired.sources)
+    run = targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1)
+    assert len(calls) == 1
+    assert calls[0]["objective"] == estimator.REGRESSION
+    assert calls[0]["target"] == targets.TARGET_T1
+    assert run.run_record["model_id"] == "T1_R0"
+    assert run.run_record["objective"] == "regression"
+    assert run.run_record["n_features"] == 1
+    # The regression prediction is a bump, not a probability: it takes both signs.
+    assert bool((run.predictions < 0.0).any())
+
+
+def test_build_t1_records_feature_counts_and_regression(wired: _Wired) -> None:
+    result = targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert result.r0.record["n_features"] == 1
+    assert result.r0.record["objective"] == "regression"
+    assert result.r0.record["target"] == "T1"
+    assert result.r1 is not None
+    assert result.r1.record["n_features"] == 1 + _N_CARDS
+    assert result.r1.record["objective"] == "regression"
+
+
+def test_t1_reconstruction_artifact_carries_bump_and_probability(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    recon_path = wired.runs_dir / "T1_R0_reconstruction.parquet"
+    assert recon_path.exists()
+    tbl = pq.read_table(recon_path)
+    for col in (
+        "obs_id",
+        targets.BUMP_COL,
+        targets.BASE_P_COL,
+        targets.RECON_RAW_COL,
+        targets.RECON_PROB_COL,
+    ):
+        assert col in tbl.column_names
+    ids = set(tbl.column("obs_id").to_pylist())
+    assert ids == wired.dev_obs_ids
+    assert ids.isdisjoint(wired.holdout_ids)
+    # The reconstruction is base_p + bump, clipped into the panel's unit interval.
+    base_p = np.asarray(tbl.column(targets.BASE_P_COL).to_numpy(zero_copy_only=False))
+    bump = np.asarray(tbl.column(targets.BUMP_COL).to_numpy(zero_copy_only=False))
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    prob = np.asarray(tbl.column(targets.RECON_PROB_COL).to_numpy(zero_copy_only=False))
+    assert np.allclose(raw, base_p + bump)
+    clip = evaluation.PROBABILITY_CLIP
+    assert float(prob.min()) >= clip
+    assert float(prob.max()) <= 1.0 - clip
+    assert np.allclose(prob, np.clip(raw, clip, 1.0 - clip))
+
+
+def test_t1_clip_counts_match_the_raw_reconstruction(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    tbl = pq.read_table(wired.runs_dir / "T1_R0_reconstruction.parquet")
+    raw = np.asarray(tbl.column(targets.RECON_RAW_COL).to_numpy(zero_copy_only=False))
+    clip = evaluation.PROBABILITY_CLIP
+    stats = result.recon_stats
+    assert stats.n_clipped_low == int(np.count_nonzero(raw < clip))
+    assert stats.n_clipped_high == int(np.count_nonzero(raw > 1.0 - clip))
+    assert stats.n_clipped == stats.n_clipped_low + stats.n_clipped_high
+    assert stats.n_rows == len(a0.obs_ids)
+
+
+def test_t1_scores_both_the_continuous_and_the_bernoulli_views(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    result = targets._fit_t1_model(a0, wired.sources, wired.runs_dir)
+    # Continuous view (on the bump): weighted r2, no probabilistic metrics.
+    assert "r2" in result.continuous_metrics
+    assert "log_loss" not in result.continuous_metrics
+    assert "auc" not in result.continuous_metrics
+    # Bernoulli view (on the reconstructed probability): no bare r2, a BSS instead.
+    assert "r2" not in result.reconstructed_metrics
+    assert "brier_skill_score" in result.reconstructed_metrics
+    for key in ("log_loss", "brier", "rmse", "mae", "auc", "cal_intercept", "cal_slope"):
+        assert key in result.reconstructed_metrics
+
+
+def test_refitting_t1_r0_is_byte_identical(wired: _Wired) -> None:
+    a0 = targets.assemble(targets.R0, wired.sources)
+    first = targets.fit_representation(a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1)
+    before = first.predictions_path.read_bytes()
+    second = targets.fit_representation(
+        a0, wired.sources, wired.runs_dir, target=targets.TARGET_T1
+    )
+    assert np.array_equal(first.predictions, second.predictions)
+    assert second.predictions_path.read_bytes() == before
+
+
+def test_build_t1_fits_r0_before_r1(wired: _Wired, monkeypatch: pytest.MonkeyPatch) -> None:
+    order: list[str] = []
+    real = estimator.fit_and_predict
+
+    def spy(*args: object, **kw: object) -> object:
+        order.append(str(kw["representation"]))
+        return real(*args, **kw)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(estimator, "fit_and_predict", spy)
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert order == [targets.R0, targets.R1]
+
+
+def test_t1_over_budget_stops_after_r0(wired: _Wired) -> None:
+    result = targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=0.0,
+        report_path=wired.report_t1_path,
+    )
+    assert result.r1_attempted is False
+    assert result.r1 is None
+    assert result.r1_skip_reason is not None
+    assert (wired.runs_dir / "T1_R0_run.json").exists()
+    assert not (wired.runs_dir / "T1_R1_run.json").exists()
+    text = wired.report_t1_path.read_text(encoding="utf-8")
+    assert "not attempted" in text
+    assert f"{result.probe.projected_seconds:.0f}s" in text
+
+
+def test_build_t1_leaves_the_holdout_ledger_byte_identical(wired: _Wired) -> None:
+    wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    wired.ledger_path.write_bytes(b"")  # the frozen state: zero reads
+    before = wired.ledger_path.read_bytes()
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
+    )
+    assert wired.ledger_path.read_bytes() == before
+
+
+# --------------------------------------------------------------------------
+# verify(): passes on a good build of both targets, fails on a tampered one.
+# --------------------------------------------------------------------------
+
+
+def _build_both(wired: _Wired) -> None:
+    """Fit T0 and T1 R0/R1 on the synthetic wiring, ledger frozen empty."""
     wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
     wired.ledger_path.write_bytes(b"")
     targets.build(
@@ -426,31 +599,57 @@ def test_verify_passes_on_a_good_build(wired: _Wired) -> None:
         budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
         report_path=wired.report_path,
     )
-    assert (
-        targets.verify(wired.sources, wired.runs_dir, wired.report_path, wired.ledger_path) == 0
+    targets.build_t1(
+        wired.sources,
+        wired.runs_dir,
+        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
+        report_path=wired.report_t1_path,
     )
+
+
+def _verify(wired: _Wired) -> int:
+    return targets.verify(
+        wired.sources,
+        wired.runs_dir,
+        wired.report_path,
+        wired.ledger_path,
+        wired.report_t1_path,
+    )
+
+
+def test_verify_passes_on_a_good_build(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
 
 
 def test_verify_fails_when_r0_is_missing(wired: _Wired) -> None:
     wired.runs_dir.mkdir(parents=True, exist_ok=True)
     wired.report_path.write_text("stub", encoding="utf-8")
-    assert (
-        targets.verify(wired.sources, wired.runs_dir, wired.report_path, wired.ledger_path) == 1
-    )
+    wired.report_t1_path.write_text("stub", encoding="utf-8")
+    assert _verify(wired) == 1
 
 
 def test_verify_fails_when_ledger_is_dirty(wired: _Wired) -> None:
-    targets.build(
-        wired.sources,
-        wired.runs_dir,
-        budget_seconds=targets.R1_FIT_BUDGET_SECONDS,
-        report_path=wired.report_path,
-    )
+    _build_both(wired)
     wired.ledger_path.parent.mkdir(parents=True, exist_ok=True)
     wired.ledger_path.write_text('{"card_id": "099"}\n', encoding="utf-8")
-    assert (
-        targets.verify(wired.sources, wired.runs_dir, wired.report_path, wired.ledger_path) == 1
-    )
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t1_run_record_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0  # the build is good to begin with
+    (wired.runs_dir / "T1_R0_run.json").unlink()
+    assert _verify(wired) == 1
+
+
+def test_verify_fails_when_a_t1_reconstruction_is_removed(wired: _Wired) -> None:
+    _build_both(wired)
+    assert _verify(wired) == 0
+    # Removing only the reconstruction artifact -- the run record and predictions
+    # still present -- must still fail: the check is not vacuous.
+    (wired.runs_dir / "T1_R1_reconstruction.parquet").unlink()
+    assert _verify(wired) == 1
 
 
 # --------------------------------------------------------------------------
@@ -490,3 +689,23 @@ def test_real_run_records_are_present_and_consistent() -> None:
         r1 = json.loads(r1_path.read_text(encoding="utf-8"))
         assert r1["n_features"] == 194
         assert r1["representation"] == "R1"
+
+
+@requires_real
+def test_real_t1_run_records_are_present_and_consistent() -> None:
+    r0_path = targets.RUNS_DIR / "T1_R0_run.json"
+    if not r0_path.exists():
+        pytest.skip("T1 run records not produced yet (run `python -m deckbench.targets --fit-t1`)")
+    r0 = json.loads(r0_path.read_text(encoding="utf-8"))
+    assert r0["n_features"] == 1
+    assert r0["target"] == "T1"
+    assert r0["representation"] == "R0"
+    assert r0["objective"] == "regression"
+    expected_sha = estimator.verify_split_hash(_REAL.split_parquet, _REAL.split_manifest)
+    assert r0["split_sha256"] == expected_sha
+    r1_path = targets.RUNS_DIR / "T1_R1_run.json"
+    if r1_path.exists():
+        r1 = json.loads(r1_path.read_text(encoding="utf-8"))
+        assert r1["n_features"] == 194
+        assert r1["representation"] == "R1"
+        assert r1["objective"] == "regression"
