@@ -1,9 +1,9 @@
 ---
 project_id: hobkg
-status: ACTIVE
+status: MILESTONE_BENCHMARK-P1
 default_mode: managed
 created_date: 2026-09-02
-updated_date: 2026-09-07
+updated_date: 2026-09-10
 cli: claude
 timeout_minutes: 120
 ---

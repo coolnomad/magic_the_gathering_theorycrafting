@@ -143,18 +143,23 @@ require a hash of that artifact to be written during execution. Checks run
 
 ## Loose ends
 
-- **Open design question, recorded not resolved:** the doc's T1 target is not
-  the original's target. § T1 says "reproduce the original deck-bump formulation
-  as closely as possible" and defines `B_i = Y_i - p_base,i` on the raw outcome,
-  but the R being reproduced uses `p_post - base_p`, where `p_post` is a Beta
-  posterior-mean win rate per stopped run, not a {0,1} game outcome
-  (`scripts/R/04_real_inference_refactored.R` lines 311, 329). Card 015 matches
-  the **doc**; the doc departs from the artifact it names. Changing T1's target
-  would invalidate the card-015 fits, so this is a design decision, not a
-  correction. See LABNOTEBOOK [2026-09-10 12:10]. (T1's use of
-  `reg:squarederror` *is* faithful — the R uses it at line 502, which is why
-  swapping in an `base_margin` log-odds offset would be an improvement on the
-  original, not a reproduction of it.)
+- **SETTLED 2026-09-10 — T1's target stays `won - base_p`. Do not reopen it.**
+  § T1 is titled "Original bump" but the R it names builds its residual as
+  `p_post - base_p`, a Beta posterior-mean win rate per stopped run, not a {0,1}
+  game outcome (`scripts/R/04_real_inference_refactored.R` lines 311, 329). Card
+  015 matches the **doc**; the doc departs from the artifact it names. Accepted
+  deliberately: the doc is the spec, card 008 already chose the game as the unit
+  against the R's draft level, and changing the target now would invalidate the
+  card-015 fits and move T2's baseline before the single holdout read. See
+  LABNOTEBOOK [2026-09-10 12:40] for the full reasoning.
+  **Two things this obliges.** (1) Never describe T1 as a faithful reproduction
+  of the original bump — it reproduces the arithmetic form on a *different
+  outcome quantity and unit*. (2) T1 changes target, loss and link together, so
+  an H2 T0-vs-T1 difference is a difference between **formulations as packages**;
+  card 017 must not attribute it to the subtraction alone. (Substituting a
+  `base_margin` log-odds offset to isolate the subtraction was considered and
+  **rejected** — the R uses `reg:squarederror` at line 502, so that would be an
+  improvement on the original, not a reproduction.)
 
 - `control_plane` has local commits the operator assigned to another agent to
   investigate (`9a4b829` reviewer binary-file fix, `26eb892` a defects log entry).

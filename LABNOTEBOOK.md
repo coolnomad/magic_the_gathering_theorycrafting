@@ -2270,3 +2270,21 @@ Two differences stack. The **unit** (draft vs game) was settled deliberately at 
 This is a tension **inside the benchmark document**, not a defect in card 015: the code matches the doc, and the doc departs from the artifact it names. Recorded rather than resolved, because changing T1's target would invalidate the card-015 fits and is a design decision, not a correction. Confirmed while checking whether T1's use of `reg:squarederror` was faithful — it is; the R uses `reg:squarederror` at line 502.
 
 Refs: `scripts/R/04_real_inference_refactored.R` (lines 299-342, 502); `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ T1); `reports/t1_development_fits.md`; LABNOTEBOOK entry [2026-09-10 12:05]
+
+## [2026-09-10 12:40] DECISION — T1's target stays `won - base_p`; the fidelity gap is accepted and recorded
+
+Closes the QUESTION of [2026-09-10 12:10]. **T1 is not changed.** The target remains `B_i = won_i - base_p_i` on the raw per-game outcome, as § T1 of the benchmark defines it and as card 015 implemented it. The card-015 fits stand; no refit, no new target row, and no change to what card 017 will read.
+
+**What is being accepted.** § T1 is titled "Original bump" and asks to "reproduce the original deck-bump formulation as closely as possible", but the R implementation it names builds its residual as `p_post - base_p`, where `p_post` is a Beta posterior-mean win rate per stopped run (`scripts/R/04_real_inference_refactored.R` lines 311, 329) rather than a `{0,1}` game outcome. So T1 as specified and built is *not* a literal reproduction of the original on the outcome side. That gap is now a known, recorded property of the T1 row rather than an unnoticed defect.
+
+**Why accept it.** Three reasons, in order of weight.
+
+1. **The doc is the specification, and the code matches it.** Card 015 implemented § T1 exactly. Reopening the target would mean editing the benchmark document mid-phase, which is the kind of moving-goalpost the frozen-design discipline exists to prevent.
+2. **The unit was already settled against the original.** Card 008 chose the **game** as the observational unit; the R works at draft/event level. `p_post` is a draft-level quantity, so adopting it would mean either reverting card 008's population decision or inventing a per-game analogue that the original never had — a new construction, not a closer reproduction.
+3. **The cost of changing is asymmetric and lands on the irreversible step.** Changing T1's target invalidates both card-015 fits and forces T2 to be defined against a moved baseline, all before the single holdout read. The benefit is fidelity on a component whose effect under squared loss is plausibly small, since both targets estimate a conditional mean and the difference is shrinkage on the outcome side.
+
+**What this does *not* license.** T1 must not be described anywhere as a faithful reproduction of the original bump. It reproduces the original's *arithmetic form* (subtract the fixed proxy, fit the residual under `reg:squarederror` — the R uses that objective at line 502) on a **different outcome quantity and a different unit**. Reports and any card-017 write-up should say that plainly. Section 3's "reproduce, not improve" requirement still binds the **skill proxy**, which is unaffected by this decision.
+
+**Related, and settled by the same reasoning.** Substituting an `base_margin` log-odds offset for the additive reconstruction — which would keep T0's logistic loss and link and make the T0/T1 contrast isolate the subtraction — is **rejected for T1**. The original uses squared error on the residual, so that substitution is an improvement on the original rather than a reproduction of it. The methodological point it was raised to address stands and is recorded here: because T1 changes loss, link and target together, an H2 T0-vs-T1 difference is a difference between **formulations as packages**, not evidence about residualization in isolation. Card 017's write-up must not attribute such a difference to the subtraction alone.
+
+Refs: LABNOTEBOOK entries [2026-09-10 12:10] (the QUESTION this closes) and [2026-09-10 12:05] (card 015 results); `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ 3, § T1, § 14 H2); `scripts/R/04_real_inference_refactored.R` (lines 311, 329, 502); `reports/t1_development_fits.md`; [[modeling-benchmark-phase1-frozen]]
