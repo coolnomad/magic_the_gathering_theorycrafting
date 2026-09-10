@@ -23,16 +23,16 @@ It is fair to ask what a model can learn about `won - base_p` when its only feat
 
 R0 was fitted **first and completely**, reconstructed, and its run record written to disk, **before any R1 assembly or fitting began** -- the same de-risking order T0 used, so the real path is proven where failure costs nothing.
 
-- **R0 fit** (T1_R0): **52.5 s**, 194215 development rows x 1 feature.
-- **R1 fit** (T1_R1): **406.0 s**, 194215 development rows x 194 features.
+- **R0 fit** (T1_R0): **43.4 s**, 194215 development rows x 1 feature.
+- **R1 fit** (T1_R1): **320.8 s**, 194215 development rows x 194 features.
 
 ## Timing probe and the budget decision
 
 Before the full R1 grid search, a probe fits a **single grid point on a single fold** at the capped iteration count (no early stopping), under the regression objective T1 uses.
 
-- Probe (one grid point, one fold): **17.4 s**
+- Probe (one grid point, one fold): **14.0 s**
 - Single-booster fits in the full search: **21** (3 grid x 5 folds + 5 out-of-fold + 1 refit)
-- Projected full-search total: **365.9 s** (6.1 min)
+- Projected full-search total: **293.0 s** (4.9 min)
 - Executor budget for R1: **5400 s** (90.0 min)
 
 The projection was within budget, so the full R1 grid search was run. The probe is only a rough guide, not a precise predictor; the one decision it exists to make is whether the search fits inside the budget.
@@ -71,7 +71,7 @@ The card-010 panel is applied **twice** per model. The **continuous** view score
 ## Provenance
 
 - Split SHA256 (verified before each fit): `ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4`
-- Seed: **20260908**; xgboost **3.1.2**, single-threaded (byte-identical determinism).
+- Seed: **20260908**; xgboost **3.1.2** (compiled library; Python package **3.1.2**), single-threaded (byte-identical determinism).
 - Objective: **regression** (regression), for the continuous residual target -- distinct from T0's binary objective.
 - R0 chosen hyperparameters: `{'max_depth': 4, 'eta': 0.1, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 1.0}`, 135 boosting rounds.
 - R1 chosen hyperparameters: `{'max_depth': 5, 'eta': 0.05, 'subsample': 0.8, 'colsample_bytree': 0.8, 'min_child_weight': 2.0}`, 269 boosting rounds.

@@ -397,3 +397,79 @@ def test_no_metric_leaks_into_the_run_record(wired: _Wired) -> None:
 
 def test_selftest_runs_and_returns_zero() -> None:
     assert estimator.main(["--selftest"]) == 0
+
+
+# --------------------------------------------------------------------------
+# Provenance: the recorded xgboost version is the library's, not the wrapper's.
+#
+# Cards 011 and 014 wrote `xgboost_version: "3.4.1"` into run records whose
+# boosters embed 3.1.2, because the field was filled from the Python package's
+# `__version__` while a mismatched wrapper sat over the real library. That false
+# value survived two reviewer passes because nothing tested it. These do.
+# --------------------------------------------------------------------------
+
+
+def test_recorded_xgboost_version_is_the_compiled_library_not_the_wrapper(
+    wired: _Wired, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A wrapper lying about its version must not reach the run record."""
+    xgb = estimator._import_xgboost()
+    library = estimator._xgboost_library_version(xgb)
+    monkeypatch.setattr(xgb, "__version__", "99.99.99-not-the-library")
+
+    result = estimator.fit_and_predict(
+        wired.features, wired.y_binary, **wired.kwargs(model_id="prov_wrapper")
+    )
+
+    assert result.run_record["xgboost_version"] == library
+    assert result.run_record["xgboost_version"] != "99.99.99-not-the-library"
+    # The wrapper's claim is kept, but in its own field, where a disagreement
+    # between the two is visible instead of silently overwriting the truth.
+    assert result.run_record["xgboost_python_version"] == "99.99.99-not-the-library"
+
+
+def test_library_version_matches_the_version_embedded_in_a_saved_booster(
+    wired: _Wired,
+) -> None:
+    """The recorded version is the one the booster on disk was written by.
+
+    This is the check that would have caught the original defect: it compares
+    the run record against the artifact rather than against another self-report.
+    """
+    xgb = estimator._import_xgboost()
+    result = estimator.fit_and_predict(
+        wired.features, wired.y_binary, **wired.kwargs(model_id="prov_booster")
+    )
+
+    booster = xgb.Booster()
+    booster.load_model(str(result.model_path))
+    embedded = json.loads(bytes(booster.save_raw(raw_format="json")).decode())["version"]
+
+    assert result.run_record["xgboost_version"] == ".".join(str(n) for n in embedded[:3])
+
+
+def test_committed_run_records_agree_with_their_boosters_where_present() -> None:
+    """Every tracked run record must name the library that built its booster.
+
+    The booster blobs are gitignored, so this is skipped in a fresh checkout and
+    is a real check only where a fit has been run.
+    """
+    import glob
+
+    xgb = estimator._import_xgboost()
+    checked = 0
+    for record_path in sorted(glob.glob("data/runs/*_run.json")):
+        record = json.loads(Path(record_path).read_text(encoding="utf-8"))
+        model_path = Path(record["model_path"])
+        if not model_path.exists():
+            continue
+        booster = xgb.Booster()
+        booster.load_model(str(model_path))
+        embedded = json.loads(bytes(booster.save_raw(raw_format="json")).decode())["version"]
+        assert record["xgboost_version"] == ".".join(str(n) for n in embedded[:3]), (
+            f"{record_path} records {record['xgboost_version']!r} but its booster "
+            f"was written by {embedded}"
+        )
+        checked += 1
+    if checked == 0:
+        pytest.skip("no fitted boosters on disk in this checkout")

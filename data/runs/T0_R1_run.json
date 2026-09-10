@@ -10,12 +10,13 @@
   "model_path": "data/runs/T0_R1.xgb",
   "n_dev_rows": 194215,
   "n_features": 194,
-  "num_boost_round": 267,
+  "num_boost_round": 268,
   "objective": "binary",
   "predictions_path": "data/runs/T0_R1_predictions.parquet",
   "representation": "R1",
   "seed": 20260908,
   "split_sha256": "ad7f8596f5e71c0aa4ce0959c239ef863e72977feadcb7a53d2a5ab0bd34cad4",
   "target": "T0",
-  "xgboost_version": "3.4.1"
+  "xgboost_python_version": "3.1.2",
+  "xgboost_version": "3.1.2"
 }

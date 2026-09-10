@@ -855,6 +855,36 @@ def _report_lines(result: BuildResult) -> list[str]:
         "from the inherited implementation (card 005). It is not a measurement of "
         "player skill and is not described as one here.",
         "",
+        "## Regeneration history",
+        "",
+        "These fits have been regenerated twice since card 011 first produced "
+        "them. Neither regeneration changed the learner, the grid, the folds, the "
+        "seed, or the population, and neither opened the holdout. Both are "
+        "recorded here because the numbers below moved each time, and a metric "
+        "that moves without a stated reason is not attributable.",
+        "",
+        "1. **Card 014 -- skill-proxy fidelity correction.** The proxy's shrinkage "
+        "target `mu` changed from a per-game mean to a per-draft mean, to match "
+        "the R implementation being reproduced "
+        "(`scripts/R/04_real_inference_refactored.R` line 324; `mu` 0.546211 -> "
+        "0.533339). R0 is `[base_p]` and R1 contains it, so both consumed the "
+        "changed column and were refitted. See `reports/mu_fidelity_correction.md`.",
+        "",
+        "2. **xgboost provenance correction.** Cards 011 and 014 recorded "
+        "`xgboost_version` from the Python package's `__version__`, which read "
+        "`3.4.1` while the compiled library that actually trained the boosters "
+        "was `3.1.2` -- a false provenance string that survived two reviewer "
+        "passes. The run record now takes the version from the library's own "
+        "`XGBoostVersion()` and records the Python wrapper's version separately. "
+        "Refitting under a matched 3.1.2 wrapper did **not** reproduce the earlier "
+        "T0 boosters: R0 selected a different grid point (`max_depth` 3 -> 4, "
+        "`subsample` and `colsample_bytree` 1.0 -> 0.8) and 367 -> 136 rounds, and "
+        "the panel metrics moved in the fifth decimal. The T1 fits of card 015, "
+        "which were produced under a matched wrapper, reproduced byte-identically "
+        "in the same exercise. The artifacts described below are the reproducible "
+        "ones; the card-011 and card-014 T0 artifacts were not reproducible in "
+        "this environment and have been replaced.",
+        "",
         "## Fit order and elapsed time",
         "",
         "R0 was fitted **first and completely**, and its run record written to "
@@ -945,7 +975,9 @@ def _report_lines(result: BuildResult) -> list[str]:
         "## Provenance",
         "",
         f"- Split SHA256 (verified before each fit): `{r0_rec['split_sha256']}`",
-        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}**, "
+        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}** "
+        f"(compiled library; Python package "
+        f"**{r0_rec.get('xgboost_python_version', 'not recorded')}**), "
         "single-threaded (byte-identical determinism).",
         f"- R0 chosen hyperparameters: `{r0_rec['chosen_hyperparameters']}`, "
         f"{r0_rec['num_boost_round']} boosting rounds.",
@@ -1182,7 +1214,9 @@ def _t1_report_lines(result: T1BuildResult) -> list[str]:
         "## Provenance",
         "",
         f"- Split SHA256 (verified before each fit): `{r0_rec['split_sha256']}`",
-        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}**, "
+        f"- Seed: **{r0_rec['seed']}**; xgboost **{r0_rec['xgboost_version']}** "
+        f"(compiled library; Python package "
+        f"**{r0_rec.get('xgboost_python_version', 'not recorded')}**), "
         "single-threaded (byte-identical determinism).",
         f"- Objective: **{r0_rec['objective']}** (regression), for the continuous "
         "residual target -- distinct from T0's binary objective.",

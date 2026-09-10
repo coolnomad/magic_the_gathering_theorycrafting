@@ -63,6 +63,7 @@ holdout row -- touching no tracked file.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import json
 import tempfile
@@ -157,6 +158,16 @@ class MissingDependency(RuntimeError):
     """
 
 
+class ProvenanceUnavailable(RuntimeError):
+    """Raised when the compiled xgboost library will not report its version.
+
+    Recorded provenance that is silently wrong is worse than a fit that stops,
+    so this fails closed rather than writing a placeholder. See
+    :func:`_xgboost_library_version` for why the Python package's
+    ``__version__`` is not an acceptable substitute.
+    """
+
+
 class SplitHashMismatch(RuntimeError):
     """Raised when the split parquet does not match the manifest's pinned hash.
 
@@ -198,6 +209,46 @@ def _import_xgboost() -> Any:
             "`pip install 'xgboost>=2'` (declared in pyproject's `modeling` extra)."
         ) from exc
     return xgb
+
+
+def _xgboost_library_version(xgb: Any) -> str:
+    """Return the version of the compiled ``libxgboost`` that will train.
+
+    ``xgb.__version__`` is the **Python package's** self-reported string, and it
+    is not necessarily the version of the native library that actually builds
+    the model. The two disagreed in this project already: the T0 run records
+    written by cards 011 and 014 recorded ``3.4.1`` while the boosters they
+    describe embed ``3.1.2``, because a 3.4.1 wrapper sat over a 3.1.2 library.
+    That false provenance survived two reviewer passes.
+
+    The library is what trains, so the library version is what
+    ``xgboost_version`` means in a run record. The wrapper version is recorded
+    beside it as ``xgboost_python_version`` rather than discarded: the Python
+    side builds the DMatrix and drives the boosting loop, so it can move results
+    too, and a disagreement between the two fields is itself the signal that
+    caught this.
+    """
+    try:
+        from xgboost.core import _LIB
+    except ImportError as exc:  # pragma: no cover - environment-dependent
+        raise ProvenanceUnavailable(
+            "xgboost imported but its native library handle is unavailable, so "
+            "the version that would train the model cannot be recorded."
+        ) from exc
+
+    major, minor, patch = ctypes.c_int(), ctypes.c_int(), ctypes.c_int()
+    try:
+        _LIB.XGBoostVersion(
+            ctypes.byref(major), ctypes.byref(minor), ctypes.byref(patch)
+        )
+    except AttributeError as exc:  # pragma: no cover - environment-dependent
+        raise ProvenanceUnavailable(
+            "libxgboost does not export XGBoostVersion, so the training "
+            "library's version cannot be recorded. Refusing to fit rather than "
+            f"record the Python package's {xgb.__version__!r} as if it were the "
+            "library's."
+        ) from exc
+    return f"{major.value}.{minor.value}.{patch.value}"
 
 
 def _sha256(path: Path) -> str:
@@ -554,7 +605,8 @@ def fit_and_predict(
         "num_boost_round": int(chosen.num_boost_round),
         "predictions_path": _rel(predictions_path),
         "model_path": _rel(model_path),
-        "xgboost_version": str(xgb.__version__),
+        "xgboost_version": _xgboost_library_version(xgb),
+        "xgboost_python_version": str(xgb.__version__),
     }
     run_record_path.write_text(
         json.dumps(run_record, indent=2, sort_keys=True) + "\n",
