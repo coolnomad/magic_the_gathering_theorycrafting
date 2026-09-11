@@ -21,10 +21,16 @@ needs attention unless you are asked for it.
 
 ## Where the modeling arm stands (2026-09-10)
 
-**Cards 001-015 are all DONE.** Phase 1 is complete and phase 2's infrastructure
-plus its first two target rows are built. Milestone `benchmark-p1` was
-**confirmed 2026-09-10**; `registry.md` now carries
-`status: MILESTONE_BENCHMARK-P1`. (Confirming it is what rewrites that field --
+**Cards 001-017 are all DONE. PHASE 2 IS COMPLETE.** All three target rows are
+fitted, the holdout has been read once, and the benchmark has its answer.
+Milestone `benchmark-p1` was **confirmed 2026-09-10**; `registry.md` carries
+`status: MILESTONE_BENCHMARK_P1`. **Note the underscore:** `compact milestone`
+normalises its tag with `tag.upper()` only, but the validator is
+`^MILESTONE_[A-Z0-9_]+$` with no hyphen allowed, so confirming `benchmark-p1`
+wrote `MILESTONE_BENCHMARK-P1`, which compact's own parser then rejects on every
+read -- bricking all card operations until repaired by hand. **Confirming
+`benchmark-p2` will do this again.** (Confirming a milestone is what rewrites
+that field --
 so if `registry.md` shows as modified and nobody edited it, that is compact, not
 a stray write. It arrived mid-commit here and was swept in by a `git add -A`.)
 
@@ -59,22 +65,39 @@ unsealed path for ordinary fitting. Do not bypass either.
   015  T1  -- bump against the fixed skill proxy                   DONE
   016  T2  -- bump against a CROSS-FITTED learned baseline         DONE
 
-  017  the single holdout read, all models, paired bootstrap       NOT WRITTEN
+  017  the single holdout read, all models, paired bootstrap       DONE
 
-**All three target rows are fitted.** Card 016 is DONE (reviewer PASS). The old
-warning that card 009's estimator "may need an out-of-fold path it does not
-have" was **wrong** -- `_out_of_fold_predictions` has always existed and card
-009's docstring names T1/T2 as why. T2 reuses `T0_R0` as its cross-fitted
-baseline rather than refitting: `m_hat_-i(S_i) = E[Y|S]` out of fold *is*
-`T0_R0_predictions.parquet`, and `T0_R0.xgb` is the full-data `m_hat` that card
-017 will use on holdout rows.
+**THE HOLDOUT HAS BEEN READ.** `cycle/holdout_ledger.jsonl` is no longer 0
+bytes -- it holds exactly one line, card 017, `is_repeat: false`,
+2026-09-11T04:11:18Z. **It cannot be read again.** Any future card that wants an
+honest generalisation estimate needs a fresh split, or must say plainly that it
+is reusing a partition that has been read. This is the single most important
+fact on this page.
 
-**017 is now the only thing left, and it is the irreversible one** -- six models,
-one holdout read, one ledger line, paired cluster bootstrap on the differences.
-Development-side observations recorded so far (contaminated, settling nothing):
-T2_R0's cross-fitting diagnostic is flat at zero (r2 -0.000037) against T1_R0's
-0.0108, so the learned baseline is better calibrated than the fixed proxy; and
-the R1-minus-R0 Brier-skill gap orders T2 > T0 > T1, against H2's T2 > T1 > T0.
+**What the read found** (`reports/holdout_read.md`, LABNOTEBOOK [2026-09-11 04:11]):
+
+1. **Card identity is detectable.** All three within-target `R1 - R0` increments
+   exclude zero: Brier-skill +0.00465 / +0.00478 / +0.00491 for T0 / T1 / T2,
+   every metric agreeing in sign. Skill-only reaches ~0.0323 Brier skill,
+   skill-plus-identity ~0.0372 -- so of the small share of a game outcome that is
+   predictable at all under this learner, roughly **87% goes to the skill proxy
+   and 13% to card identity**. AUC 0.598 -> 0.607.
+2. **H2 is NOT supported.** All nine difference-of-increment intervals include
+   zero. Point estimates do fall in the predicted T2 > T1 > T0 order, but the
+   uncertainty swamps it. Residualisation neither helped nor hurt detectably.
+3. **H1 is supported.** Skill dominates.
+
+**This is not a causal claim, and section 13 cuts both ways.** The ~13% is a
+floor on detectability under R1, not a ceiling on how much deck composition
+matters. Card identity as normalised fractions is a crude representation; phase
+3's R2 (knowledge graph) and R3 (game script) exist because a functional
+representation may recover more from the same games.
+
+**The development metrics got the ordering wrong**, which is why they were
+sealed off: development ordered T2 > T0 > T1, holdout orders T2 > T1 > T0.
+Development also overstated the level -- T0_R1 Brier skill 0.041720 on
+development against **0.036989** on holdout, optimistic by about the size of the
+whole deck effect.
 
 ## Two things that keep going wrong -- read before authoring a card
 
@@ -83,6 +106,24 @@ nothing, changes no state, and has caught five card-authoring defects: a check
 placed under the 60s validation cap, a manifest path that only resolved from a
 subdirectory, a missing manifest-coverage criterion, an undeclared file the card
 had to modify, and lint/type gates aimed at legacy code that was never clean.
+
+**Estimate a card's runtime BEFORE writing it; if the work outlasts an executor
+turn, put the action outside compact.** Card 017 demanded the executor finish
+inline and the work simply did not fit: scoring six models over 194,215 rows
+takes 8 s, but the 1000-replicate bootstrap over them takes **1581 s**. The
+executor backgrounded it and was orphaned (seal intact -- the safe failure), and
+the fault was the card's, not the executor's. Resampling dominates the scoring it
+wraps by two orders of magnitude, so measure the cheap part and scale. The
+sanctioned pattern is: perform the long action in a session, then `compact retry`
+-- which does not invoke the executor, re-runs checks against the working tree,
+and whose own success note reads "Retry completed successfully after manual
+operator fixes". BLOCKED is the state that expects exactly this.
+
+**The 60 s Output Validation cap is real and its failure looks like success.**
+Card 017 put a 65 s test run under it and the audit recorded
+`[FAIL] ... (60.1 s, exit code 0)` -- a timeout serialised as exit code 0,
+sitting on a FAIL line. Moved to `## Checks` it ran 73.5 s and passed. Slow
+commands go in Checks; the card now says so inline so nobody moves it back.
 
 **A card whose work outlasts the executor's turn must finish it inline.**
 compact's executor is a single `claude -p` call. Card 015 wrote its code, ran
