@@ -99,6 +99,92 @@ Development also overstated the level -- T0_R1 Brier skill 0.041720 on
 development against **0.036989** on holdout, optimistic by about the size of the
 whole deck effect.
 
+## PHASE 3 CANNOT START UNTIL THIS IS DECIDED
+
+Spec section 16 puts phase 3 next: the representation benchmark,
+`D_identity -> Z_KG -> Z_script -> combined` (R2-R5). **It is blocked on one
+decision, and the decision must be made before any R2 feature is computed** --
+because if a new split is being cut, it has to be cut before anyone looks at
+anything.
+
+### The holdout is spent, and what that actually means
+
+It was read once, for six models, on comparisons declared in the card before the
+seal broke. That is the cheapest possible way to spend a holdout: no iteration,
+no peeking, no metric shopping. But **what leaked is real** -- we now know the
+deck increment is about 0.005 and that target formulation does not matter.
+
+The damage from a holdout is not done by reading it. It is done by **iterating
+against it**: build R2, see it underperform, tweak, re-evaluate. Do that four
+times and the partition is training data wearing a disguise.
+
+So the status is not "destroyed", it is **"no longer independent of what we
+know"**. Any future estimate from it is optimistically biased by an amount
+nobody can quantify, and the bias grows with every further look.
+
+### The four routes, and what each costs
+
+**A -- Re-split the development partition.** 194,215 games across 34,482 drafts
+is plenty to carve dev2/holdout2. **Catch:** to compare R1 against R2 fairly you
+must **refit R0/R1 on dev2 as well**, because the current T0/T1/T2 models saw all
+of dev. Phase 2's numbers would not transfer; you would re-run six fits to get a
+comparable baseline. Cheap in compute and clean. Phase 2's conclusions still
+stand as published -- they were honestly obtained on a sealed partition.
+
+**B -- Use a different set entirely.** A fresh set is a genuinely virgin holdout,
+and for this question it is scientifically *stronger*, not merely more
+convenient: a knowledge-graph or game-script representation **should transfer
+across sets**, while card identity cannot -- the 193 features do not exist in
+another set. That converts "does R2 beat R1" into a generalisation question,
+which is what a functional representation is actually claiming. **Catch:** the KG
+is frozen on HOB, so R2 would need the graph extended. Ask whether that is on the
+table, because if it is, it changes what phase 3 should be.
+
+**C -- Reuse it, declared.** Second ledger line, state plainly that the estimate
+is optimistically biased, apply a multiplicity correction. Defensible if honest;
+most published work does this without saying so, and the ledger exists to make it
+visible.
+
+**D -- Pre-register, and do this regardless of A/B/C.** The leak comes from
+*choices made after seeing results*. Fix R2's features, grid and comparisons in a
+card before anything touches a holdout, and never revise them afterward. That
+removes most of the adaptive-analysis problem even on a reused partition.
+
+### Recommendation
+
+**D always. Then A as the default, B if the KG arm can be extended.**
+
+### The one thing not to do
+
+Do not fit R2 on the current dev, evaluate on the current holdout, and report the
+interval as if it meant what card 017's intervals meant. **Nothing in the tooling
+will stop you** -- `load_holdout` will simply append a second line and hand over
+the rows. The seal records reads; it does not judge them.
+
+### Also inherited by phase 3
+
+- **`phi_KG` is unspecified.** Spec section on R2 says "exact KG feature
+  engineering will be specified separately", and that specification does not
+  exist. R2 cannot be carded until someone decides what it computes, under the
+  spec's own constraint that features must "describe functional/mechanistic
+  structure rather than merely relabel card identities". A KG projection that is
+  secretly a re-encoding of identity would test nothing.
+- **R3 has a candidate feature list already** (curve-out probability, colour
+  screw, wasted mana, reachability of KG motifs) and a sharp governing idea:
+  **mechanism exists != mechanism is reliably reachable**.
+- **The learner may be under-powered for this signal.** The attenuation result
+  (`reports/run_level_calibration.md`) says the deck effect is understated by
+  roughly 18% [3.5%, 31.6%] -- the signature of early-stopped boosting shrinking
+  toward the mean. Check whether that is a grid limitation *before* concluding
+  anything about representations, since an under-powered learner would understate
+  R2 and R3 the same way it understated R1.
+- **The strongest argument for R2/R3 is now empirical.** `base_p` is a historical
+  win rate, so it carries the deck quality that travels with a player (section 13:
+  "skill partially proxies expected deck quality because stronger players draft
+  better decks"). If the skill proxy is absorbing deck quality, a better deck
+  representation should claw some of it back. That is a testable prediction, not
+  a hope.
+
 ## Two things that keep going wrong -- read before authoring a card
 
 **Dry-run every gate first.** `echo "n" | ... compact run <repo> <id>` costs
