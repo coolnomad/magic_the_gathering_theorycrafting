@@ -2405,3 +2405,66 @@ Refs: `C:/GitHub/control_plane/.venv`; `C:/GitHub/control_plane/pyproject.toml` 
 **An operational note for the next card.** The full suite is now **276.9 s** (762 tests). Compact applies a **300 s cap to `## Checks`**, and the inherited default check is `python -m pytest -q`. There are roughly 23 seconds of headroom, so a card that adds tests can push the suite past the cap and fail on a timeout that has nothing to do with its work — and a validation timeout is serialized into the audit as `exit code 0`, which reads as success on a FAIL line. Card 017 must account for this.
 
 Refs: `src/deckbench/environment.py`; `tests/test_deckbench_environment.py`; `src/deckbench/estimator.py` (`fit_and_predict`); `pyproject.toml`; LABNOTEBOOK entries [2026-09-10 18:40] and [2026-09-10 20:15]; [[compact-orchestrator-gotchas]]
+
+## [2026-09-11 04:11] RESULT — The single holdout read: card identity is detectable, H2 is not supported (card 017)
+
+The measurement the benchmark was built to make. `cycle/holdout_ledger.jsonl` went from 0 bytes to **exactly one line**, recording card 017, `is_repeat: false`, split SHA256 `ad7f8596…`, timestamp `2026-09-11T04:11:18Z`. All six fitted models were scored on the same **47,346 held-out games across the untouched partition**, through the card-010 panel on the reconstructed-probability scale, with a paired cluster bootstrap over drafts (1000 replicates, seed 20260908, 95% percentile intervals). Nothing was fitted, tuned or selected on holdout rows.
+
+**Absolute panel (holdout).**
+
+| Model | log_loss | brier | brier_skill | auc | cal_slope |
+| --- | --- | --- | --- | --- | --- |
+| T0_R0 | 0.668461 | 0.238090 | 0.032338 | 0.597861 | 0.9735 |
+| T0_R1 | 0.666101 | 0.236945 | 0.036989 | 0.606858 | 0.9930 |
+| T1_R0 | 0.668453 | 0.238086 | 0.032355 | 0.598012 | 0.9680 |
+| T1_R1 | 0.666031 | 0.236910 | 0.037133 | 0.607031 | 0.9917 |
+| T2_R0 | 0.668460 | 0.238090 | 0.032339 | 0.597855 | 0.9736 |
+| T2_R1 | 0.665961 | 0.236882 | 0.037245 | 0.606685 | 0.9817 |
+
+**Finding 1 — card identity contributes detectable incremental predictive information beyond the skill proxy.** All three within-target increments `R1 - R0` exclude zero, and every metric agrees in sign:
+
+| increment | Δ brier_skill [95% CI] | Δ log_loss | Δ auc |
+| --- | --- | --- | --- |
+| T0 | **+0.004652** [+0.003488, +0.005838] | -0.002360 | +0.008997 |
+| T1 | **+0.004778** [+0.003568, +0.005968] | -0.002422 | +0.009019 |
+| T2 | **+0.004906** [+0.003841, +0.005942] | -0.002499 | +0.008830 |
+
+Magnitude: the skill-only models reach a Brier skill score of about **0.0323** and the skill-plus-identity models about **0.0372**. Of the small share of a game's outcome that is predictable at all under this learner, roughly **87% is attributable to the skill proxy and 13% to card identity**. AUC moves 0.598 to 0.607.
+
+**Finding 2 — H2 is not supported.** All nine difference-of-increment intervals include zero:
+
+| metric | comparison | point [95% CI] |
+| --- | --- | --- |
+| brier_skill | increment(T1) - increment(T0) | +0.000126 [-0.000299, +0.000533] |
+| brier_skill | increment(T2) - increment(T0) | +0.000254 [-0.000413, +0.000935] |
+| brier_skill | increment(T2) - increment(T1) | +0.000128 [-0.000583, +0.000863] |
+
+log_loss and brier agree, with the sign convention flipped. The point estimates *do* fall in H2's predicted order (T2 > T1 > T0), but the uncertainty swamps it completely. **Removing the dominant skill component, by either a fixed proxy or a cross-fitted learned baseline, did not detectably change how much deck signal could be recovered.** H2 predicted an ordering; the holdout neither establishes it nor rules it out, and the honest statement is that the effect, if any, is smaller than this design can see.
+
+**Finding 3 — H1 is supported.** The skill-only models already capture the bulk of the achievable Brier skill score, with the deck increments small in every formulation.
+
+**The development metrics got the ordering wrong, which is the point of having sealed them off.** Development increments ordered `T2 > T0 > T1`; the holdout orders them `T2 > T1 > T0`. Development also *overstated* the absolute level — T0_R1's Brier skill score was 0.041720 on development and **0.036989** on holdout, optimistic by roughly the size of the whole deck effect. Both are exactly what contamination by the hyperparameter-selecting folds predicts, and both are why section 13's discipline was worth the cost.
+
+**A prediction of mine that the data refuted.** Before the read I argued the likely outcome was an increment whose interval includes zero, and prepared for the section-13 null reading. The increment is clearly positive and all three intervals clear zero by a wide margin. Recorded because the reasoning was checkable and came out wrong; the null I expected landed on **H2** instead, where I had thought the development preview (T2 > T0 > T1) was already pointing against it.
+
+**What this does not establish.** A predictive increment measured with a fixed learner on a fixed representation is not a causal effect. Section 13's rule is symmetric: the ~13% share is a **floor on detectability under R1**, not a ceiling on how much deck composition matters. Card identity as normalized card fractions is a deliberately crude representation — phase 3's R2 (knowledge graph) and R3 (game script) exist because a functional representation may recover more from the same games. Nothing here licenses a statement about how much deck composition *causes* wins.
+
+**Reconstruction held on holdout too.** T1 clipped 68 of 47,346 rows (R0) and 47 (R1); T2 clipped 0 (R0) and 35 (R1); **no model overshot 1.0 on holdout**, where T2_R1 had produced 7 such rows on development. Calibration slopes sit between 0.968 and 0.993.
+
+**Provenance.** Read performed outside compact, inline, because the work exceeds an executor turn (see [2026-09-11 04:30]). Environment pins, split hash and all six run records were validated before the seal, and a full rehearsal of the scoring and bootstrap path ran on development rows first. Elapsed 817.9 s.
+
+Refs: `reports/holdout_read.md`; `cycle/holdout_ledger.jsonl`; `src/deckbench/final_read.py`; `tests/test_deckbench_final_read.py`; `data/runs/*_holdout_predictions.parquet`; `tasks/017.md`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§§ 11, 12, 13, 14); LABNOTEBOOK entries [2026-09-10 12:05] (T1) and [2026-09-10 19:05] (T2); [[modeling-benchmark-phase1-frozen]]
+
+## [2026-09-11 04:30] CORRECTION — Card 017 specified work that cannot fit inside a compact executor turn
+
+Card 017 required the executor to "finish the work inside the executor's own turn", warning against card 015's orphaned-background-fit failure. The executor hit that trap anyway: it built `final_read.py` and 21 passing tests, ran ruff and mypy clean, then launched the development rehearsal **in the background** and waited for a completion notification that cannot arrive inside a single `claude -p` call. It returned, the process died, the rehearsal was orphaned, and the card went BLOCKED with the seal intact — the safe failure.
+
+**The deeper fault is mine, not the executor's.** The work genuinely does not fit. Measured afterwards on real data: scoring all six models over the 194,215 development rows takes **8.3 s**; the 1000-replicate bootstrap over those rows takes **1581.1 s**. The card mandated a full rehearsal *and* a full holdout read in one turn — roughly 33 minutes. A card whose central action exceeds the executor's lifetime is mis-specified no matter how emphatically it forbids backgrounding, and the executor's instinct to background it was correct even though its method could not work.
+
+**Two things followed.** First, the rehearsal was given its own replicate count (`REHEARSAL_REPLICATES = 50`). It is a smoke test whose intervals nobody reads, and at the measurement's count the dry run cost about **four times** the irreversible measurement it protects — the holdout partition is a quarter the size of development. The holdout bootstrap is untouched at `DEFAULT_BOOTSTRAP_REPLICATES`, because a confidence interval's *width* converges quickly in the replicate count while its endpoints are order statistics of the replicate draws and stay visibly seed-dependent until the count is large; the report's intervals must be reproducible from their seed. Total read then ran in **817.9 s**.
+
+Second, the read was performed **outside compact**, inline in the session, and `compact retry` re-ran the card's checks against the result. That is the sanctioned path: retry does not invoke the executor, it re-runs checks and output validation against the working tree, and its own success note reads "Retry completed successfully after manual operator fixes." BLOCKED is the state that expects exactly this.
+
+**The rule to carry forward.** When a card's central action is long-running, the card must say so and place the action outside the executor, with compact verifying the artifacts afterwards — not demand that the executor do it inline. Estimate the runtime *before* writing the card; for anything involving a bootstrap, measure the cheap part and scale, since the resampling dominates by two orders of magnitude over the scoring it wraps.
+
+Refs: `tasks/017.md`; `src/deckbench/final_read.py` (`REHEARSAL_REPLICATES`); `audit/20260910_233556_hobkg_017.md`; LABNOTEBOOK entry [2026-09-11 04:11]; [[compact-orchestrator-gotchas]]
