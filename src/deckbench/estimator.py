@@ -78,6 +78,7 @@ import pyarrow as pa  # type: ignore[import-untyped]
 import pyarrow.parquet as pq  # type: ignore[import-untyped]
 from numpy.typing import NDArray
 
+from deckbench.environment import require_pinned_environment
 from deckbench.holdout import load_dev
 
 if TYPE_CHECKING:
@@ -555,7 +556,14 @@ def fit_and_predict(
     holdout row is present) and the run record, and writes three artifacts under
     ``runs_dir``: the predictions parquet, the run record json, and the final
     booster. Computes no metric, score, or calibration quantity.
+
+    Refuses to fit at all when the installed stack is not the pinned one --
+    see :mod:`deckbench.environment`. This is the single path every benchmark
+    model is fitted through, so the guard here is sufficient: no model can
+    reach ``data/runs/`` having been built by an unpinned library.
     """
+    require_pinned_environment()
+
     features = np.asarray(features, dtype=np.float64)
     outcome = np.asarray(outcome, dtype=np.float64)
     if weights is not None:

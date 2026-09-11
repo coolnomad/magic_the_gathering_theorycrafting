@@ -2387,3 +2387,21 @@ Six of six, after a genuine fit (R0 7.8 s, R1 242.9 s). The only difference in t
 **What is still not structural.** The six packages remain undeclared in `control_plane`'s `pyproject.toml`, so a venv rebuild or a strict `uv sync` would silently restore whatever versions resolve fresh. The pin is now real but it is not *recorded* anywhere that control_plane itself reads. The durable options are to declare them there, or to make `deckbench` refuse to fit when the environment does not match the project's pins -- a fail-closed guard in this repo, which would convert the invariant from a fact about a machine into a fact about the code. Left open rather than decided here.
 
 Refs: `C:/GitHub/control_plane/.venv`; `C:/GitHub/control_plane/pyproject.toml` (declares only `pydantic>=2`); `pyproject.toml` (`xgboost==3.1.2`); `data/runs/T2_R0*`, `T2_R1*`; LABNOTEBOOK entries [2026-09-10 18:40] and [2026-09-10 19:05]; [[compact-orchestrator-gotchas]]
+
+## [2026-09-10 21:00] DECISION — The pinned stack is enforced in code, not by hand
+
+`deckbench.environment` is added and called at the top of `estimator.fit_and_predict`, the single path every benchmark model is fitted through. A stack that does not match the pins now **stops the fit** instead of quietly producing artifacts that cannot be compared with the ones already on disk. This closes the item left open at [2026-09-10 20:15], where the environments had been aligned by hand and the consistency was a fact about a machine on a day rather than a fact about the code.
+
+**Pinned: `xgboost==3.1.2`, `numpy==2.3.5`, `pyarrow==22.0.0`.** Those are exactly the three packages `deckbench` imports that can change a fitted artifact — xgboost trains, numpy carries the arithmetic, pyarrow writes the prediction and reconstruction parquets whose byte-identity is an acceptance criterion. `pandas`, `scikit-learn` and `scipy` are declared in the `modeling` extra but are **not imported anywhere under `src/deckbench`** (verified), so they cannot move a result and are deliberately left unpinned. Pinning what cannot matter teaches people to ignore the guard.
+
+**No override, by design.** A pin that can be switched off under deadline is not a pin. Changing the stack remains allowed — it edits `PINNED_VERSIONS` and `pyproject.toml` together, invalidates every artifact under `data/runs/`, and is exactly as heavy a decision as that sounds.
+
+**Versions are read from distribution metadata**, not by importing, so the check is cheap and does not depend on a package being importable in the calling process.
+
+**The tests that matter are the ones that break the environment.** A guard that only ever passes is indistinguishable from no guard. `test_fit_and_predict_refuses_under_a_mismatched_stack` monkeypatches a pin, calls the real `fit_and_predict`, requires `EnvironmentMismatch`, and then asserts **no run record, booster or predictions parquet was left behind** — a refused fit must leave the tree as it found it. Its control asserts the legitimate path still fits. Seven more cover wrong versions, missing packages, the actionable error message (which names the interpreter, since "the wrong one was on PATH" is the entire failure mode), and the CLI's exit codes.
+
+**`python -m deckbench.environment`** reports the stack against the pins and exits non-zero on a mismatch, so it can be used directly as a task-card check. Run from both interpreters it now reports OK — `C:\Python314` and `C:/GitHub/control_plane/.venv` — which is the invariant card 017 depends on and can now be checked on demand rather than remembered.
+
+**An operational note for the next card.** The full suite is now **276.9 s** (762 tests). Compact applies a **300 s cap to `## Checks`**, and the inherited default check is `python -m pytest -q`. There are roughly 23 seconds of headroom, so a card that adds tests can push the suite past the cap and fail on a timeout that has nothing to do with its work — and a validation timeout is serialized into the audit as `exit code 0`, which reads as success on a FAIL line. Card 017 must account for this.
+
+Refs: `src/deckbench/environment.py`; `tests/test_deckbench_environment.py`; `src/deckbench/estimator.py` (`fit_and_predict`); `pyproject.toml`; LABNOTEBOOK entries [2026-09-10 18:40] and [2026-09-10 20:15]; [[compact-orchestrator-gotchas]]
