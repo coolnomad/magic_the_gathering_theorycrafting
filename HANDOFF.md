@@ -91,16 +91,24 @@ the executor returned, the pipeline went straight to checks and the orphaned fit
 died with the process. Never defer a card's real work to a wakeup that will
 never fire.
 
-**compact's executor and an interactive session are DIFFERENT PYTHON
-ENVIRONMENTS.** compact runs in `C:/GitHub/control_plane/.venv` (xgboost
-**3.4.1**); a session here runs `C:\Python314` + user site (**3.1.2**). Fits made
-in one do not reproduce in the other -- the T0 grid search picks a different
-point. `pyproject.toml` pins `xgboost==3.1.2` but that binds only this project's
-install, **not** control_plane's venv, so the pin does not actually protect you.
-All six models (T0/T1/T2 x R0/R1) are currently 3.1.2 and agree with their
-on-disk boosters. **A card that fits a model must use `py -3.14`**, or check the
-version before trusting the artifact. Card 016's executor caught this itself and
-re-fitted; do not rely on that happening again.
+**compact's executor and an interactive session are different Python
+environments -- ALIGNED 2026-09-10, but not structurally.** compact runs in
+`C:/GitHub/control_plane/.venv`; a session here runs `C:\Python314` + user site.
+Their whole numerical stacks had drifted apart (xgboost 3.4.1 vs 3.1.2, numpy
+2.5.1 vs 2.3.5, **pandas 3.0.3 vs 2.3.3**, pyarrow 25.0.1 vs 22.0.0, sklearn
+1.9.0 vs 1.7.2, scipy 1.18.0 vs 1.16.3), and fits made in one did not reproduce
+in the other. All six are now installed in control_plane's venv at the project's
+versions, and **a T2 refit there reproduced all six committed artifacts
+byte-for-byte** through the ordinary `--fit-t2` path. A fit now gives the same
+bytes in either environment.
+
+**The catch:** none of those six are declared dependencies of `control_plane`
+(its `pyproject.toml` wants only `pydantic>=2`) -- they are incidental installs,
+and this repo's `xgboost==3.1.2` pin does not bind that venv. A venv rebuild or
+strict `uv sync` there would silently restore fresh versions. **Before card 017
+fits anything, re-check the versions in both environments.** The durable fix is
+to declare them in control_plane, or to make `deckbench` fail closed when the
+environment does not match its pins; neither is done.
 
 **Verify a generated artifact against the artifact, not against another
 self-report -- and know which is which.** `Booster.save_raw()` re-serializes from

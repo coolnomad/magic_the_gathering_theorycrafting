@@ -2353,3 +2353,37 @@ Bump view (diagnostic for the T2 fit alone): R0 r2 **-0.000037**; R1 rmse 0.4858
 **Not opened.** `cycle/holdout_ledger.jsonl` is 0 bytes before and after. `data/processed/MANIFEST.sha256` unchanged. All six models (T0/T1/T2 x R0/R1) now record xgboost 3.1.2 and their on-disk boosters agree.
 
 Refs: `reports/t2_development_fits.md`; `src/deckbench/targets.py` (`load_baseline`, `build_t2`); `tests/test_deckbench_targets.py`; `data/runs/T2_R0_run.json`, `T2_R1_run.json`; `tasks/016.md`; `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (§ T2, § 13, § 14 H2); LABNOTEBOOK entries [2026-09-10 12:05] (T1) and [2026-09-10 18:40] (the environment correction); [[modeling-benchmark-phase1-frozen]]
+
+## [2026-09-10 20:15] RESULT — The orchestrator's environment is aligned with the project's, and cross-environment reproducibility is now demonstrated
+
+The correction of [2026-09-10 18:40] identified the real defect: compact's executor runs in `C:/GitHub/control_plane/.venv` while an interactive session runs the user-site interpreter, and fits made in one did not reproduce in the other. `pyproject.toml`'s `xgboost==3.1.2` pin binds only this project's install, not that venv, so the consistency of the six fitted models was being maintained by vigilance rather than by construction. This entry closes that.
+
+**The divergence was not limited to xgboost.** Measured before any change, every package in the numerical stack differed, one by a major version:
+
+| package | control_plane venv | project interpreter |
+| --- | --- | --- |
+| xgboost | 3.4.1 | **3.1.2** |
+| numpy | 2.5.1 | **2.3.5** |
+| pandas | **3.0.3** | **2.3.3** |
+| pyarrow | 25.0.1 | **22.0.0** |
+| scikit-learn | 1.9.0 | **1.7.2** |
+| scipy | 1.18.0 | **1.16.3** |
+
+`pyarrow` writes the prediction and reconstruction parquets, so it bears directly on the byte-identical determinism criterion, and `numpy` carries the arithmetic. Pinning xgboost alone would have left five other routes for artifacts to diverge while creating the impression the problem was solved.
+
+**None of these are declared dependencies of `control_plane`**, whose `pyproject.toml` requires only `pydantic>=2`. They are incidental installs, most likely left behind by an earlier card's executor installing what it needed mid-run (card 004's executor did exactly this with pyarrow). That is why nothing kept them aligned: no file ever claimed they should be.
+
+**What was done.** All six were installed into `control_plane/.venv` at the project's versions. The pins survive a subsequent `uv run` (verified) -- uv does not prune the extraneous packages here.
+
+**The proof, which is the point of the exercise.** T2 was refitted *in the control_plane venv* through the ordinary `--fit-t2` CLI path, the same path an executor uses, and compared byte-for-byte against the artifacts committed at `ff84d7d`:
+
+- `T2_R0.xgb`, `T2_R0_predictions.parquet`, `T2_R0_reconstruction.parquet` -- **identical**
+- `T2_R1.xgb`, `T2_R1_predictions.parquet`, `T2_R1_reconstruction.parquet` -- **identical**
+
+Six of six, after a genuine fit (R0 7.8 s, R1 242.9 s). The only difference in the regenerated report was wall-clock timing; every metric, diagnostic, clip count and chosen hyperparameter was unchanged, which is a second, independent confirmation. **A fit now produces the same bytes in either environment**, which is the property the benchmark needed and did not previously have.
+
+**A vacuous check caught in the act, worth recording because it is the failure mode this notebook keeps warning about.** The first attempt at this comparison called `build_t2(fit_r1=False)`, which raised `TypeError` on an argument that does not exist. The refit never ran -- and the hash comparison that followed dutifully reported all three artifacts "IDENTICAL", because nothing had touched them. A check that cannot fail proves nothing, and this one announced success while measuring an empty operation. It was only visible because the traceback happened to print alongside the result. The rerun used the supported CLI entry point and actually fitted.
+
+**What is still not structural.** The six packages remain undeclared in `control_plane`'s `pyproject.toml`, so a venv rebuild or a strict `uv sync` would silently restore whatever versions resolve fresh. The pin is now real but it is not *recorded* anywhere that control_plane itself reads. The durable options are to declare them there, or to make `deckbench` refuse to fit when the environment does not match the project's pins -- a fail-closed guard in this repo, which would convert the invariant from a fact about a machine into a fact about the code. Left open rather than decided here.
+
+Refs: `C:/GitHub/control_plane/.venv`; `C:/GitHub/control_plane/pyproject.toml` (declares only `pydantic>=2`); `pyproject.toml` (`xgboost==3.1.2`); `data/runs/T2_R0*`, `T2_R1*`; LABNOTEBOOK entries [2026-09-10 18:40] and [2026-09-10 19:05]; [[compact-orchestrator-gotchas]]
