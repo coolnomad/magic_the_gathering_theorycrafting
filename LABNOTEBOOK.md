@@ -2497,3 +2497,33 @@ The distinction being held: re-expressing one confirmed effect in different unit
 **Standing of each claim.** Card identity carries real incremental predictive information: **established** (card 017). Both models well calibrated at run level: **supported**. The model understates the deck effect: **supported**, magnitude imprecise. Adding the deck improves calibration: **not supported**. Trophy rate roughly doubles across deck deciles: **indicative**. None of it is causal — section 13 governs, and the attenuation result sharpens the predictive claim without converting it into a causal one.
 
 Refs: `reports/run_level_calibration.md`; `reports/figures/run_level_calibration.png`; `tools/run_level_calibration.py`; `data/runs/T2_R0_holdout_predictions.parquet`, `T2_R1_holdout_predictions.parquet`; LABNOTEBOOK entry [2026-09-11 04:11] (the read itself); `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (sections 12, 13); [[modeling-benchmark-phase1-frozen]]
+
+## [2026-09-11 06:20] OBSERVATION — The two levers under a causal reading, recorded explicitly as a mental exercise
+
+Added to `reports/run_level_calibration.md` as a section headed "A mental exercise: if this were the full causal story", reproducible via `tools/counterfactual_levers.py`. **The premise is not established and is probably false.** Section 13 is explicit that a predictive increment measured with a fixed learner on a fixed representation does not show that changing a deck would change a win rate. This is recorded as an `OBSERVATION`, not a `RESULT`, because the arithmetic is real but the thing it is arithmetic *about* is a supposition.
+
+It is written down anyway because it is the most useful way to feel the size of what was measured, and because the alternative — leaving the causal question implicit — is how a predictive increment quietly becomes a causal claim in someone's retelling.
+
+**The honest backdrop first: outcomes are mostly coin flips.** About 96% of a single game and 81% of a whole run are unexplained by skill and deck combined. Everything below operates on the remainder.
+
+**The two levers**, as spreads in per-game win probability across the holdout population at run level:
+
+| lever | 10th | 50th | 90th | p90 - p10 | sd |
+| --- | --- | --- | --- | --- | --- |
+| SKILL (deck fixed) | 0.4347 | 0.5762 | 0.6652 | 0.2305 | 0.0981 |
+| DECK (player fixed) | -0.0387 | -0.0005 | +0.0351 | 0.0738 | 0.0299 |
+| DECK, attenuation-corrected | -0.0456 | 0.0000 | +0.0414 | 0.0870 | 0.0353 |
+
+**Head to head**, two otherwise identical players, composing strength in log-odds space (`theta = logit(p) - logit(p_field)`, `P(A beats B) = sigmoid(theta_A - theta_B)` — itself an assumption, not something tested here): same deck and skill 50.0%; A on a top-decile deck against a median one **54.3%**; top-decile against bottom-decile **58.8%**; and with decks held equal, a 90th-percentile player against a 10th-percentile one **72.1%**.
+
+**Over a whole run** from the median player: baseline 3.679 wins and a 18.97% trophy rate; a bottom-decile deck 3.181 and **12.39%**; a top-decile deck 4.157 and **26.64%**. Holding the deck fixed, a 10th-percentile player gets 2.262 and **4.08%**, a 90th-percentile player 4.721 and **37.37%**. So the deck spans a **2.1x** swing in trophy rate and the player spans **9.2x**.
+
+**The reason the lever ratio is an upper bound, not an estimate.** `base_p` is a historical *win rate*, and a win rate is partly produced by the decks that player habitually drafted. Section 13 names this exact failure mode: "skill partially proxies expected deck quality because stronger players draft better decks." So the SKILL lever is really *skill plus the deck quality that travels with it*, and the 2.7x ratio **overstates skill's advantage over deck by an unknown amount**. A genuine causal decomposition would move some of that span into the deck column. This is the single most important caveat in the section and it is stated there first, not last.
+
+Three further reasons not to take it literally: "intervening on skill" is not a coherent intervention the way swapping a deck is; the deck lever is measured under **R1** (normalised card fractions, a deliberately crude representation) so it is a floor rather than a ceiling; and the attenuation correction of x1.178 carries its own wide interval of [1.036, 1.316].
+
+**The sentence worth keeping.** Under the counterfactual, a top-decile deck is worth roughly **+4 percentage points of per-game win rate** against a median one, which **roughly doubles trophy rate** over a run — and it is the lever a player can actually pull, every single draft. Skill looks larger, but part of what makes skill look larger is deck quality hiding inside the skill proxy. The difference between "decks barely matter" and "decks matter, and our skill number is partly made of decks" is the whole point, and only the second is consistent with what was measured.
+
+**Still a derived analysis.** `load_holdout` is never called, `repeat=True` appears nowhere, and `cycle/holdout_ledger.jsonl` is unchanged at one line. The report's standing-of-claims table now carries a row for this section reading "**not a finding** — computed under a premise section 13 rejects".
+
+Refs: `reports/run_level_calibration.md` (section "A mental exercise"); `tools/counterfactual_levers.py`; LABNOTEBOOK entries [2026-09-11 04:11] (the read) and [2026-09-11 05:40] (the calibration analysis); `docs/MTG_Deck-Strength_Modeling_Benchmark.md` (section 13); [[modeling-benchmark-phase1-frozen]]

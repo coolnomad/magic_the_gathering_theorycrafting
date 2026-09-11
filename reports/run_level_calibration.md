@@ -120,6 +120,63 @@ About **0.83 extra wins per run**, and a trophy rate that nearly doubles.
 
 **This translation is indicative, not measured.** It is a deterministic transform of model predictions with no interval of its own, it assumes independence at constant `p` within a run, and it inherits the attenuation established above — meaning the true gap is likely *wider* than shown, not narrower.
 
+## A mental exercise: if this were the full causal story
+
+> **The premise of this section is not established and is probably false.** Benchmark section 13 is explicit that a predictive increment measured with a fixed learner on a fixed representation does not show that changing a deck would change a win rate. What follows is the arithmetic of *"suppose it did"*, written down because it is a useful way to feel the size of the measured effects — not because the supposition is believed. Reproduce with `python tools/counterfactual_levers.py`.
+
+First, the honest backdrop: **outcomes are mostly coin flips.** About 96% of a single game and 81% of a whole run are unexplained by skill and deck combined. Everything below operates on the remainder.
+
+### The two levers
+
+Spreads in per-game win probability across the holdout population, at run level:
+
+| lever | 10th | 50th | 90th | p90 − p10 | sd |
+| --- | --- | --- | --- | --- | --- |
+| SKILL (deck fixed) | 0.4347 | 0.5762 | 0.6652 | 0.2305 | 0.0981 |
+| DECK (player fixed) | −0.0387 | −0.0005 | +0.0351 | 0.0738 | 0.0299 |
+| DECK, attenuation-corrected | −0.0456 | 0.0000 | +0.0414 | 0.0870 | 0.0353 |
+
+The skill lever is about **2.7×** the deck lever.
+
+### Head to head, two otherwise identical players
+
+Computed in log-odds space: a per-game `p` is "win against the average field", so strength is `theta = logit(p) − logit(p_field)` and `P(A beats B) = sigmoid(theta_A − theta_B)`. That composition rule is an assumption layered on the model, not something this project tested.
+
+| scenario | P(A wins) |
+| --- | --- |
+| same skill, same deck | 50.0% |
+| same skill, A top-decile deck vs B median deck | 54.3% |
+| same skill, A top-decile deck vs B bottom-decile deck | 58.8% |
+| same deck, A 90th-percentile player vs B 10th-percentile | 72.1% |
+
+### Over a whole run, from the median player
+
+| intervention | E[wins] | trophy |
+| --- | --- | --- |
+| baseline: median player, median deck | 3.679 | 18.97% |
+| swap to a bottom-decile deck | 3.181 | 12.39% |
+| swap to a top-decile deck | 4.157 | **26.64%** |
+| become a 10th-percentile player (deck fixed) | 2.262 | 4.08% |
+| become a 90th-percentile player (deck fixed) | 4.721 | **37.37%** |
+
+Deck spans a **2.1×** swing in trophy rate; the player spans **9.2×**.
+
+### Four reasons not to take this literally
+
+**1. `base_p` is not skill, and it contains deck.** This is the serious one. `base_p` is a historical *win rate*, and a win rate is partly produced by the decks that player habitually drafted. Section 13 names exactly this failure: *"skill partially proxies expected deck quality because stronger players draft better decks."* So the SKILL lever above is really **skill plus the deck quality that travels with it**, and the 2.7× ratio is an **upper bound on skill's advantage over deck**, not an estimate of it. A genuine causal decomposition would move some of that span into the deck column.
+
+**2. "Intervening on skill" is not a coherent intervention** in the way swapping a deck is. A player can change decks between drafts; they cannot change their win-rate history.
+
+**3. The deck lever is measured under R1** — normalized card fractions, a deliberately crude representation. The increment it recovers is a floor on what decks do, not a ceiling. R2 and R3 exist for this reason.
+
+**4. The head-to-head composition rule is assumed**, and the attenuation correction (×1.178) carries its own wide interval of [1.036, 1.316].
+
+### The sentence worth keeping
+
+Under the counterfactual, a top-decile deck is worth roughly **+4 percentage points of per-game win rate** against a median one, which **roughly doubles trophy rate** over a run — and it is the lever a player can actually pull, every single draft.
+
+Skill looks larger. But part of what makes skill look larger is deck quality hiding inside the skill proxy. That distinction is the difference between *"decks barely matter"* and *"decks matter, and our skill number is partly made of decks"* — and only the second is consistent with what was measured.
+
 ## What this does and does not establish
 
 | claim | standing |
@@ -129,11 +186,13 @@ About **0.83 extra wins per run**, and a trophy rate that nearly doubles.
 | The model understates the deck effect | **supported** — slope excludes 1; magnitude imprecise |
 | Adding the deck improves calibration | **not supported** — interval includes zero |
 | Bad-deck → good-deck roughly doubles the trophy rate | **indicative** — deterministic transform, no interval |
+| The causal lever sizes in "a mental exercise" above | **not a finding** — computed under a premise section 13 rejects |
 
 None of this is causal. Benchmark section 13 governs: a predictive increment measured with a fixed learner on a fixed representation does not establish that changing a deck would change a win rate, and stronger players may draft better decks. The attenuation result sharpens the predictive claim; it does not convert it into a causal one.
 
 ## Provenance
 
+- Tools: `tools/run_level_calibration.py` (measurements), `tools/counterfactual_levers.py` (the mental exercise).
 - Source artifacts: `data/runs/T2_R0_holdout_predictions.parquet`, `data/runs/T2_R1_holdout_predictions.parquet`, both written by card 017.
 - Grouping: `data/processed/model_split.parquet` (frozen, manifest-tracked).
 - Bootstrap: 1000 replicates, seed 20260908, 95% percentile, clustered on `draft_id`, via `deckbench.evaluation.bootstrap_replicate_indices`.
