@@ -101,6 +101,19 @@ whole deck effect.
 
 ## PHASE 3 CANNOT START UNTIL THIS IS DECIDED
 
+**Read `reports/phase3_exploration.md` before designing any R2/R3 card.** A full
+exploration was run on development rows (no holdout spent) and its result is a
+NEGATIVE: **card identity already extracts essentially everything the knowledge
+graph can name.** Two mechanics chosen to span the structural extremes were
+captured at 82.7% and 89.6% with the residual at the noise floor in BOTH cases,
+and the simplest game script is worse than the skill proxy alone. **Do not card
+R2 against incremental Brier -- the evidence says it loses.** What the graph
+uniquely supplies (direction, transferable role labels, the feasible-space map,
+causal structure) is not what section 11 measures. The report also records three
+predictions of mine that measurement falsified, because a future session will be
+tempted by the same reasoning.
+
+
 Spec section 16 puts phase 3 next: the representation benchmark,
 `D_identity -> Z_KG -> Z_script -> combined` (R2-R5). **It is blocked on one
 decision, and the decision must be made before any R2 feature is computed** --
